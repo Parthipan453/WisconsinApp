@@ -1,0 +1,162 @@
+<!----------------  Rixie Code  ---------------->
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}My Schedule - Wisconsin University{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_schedule %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Academic/schedule.css' %}">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="schedule-wrap">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <i class="ti ti-calendar-event"></i> My Schedule
+      </div>
+      <div class="page-sub">
+        {% if current_semester %}
+          {{ current_semester.get_semester_type_display }} {{ current_semester.academic_year }}
+        {% endif %}
+        {% if user.get_full_name %}&bull; {{ user.get_full_name }}{% endif %}
+        {% if filter_label %}&bull; <span class="filter-label">{{ filter_label }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="schedule-controls">
+        <select class="filter-select" id="semester-select" aria-label="Semester">
+          <option value="">All Semesters</option>
+          {% for sem in semester_list %}
+          <option value="{{ sem.code }}" {% if sem.code == semester_filter_code %}selected{% endif %}>{{ sem.display }}</option>
+          {% endfor %}
+        </select>
+
+        <select class="filter-select" id="view-select" aria-label="View by">
+          <option value="week" {% if view_mode == 'week' %}selected{% endif %}>Week</option>
+          <option value="month" {% if view_mode == 'month' %}selected{% endif %}>Month</option>
+          <option value="today" {% if view_mode == 'today' %}selected{% endif %}>Today</option>
+        </select>
+
+        {% if view_mode != 'today' %}
+        <select class="filter-select" id="year-select" aria-label="Year">
+          {% for y in years %}
+          <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+
+        <select class="filter-select" id="month-select" aria-label="Month">
+          {% for m in months %}
+          <option value="{{ m.value }}" {% if m.value == selected_month_str %}selected{% endif %}>{{ m.label }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+
+        {% if view_mode == 'week' %}
+        <select class="filter-select" id="week-select" aria-label="Week">
+          {% for w in weeks %}
+          <option value="{{ w.value }}" {% if w.value == selected_date_str %}selected{% endif %}>{{ w.label }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+      </div>
+      {% if semester_filter_code %}
+      <div class="semester-badge">
+        <i class="ti ti-calendar"></i>
+        <span><strong>{{ semester_filter_code }}</strong></span>
+      </div>
+      {% elif current_semester %}
+      <div class="semester-badge">
+        <i class="ti ti-calendar"></i>
+        <span><strong>{{ current_semester.semester_code }}</strong> &bull; {{ current_semester.get_semester_type_display }} {{ current_semester.academic_year }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <i class="ti ti-books stat-icon"></i>
+      <div class="stat-label">Courses</div>
+      <div class="stat-value">{{ total_courses }}</div>
+    </div>
+    <div class="stat-card">
+      <i class="ti ti-layer stat-icon"></i>
+      <div class="stat-label">Credits</div>
+      <div class="stat-value">{{ total_credits }} <span class="unit">cr</span></div>
+    </div>
+    <div class="stat-card">
+      <i class="ti ti-clock stat-icon"></i>
+      <div class="stat-label">Sessions</div>
+      <div class="stat-value">{{ total_sessions }}</div>
+    </div>
+    <div class="stat-card">
+      <i class="ti ti-building stat-icon"></i>
+      <div class="stat-label">Locations</div>
+      <div class="stat-value">{{ total_locations }}</div>
+    </div>
+  </div>
+
+  <div class="timetable-wrapper">
+    <div class="timetable-scroll">
+      <table class="timetable">
+        <thead>
+          <tr>
+            <th class="time-col">Time</th>
+            {% for col in day_header_cols %}
+            <th>
+              <i class="ti ti-calendar-day"></i> {{ col.label }}
+              {% if col.dates %}
+                {% for d in col.dates %}<span class="date-label">{{ d|date:"M d" }}</span>{% endfor %}
+              {% endif %}
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in timetable_rows %}
+          <tr>
+            <td class="time-col">{{ row.display_time }}</td>
+            {% for cell in row.cells %}
+            <td>
+              {% if cell.items %}
+                {% for item in cell.items %}
+                <div class="schedule-block" style="border-left: 4px solid {{ item.color }};" onclick="showCourseDetails('{{ item.course_code }}', '{{ item.course_name }}', '{{ item.instructor }}', '{% if item.is_online %}Online{% else %}{{ item.room }}{% if item.building %} {{ item.building }}{% endif %}{% endif %}')">
+                  <div class="block-course" style="color: {{ item.color }};">{{ item.course_code }}</div>
+                  <div class="block-title">{{ item.course_name }}</div>
+                  <div class="block-time"><i class="ti ti-clock"></i> {{ item.start_time|time:"g:i A" }} - {{ item.end_time|time:"g:i A" }}</div>
+                  <div class="block-room"><i class="ti ti-map-pin"></i> {% if item.is_online %}Online{% else %}{{ item.room }}{% if item.building %} {{ item.building }}{% endif %}{% endif %}</div>
+                  {% if item.date %}<div class="block-date"><i class="ti ti-calendar"></i> {{ item.date|date:"D, M d" }}</div>{% endif %}
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="empty-cell">&mdash;</div>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Academic/schedule.js' %}"></script>
+{% endblock %}
+
+
+
+<!----------------  Rixie Code  ---------------->

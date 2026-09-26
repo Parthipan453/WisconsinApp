@@ -1,0 +1,440 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Attendance Records{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/attendance_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/Eric/attendance_day_month.css' %}">
+
+{% endblock %}
+
+{% block nav_attenance_open %}open{% endblock %}
+{% block nav_attenance_submenu %}open{% endblock %}
+{% block nav_overall_records %}active{% endblock %}
+
+{% block content %}
+{% include "Eric/partials/messages.html" %}
+<div class="za-rd-root">
+  <div class="za-graphs-row">
+    <div class="za-graph-card">
+      <div class="za-graph-hd">
+        <span class="za-graph-title">Status Distribution</span>
+        <span class="za-graph-sub">
+          {% if view_mode == "day" %}{{ sel_date|date:"M j, Y" }}{% elif view_mode == "year" %}{% if range_option == "3" %}{{ last3_label }}{% else %}{{ sel_year }}{% endif %}{% elif view_mode == "semester" %}{{ sel_year }}–{{ sel_year|add:1 }}{% else %}{{ sel_date|date:"F Y" }}{% endif %}
+        </span>
+      </div>
+      <div class="za-graph-body-center">
+        <canvas id="zaDonutChart"></canvas>
+      </div>
+    </div>
+    <div class="za-graph-card">
+      <div class="za-graph-hd">
+        <span class="za-graph-title">Attendance Trend</span>
+        <span class="za-graph-sub">{% if view_mode == "year" %}{% if range_option == "3" %}{{ last3_label }}{% else %}{{ sel_year }}{% endif %}{% elif view_mode == "semester" %}{{ sel_year }}–{{ sel_year|add:1 }}{% else %}{{ sel_date|date:"F Y" }}{% endif %}</span>
+      </div>
+      <div class="za-graph-body-chart">
+        <canvas id="zaTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="za-rd-hero">
+    <div class="za-rd-hero-in">
+      <div class="za-rd-top">
+        <nav class="za-rd-bread">
+          <a href="{% url 'faculty_attendance' request.user.uuid %}">Attendance</a>
+          <span class="za-rd-bread-sep">/</span>
+          <span>Records</span>
+        </nav>
+      </div>
+
+      <div class="za-rd-pivot">
+        <div class="za-rd-pivot-l">
+          <div class="za-rd-pivot-tabs">
+            <a href="?view=day{% if selected_dept %}&amp;department={{ selected_dept }}{% endif %}" class="za-rd-pivot-tab{% if view_mode == 'day' %} active{% endif %}"><i class="ti ti-calendar-day"></i> Day</a>
+            <a href="?view=month&year={{ sel_year|default:sel_date.year }}&month={{ sel_month|default:sel_date.month }}{% if selected_dept %}&amp;department={{ selected_dept }}{% endif %}" class="za-rd-pivot-tab{% if view_mode == 'month' %} active{% endif %}"><i class="ti ti-calendar-month"></i> Month</a>
+            <a href="?view=year&year={{ sel_year|default:sel_date.year }}{% if selected_dept %}&amp;department={{ selected_dept }}{% endif %}" class="za-rd-pivot-tab{% if view_mode == 'year' %} active{% endif %}"><i class="ti ti-calendar-stats"></i> Year</a>
+            <a href="?view=semester&year={{ sel_year|default:sel_date.year }}{% if selected_dept %}&amp;department={{ selected_dept }}{% endif %}" class="za-rd-pivot-tab{% if view_mode == 'semester' %} active{% endif %}"><i class="ti ti-calendar-time"></i> Semester</a>
+          </div>
+        </div>
+        <div class="za-rd-pivot-c">
+          {% if view_mode == "day" %}
+          <form method="GET" class="za-rd-date-form">
+            <input type="hidden" name="view" value="day">
+            <input type="date" name="date" class="za-rd-date-input" value="{{ sel_date|date:'Y-m-d' }}" max="{% now 'Y-m-d' %}" onchange="this.form.submit()">
+            {% if selected_dept %}<input type="hidden" name="department" value="{{ selected_dept }}">{% endif %}
+          </form>
+          {% elif view_mode == "month" %}
+          <input type="month" class="za-rd-date-input" value="{{ sel_date|date:'Y-m' }}" max="{% now 'Y-m' %}" onchange="var v=this.value.split('-'); window.location='?view=month&year='+v[0]+'&month='+parseInt(v[1])+'{% if selected_dept %}&amp;department={{ selected_dept }}{% endif %}'">
+          {% elif view_mode == "year" %}
+          <form method="GET" class="za-rd-date-form za-rd-year-form">
+            <input type="hidden" name="view" value="year">
+            <input type="number" name="year" class="za-rd-date-input" value="{{ sel_year }}" min="2000" max="{% now 'Y' %}" onchange="this.form.submit()">
+            <label class="za-rd-range-toggle">
+              <input type="checkbox" name="range" value="3" {% if range_option == "3" %}checked{% endif %} onchange="this.form.submit()"> Last 3 months
+            </label>
+            {% if selected_dept %}<input type="hidden" name="department" value="{{ selected_dept }}">{% endif %}
+          </form>
+          {% else %}
+          <form method="GET" class="za-rd-date-form za-rd-year-form">
+            <input type="hidden" name="view" value="semester">
+            <input type="number" name="year" class="za-rd-date-input" value="{{ sel_year }}" min="2000" max="{% now 'Y' %}" onchange="this.form.submit()">
+            {% if selected_dept %}<input type="hidden" name="department" value="{{ selected_dept }}">{% endif %}
+          </form>
+          {% endif %}
+        </div>
+        <div class="za-rd-pivot-r">
+          <div class="za-rd-pivot-r-inner">
+            <form method="GET" class="za-rd-filter-form">
+              {% if view_mode == "day" %}
+              <input type="hidden" name="view" value="day">
+              <input type="hidden" name="date" value="{{ sel_date|date:'Y-m-d' }}">
+              {% elif view_mode == "year" %}
+              <input type="hidden" name="view" value="year">
+              <input type="hidden" name="year" value="{{ sel_year }}">
+              <input type="hidden" name="range" value="{{ range_option|default:'12' }}">
+              {% elif view_mode == "semester" %}
+              <input type="hidden" name="view" value="semester">
+              <input type="hidden" name="year" value="{{ sel_year }}">
+              {% else %}
+              <input type="hidden" name="view" value="month">
+              <input type="hidden" name="year" value="{{ sel_year }}">
+              <input type="hidden" name="month" value="{{ sel_month }}">
+              {% endif %}
+              <div class="za-select-wrap">
+              <select name="department" class="za-select za-rd-dept-sel" onchange="this.form.submit()">
+                <option value="">All Departments</option>
+                {% for d in departments %}
+                <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:'s' %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+              </select>
+              </div>
+            </form>
+            <div class="za-dropdown" id="admExportDropdown">
+              <button type="button" class="za-btn za-btn-outline za-dropdown-toggle" onclick="document.getElementById('admExportDropdown').classList.toggle('open')">
+                <i class="ti ti-download"></i> Export
+              </button>
+              <div class="za-dropdown-menu">
+                <a href="{% url 'export_day_month_excel' request.user.uuid %}?view={{ view_mode }}{% if view_mode == 'day' %}&date={{ sel_date|date:'Y-m-d' }}{% elif view_mode == 'year' %}&year={{ sel_year }}&range={{ range_option|default:'12' }}{% elif view_mode == 'semester' %}&year={{ sel_year }}{% else %}&year={{ sel_year }}&month={{ sel_month }}{% endif %}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="za-dropdown-item"><i class="ti ti-file-spreadsheet"></i> Excel</a>
+                <a href="{% url 'export_day_month_pdf' request.user.uuid %}?view={{ view_mode }}{% if view_mode == 'day' %}&date={{ sel_date|date:'Y-m-d' }}{% elif view_mode == 'year' %}&year={{ sel_year }}&range={{ range_option|default:'12' }}{% elif view_mode == 'semester' %}&year={{ sel_year }}{% else %}&year={{ sel_year }}&month={{ sel_month }}{% endif %}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="za-dropdown-item"><i class="ti ti-file-text"></i> PDF</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="za-rd-table-wrap">
+    {% if view_mode == "year" %}
+      <div class="za-summary-nav">
+        {% if range_option == '3' %}
+        <span class="za-summary-nav-lbl">Last 3 Months — {{ last3_label }}</span>
+        {% else %}
+        <a class="za-btn za-btn-outline" href="?view=year&year={{ prev_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}"><i class="ti ti-chevron-left"></i> {{ prev_year }}</a>
+        <span class="za-summary-nav-lbl">Academic / Calendar Year {{ sel_year }}</span>
+        {% if next_year %}<a class="za-btn za-btn-outline" href="?view=year&year={{ next_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}">{{ next_year }} <i class="ti ti-chevron-right"></i></a>{% else %}<span class="za-btn za-btn-outline za-btn-disabled">Next</span>{% endif %}
+        {% endif %}
+      </div>
+      {% for mg in month_groups %}
+      <div class="za-rd-day-group za-rd-month-group">
+        <div class="za-rd-day-hd za-rd-month-hd" data-collapse-target="year-m-{{ mg.year }}-{{ mg.month }}" role="button" tabindex="0" aria-expanded="false">
+          <i class="ti ti-calendar-month"></i>
+          <span class="za-rd-day-hd-date">{{ mg.label }} {{ mg.year }}</span>
+          <span class="za-rd-day-hd-count">{{ mg.count }} record{{ mg.count|pluralize }}</span>
+          <i class="ti ti-chevron-down za-rd-day-chevron"></i>
+        </div>
+        <div id="year-m-{{ mg.year }}-{{ mg.month }}" class="collapse">
+          {% for day_date, day_recs in mg.groups.items %}
+          <div class="za-rd-day-group za-rd-day-sub">
+            <div class="za-rd-day-hd" data-collapse-target="year-d-{{ mg.year }}-{{ mg.month }}-{{ day_date|date:'Ymd' }}" role="button" tabindex="0" aria-expanded="false">
+              <i class="ti ti-calendar"></i>
+              <span class="za-rd-day-hd-date">{{ day_date|date:"l, M j, Y" }}</span>
+              <span class="za-rd-day-hd-count">{{ day_recs|length }} record{{ day_recs|length|pluralize }}</span>
+              <i class="ti ti-chevron-down za-rd-day-chevron"></i>
+            </div>
+            <div id="year-d-{{ mg.year }}-{{ mg.month }}-{{ day_date|date:'Ymd' }}" class="collapse">
+              <div class="za-rd-table-scroll" tabindex="0" aria-label="Attendance records table. Scroll horizontally to view all columns.">
+              <table class="za-rd-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Hours</th>
+                    <th>Status</th>
+                    <th>Late</th>
+                    <th>Early</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for rec in day_recs %}
+                  <tr class="za-rd-tr-{{ rec.status|lower }}">
+                    <td class="za-rd-td-id">{{ rec.faculty.employee_id }}</td>
+                    <td>
+                      <div class="za-rd-name">
+                        <span class="za-rd-name-initials">{{ rec.faculty.user.first_name|first|upper }}{{ rec.faculty.user.last_name|first|upper }}</span>
+                        <span>{{ rec.faculty.user.get_full_name }}</span>
+                      </div>
+                    </td>
+                    <td><span class="za-rd-dept-tag">{{ rec.dept_name }}</span></td>
+                    <td class="za-rd-td-time">{% if rec.check_in %}<i class="ti ti-login za-icon-ci"></i> {{ rec.check_in|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                    <td class="za-rd-td-time">{% if rec.check_out %}<i class="ti ti-logout za-icon-co"></i> {{ rec.check_out|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                    <td class="za-rd-td-hrs">{% if rec.total_hours_worked is not None %}{{ rec.total_hours_worked }}h{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                    <td><span class="za-rd-status status-{{ rec.status|lower }}">{{ rec.get_status_display }}</span></td>
+                    <td class="za-rd-td-mins">{% if rec.late_minutes %}<span class="za-rd-mins warn">{{ rec.late_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                    <td class="za-rd-td-mins">{% if rec.early_leave_minutes %}<span class="za-rd-mins danger">{{ rec.early_leave_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                    <td><a href="{% url 'edit_attendance' rec.id %}" class="za-rd-edit-btn" title="Edit"><i class="ti ti-pencil"></i></a></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="za-rd-empty za-rd-empty-small">
+            <p class="mb-0">No attendance records in {{ mg.label }} {{ mg.year }}.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+    {% elif view_mode == "semester" %}
+      <div class="za-summary-nav">
+        <a class="za-btn za-btn-outline" href="?view=semester&year={{ prev_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}"><i class="ti ti-chevron-left"></i> {{ prev_year }}</a>
+        <span class="za-summary-nav-lbl">Academic Year {{ sel_year }}–{{ sel_year|add:1 }}</span>
+        {% if next_year %}<a class="za-btn za-btn-outline" href="?view=semester&year={{ next_year }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}">{{ next_year }} <i class="ti ti-chevron-right"></i></a>{% else %}<span class="za-btn za-btn-outline za-btn-disabled">Next</span>{% endif %}
+      </div>
+      {% for sg in semester_groups %}
+      <div class="za-rd-day-group za-rd-sem-group">
+        <div class="za-rd-day-hd za-rd-sem-hd" data-collapse-target="sem-{{ sg.key }}" role="button" tabindex="0" aria-expanded="false">
+          <i class="ti ti-calendar-stats"></i>
+          <span class="za-rd-day-hd-date">{{ sg.label }}</span>
+          <span class="za-rd-sem-sub">{{ sg.subtitle }}</span>
+          <span class="za-rd-day-hd-count">{{ sg.count }} record{{ sg.count|pluralize }}</span>
+          <i class="ti ti-chevron-down za-rd-day-chevron"></i>
+        </div>
+        <div id="sem-{{ sg.key }}" class="collapse">
+          {% for smg in sg.months %}
+          <div class="za-rd-day-group za-rd-month-group">
+            <div class="za-rd-day-hd za-rd-month-hd" data-collapse-target="sem-m-{{ sg.key }}-{{ smg.month }}" role="button" tabindex="0" aria-expanded="false">
+              <i class="ti ti-calendar-month"></i>
+              <span class="za-rd-day-hd-date">{{ smg.label }} {{ smg.year }}</span>
+              <span class="za-rd-day-hd-count">{{ smg.count }} record{{ smg.count|pluralize }}</span>
+              <i class="ti ti-chevron-down za-rd-day-chevron"></i>
+            </div>
+            <div id="sem-m-{{ sg.key }}-{{ smg.month }}" class="collapse">
+              {% for day_date, day_recs in smg.groups.items %}
+              <div class="za-rd-day-group za-rd-day-sub">
+                <div class="za-rd-day-hd" data-collapse-target="sem-d-{{ sg.key }}-{{ smg.month }}-{{ day_date|date:'Ymd' }}" role="button" tabindex="0" aria-expanded="false">
+                  <i class="ti ti-calendar"></i>
+                  <span class="za-rd-day-hd-date">{{ day_date|date:"l, M j, Y" }}</span>
+                  <span class="za-rd-day-hd-count">{{ day_recs|length }} record{{ day_recs|length|pluralize }}</span>
+                  <i class="ti ti-chevron-down za-rd-day-chevron"></i>
+                </div>
+                <div id="sem-d-{{ sg.key }}-{{ smg.month }}-{{ day_date|date:'Ymd' }}" class="collapse">
+                  <div class="za-rd-table-scroll" tabindex="0" aria-label="Attendance records table. Scroll horizontally to view all columns.">
+                  <table class="za-rd-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Hours</th>
+                        <th>Status</th>
+                        <th>Late</th>
+                        <th>Early</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for rec in day_recs %}
+                      <tr class="za-rd-tr-{{ rec.status|lower }}">
+                        <td class="za-rd-td-id">{{ rec.faculty.employee_id }}</td>
+                        <td>
+                          <div class="za-rd-name">
+                            <span class="za-rd-name-initials">{{ rec.faculty.user.first_name|first|upper }}{{ rec.faculty.user.last_name|first|upper }}</span>
+                            <span>{{ rec.faculty.user.get_full_name }}</span>
+                          </div>
+                        </td>
+                        <td><span class="za-rd-dept-tag">{{ rec.dept_name }}</span></td>
+                        <td class="za-rd-td-time">{% if rec.check_in %}<i class="ti ti-login za-icon-ci"></i> {{ rec.check_in|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                        <td class="za-rd-td-time">{% if rec.check_out %}<i class="ti ti-logout za-icon-co"></i> {{ rec.check_out|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                        <td class="za-rd-td-hrs">{% if rec.total_hours_worked is not None %}{{ rec.total_hours_worked }}h{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                        <td><span class="za-rd-status status-{{ rec.status|lower }}">{{ rec.get_status_display }}</span></td>
+                        <td class="za-rd-td-mins">{% if rec.late_minutes %}<span class="za-rd-mins warn">{{ rec.late_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                        <td class="za-rd-td-mins">{% if rec.early_leave_minutes %}<span class="za-rd-mins danger">{{ rec.early_leave_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                        <td><a href="{% url 'edit_attendance' rec.id %}" class="za-rd-edit-btn" title="Edit"><i class="ti ti-pencil"></i></a></td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="za-rd-empty za-rd-empty-small">
+                <p class="mb-0">No attendance records in {{ smg.label }}.</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="za-rd-empty za-rd-empty-small">
+        <p class="mb-0">No completed semesters in academic year {{ sel_year }}–{{ sel_year|add:1 }}.</p>
+      </div>
+      {% endfor %}
+
+    {% elif view_mode == "day" and selected_is_weekend %}
+    <div class="za-rd-empty">
+      <i class="ti ti-calendar-off za-rd-empty-icon"></i>
+      <p class="mt-2 mb-0 fw-bold">{{ sel_date|date:"l" }}</p>
+      <p class="za-rd-empty-sub">{{ sel_date|date:"l, M j, Y" }} is a weekend — no attendance records.</p>
+    </div>
+    {% elif view_mode == "day" and selected_is_holiday %}
+    <div class="za-rd-empty">
+      <i class="ti ti-calendar-star za-rd-empty-icon"></i>
+      <p class="mt-2 mb-0 fw-bold">{{ selected_holiday_name }}</p>
+      <p class="za-rd-empty-sub">{{ sel_date|date:"l, M j, Y" }} is a holiday — no attendance records.</p>
+    </div>
+    {% elif records %}
+
+    {% if view_mode == "month" %}
+      {% for day_date, day_recs in grouped_records.items %}
+      <div class="za-rd-day-group">
+        <div class="za-rd-day-hd" data-collapse-target="day-{{ day_date|date:'Ymd' }}" role="button" tabindex="0" aria-expanded="true">
+          <i class="ti ti-calendar"></i>
+          <span class="za-rd-day-hd-date">{{ day_date|date:"l, M j, Y" }}</span>
+          <span class="za-rd-day-hd-count">{{ day_recs|length }} record{{ day_recs|length|pluralize }}</span>
+          <i class="ti ti-chevron-down za-rd-day-chevron"></i>
+        </div>
+        <div id="day-{{ day_date|date:'Ymd' }}" class="collapse">
+          <div class="za-rd-table-scroll" tabindex="0" aria-label="Attendance records table. Scroll horizontally to view all columns.">
+          <table class="za-rd-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Hours</th>
+                <th>Status</th>
+                <th>Late</th>
+                <th>Early</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rec in day_recs %}
+              <tr class="za-rd-tr-{{ rec.status|lower }}">
+                <td class="za-rd-td-id">{{ rec.faculty.employee_id }}</td>
+                <td>
+                  <div class="za-rd-name">
+                    <span class="za-rd-name-initials">{{ rec.faculty.user.first_name|first|upper }}{{ rec.faculty.user.last_name|first|upper }}</span>
+                    <span>{{ rec.faculty.user.get_full_name }}</span>
+                  </div>
+                </td>
+                <td><span class="za-rd-dept-tag">{{ rec.dept_name }}</span></td>
+                <td class="za-rd-td-time">{% if rec.check_in %}<i class="ti ti-login za-icon-ci"></i> {{ rec.check_in|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                <td class="za-rd-td-time">{% if rec.check_out %}<i class="ti ti-logout za-icon-co"></i> {{ rec.check_out|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                <td class="za-rd-td-hrs">{% if rec.total_hours_worked is not None %}{{ rec.total_hours_worked }}h{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                <td><span class="za-rd-status status-{{ rec.status|lower }}">{{ rec.get_status_display }}</span></td>
+                <td class="za-rd-td-mins">{% if rec.late_minutes %}<span class="za-rd-mins warn">{{ rec.late_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                <td class="za-rd-td-mins">{% if rec.early_leave_minutes %}<span class="za-rd-mins danger">{{ rec.early_leave_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+                <td><a href="{% url 'edit_attendance' rec.id %}" class="za-rd-edit-btn" title="Edit"><i class="ti ti-pencil"></i></a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="za-rd-table-scroll" tabindex="0" aria-label="Attendance records table. Scroll horizontally to view all columns.">
+    <table class="za-rd-table za-rd-table-flat">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Check In</th>
+          <th>Check Out</th>
+          <th>Hours</th>
+          <th>Status</th>
+          <th>Late</th>
+          <th>Early</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in records %}
+        <tr class="za-rd-tr-{{ rec.status|lower }}">
+          <td class="za-rd-td-id">{{ rec.faculty.employee_id }}</td>
+          <td>
+            <div class="za-rd-name">
+              <span class="za-rd-name-initials">{{ rec.faculty.user.first_name|first|upper }}{{ rec.faculty.user.last_name|first|upper }}</span>
+              <span>{{ rec.faculty.user.get_full_name }}</span>
+            </div>
+          </td>
+          <td><span class="za-rd-dept-tag">{{ rec.dept_name }}</span></td>
+          <td class="za-rd-td-time">{% if rec.check_in %}<i class="ti ti-login za-icon-ci"></i> {{ rec.check_in|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+          <td class="za-rd-td-time">{% if rec.check_out %}<i class="ti ti-logout za-icon-co"></i> {{ rec.check_out|time:"H:i" }}{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+          <td class="za-rd-td-hrs">{% if rec.total_hours_worked is not None %}{{ rec.total_hours_worked }}h{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+          <td><span class="za-rd-status status-{{ rec.status|lower }}">{{ rec.get_status_display }}</span></td>
+          <td class="za-rd-td-mins">{% if rec.late_minutes %}<span class="za-rd-mins warn">{{ rec.late_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+          <td class="za-rd-td-mins">{% if rec.early_leave_minutes %}<span class="za-rd-mins danger">{{ rec.early_leave_minutes }}m</span>{% else %}<span class="za-rd-na">—</span>{% endif %}</td>
+          <td><a href="{% url 'edit_attendance' rec.id %}" class="za-rd-edit-btn" title="Edit"><i class="ti ti-pencil"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="za-rd-empty">
+      <i class="ti ti-calendar-off za-rd-empty-icon"></i>
+      <p class="mt-2 mb-0">No attendance records found.</p>
+      <p class="za-rd-empty-sub">Try a different date, month, or department filter.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script id="attendanceChartData" type="application/json">{{ chart_data_json|safe }}</script>
+<script src="{% static 'js/Eric/attendance_base.js' %}"></script>
+<script src="{% static 'js/Eric/attendance_charts.js' %}"></script>
+<script>
+  document.querySelectorAll('.za-rd-day-hd[data-collapse-target], .za-rd-month-hd[data-collapse-target], .za-rd-sem-hd[data-collapse-target]').forEach(function (header) {
+    function toggleDayGroup() {
+      var panel = document.getElementById(header.dataset.collapseTarget);
+      if (!panel) return;
+      var isOpen = panel.classList.toggle('show');
+      header.classList.toggle('collapsed', !isOpen);
+      header.setAttribute('aria-expanded', String(isOpen));
+    }
+    header.addEventListener('click', toggleDayGroup);
+    header.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleDayGroup();
+      }
+    });
+  });
+</script>
+{% endblock %}

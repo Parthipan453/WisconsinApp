@@ -1,0 +1,523 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Evaluate Final Dissertation | Faculty{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/leo/FinalDissertation/advisor_final_dissertation_evaluate.css' %}">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+{% block content %}
+    <div class="fde-page">
+        <section class="fde-hero">
+            <div class="fde-hero-top">
+                <div class="fde-hero-icon">
+                    <i class="ti ti-clipboard-check"></i>
+                </div>
+                <div class="fde-hero-copy">
+                    <span class="fde-eyebrow">ADVISOR EVALUATION</span>
+                    <h1>Evaluate Final Dissertation</h1>
+                    <p>Review the submitted manuscript and record your academic recommendation.</p>
+                </div>
+                <div class="fde-hero-status">
+                    <i class="ti ti-clock"></i>
+                    Awaiting Evaluation
+                </div>
+            </div>
+            <div class="fde-meta">
+                <span>
+                    <i class="ti ti-user"></i>
+                    {{ submission.phd_student.student.user.get_full_name|default:submission.phd_student.student.user.username }}
+                </span>
+                <span>
+                    <i class="ti ti-id"></i>
+                    {{ submission.phd_student.student.student_number|default:"Not Available" }}
+                </span>
+                <span>
+                    <i class="ti ti-school"></i>
+                    {{ submission.phd_student.phd_program }}
+                </span>
+                <span>
+                    <i class="ti ti-file-description"></i>
+                    Submission #{{ submission.submission_number }}
+                </span>
+            </div>
+        </section>
+        <div class="fde-layout">
+            <main class="fde-main">
+                <form method="post" id="advisorEvaluationForm" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="fde-error-box">
+                            <i class="ti ti-alert-circle"></i>
+                            <div>
+                                {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <section class="fde-card fde-evaluation-card">
+                        <div class="fde-card-header">
+                            <div class="fde-card-icon">
+                                <i class="ti ti-clipboard-check"></i>
+                            </div>
+                            <div>
+                                <span class="fde-section-label">REVIEW DECISION</span>
+                                <h2>Advisor Evaluation</h2>
+                                <p>Record your recommendation and academic remarks for this submission.</p>
+                            </div>
+                        </div>
+                        <div class="fde-divider"></div>
+                        <div class="fde-field">
+                            <label for="{{ form.recommendation.id_for_label }}">
+                                Recommendation
+                                <span>*</span>
+                            </label>
+                            <div class="fde-select-wrap">{{ form.recommendation }}</div>
+                            {% if form.recommendation.errors %}
+                                <div class="fde-field-error">
+                                    {% for error in form.recommendation.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="fde-field">
+                            <div class="fde-label-row">
+                                <label for="{{ form.comments.id_for_label }}">
+                                    Remarks
+                                    <span>*</span>
+                                </label>
+                                <strong>20–5000 characters</strong>
+                            </div>
+                            {{ form.comments }}
+                            {% if form.comments.errors %}
+                                <div class="fde-field-error">
+                                    {% for error in form.comments.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="fde-remarks-footer">
+                                <span>Include your academic assessment, observations, required corrections, or other relevant feedback.</span>
+                                <strong id="remarksCounter">0 / 5000</strong>
+                            </div>
+                        </div>
+                        <div class="fde-guide-header">
+                            <h3>Recommendation Guide</h3>
+                            <span>Select an option above or click a card below.</span>
+                        </div>
+                        <div class="fde-guide-list">
+                            <button type="button"
+                                    class="fde-guide-item fde-guide-approve"
+                                    data-recommendation="APPROVE">
+                                <span class="fde-guide-icon">
+                                    <i class="ti ti-circle-check"></i>
+                                </span>
+                                <span class="fde-guide-copy">
+                                    <strong>Approve</strong>
+                                    <small>Move the dissertation forward to committee evaluation.</small>
+                                </span>
+                                <span class="fde-guide-check">
+                                    <i class="ti ti-check"></i>
+                                </span>
+                            </button>
+                            <button type="button"
+                                    class="fde-guide-item fde-guide-revision"
+                                    data-recommendation="REVISION_REQUIRED">
+                                <span class="fde-guide-icon">
+                                    <i class="ti ti-edit"></i>
+                                </span>
+                                <span class="fde-guide-copy">
+                                    <strong>Revision Required</strong>
+                                    <small>Return the dissertation for required corrections.</small>
+                                </span>
+                                <span class="fde-guide-check">
+                                    <i class="ti ti-check"></i>
+                                </span>
+                            </button>
+                            <button type="button"
+                                    class="fde-guide-item fde-guide-reject"
+                                    data-recommendation="REJECT">
+                                <span class="fde-guide-icon">
+                                    <i class="ti ti-circle-x"></i>
+                                </span>
+                                <span class="fde-guide-copy">
+                                    <strong>Reject</strong>
+                                    <small>Reject the dissertation submission based on the academic review.</small>
+                                </span>
+                                <span class="fde-guide-check">
+                                    <i class="ti ti-check"></i>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="fde-actions">
+                            <a href="{% url 'faculty_advisor_final_dissertation_detail' uuid=faculty.user.uuid submission_id=submission.submission_id %}"
+                               class="fde-btn fde-btn-secondary">
+                                <i class="ti ti-arrow-left"></i>
+                                Back to Review
+                            </a>
+                            <button type="submit" id="submitEvaluation" class="fde-btn fde-btn-primary">
+                                <i class="ti ti-send"></i>
+                                Submit Evaluation
+                            </button>
+                        </div>
+                    </section>
+                </form>
+            </main>
+            <aside class="fde-sidebar">
+                <section class="fde-card fde-info-card">
+                    <div class="fde-side-header">
+                        <div class="fde-side-icon">
+                            <i class="ti ti-file-description"></i>
+                        </div>
+                        <div>
+                            <span class="fde-section-label">SUBMISSION</span>
+                            <h2>Review Information</h2>
+                        </div>
+                    </div>
+                    <div class="fde-info-list">
+                        <div class="fde-info-row">
+                            <span>Student</span>
+                            <strong>
+                                {{ submission.phd_student.student.user.get_full_name|default:submission.phd_student.student.user.username }}
+                            </strong>
+                        </div>
+                        <div class="fde-info-row">
+                            <span>Student ID</span>
+                            <strong>{{ submission.phd_student.student.student_number|default:"Not Available" }}</strong>
+                        </div>
+                        <div class="fde-info-row">
+                            <span>Program</span>
+                            <strong>{{ submission.phd_student.phd_program }}</strong>
+                        </div>
+                        <div class="fde-info-row">
+                            <span>Submitted</span>
+                            <strong>{{ submission.submitted_at|date:"M d, Y · h:i A" }}</strong>
+                        </div>
+                        <div class="fde-info-row">
+                            <span>Resubmission</span>
+                            <strong>{{ submission.resubmission_count }}</strong>
+                        </div>
+                    </div>
+                    {% if submission.dissertation_file %}
+                        <a href="{{ submission.dissertation_file.url }}"
+                           target="_blank"
+                           class="fde-pdf-link">
+                            <span>
+                                <i class="ti ti-file-type-pdf"></i>
+                                Open Dissertation PDF
+                            </span>
+                            <i class="ti ti-external-link"></i>
+                        </a>
+                    {% endif %}
+                </section>
+                <section class="fde-card fde-tips-card">
+                    <div class="fde-side-header">
+                        <div class="fde-tip-icon">
+                            <i class="ti ti-bulb"></i>
+                        </div>
+                        <div>
+                            <span class="fde-section-label">QUICK TIPS</span>
+                            <h2>Before You Submit</h2>
+                        </div>
+                    </div>
+                    <ul class="fde-tips">
+                        <li>
+                            <i class="ti ti-check"></i>
+                            <span>Review the complete submitted manuscript before deciding.</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-check"></i>
+                            <span>Choose the recommendation that matches your academic decision.</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-check"></i>
+                            <span>Use clear remarks when corrections or concerns are required.</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-check"></i>
+                            <span>Verify your recommendation and remarks before final submission.</span>
+                        </li>
+                    </ul>
+                </section>
+                <section class="fde-card fde-workflow-card">
+                    <span class="fde-section-label">WORKFLOW</span>
+                    <h3>What happens next?</h3>
+                    <div class="fde-workflow">
+                        <div class="fde-workflow-item is-current">
+                            <span>1</span>
+                            <div>
+                                <strong>Advisor Evaluation</strong>
+                                <small>Your recommendation is recorded.</small>
+                            </div>
+                        </div>
+                        <div class="fde-workflow-line"></div>
+                        <div class="fde-workflow-item">
+                            <span>2</span>
+                            <div>
+                                <strong>Committee Evaluation</strong>
+                                <small>Committee members review the dissertation.</small>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("advisorEvaluationForm");
+    const recommendation = document.getElementById("{{ form.recommendation.id_for_label }}");
+    const comments = document.getElementById("{{ form.comments.id_for_label }}");
+    const counter = document.getElementById("remarksCounter");
+    const submitButton = document.getElementById("submitEvaluation");
+    const guideCards = document.querySelectorAll(".fde-guide-item");
+
+    let recommendationChoices = null;
+
+    if (recommendation && typeof Choices !== "undefined") {
+        recommendationChoices = new Choices(recommendation, {
+            searchEnabled: false,
+            shouldSort: false,
+            itemSelectText: "",
+            allowHTML: false,
+            removeItemButton: false,
+            placeholder: true,
+            placeholderValue: "Select recommendation",
+            noResultsText: "No recommendation found",
+            noChoicesText: "No recommendations available",
+            searchChoices: false,
+            position: "bottom"
+        });
+    }
+
+    function updateCounter() {
+        if (!comments || !counter) {
+            return;
+        }
+
+        const length = comments.value.length;
+
+        counter.textContent = length + " / 5000";
+
+        counter.classList.remove(
+            "is-warning",
+            "is-danger"
+        );
+
+        if (length >= 4500 && length < 5000) {
+            counter.classList.add("is-warning");
+        }
+
+        if (length >= 5000) {
+            counter.classList.add("is-danger");
+        }
+    }
+
+    function updateCards(value) {
+        guideCards.forEach(function (card) {
+            const isSelected =
+                card.dataset.recommendation === value;
+
+            card.classList.toggle(
+                "is-selected",
+                isSelected
+            );
+
+            const indicator =
+                card.querySelector(".fde-guide-check");
+
+            if (indicator) {
+                indicator.classList.toggle(
+                    "is-visible",
+                    isSelected
+                );
+            }
+        });
+    }
+
+    function syncRecommendation(value) {
+        if (!recommendation) {
+            return;
+        }
+
+        if (recommendationChoices) {
+            recommendationChoices.setChoiceByValue(value);
+        } else {
+            recommendation.value = value;
+
+            recommendation.dispatchEvent(
+                new Event("change", {
+                    bubbles: true
+                })
+            );
+        }
+
+        updateCards(value);
+    }
+
+    if (recommendation) {
+        recommendation.addEventListener(
+            "change",
+            function () {
+                updateCards(this.value);
+            }
+        );
+    }
+
+    guideCards.forEach(function (card) {
+        card.addEventListener(
+            "click",
+            function () {
+                const value =
+                    this.dataset.recommendation;
+
+                if (!value) {
+                    return;
+                }
+
+                syncRecommendation(value);
+            }
+        );
+    });
+
+    if (comments) {
+        comments.addEventListener(
+            "input",
+            updateCounter
+        );
+    }
+
+    updateCounter();
+
+    if (recommendation) {
+        updateCards(recommendation.value);
+    }
+
+    if (!form) {
+        return;
+    }
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+            event.preventDefault();
+
+            const recommendationValue =
+                recommendation
+                    ? recommendation.value
+                    : "";
+
+            const commentsValue =
+                comments
+                    ? comments.value.trim()
+                    : "";
+
+            if (!recommendationValue) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Recommendation Required",
+                    text: "Please select a recommendation.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                return;
+            }
+
+            if (!commentsValue) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Remarks Required",
+                    text: "Please provide your academic remarks.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                return;
+            }
+
+            if (commentsValue.length < 20) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Remarks Too Short",
+                    text: "Remarks must contain at least 20 characters.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                return;
+            }
+
+            if (commentsValue.length > 5000) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Remarks Too Long",
+                    text: "Remarks cannot exceed 5000 characters.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                return;
+            }
+
+            let title = "Submit Evaluation?";
+            let text =
+                "Your advisor evaluation will be recorded.";
+            let icon = "question";
+
+            if (recommendationValue === "APPROVE") {
+                title = "Approve Dissertation?";
+                text =
+                    "The dissertation will move forward to committee evaluation.";
+                icon = "success";
+            }
+
+            if (
+                recommendationValue ===
+                "REVISION_REQUIRED"
+            ) {
+                title = "Request Revision?";
+                text =
+                    "The dissertation will be returned for required corrections.";
+                icon = "warning";
+            }
+
+            if (recommendationValue === "REJECT") {
+                title = "Reject Dissertation?";
+                text =
+                    "This submission will be marked as rejected.";
+                icon = "error";
+            }
+
+            Swal.fire({
+                icon: icon,
+                title: title,
+                text: text,
+                showCancelButton: true,
+                confirmButtonText: "Yes, Submit",
+                cancelButtonText: "Cancel",
+                reverseButtons: true,
+                confirmButtonColor: "#c5050c",
+                cancelButtonColor: "#6f7888",
+                focusCancel: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                submitButton.disabled = true;
+
+                submitButton.innerHTML =
+                    '<i class="ti ti-loader-2 fde-spin"></i> Submitting...';
+
+                form.submit();
+            });
+        }
+    );
+});
+</script>
+{% endblock %}

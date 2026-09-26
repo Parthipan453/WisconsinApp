@@ -1,0 +1,136 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}My Reviews · Admissions{% endblock %}
+
+{% block nav_admissions_open %}open{% endblock %}
+{% block nav_admissions_submenu %}open{% endblock %}
+{% block nav_my_reviews %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/applications_studio.css' %}" />
+<link rel="stylesheet" href="{% static 'css/Eric/review_list.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="apx-page">
+
+  <div class="apx-hero">
+    <div class="apx-hero__decor" aria-hidden="true">
+      <span class="apx-hero__blob apx-hero__blob--1"></span>
+      <span class="apx-hero__blob apx-hero__blob--2"></span>
+      <span class="apx-hero__ring"></span>
+      <span class="apx-hero__dots"></span>
+    </div>
+    <div class="apx-hero__inner">
+      <div class="apx-hero__copy">
+        <span class="apx-eyebrow"><i class="ti ti-user-check"></i> Admissions review</span>
+        <h2 class="apx-title apx-title__accent">My Reviews</h2>
+        <p class="apx-subtitle">
+          Applications assigned to you for document verification and recommendation.
+        </p>
+      </div>
+      <div class="apx-hero__stat">
+        <span class="apx-hero__stat-value">{{ counts.active }}</span>
+        <span class="apx-hero__stat-label">active reviews</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="apx-filter" aria-label="Review filters">
+    <form class="apx-search" method="get" role="search">
+      <i class="ti ti-search"></i>
+      <input type="hidden" name="filter" value="{{ filter_key }}">
+      {% if program %}<input type="hidden" name="program" value="{{ program }}">{% endif %}
+      {% if semester %}<input type="hidden" name="semester" value="{{ semester }}">{% endif %}
+      <input type="text" name="q" value="{{ query }}" placeholder="Search name, reference, email…" autocomplete="off" aria-label="Search your reviews">
+      {% if query %}
+      <a class="apx-search__clear" href="?filter={{ filter_key }}{% if program %}&program={{ program }}{% endif %}{% if semester %}&semester={{ semester }}{% endif %}"><i class="ti ti-x"></i></a>
+      {% endif %}
+    </form>
+
+    <div class="apx-filters">
+      <form method="get" class="apx-filter-item">
+        <label for="rvx-status">Status</label>
+        <input type="hidden" name="q" value="{{ query }}">
+        {% if program %}<input type="hidden" name="program" value="{{ program }}">{% endif %}
+        {% if semester %}<input type="hidden" name="semester" value="{{ semester }}">{% endif %}
+        <select name="filter" id="rvx-status" class="apx-filter__select" aria-label="Filter by review status">
+          {% for item in status_items %}
+          <option value="{{ item.key }}" {% if filter_key == item.key %}selected{% endif %}>{{ item.label }} ({{ item.count }})</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <form method="get" class="apx-filter-item">
+        <label for="rvx-program">Program</label>
+        <input type="hidden" name="filter" value="{{ filter_key }}">
+        <input type="hidden" name="q" value="{{ query }}">
+        {% if semester %}<input type="hidden" name="semester" value="{{ semester }}">{% endif %}
+        <select name="program" id="rvx-program" class="apx-filter__select" aria-label="Filter by program">
+          <option value="" {% if not program %}selected{% endif %}>All programs</option>
+          {% for p in programs %}
+          <option value="{{ p.pk }}" {% if program == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.program_name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <form method="get" class="apx-filter-item">
+        <label for="rvx-semester">Semester</label>
+        <input type="hidden" name="filter" value="{{ filter_key }}">
+        <input type="hidden" name="q" value="{{ query }}">
+        {% if program %}<input type="hidden" name="program" value="{{ program }}">{% endif %}
+        <select name="semester" id="rvx-semester" class="apx-filter__select" aria-label="Filter by semester">
+          <option value="" {% if not semester %}selected{% endif %}>All semesters</option>
+          {% for c in cycles %}
+          <option value="{{ c.pk }}" {% if semester == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      {% if query or program or semester %}
+      <a class="apx-reset" href="?filter={{ filter_key }}"><i class="ti ti-rotate-clockwise-2"></i> Reset</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="prm-live-region"
+       data-live-event="my_reviews_changed ready_for_decision decision_made documents_changed assignment_created"
+       data-live-url="{% url 'my_reviews' request.user.uuid %}?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}partial=rows">
+  {% include "Eric/partials/live/review_rows.html" %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "notifications/live.html" with live_app_id="me" %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.apx-avatar').forEach(function (el) {
+            var name = el.getAttribute('data-name') || '?';
+            var h = 0;
+            for (var i = 0; i < name.length; i++) {
+                h = (h * 31 + name.charCodeAt(i)) % 360;
+            }
+            var warm = 345 + (h % 41);
+            if (warm > 360) warm -= 360;
+            el.style.background = 'linear-gradient(135deg, hsl(' + warm + ', 62%, 46%), hsl(' + ((warm + 22) % 360) + ', 68%, 30%))';
+        });
+
+        if (typeof Choices !== 'undefined') {
+            document.querySelectorAll('.apx-filter__select').forEach(function (select) {
+                new Choices(select, {
+                    searchEnabled: false,
+                    shouldSort: false,
+                    itemSelectText: '',
+                    allowHTML: false,
+                });
+                select.addEventListener('change', function () {
+                    select.form.submit();
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

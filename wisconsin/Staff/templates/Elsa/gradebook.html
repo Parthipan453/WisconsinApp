@@ -1,0 +1,503 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Student Gradebook{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet" href="{% static 'css/Elsa/gradebook.css' %}">
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_gradebook %}active{% endblock %}
+
+{% block content %}
+<div class="gradebook-page">
+    {{ courses_json|json_script:"courses-data" }}
+    {{ current_semester_id|json_script:"current-semester-id" }}
+    {{ grade_scales_json|json_script:"grade-scale-data" }}
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Student Gradebook</h1>
+            <p>{% if current_semester_label %}{{ current_semester_label }} — {% endif %}Monitor student marks across all college courses</p>
+        </div>
+        <div class="header-actions">
+            <button class="attendance-btn" onclick="refreshData()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+            <button class="attendance-btn primary-btn" onclick="window.location.href='{% url 'staff_dashboard' uuid=request.user.uuid %}'">
+                <i class="ti ti-dashboard"></i> Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-users"></i>
+            </div>
+            <div>
+                <h3 id="statTotalStudents">0</h3>
+                <span>Total Students</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-trophy"></i>
+            </div>
+            <div>
+                <h3 id="statAverageScore">0%</h3>
+                <span>Average Score</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-award"></i>
+            </div>
+            <div>
+                <h3 id="statAverageGrade">—</h3>
+                <span>Average Grade</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon red">
+                <i class="ti ti-circle-check"></i>
+            </div>
+            <div>
+                <h3 id="statFinalized">0</h3>
+                <span>Finalized</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Export -->
+    <div class="filter-section card">
+        <div class="filter-row">
+            <!-- Semester Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-calendar"></i> Semester</label>
+                <select id="semesterFilter" class="filter-input">
+                    <option value="">All Semesters</option>
+                </select>
+            </div>
+
+            <!-- Course Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-book"></i> Course</label>
+                <select id="courseFilter" class="filter-input">
+                    <option value="">All Courses</option>
+                </select>
+            </div>
+
+            <!-- Faculty Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-user"></i> Faculty</label>
+                <select id="facultyFilter" class="filter-input">
+                    <option value="">All Faculty</option>
+                </select>
+            </div>
+
+            <!-- Department Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-building"></i> Department</label>
+                <select id="departmentFilter" class="filter-input">
+                    <option value="">All Departments</option>
+                </select>
+            </div>
+
+            <!-- Academic Program Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-school"></i> Academic Program</label>
+                <select id="programFilter" class="filter-input">
+                    <option value="">All Programs</option>
+                </select>
+            </div>
+
+            <!-- Year Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-stairs-up"></i> Year</label>
+                <select id="yearFilter" class="filter-input">
+                    <option value="">All Years</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
+                    <option value="5">Year 5</option>
+                </select>
+            </div>
+
+            <!-- Finalization Status Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="statusFilter" class="filter-input">
+                    <option value="">All Status</option>
+                    <option value="finalized">Finalized</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>            
+  
+            <div class="filter-actions">
+                <div class="export-buttons">
+                    <button class="filter-btn reset-btn" onclick="resetFilters()">
+                        <i class="ti ti-refresh"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Course Grid -->
+    <div class="course-section">
+        <div class="section-header">
+            <h3><i class="ti ti-th-large"></i> All Courses</h3>
+            <span class="record-count" id="courseCount">0 Courses</span>
+        </div>
+        <div class="course-grid" id="courseGrid">
+            <!-- Course cards will be dynamically generated -->
+        </div>
+    </div>
+
+    <!-- Grade Table -->
+    <div class="card table-card" id="gradeTableWrapper" style="display: none;">
+        <div class="card-header">
+            <div class="table-title">
+                <div>
+                    <h3 id="selectedCourseTitle">Course Name</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                        <i class="ti ti-user"></i> Faculty: <span id="facultyName">-</span>
+                        <span style="margin: 0 8px;">|</span>
+                        <i class="ti ti-code"></i> Code: <span id="courseCode">-</span>
+                        <span style="margin: 0 8px;">|</span>
+                        <i class="ti ti-calendar"></i> Semester: <span id="courseSemester">-</span>
+                        <span style="margin: 0 8px;">|</span>
+                        <i class="ti ti-layout-grid"></i> Section: <span id="courseSection">-</span>
+                    </p>
+                </div>
+            </div>
+            <div class="table-actions">
+                <button class="filter-btn export-excel" onclick="exportData('excel')">
+                    <i class="ti ti-file-spreadsheet"></i> Excel
+                </button>
+                <button class="filter-btn export-pdf" onclick="exportData('pdf')">
+                    <i class="ti ti-file-type-pdf"></i> PDF
+                </button>
+                <button class="filter-btn reset-btn" onclick="closeTable()">
+                    <i class="ti ti-x"></i> Close
+                </button>
+            </div>
+        </div>
+
+        <div class="student-list-filters">
+            <!-- Grade Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-certificate"></i> Grade</label>
+                <select id="gradeFilter" class="filter-input">
+                    <option value="">All Grades</option>
+                </select>
+            </div>            
+            <!-- Search Input -->
+            <div class="filter-group filter-group-search">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div>
+                    <input type="text" id="searchInput" placeholder="Search by student name or ID..." class="filter-input" style="flex: 1;">
+                    <button class="filter-search-btn" onclick="applySearch()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>  
+
+        <div class="table-responsive">
+            <table class="attendance-table" id="gradeTable">
+                <thead>
+                    <tr>
+                        <th>S.No</th>
+                        <th>Student Name</th>
+                        <th>Student ID</th>
+                        <th>Program</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="gradeTableBody">
+                    <!-- Grade records will be dynamically generated -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-section">
+            <div class="pagination-info" id="paginationInfo">
+                Showing 0 to 0 of 0 entries
+            </div>
+            <div class="pagination-controls" id="paginationControls">
+                <span class="page-link disabled">&laquo;</span>
+                <span class="page-link disabled">&lsaquo;</span>
+                <span class="page-link active">1</span>
+                <span class="page-link disabled">&rsaquo;</span>
+                <span class="page-link disabled">&raquo;</span>
+            </div>
+        </div>
+    </div>
+<!-- Student Overall Marks -->
+<div class="card student-overall-card">
+    <div class="card-header">
+        <div>
+            <h3>
+                <i class="ti ti-user"></i>
+                Student Overall Marks
+            </h3>
+            <p>Select a student to view marks across all courses</p>
+        </div>
+    </div>
+
+<div class="student-overall-filter">
+
+    <div class="filter-group">
+        <label>
+            <i class="ti ti-building"></i> Department
+        </label>
+        <select id="overallDepartmentFilter" class="filter-input">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>
+            <i class="ti ti-school"></i> Academic Program
+        </label>
+        <select id="overallProgramFilter" class="filter-input">
+            <option value="">All Programs</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>
+            <i class="ti ti-user"></i> Student
+        </label>
+        <select id="studentOverallFilter" class="filter-input">
+            <option value="">Select Student</option>
+        </select>
+    </div>
+
+    <button class="filter-btn primary-btn"
+            type="button"
+            onclick="showOverallStudentMarks()">
+        <i class="ti ti-eye"></i> View Overall Marks
+    </button>
+
+</div>
+
+</div>
+
+<!-- Overall Student Marks Table -->
+<div class="card table-card"
+     id="overallStudentWrapper"
+     style="display:none;">
+
+    <div class="card-header">
+        <div class="table-title">
+            <div>
+                <h3 id="overallStudentName">Student</h3>
+
+                <p style="margin:2px 0 0 0;
+                          font-size:13px;
+                          color:var(--text-secondary);">
+
+                    <i class="ti ti-id"></i>
+                    Student ID:
+                    <span id="overallStudentId">-</span>
+
+                    <span style="margin:0 8px;">|</span>
+
+                    <i class="ti ti-school"></i>
+                    Program:
+                    <span id="overallStudentProgram">-</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="table-actions">
+            <button class="filter-btn export-excel" onclick="exportOverallStudentExcel()">
+                <i class="ti ti-file-spreadsheet"></i> Excel
+            </button>
+
+            <button class="filter-btn reset-btn" onclick="closeOverallStudent()">
+                <i class="ti ti-x"></i> Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Overall Stats -->
+    <div class="stats-grid student-overall-stats">
+
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-book"></i>
+            </div>
+
+            <div>
+                <h3 id="overallCourseCount">0</h3>
+                <span>Total Courses</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-trophy"></i>
+            </div>
+
+            <div>
+                <h3 id="overallAverageScore">0%</h3>
+                <span>Overall Average</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-award"></i>
+            </div>
+
+            <div>
+                <h3 id="overallAverageGrade">—</h3>
+                <span>Average Grade</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-circle-check"></i>
+            </div>
+
+            <div>
+                <h3 id="overallFinalized">0</h3>
+                <span>Finalized</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Marks Table -->
+    <div class="table-responsive">
+
+        <table class="attendance-table">
+
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Course</th>
+                    <th>Code</th>
+                    <th>Semester</th>
+                    <th>Score</th>
+                    <th>Grade</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody id="overallStudentBody">
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+    <!-- Bottom Section: Grade Distribution & Quick Summary -->
+    <div class="bottom-grid">
+        <!-- Grade Distribution -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Grade Distribution</h3>
+                <span class="month-label" id="distributionScope">Current view</span>
+            </div>
+            <div class="monthly-stats" id="gradeDistribution">
+                <!-- Bars built dynamically from the admin GradeScale -->
+            </div>
+        </div>
+
+
+        
+        <!-- Quick Summary -->
+        <div class="card summary-card">
+            <div class="card-header">
+                <h3>Quick Summary</h3>
+                <span class="record-count" id="summaryCourseCount">0 Courses</span>
+            </div>
+            <div class="summary-grid" id="summaryGrid">
+                <div class="summary-item">
+                    <div class="summary-icon present-icon">
+                        <i class="ti ti-trophy"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryBestCourse">-</h4>
+                        <p>Best Avg. Course</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon absent-icon">
+                        <i class="ti ti-alert-triangle"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryLowestCourse">-</h4>
+                        <p>Needs Attention</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon total-icon">
+                        <i class="ti ti-users"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryTotalStudents">0</h4>
+                        <p>Total Students</p>
+                    </div>
+                </div>                
+                <div class="summary-item">
+                    <div class="summary-icon late-icon">
+                        <i class="ti ti-clock"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryPending">0</h4>
+                        <p>Pending Grades</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon leave-icon">
+                        <i class="ti ti-circle-check"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryFinalized">0</h4>
+                        <p>Finalized</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon attendance-icon">
+                        <i class="ti ti-percentage"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryAverageScore">0%</h4>
+                        <p>Average Score</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="{% static 'script/Elsa/gradebook.js' %}"></script>
+{% endblock %}

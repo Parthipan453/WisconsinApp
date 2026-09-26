@@ -1,0 +1,305 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Team Management{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_team %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/jordan/research_team.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<!-- Slim Select CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+    <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <div>
+                <h1 class="page-title">
+                    Research Team Management
+                </h1>
+                <p class="text-muted">Manage research projects, view details, and assign team members</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="refreshData()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="section-header">
+        <div class="section-header-left">
+            <h3 class="section-title">
+                <i class="ti ti-folder-open"></i>
+                Research Projects
+            </h3>
+            <span class="record-count" id="projectCount">0 projects</span>
+        </div>
+    </div>
+
+    <div class="projects-grid" id="projectsGrid">
+        <!-- Projects will be rendered by JavaScript -->
+    </div>
+
+    <!-- Project Details Modal -->
+    <div class="modal-overlay" id="projectDetailModal" style="display: none;">
+        <div class="modal-container detail-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="ti ti-file-text"></i>
+                    Project Details
+                </h3>
+                <button class="modal-close" onclick="closeModal('projectDetailModal')">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                    <div class="detail-section">
+                        <div class="detail-header">
+                            <h4 id="detailTitle">Project Title</h4>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-file-text"></i> Description</h5>
+                        <p id="detailDescription">Description goes here...</p>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-calendar"></i> Timeline</h5>
+                        <div class="detail-dates">
+                            <span><strong>Start Date:</strong> <span id="detailStartDate">-</span></span>
+                            <span><strong>End Date:</strong> <span id="detailEndDate">-</span></span>
+                            <span><strong>Department:</strong> <span id="detailDepartment">-</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Mentor Section -->
+                    <div class="detail-section" id="mentorSection">
+                        <h5><i class="ti ti-star"></i> Mentor</h5>
+                        <div id="detailMentor" class="detail-mentor">
+                            <p>No mentor assigned</p>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-users"></i> Team Members</h5>
+                        <div id="detailTeamMembers" class="detail-team">
+                            <p>No team members assigned</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('projectDetailModal')">
+                    <i class="ti ti-x"></i> Close
+                </button>
+                <button class="btn btn-primary" onclick="openAssignTeamFromDetail()">
+                    <i class="ti ti-user-plus"></i> Assign Team
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Team Modal -->
+    <div class="modal-overlay" id="assignTeamModal" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="ti ti-user-plus"></i>
+                    Assign Team Members
+                </h3>
+                <button class="modal-close" onclick="closeModal('assignTeamModal')">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="assignContent">
+                    <div class="assign-project-info">
+                        <h4 id="assignProjectTitle" style="margin: 0 0 4px 0;">Project Title</h4>
+                    </div>
+
+                    <!-- Team Name Section -->
+                    <div class="assign-section">
+                        <h5><i class="ti ti-tag"></i> Team Name</h5>
+                        <div class="team-name-input-group">
+                            <input type="text" id="teamNameInput" class="form-control" placeholder="Enter team name...">
+                            <button class="btn btn-primary btn-sm" onclick="saveTeamName()">
+                                <i class="ti ti-save"></i> Save
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <i class="ti ti-info-circle"></i> Give your research team a unique name
+                        </small>
+                    </div>
+
+                    <div class="assign-section">
+                        <h5><i class="ti ti-user"></i> Co-Mentors</h5>
+                        <div id="coMentorList" class="assign-member-list">
+                            <!-- Co-Mentors will be listed here -->
+                        </div>
+                        <button class="btn-add-member" onclick="addTeamMember('co_mentor')">
+                            <i class="ti ti-plus"></i> Add Co-Mentor
+                        </button>
+                    </div>
+
+                    <div class="assign-section">
+                        <h5><i class="ti ti-bulb"></i> Advisors</h5>
+                        <div id="advisorList" class="assign-member-list">
+                            <!-- Advisors will be listed here -->
+                        </div>
+                        <button class="btn-add-member" onclick="addTeamMember('advisor')">
+                            <i class="ti ti-plus"></i> Add Advisor
+                        </button>
+                    </div>
+
+                    <div class="assign-section">
+                        <h5><i class="ti ti-user-check"></i> Students</h5>
+                        <div id="studentList" class="assign-member-list">
+                            <!-- Students will be listed here -->
+                        </div>
+                        <button class="btn-add-member" onclick="addTeamMember('student')">
+                            <i class="ti ti-plus"></i> Add Student
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('assignTeamModal')">
+                    <i class="ti ti-x"></i> Close
+                </button>
+                <button class="btn btn-primary" onclick="saveTeamAssignment()">
+                    <i class="ti ti-save"></i> Save Team
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Member to Team Modal -->
+    <div class="modal-overlay" id="addMemberModal" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="ti ti-user-plus"></i>
+                    Add Team Member
+                </h3>
+                <button class="modal-close" onclick="closeAddMemberModal()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addMemberForm" onsubmit="return false;">
+                    <input type="hidden" id="addMemberRole">
+                    <input type="hidden" id="addMemberProjectId">
+
+                    <div class="form-group">
+                        <label class="form-label">Select Member <span class="required">*</span></label>
+                        <div id="memberSelectWrapper">
+                            <select id="memberSelect" class="form-control" required>
+                                <option value="">Select a member...</option>
+                            </select>
+                        </div>
+                        <div id="memberSelectError" class="error-message" style="display: none; color: #dc2626; font-size: 13px; margin-top: 5px;">
+                            Please select a member
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Role <span class="required">*</span></label>
+                        <input type="text" id="memberRoleDisplay" class="form-control" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Responsibilities</label>
+                        <textarea id="memberResponsibilities" class="form-control" rows="2" placeholder="Describe responsibilities..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea id="memberNotes" class="form-control" rows="2" placeholder="Additional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddMemberModal()">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+                <button class="btn btn-primary" onclick="confirmAddMember()">
+                    <i class="ti ti-check"></i> Add Member
+                </button>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Remove Member Confirmation Modal -->
+    <div class="modal-overlay" id="removeMemberModal" style="display: none;">
+        <div class="modal-container confirm-modal">
+            <div class="confirm-icon">
+                <i class="ti ti-alert-triangle"></i>
+            </div>
+            <h3>Remove Team Member?</h3>
+            <p>Are you sure you want to remove <strong id="removeMemberName">this member</strong> from the team?</p>
+            <p class="confirm-warning">This action cannot be undone.</p>
+            <input type="hidden" id="removeMemberId">
+            <input type="hidden" id="removeMemberProjectId">
+            <input type="hidden" id="removeMemberRole">
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="closeModal('removeMemberModal')">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+                <button class="btn btn-danger" onclick="confirmRemoveMember()">
+                    <i class="ti ti-trash"></i> Remove
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div class="notification" id="successNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-check-circle notification-icon success"></i>
+            <span id="notificationMessage">Success!</span>
+            <button class="notification-close" onclick="closeNotification()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Notification -->
+    <div class="notification error" id="errorNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-exclamation-circle notification-icon error"></i>
+            <span id="errorMessage">Error!</span>
+            <button class="notification-close" onclick="closeErrorNotification()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Warning Notification -->
+    <div class="notification warning" id="warningNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-alert-circle notification-icon warning"></i>
+            <span id="warningMessage">Warning!</span>
+            <button class="notification-close" onclick="closeWarningNotification()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Slim Select JS -->
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+<script src="{% static 'script/jordan/research_team.js' %}"></script>
+{% endblock %}

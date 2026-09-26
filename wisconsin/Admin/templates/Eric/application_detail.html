@@ -1,0 +1,112 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Application {{ app.Reference_id }} · Admissions{% endblock %}
+{% block page_title %}Application {{ app.Reference_id }}{% endblock %}
+
+{% block body_attrs %}data-notif-list-url="{% url 'recent_notifications_ajax' request.user.uuid %}" data-notif-read-url="{% url 'mark_all_notifications_read' request.user.uuid %}" data-notif-view-url="{% url 'staff_notifications' request.user.uuid %}"{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="{% static 'css/Eric/application_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="prm-page">
+
+  <nav class="prm-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'applications' %}"><i class="ti ti-arrow-left"></i> Applications</a>
+    <span class="prm-breadcrumb__sep"><i class="ti ti-chevron-right"></i></span>
+    <span class="prm-breadcrumb__current">{{ app.Reference_id }}</span>
+  </nav>
+
+  <header class="prm-hero">
+    <div class="prm-hero__decor" aria-hidden="true">
+      <span class="prm-hero__blob prm-hero__blob--1"></span>
+      <span class="prm-hero__blob prm-hero__blob--2"></span>
+      <span class="prm-hero__ring"></span>
+      <span class="prm-hero__dots"></span>
+    </div>
+
+    <div class="prm-hero__inner">
+      <div class="prm-hero__top">
+        <span class="prm-avatar" data-name="{{ applicant.first_name }} {{ applicant.last_name }}" aria-hidden="true">
+          {{ applicant.first_name|slice:":1" }}{{ applicant.last_name|slice:":1" }}
+        </span>
+        <div class="prm-hero__copy">
+          <span class="prm-eyebrow"><i class="ti ti-clipboard-text"></i> Application review</span>
+          <h2 class="prm-name prm-title__accent">{{ applicant.first_name }} {{ applicant.last_name }}</h2>
+
+          <div class="prm-hero__chips">
+            <span class="prm-chip prm-chip--ref"><i class="ti ti-hash"></i>{{ app.Reference_id }}</span>
+            <span class="prm-chip prm-chip--red">{{ app.get_admission_level_display|default:"Program level" }}</span>
+            <span class="prm-chip prm-chip--gold">{{ app.program|default:"Program" }}</span>
+            <span class="prm-chip prm-chip--amber">{{ app.admission_cycle|default:"Cycle" }}</span>
+            <span class="prm-pill">
+              <span class="prm-dot prm-dot--{{ app.status }}"></span>{{ app.get_status_display }}
+            </span>
+          </div>
+
+          <div class="prm-hero__meta">
+            <span class="prm-meta"><i class="ti ti-mail"></i> {{ applicant.email }}</span>
+            <span class="prm-meta"><i class="ti ti-building"></i> {{ app.university|default:"—" }}</span>
+            <span class="prm-meta"><i class="ti ti-calendar"></i> {{ app.submitted_date|date:"M d, Y"|default:"Not submitted" }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="prm-facts">
+      <div class="prm-fact">
+        <div class="prm-fact__label">Applicant type</div>
+        <div class="prm-fact__value">{{ app.get_applicant_type_display }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Degree level</div>
+        <div class="prm-fact__value">{{ app.degree_level|default:"—" }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Campus</div>
+        <div class="prm-fact__value">{{ app.campus_name }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Residency</div>
+        <div class="prm-fact__value">{{ app.residency_status|default:"—" }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Reference</div>
+        <div class="prm-fact__value" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;">{{ app.Reference_id }}</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="prm-live-region"
+       data-live-app="{{ app.application_id }}"
+       data-live-event="status_changed documents_changed materials_requested offline_extracted ready_for_decision decision_made assignment_created section_reviewed review_started"
+       data-live-url="{% url 'application_detail' app.application_id %}?partial=body">
+  {% include "Eric/partials/application_sections.html" %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "notifications/live.html" with live_app_id=app.application_id %}
+<script>
+    function colorAvatars() {
+        document.querySelectorAll('.prm-avatar').forEach(function (el) {
+            var name = el.getAttribute('data-name') || '?';
+            var h = 0;
+            for (var i = 0; i < name.length; i++) {
+                h = (h * 31 + name.charCodeAt(i)) % 360;
+            }
+            var warm = 345 + (h % 41);
+            if (warm > 360) warm -= 360;
+            el.style.background = 'linear-gradient(135deg, hsl(' + warm + ', 62%, 46%), hsl(' + ((warm + 22) % 360) + ', 68%, 30%))';
+        });
+    }
+    document.addEventListener('DOMContentLoaded', colorAvatars);
+    window.addEventListener('live:swapped', colorAvatars);
+</script>
+{% endblock %}

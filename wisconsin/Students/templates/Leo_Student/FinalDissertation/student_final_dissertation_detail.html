@@ -1,0 +1,816 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}Final Dissertation | Student Portal{% endblock %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/FinalDissertation/student_final_dissertation_detail.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="fdd-page">
+        <section class="fdd-hero">
+            <div class="fdd-hero-glow"></div>
+            <div class="fdd-hero-inner">
+                <div class="fdd-breadcrumb">
+                    <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}">PhD Dashboard</a>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Final Dissertation</span>
+                </div>
+                <div class="fdd-heading-row">
+                    <div class="fdd-heading-icon">
+                        <i class="ti ti-file-certificate"></i>
+                    </div>
+                    <div class="fdd-heading-copy">
+                        <span class="fdd-eyebrow">PHD FINAL STAGE</span>
+                        <h1>Final Dissertation</h1>
+                        <p>
+                            Track your final dissertation submission,
+                            academic review progress and final approval.
+                        </p>
+                    </div>
+                </div>
+                <div class="fdd-student-strip">
+                    <div class="fdd-student-meta">
+                        <i class="ti ti-user"></i>
+                        <span>{{ phd_student.user.get_full_name|default:"PhD Student" }}</span>
+                    </div>
+                    <div class="fdd-student-meta">
+                        <i class="ti ti-id"></i>
+                        <span>{{ phd_student.student_number|default:"Student ID" }}</span>
+                    </div>
+                    <div class="fdd-student-meta">
+                        <i class="ti ti-school"></i>
+                        <span>{{ phd_student.phd_program|default:"PhD Program" }}</span>
+                    </div>
+                    <div class="fdd-student-meta">
+                        <i class="ti ti-user-star"></i>
+                        <span>
+                            {% if phd_student.advisor %}
+                                {{ phd_student.advisor.user.get_full_name }}
+                            {% else %}
+                                Advisor Not Assigned
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- =====================================================
+         NO SUBMISSION STATE
+===================================================== -->
+        {% if not latest_submission %}
+            <section class="fdd-empty-state">
+                <div class="fdd-empty-icon">
+                    <i class="ti ti-file-off"></i>
+                </div>
+                <span class="fdd-section-kicker">FINAL DISSERTATION</span>
+                <h2>No dissertation submitted yet</h2>
+                <p>
+                    You have not submitted a final dissertation.
+                    Once you submit your dissertation, its review
+                    progress will appear here.
+                </p>
+                <a href="{% url 'Student:student_final_dissertation_submit' uuid=request.user.uuid %}"
+                   class="fdd-primary-button">
+                    <i class="ti ti-upload"></i>
+                    Submit Final Dissertation
+                </a>
+            </section>
+        {% else %}
+            <section class="fdd-status-card">
+                <div class="fdd-status-orbit"></div>
+                <div class="fdd-status-icon {% if latest_submission.status == 'APPROVED' %} is-success {% elif latest_submission.status == 'REJECTED' %} is-danger {% elif latest_submission.status == 'REVISION_REQUIRED' %} is-warning {% else %} is-progress {% endif %}">
+                    {% if latest_submission.status == 'APPROVED' %}
+                        <i class="ti ti-circle-check"></i>
+                    {% elif latest_submission.status == 'REJECTED' %}
+                        <i class="ti ti-circle-x"></i>
+                    {% elif latest_submission.status == 'REVISION_REQUIRED' %}
+                        <i class="ti ti-alert-triangle"></i>
+                    {% else %}
+                        <i class="ti ti-hourglass"></i>
+                    {% endif %}
+                </div>
+                <div class="fdd-status-copy">
+                    <span class="fdd-status-kicker">CURRENT STATUS</span>
+                    <h2>{{ latest_submission.get_status_display }}</h2>
+                    <p>
+                        {% if latest_submission.status == "ADVISOR_REVIEW" %}
+                            Your dissertation is currently being reviewed by your academic advisor.
+                        {% elif latest_submission.status == "COMMITTEE_EVALUATION" %}
+                            Your dissertation is currently under evaluation by the doctoral committee.
+                        {% elif latest_submission.status == "CHAIR_REVIEW" %}
+                            Your dissertation has reached the final chair review stage.
+                        {% elif latest_submission.status == "APPROVED" %}
+                            Your final dissertation has been approved and finalized.
+                        {% elif latest_submission.status == "REVISION_REQUIRED" %}
+                            Revision has been requested. Please review the feedback and submit a revised version.
+                        {% elif latest_submission.status == "REJECTED" %}
+                            This submission was rejected. Please review the recorded feedback.
+                        {% else %}
+                            Your final dissertation submission is being processed.
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="fdd-status-badge {% if latest_submission.status == 'APPROVED' %} success {% elif latest_submission.status == 'REJECTED' %} danger {% elif latest_submission.status == 'REVISION_REQUIRED' %} warning {% else %} progress {% endif %}">
+                    {% if latest_submission.status == "APPROVED" %}
+                        <i class="ti ti-check"></i>
+                    {% elif latest_submission.status == "REJECTED" %}
+                        <i class="ti ti-x"></i>
+                    {% elif latest_submission.status == "REVISION_REQUIRED" %}
+                        <i class="ti ti-refresh"></i>
+                    {% else %}
+                        <i class="ti ti-clock"></i>
+                    {% endif %}
+                    {{ latest_submission.get_status_display }}
+                </div>
+            </section>
+            <section class="fdd-workflow">
+                <div class="fdd-section-heading">
+                    <div>
+                        <span class="fdd-section-kicker">REVIEW WORKFLOW</span>
+                        <h2>Submission Journey</h2>
+                        <p>Follow your dissertation through each academic review stage.</p>
+                    </div>
+                    <span class="fdd-version-badge">{{ latest_submission.version|default:"Version 1.0" }}</span>
+                </div>
+                <div class="fdd-stepper">
+                    <!-- Submission -->
+                    <div class="fdd-step {% if latest_submission %} completed {% endif %}">
+                        <div class="fdd-step-number">
+                            <i class="ti ti-upload"></i>
+                        </div>
+                        <div class="fdd-step-copy">
+                            <strong>Submission</strong>
+                            <span>
+                                {% if latest_submission.submitted_at %}
+                                    Submitted
+                                {% else %}
+                                    Current stage
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="fdd-step-line {% if advisor_completed %} completed {% endif %}"></div>
+                    <!-- Advisor -->
+                    <div class="fdd-step {% if advisor_completed %} completed {% elif latest_submission.status == 'ADVISOR_REVIEW' %} active {% endif %}">
+                        <div class="fdd-step-number">
+                            {% if advisor_completed %}
+                                <i class="ti ti-check"></i>
+                            {% else %}
+                                <i class="ti ti-user-star"></i>
+                            {% endif %}
+                        </div>
+                        <div class="fdd-step-copy">
+                            <strong>Advisor Review</strong>
+                            <span>
+                                {% if advisor_completed %}
+                                    Completed
+                                {% elif latest_submission.status == 'ADVISOR_REVIEW' %}
+                                    In review
+                                {% else %}
+                                    Academic review
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="fdd-step-line {% if committee_evaluation_completed %} completed {% endif %}"></div>
+                    <!-- Committee -->
+                    <div class="fdd-step {% if committee_evaluation_completed %} completed {% elif latest_submission.status == 'COMMITTEE_EVALUATION' %} active {% endif %}">
+                        <div class="fdd-step-number">
+                            {% if committee_evaluation_completed %}
+                                <i class="ti ti-check"></i>
+                            {% else %}
+                                <i class="ti ti-users"></i>
+                            {% endif %}
+                        </div>
+                        <div class="fdd-step-copy">
+                            <strong>Committee</strong>
+                            <span>
+                                {% if committee_evaluation_completed %}
+                                    Completed
+                                {% elif latest_submission.status == 'COMMITTEE_EVALUATION' %}
+                                    Evaluation
+                                {% else %}
+                                    Committee evaluation
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="fdd-step-line {% if chair_completed %} completed {% endif %}"></div>
+                    <!-- Chair -->
+                    <div class="fdd-step {% if chair_completed %} completed {% elif latest_submission.status == 'CHAIR_REVIEW' %} active {% endif %}">
+                        <div class="fdd-step-number">
+                            {% if chair_completed %}
+                                <i class="ti ti-check"></i>
+                            {% else %}
+                                <i class="ti ti-gavel"></i>
+                            {% endif %}
+                        </div>
+                        <div class="fdd-step-copy">
+                            <strong>Chair Finalization</strong>
+                            <span>
+                                {% if chair_completed %}
+                                    Finalized
+                                {% elif latest_submission.status == 'CHAIR_REVIEW' %}
+                                    Final review
+                                {% else %}
+                                    Final decision
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- =====================================================
+         MAIN CONTENT
+===================================================== -->
+            <div class="fdd-layout">
+                <!-- =================================================
+             LEFT COLUMN
+================================================= -->
+                <main class="fdd-main-column">
+                    <!-- =============================================
+                 DISSERTATION INFORMATION
+============================================= -->
+                    <section class="fdd-card">
+                        <div class="fdd-card-head">
+                            <div class="fdd-card-icon">
+                                <i class="ti ti-file-text"></i>
+                            </div>
+                            <div>
+                                <span class="fdd-card-kicker">SUBMISSION DETAILS</span>
+                                <h2>Dissertation Information</h2>
+                                <p>Details of your latest final dissertation submission.</p>
+                            </div>
+                        </div>
+                        <div class="fdd-card-body">
+                            <div class="fdd-title-block">
+                                <span class="fdd-label">Dissertation Title</span>
+                                <h3>{{ latest_submission.dissertation_title }}</h3>
+                            </div>
+                            <div class="fdd-info-grid">
+                                <div class="fdd-info-item">
+                                    <span>Submission</span>
+                                    <strong>#{{ latest_submission.submission_number }}</strong>
+                                </div>
+                                <div class="fdd-info-item">
+                                    <span>Version</span>
+                                    <strong>{{ latest_submission.version|default:"Version 1.0" }}</strong>
+                                </div>
+                                <div class="fdd-info-item">
+                                    <span>Submitted On</span>
+                                    <strong>
+                                        {% if latest_submission.submission_date %}
+                                            {{ latest_submission.submission_date|date:"d M Y" }}
+                                        {% elif latest_submission.submitted_at %}
+                                            {{ latest_submission.submitted_at|date:"d M Y" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <div class="fdd-info-item">
+                                    <span>Status</span>
+                                    <strong class="fdd-inline-status">{{ latest_submission.get_status_display }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="fdd-card">
+                        <div class="fdd-card-head">
+                            <div class="fdd-card-icon">
+                                <i class="ti ti-align-left"></i>
+                            </div>
+                            <div>
+                                <span class="fdd-card-kicker">RESEARCH SUMMARY</span>
+                                <h2>Dissertation Abstract</h2>
+                                <p>Abstract submitted with this dissertation version.</p>
+                            </div>
+                        </div>
+                        <div class="fdd-card-body">
+                            <div class="fdd-abstract">
+                                {% if latest_submission.abstract %}
+                                    {{ latest_submission.abstract|linebreaksbr }}
+                                {% else %}
+                                    <div class="fdd-empty-mini">No abstract was provided for this submission.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </section>
+                    <!-- =============================================
+                 DOCUMENT
+============================================= -->
+                    <section class="fdd-card">
+                        <div class="fdd-card-head">
+                            <div class="fdd-card-icon">
+                                <i class="ti ti-file-type-pdf"></i>
+                            </div>
+                            <div>
+                                <span class="fdd-card-kicker">FINAL DOCUMENT</span>
+                                <h2>Submitted Dissertation</h2>
+                                <p>The document associated with this submission.</p>
+                            </div>
+                        </div>
+                        <div class="fdd-card-body">
+                            {% if latest_submission.dissertation_file %}
+                                <div class="fdd-file-card">
+                                    <div class="fdd-file-icon">
+                                        <i class="ti ti-file-type-pdf"></i>
+                                    </div>
+                                    <div class="fdd-file-copy">
+                                        <strong>{{ latest_submission.dissertation_file.name|cut:"phd/final_dissertations/" }}</strong>
+                                        <span>Final dissertation document</span>
+                                    </div>
+                                    <a href="{{ latest_submission.dissertation_file.url }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="fdd-file-button">
+                                        <i class="ti ti-external-link"></i>
+                                        View Document
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="fdd-empty-mini">Dissertation document is not available.</div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <!-- =============================================
+                 ADVISOR REVIEW
+============================================= -->
+                    <section class="fdd-card">
+                        <div class="fdd-card-head">
+                            <div class="fdd-card-icon advisor">
+                                <i class="ti ti-user-star"></i>
+                            </div>
+                            <div class="fdd-card-head-grow">
+                                <span class="fdd-card-kicker">ACADEMIC REVIEW</span>
+                                <h2>Advisor Review</h2>
+                                <p>Review submitted by your academic advisor.</p>
+                            </div>
+                            <span class="fdd-review-badge {% if advisor_completed %} completed {% else %} pending {% endif %}">
+                                {% if advisor_completed %}
+                                    <i class="ti ti-check"></i>
+                                    Completed
+                                {% else %}
+                                    <i class="ti ti-clock"></i>
+                                    Pending
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="fdd-card-body">
+                            {% if advisor_evaluation %}
+                                <div class="fdd-reviewer">
+                                    <div class="fdd-avatar">
+                                        <i class="ti ti-user"></i>
+                                    </div>
+                                    <div>
+                                        <strong>
+                                            {% if advisor_evaluation.advisor %}
+                                                {{ advisor_evaluation.advisor.user.get_full_name }}
+                                            {% else %}
+                                                Academic Advisor
+                                            {% endif %}
+                                        </strong>
+                                        <span>Advisor</span>
+                                    </div>
+                                </div>
+                                <div class="fdd-review-grid">
+                                    <div class="fdd-review-field">
+                                        <span>Recommendation</span>
+                                        <strong class=" {% if advisor_evaluation.recommendation == 'APPROVE' %} positive {% elif advisor_evaluation.recommendation == 'REJECT' %} negative {% else %} warning {% endif %} ">
+                                            {{ advisor_evaluation.get_recommendation_display }}
+                                        </strong>
+                                    </div>
+                                    <div class="fdd-review-field">
+                                        <span>Reviewed On</span>
+                                        <strong>
+                                            {% if advisor_evaluation.submitted_at %}
+                                                {{ advisor_evaluation.submitted_at|date:"d M Y" }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                                {% if advisor_evaluation.comments %}
+                                    <div class="fdd-comment-box">
+                                        <span>Advisor Comments</span>
+                                        <p>{{ advisor_evaluation.comments|linebreaksbr }}</p>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="fdd-pending-state">
+                                    <div class="fdd-pending-icon">
+                                        <i class="ti ti-clock"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Advisor review is pending</strong>
+                                        <p>
+                                            Your advisor has not submitted an evaluation
+                                            for this dissertation yet.
+                                        </p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <!-- =============================================
+                 COMMITTEE EVALUATIONS
+============================================= -->
+                    <section class="fdd-card">
+                        <div class="fdd-card-head">
+                            <div class="fdd-card-icon committee">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div class="fdd-card-head-grow">
+                                <span class="fdd-card-kicker">COMMITTEE EVALUATION</span>
+                                <h2>Doctoral Committee Review</h2>
+                                <p>Individual evaluations recorded by your committee members.</p>
+                            </div>
+                            <div class="fdd-count-badge">
+                                {{ submitted_committee_evaluation_count|default:0 }}
+                                /
+                                {{ committee_member_count|default:0 }}
+                            </div>
+                        </div>
+                        <div class="fdd-card-body">
+                            {% if committee_evaluations %}
+                                <div class="fdd-committee-list">
+                                    {% for evaluation in committee_evaluations %}
+                                        <article class="fdd-committee-item">
+                                            <div class="fdd-committee-top">
+                                                <div class="fdd-reviewer">
+                                                    <div class="fdd-avatar committee-avatar">
+                                                        <i class="ti ti-user"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            {% if evaluation.committee_member.faculty.user.get_full_name %}
+                                                                {{ evaluation.committee_member.faculty.user.get_full_name }}
+                                                            {% else %}
+                                                                Committee Member
+                                                            {% endif %}
+                                                        </strong>
+                                                        <span>{{ evaluation.get_reviewer_role_display|default:"Committee Member" }}</span>
+                                                    </div>
+                                                </div>
+                                                <span class="fdd-evaluation-status {% if evaluation.is_submitted %} submitted {% else %} pending {% endif %}">
+                                                    {% if evaluation.is_submitted %}
+                                                        <i class="ti ti-check"></i>
+                                                        Submitted
+                                                    {% else %}
+                                                        <i class="ti ti-clock"></i>
+                                                        Pending
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                            <div class="fdd-review-grid committee-grid">
+                                                <div class="fdd-review-field">
+                                                    <span>Score</span>
+                                                    <strong>
+                                                        {% if evaluation.score != None %}
+                                                            {{ evaluation.score }}
+                                                        {% else %}
+                                                            —
+                                                        {% endif %}
+                                                    </strong>
+                                                </div>
+                                                <div class="fdd-review-field">
+                                                    <span>Recommendation</span>
+                                                    <strong class=" {% if evaluation.recommendation == 'APPROVE' %} positive {% elif evaluation.recommendation == 'REJECT' %} negative {% else %} warning {% endif %} ">
+                                                        {{ evaluation.get_recommendation_display }}
+                                                    </strong>
+                                                </div>
+                                                <div class="fdd-review-field">
+                                                    <span>Evaluated On</span>
+                                                    <strong>
+                                                        {% if evaluation.submitted_at %}
+                                                            {{ evaluation.submitted_at|date:"d M Y" }}
+                                                        {% else %}
+                                                            —
+                                                        {% endif %}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                            {% if evaluation.comments %}
+                                                <div class="fdd-comment-box">
+                                                    <span>Committee Comments</span>
+                                                    <p>{{ evaluation.comments|linebreaksbr }}</p>
+                                                </div>
+                                            {% endif %}
+                                        </article>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="fdd-pending-state">
+                                    <div class="fdd-pending-icon">
+                                        <i class="ti ti-users"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Committee evaluation is pending</strong>
+                                        <p>
+                                            No committee evaluation has been submitted
+                                            for this dissertation yet.
+                                        </p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <!-- =============================================
+                 STUDENT REMARKS
+============================================= -->
+                    {% if latest_submission.student_remarks %}
+                        <section class="fdd-card">
+                            <div class="fdd-card-head">
+                                <div class="fdd-card-icon">
+                                    <i class="ti ti-message"></i>
+                                </div>
+                                <div>
+                                    <span class="fdd-card-kicker">SUBMISSION NOTE</span>
+                                    <h2>Student Remarks</h2>
+                                    <p>Additional information included with the submission.</p>
+                                </div>
+                            </div>
+                            <div class="fdd-card-body">
+                                <div class="fdd-remarks">{{ latest_submission.student_remarks|linebreaksbr }}</div>
+                            </div>
+                        </section>
+                    {% endif %}
+                    <!-- =============================================
+                 SUBMISSION HISTORY
+============================================= -->
+                    {% if submissions|length > 1 %}
+                        <section class="fdd-card">
+                            <div class="fdd-card-head">
+                                <div class="fdd-card-icon history">
+                                    <i class="ti ti-history"></i>
+                                </div>
+                                <div>
+                                    <span class="fdd-card-kicker">SUBMISSION RECORD</span>
+                                    <h2>Submission History</h2>
+                                    <p>Previous versions of your final dissertation.</p>
+                                </div>
+                            </div>
+                            <div class="fdd-card-body">
+                                <div class="fdd-history">
+                                    {% for item in submission_history %}
+                                        <article class="fdd-history-item {% if item.submission.pk == latest_submission.pk %} current {% endif %}">
+                                            <div class="fdd-history-marker">
+                                                {% if item.submission.pk == latest_submission.pk %}
+                                                    <i class="ti ti-check"></i>
+                                                {% else %}
+                                                    {{ item.submission.submission_number }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="fdd-history-content">
+                                                <div class="fdd-history-top">
+                                                    <div>
+                                                        <strong>{{ item.submission.version|default:"Version 1.0" }}</strong>
+                                                        <span>Submission #{{ item.submission.submission_number }}</span>
+                                                    </div>
+                                                    <span class="fdd-history-status">{{ item.submission.get_status_display }}</span>
+                                                </div>
+                                                <h4>{{ item.submission.dissertation_title }}</h4>
+                                                <div class="fdd-history-meta">
+                                                    {% if item.submission.submission_date %}
+                                                        <span>
+                                                            <i class="ti ti-calendar"></i>
+                                                            {{ item.submission.submission_date|date:"d M Y" }}
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if item.advisor_completed %}
+                                                        <span class="done">
+                                                            <i class="ti ti-check"></i>
+                                                            Advisor reviewed
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if item.committee_completed %}
+                                                        <span class="done">
+                                                            <i class="ti ti-check"></i>
+                                                            Committee completed
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </article>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </section>
+                    {% endif %}
+                </main>
+                <!-- =================================================
+             RIGHT SIDEBAR
+================================================= -->
+                <aside class="fdd-side-column">
+                    <!-- =============================================
+                 CURRENT SUBMISSION
+============================================= -->
+                    <section class="fdd-side-card">
+                        <div class="fdd-side-heading">
+                            <div class="fdd-side-icon">
+                                <i class="ti ti-file-check"></i>
+                            </div>
+                            <div>
+                                <span>CURRENT SUBMISSION</span>
+                                <h3>{{ latest_submission.version|default:"Version 1.0" }}</h3>
+                            </div>
+                        </div>
+                        <div class="fdd-side-status">
+                            <span>Current Stage</span>
+                            <strong>{{ current_stage }}</strong>
+                        </div>
+                        <div class="fdd-side-divider"></div>
+                        <div class="fdd-side-stats">
+                            <div>
+                                <span>Submission</span>
+                                <strong>#{{ latest_submission.submission_number }}</strong>
+                            </div>
+                            <div>
+                                <span>Total Versions</span>
+                                <strong>{{ submission_count }}</strong>
+                            </div>
+                        </div>
+                        {% if latest_submission.dissertation_file %}
+                            <a href="{{ latest_submission.dissertation_file.url }}"
+                               target="_blank"
+                               rel="noopener"
+                               class="fdd-side-button">
+                                <i class="ti ti-file-download"></i>
+                                Open Dissertation
+                            </a>
+                        {% endif %}
+                    </section>
+                    <!-- =============================================
+                 REVIEW PROGRESS
+============================================= -->
+                    <section class="fdd-side-card">
+                        <div class="fdd-side-heading">
+                            <div class="fdd-side-icon">
+                                <i class="ti ti-progress-check"></i>
+                            </div>
+                            <div>
+                                <span>REVIEW PROGRESS</span>
+                                <h3>Evaluation Status</h3>
+                            </div>
+                        </div>
+                        <div class="fdd-progress-list">
+                            <div class="fdd-progress-item">
+                                <div class="fdd-progress-icon {% if advisor_completed %} complete {% else %} pending {% endif %}">
+                                    {% if advisor_completed %}
+                                        <i class="ti ti-check"></i>
+                                    {% else %}
+                                        <i class="ti ti-clock"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="fdd-progress-copy">
+                                    <strong>Advisor Review</strong>
+                                    <span>
+                                        {% if advisor_completed %}
+                                            Evaluation submitted
+                                        {% else %}
+                                            Awaiting advisor review
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="fdd-progress-item">
+                                <div class="fdd-progress-icon {% if committee_evaluation_completed %} complete {% else %} pending {% endif %}">
+                                    {% if committee_evaluation_completed %}
+                                        <i class="ti ti-check"></i>
+                                    {% else %}
+                                        <i class="ti ti-users"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="fdd-progress-copy">
+                                    <strong>Committee Review</strong>
+                                    <span>
+                                        {% if committee_member_count %}
+                                            {{ submitted_committee_evaluation_count }}
+                                            of
+                                            {{ committee_member_count }}
+                                            evaluations submitted
+                                        {% else %}
+                                            Committee not assigned
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="fdd-progress-item">
+                                <div class="fdd-progress-icon {% if chair_completed %} complete {% else %} pending {% endif %}">
+                                    {% if chair_completed %}
+                                        <i class="ti ti-check"></i>
+                                    {% else %}
+                                        <i class="ti ti-gavel"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="fdd-progress-copy">
+                                    <strong>Chair Finalization</strong>
+                                    <span>
+                                        {% if chair_completed %}
+                                            Dissertation finalized
+                                            else %}
+                                            Awaiting final decision
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- =============================================
+                 COMMITTEE
+============================================= -->
+                    <section class="fdd-side-card">
+                        <div class="fdd-side-heading">
+                            <div class="fdd-side-icon">
+                                <i class="ti ti-users-group"></i>
+                            </div>
+                            <div>
+                                <span>DOCTORAL COMMITTEE</span>
+                                <h3>Reviewers</h3>
+                            </div>
+                        </div>
+                        {% if committee_members %}
+                            <div class="fdd-member-list">
+                                {% for member in committee_members %}
+                                    <div class="fdd-member">
+                                        <div class="fdd-member-avatar">
+                                            <i class="ti ti-user"></i>
+                                        </div>
+                                        <div>
+                                            <strong>
+                                                {% if member.faculty.user.get_full_name %}
+                                                    {{ member.faculty.user.get_full_name }}
+                                                {% else %}
+                                                    Committee Member
+                                                {% endif %}
+                                            </strong>
+                                            <span>{{ member.get_role_display|default:"Committee Member" }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="fdd-empty-mini">No committee members assigned.</div>
+                        {% endif %}
+                    </section>
+                    <!-- =============================================
+                 NEXT STEP
+============================================= -->
+                    <section class="fdd-next-card">
+                        <div class="fdd-next-icon">
+                            {% if latest_submission.status == "APPROVED" %}
+                                <i class="ti ti-award"></i>
+                            {% elif latest_submission.status == "REVISION_REQUIRED" %}
+                                <i class="ti ti-refresh"></i>
+                            {% elif latest_submission.status == "REJECTED" %}
+                                <i class="ti ti-alert-circle"></i>
+                            {% elif latest_submission.status == "ADVISOR_REVIEW" %}
+                                <i class="ti ti-user-star"></i>
+                            {% elif latest_submission.status == "COMMITTEE_EVALUATION" %}
+                                <i class="ti ti-users"></i>
+                            {% else %}
+                                <i class="ti ti-gavel"></i>
+                            {% endif %}
+                        </div>
+                        <span>NEXT STEP</span>
+                        <h3>
+                            {% if latest_submission.status == "APPROVED" %}
+                                Final Dissertation Approved
+                            {% elif latest_submission.status == "REVISION_REQUIRED" %}
+                                Revision Required
+                            {% elif latest_submission.status == "REJECTED" %}
+                                Review Feedback
+                            {% elif latest_submission.status == "ADVISOR_REVIEW" %}
+                                Advisor Review
+                            {% elif latest_submission.status == "COMMITTEE_EVALUATION" %}
+                                Committee Evaluation
+                            {% elif latest_submission.status == "CHAIR_REVIEW" %}
+                                Chair Finalization
+                            {% else %}
+                                Review In Progress
+                            {% endif %}
+                        </h3>
+                        <p>
+                            {% if latest_submission.status == "APPROVED" %}
+                                Your dissertation has completed the final approval workflow.
+                            {% elif latest_submission.status == "REVISION_REQUIRED" %}
+                                Review the feedback and prepare your revised submission.
+                            {% elif latest_submission.status == "ADVISOR_REVIEW" %}
+                                Your academic advisor is currently reviewing the dissertation.
+                            {% elif latest_submission.status == "COMMITTEE_EVALUATION" %}
+                                Your doctoral committee is evaluating the dissertation.
+                            {% elif latest_submission.status == "CHAIR_REVIEW" %}
+                                Your dissertation is awaiting final chair decision.
+                            {% else %}
+                                Your dissertation is moving through the academic review workflow.
+                            {% endif %}
+                        </p>
+                    </section>
+                </aside>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

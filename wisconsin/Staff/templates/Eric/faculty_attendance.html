@@ -1,0 +1,414 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Faculty Attendance{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/attendance_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/Eric/faculty_attendance.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/styles/index.css">
+<style>
+  .za-undo-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 10px 16px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    color: #166534;
+    font-size: 14px;
+    animation: zaFadeIn .3s ease
+  }
+
+  .za-undo-banner .za-toast-close {
+    margin-left: 4px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    padding: 0 4px
+  }
+
+  @keyframes zaFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px)
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0)
+    }
+  }
+
+  .za-edit-active .za-view-mode {
+    display: none !important
+  }
+
+  .za-edit-active .za-edit-mode {
+    display: inline-block !important
+  }
+
+  .za-edit-active tr[data-record-exists] .za-st-sel {
+    opacity: 1;
+    cursor: pointer
+  }
+
+  .za-edit-active #zaBulkEditToggle {
+    background: var(--uw-red);
+    color: #fff;
+    border-color: var(--uw-red)
+  }
+
+  .za-edit-active #zaBulkEditToggle i {
+    color: #fff
+  }
+
+  /* Equalize filter dropdowns + add spacing */
+  .za-fcal-form {
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: nowrap
+  }
+
+  .za-fcal-group {
+    flex: 1 1 0;
+    min-width: 0
+  }
+
+  .za-fcal-group select.za-select,
+  .za-fcal-group input.za-select,
+  .za-fcal-group .za-fcal-date {
+    width: 100%;
+    height: 42px;
+    box-sizing: border-box
+  }
+
+  .za-fcal-group select.za-select {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden
+  }
+
+  .za-fcal-group input.za-filter-search {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: left 12px center !important;
+    background-size: 16px !important;
+    padding-left: 38px !important;
+    cursor: text
+  }
+
+  .za-fcal-group input.za-filter-search:focus {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23c5050c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: left 12px center !important;
+    background-size: 16px !important;
+    padding-left: 38px !important
+  }
+
+  .za-fcal-btn-group {
+    flex: 0 0 auto
+  }
+
+  .za-fcal-btn-group .za-btn {
+    height: 42px;
+    white-space: nowrap
+  }
+
+  @media (max-width: 768px) {
+    .za-fcal-form {
+      flex-wrap: wrap
+    }
+
+    .za-fcal-group {
+      flex: 1 1 100%
+    }
+  }
+</style>
+{% endblock %}
+
+{% block nav_attenance_open %}open{% endblock %}
+{% block nav_attenance_submenu %}open{% endblock %}
+{% block nav_Faculty_attendance %}active{% endblock %}
+
+{% block content %}
+{% include "Eric/partials/messages.html" %}
+<div class="za-root">
+
+  <!-- ═══ Breadcrumb + Back ═══ -->
+  <div class="za-flex-between-mb">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0 small">
+        <li class="breadcrumb-item active fw-bolder">Mark Attendance</li>
+      </ol>
+    </nav>
+    <div class="za-bread-actions">
+      <a href="{% url 'holiday_calendar' request.user.uuid %}" class="za-btn za-btn-outline za-shrink-0"><i class="ti ti-calendar-star"></i> Holidays</a>
+      <a href="{% url 'attendance_records' request.user.uuid %}" class="za-btn za-btn-outline za-shrink-0"><i class="ti ti-list-details"></i> Faculty Record</a>
+      <a href="{% url 'attendance_day_month' request.user.uuid %}?view=day&date={{ selected_date|date:'Y-m-d' }}" class="za-btn za-btn-outline za-shrink-0"><i class="ti ti-report"></i> Records</a>
+      <div class="za-dropdown za-shrink-0" id="faExportDropdown">
+        <button type="button" class="za-btn za-btn-danger za-dropdown-toggle" onclick="document.getElementById('faExportDropdown').classList.toggle('open')">
+          <i class="ti ti-download"></i> Export
+        </button>
+        <div class="za-dropdown-menu">
+          <a href="{% url 'export_day_month_excel' request.user.uuid %}?view=day&date={{ selected_date|date:'Y-m-d' }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" class="za-dropdown-item"><i class="ti ti-file-spreadsheet"></i> Excel</a>
+          <a href="{% url 'export_day_month_pdf' request.user.uuid %}?view=day&date={{ selected_date|date:'Y-m-d' }}{% if selected_dept %}&department={{ selected_dept }}{% endif %}" target="_blank" class="za-dropdown-item"><i class="ti ti-file-text"></i> PDF</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="za-graphs-row za-graphs-row-2">
+
+    <!-- Card 1: Marked vs Unmarked -->
+    <div class="za-graph-card">
+      <div class="za-graph-hd">
+        <span class="za-graph-title">Marked vs Unmarked</span>
+        <span class="za-graph-sub">{{ selected_date|date:"M j, Y" }}</span>
+      </div>
+      <div class="za-graph-body-center">
+        <canvas id="zaMarkedChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Card 2: Calendar -->
+    <div class="za-graph-card">
+      <div class="za-graph-body-center">
+        <div id="zaCalendar"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="za-section-divider">
+    <span><i class="ti ti-edit"></i> Mark Attendance</span>
+  </div>
+
+  {% if selected_is_weekend or selected_is_holiday %}
+  <div class="za-card za-table-card">
+    <div class="za-empty">
+      <i class="ti ti-calendar-off za-empty-icon"></i>
+      {% if selected_is_holiday %}
+      <p class="mt-2 mb-0 fw-bold">{{ selected_holiday_name }}</p>
+      <p class="za-empty-sub">{{ selected_date|date:"l, M j, Y" }} is a holiday — no attendance marking.</p>
+      {% else %}
+      <p class="mt-2 mb-0 fw-bold">{{ selected_date|date:"l" }}</p>
+      <p class="za-empty-sub">{{ selected_date|date:"l, M j, Y" }} is a weekend — no attendance marking.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+
+  <!-- Filter -->
+  <div class="za-fcal-filter za-filter-mb">
+    <form method="GET" class="za-fcal-form">
+      <div class="za-fcal-group">
+        <label class="za-fcal-lbl">Department</label>
+        <div class="za-select-wrap">
+          <select name="department" class="za-select" onchange="this.form.submit()">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %} title="{{ dept.name }}">{{ dept.name|truncatechars:22 }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="za-fcal-group">
+        <label class="za-fcal-lbl">Date</label>
+        <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="za-fcal-date" oninput="var v=this.value; if(v&&v.length>10){this.value=v.slice(0,10)}" onchange="this.form.submit()" max="{{ today|date:'Y-m-d' }}">
+      </div>
+      <div class="za-fcal-group">
+        <label class="za-fcal-lbl">Search</label>
+        <div class="za-select-wrap">
+          <input type="text" name="search" id="zaFcalSearch" value="{{ selected_search|default:'' }}" class="za-select za-filter-search" placeholder="Name or Employee ID..." autocomplete="off">
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- ═══ TABLE ═══ -->
+  <div class="za-card za-table-card">
+        {% if faculty_list %}
+        <form method="POST" action="{% url 'mark_attendance' %}" id="attendanceForm">
+          {% csrf_token %}
+          <input type="hidden" name="attendance_date" value="{{ selected_date|date:'Y-m-d' }}">
+
+          <!-- Bulk bar -->
+          <div class="za-bulk za-bulk-hidden" id="zaBulk">
+            <span class="za-bulk-count" id="zaBulkCount">0 selected</span>
+            <div class="za-bulk-actions">
+              <label for="zaBulkCi" class="za-bulk-label my-auto">Checkin </label>
+               <select id="zaBulkCi" class="za-ti-in za-bulk-w" data-min="00:00" data-max="23:59"><option value="09:00" selected>09:00</option></select>
+               <label for="zaBulkCo" class="za-bulk-label my-auto">Checkout </label>
+               <select id="zaBulkCo" class="za-ti-in za-bulk-w" data-min="00:00" data-max="23:59"><option value="17:00" selected>17:00</option></select>
+              <button type="button" class="za-bulk-btn" data-status="ABSENT"><i class="ti ti-circle-x"></i> Absent</button>
+              <button type="button" class="za-bulk-btn" data-status="ON_LEAVE"><i class="ti ti-calendar-off"></i> Leave</button>
+              <button type="button" class="za-bulk-btn" data-status="HALF_DAY"><i class="ti ti-clock-off"></i> Half Day</button>
+              <button type="button" class="za-bulk-btn za-bulk-clear" id="zaBulkClear"><i class="ti ti-x"></i> Clear</button>
+            </div>
+          </div>
+
+          <div class="za-table-scroll">
+            <table class="za-table">
+              <thead>
+                <tr>
+                  <th class="za-th-chk"><input type="checkbox" id="zaSelectAll"></th>
+                  <th>Faculty</th>
+                  <th>Department</th>
+                  <th>Check In</th>
+                  <th>Check Out</th>
+                  <th>Hours</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in faculty_list %}
+                <tr{% if item.record %} data-record-exists="true"{% endif %}>
+                  <td><input type="checkbox" class="za-row-chk" value="{{ item.faculty.id }}"></td>
+                  <td>
+                    <div class="za-emp">
+                      <div class="za-emp-av">
+                        {% if item.faculty.profile_photo %}
+                        <img src="{{ item.faculty.profile_photo.url }}" alt="">
+                        {% else %}
+                        <span class="za-emp-initials">{{ item.faculty.user.first_name|first|upper }}{{ item.faculty.user.last_name|first|upper }}</span>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <div class="za-emp-name">{{ item.faculty.user.get_full_name }}</div>
+                        <div class="za-emp-id">{{ item.faculty.employee_id }}{% if item.designation %}<span class="za-emp-desig">{{ item.designation }}</span>{% endif %}</div>
+                      </div>
+                    </div>
+                    <input type="hidden" name="faculty_id" value="{{ item.faculty.id }}">
+                  </td>
+                  <td class=" "><span class="za-dept-badge">{{ item.dept_name|truncatechars:15 }}</span></td>
+                  <td>
+                    {% if item.record and item.record.check_in %}
+                    <input type="hidden" name="check_in" value="{{ item.record.check_in|time:'H:i' }}" class="za-ci-hidden">
+                    <span class="za-ci-badge-sm za-view-mode"><i class="ti ti-login"></i> {{ item.record.check_in|time:"H:i" }}</span>
+                    <select name="edit_check_in" class="za-ti-in za-ti-ci za-edit-mode" data-min="06:00" data-max="12:00"
+                           data-ci-end="09:00" data-co-end="17:00" style="display:none"><option value="{{ item.record.check_in|time:'H:i' }}" selected>{{ item.record.check_in|time:'H:i' }}</option></select>
+                    {% else %}
+                    <select name="check_in" class="za-ti-in za-ti-ci" data-min="06:00" data-max="12:00"
+                           data-ci-end="09:00"
+                           data-co-end="17:00"><option value=""></option></select>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.record and item.record.check_out %}
+                    <input type="hidden" name="check_out" value="{{ item.record.check_out|time:'H:i' }}" class="za-co-hidden">
+                    <span class="za-co-badge-sm za-view-mode"><i class="ti ti-logout"></i> {{ item.record.check_out|time:"H:i" }}</span>
+                    <select name="edit_check_out" class="za-ti-in za-ti-co za-edit-mode" data-min="12:00" data-max="23:00"
+                           data-ci-end="09:00" data-co-end="17:00" style="display:none"><option value="{{ item.record.check_out|time:'H:i' }}" selected>{{ item.record.check_out|time:'H:i' }}</option></select>
+                    {% else %}
+                    <select name="check_out" class="za-ti-in za-ti-co" data-min="12:00" data-max="23:00"
+                           data-ci-end="09:00"
+                           data-co-end="17:00"><option value=""></option></select>
+                    {% endif %}
+                  </td>
+                  <td class=" ">
+                    {% if item.working_hours is not None %}
+                    <span class="za-wh-sm">{{ item.working_hours }}<span class="za-wh-unit">h</span></span>
+                    {% else %}<span class="za-na">&mdash;</span>{% endif %}
+                  </td>
+                  <td>
+                    <div class="za-select-wrap">
+                    <select name="status" class="za-st-sel za-attendance-status" {% if item.record %}disabled{% endif %}>
+                      {% if not item.record %}
+                      <option value="" selected disabled>—</option>
+                      {% endif %}
+                      <option value="PRESENT" {% if item.record and item.record.status == 'PRESENT' %}selected{% endif %}>Present</option>
+                      <option value="LATE" {% if item.record and item.record.status == 'LATE' %}selected{% endif %}>Late</option>
+                      <option value="ABSENT" {% if item.record and item.record.status == 'ABSENT' %}selected{% endif %}>Absent</option>
+                      <option value="ON_LEAVE" {% if item.record and item.record.status == 'ON_LEAVE' %}selected{% endif %}>On Leave</option>
+                      <option value="HALF_DAY" {% if item.record and item.record.status == 'HALF_DAY' %}selected{% endif %}>Half Day</option>
+                    </select>
+                  </div>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Footer -->
+          <div class="za-footer">
+            <span class="za-footer-meta">{{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total_count }}</span>
+            <div class="za-footer-actions">
+              {% if page_obj.paginator.num_pages > 1 %}
+              <ul class="za-pag">
+                {% if page_obj.has_previous %}
+                <li><a href="?{% if selected_date %}date={{ selected_date|date:'Y-m-d' }}&{% endif %}{% if selected_dept %}department={{ selected_dept }}&{% endif %}{% if selected_search %}search={{ selected_search|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}" class="za-page-link">&lsaquo;</a></li>
+                {% endif %}
+                {% for n in page_obj.paginator.page_range %}
+                <li><a href="?{% if selected_date %}date={{ selected_date|date:'Y-m-d' }}&{% endif %}{% if selected_dept %}department={{ selected_dept }}&{% endif %}{% if selected_search %}search={{ selected_search|urlencode }}&{% endif %}page={{ n }}" class="za-page-link{% if n == page_obj.number %} active{% endif %}">{{ n }}</a></li>
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li><a href="?{% if selected_date %}date={{ selected_date|date:'Y-m-d' }}&{% endif %}{% if selected_dept %}department={{ selected_dept }}&{% endif %}{% if selected_search %}search={{ selected_search|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}" class="za-page-link">&rsaquo;</a></li>
+                {% endif %}
+              </ul>
+              {% endif %}
+              <button type="submit" class="za-btn za-btn-primary"><i class="ti ti-device-floppy"></i> Save Changes</button>
+              <button type="button" class="za-btn za-btn-outline ms-2" id="zaBulkEditToggle" data-edit-url="{% url 'bulk_edit_attendance' %}" data-view-url="{% url 'mark_attendance' %}"><i class="ti ti-pencil"></i> <span>Bulk Edit</span></button>
+              {% if undo_available %}
+              <a href="{% url 'undo_mark_attendance' %}" class="za-btn za-btn-outline za-btn-outline-secondary ms-2"><i class="ti ti-history"></i> Undo</a>
+              {% endif %}
+            </div>
+          </div>
+        </form>
+        {% else %}
+        <div class="za-empty">
+          <i class="ti ti-users za-empty-icon"></i>
+          <p class="mt-2 mb-0">No faculty members found.</p>
+          <p class="za-empty-sub">Try selecting a different department or date.</p>
+        </div>
+        {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/index.js"></script>
+<script id="attendanceChartData" type="application/json">{{ chart_data_json|safe }}</script>
+<script id="attendanceCalendarData" type="application/json">{{ calendar_data_json|safe }}</script>
+<script src="{% static 'js/Eric/attendance_base.js' %}"></script>
+<script src="{% static 'js/Eric/faculty_attendance.js' %}"></script>
+<script src="{% static 'js/Eric/attendance_charts.js' %}"></script>
+<script src="{% static 'js/Eric/attendance_calendar.js' %}"></script>
+<script>
+(function(){
+  if (typeof toMins === 'undefined') return;
+
+  function zaPopulateTimeSelect(sel){
+    if (sel._zaPopulated) return;
+    var min = sel.getAttribute('data-min') || '00:00';
+    var max = sel.getAttribute('data-max') || '23:59';
+    var val = sel.value;
+    var cur = sel.querySelector('option[selected]');
+    if (cur) val = cur.value;
+    sel.innerHTML = '';
+    var minM = toMins(min) || 0, maxM = toMins(max) || 1439;
+    for (var m = minM; m <= maxM; m += 5) {
+      var h = Math.floor(m/60), i = m%60;
+      var v = String(h).padStart(2,'0') + ':' + String(i).padStart(2,'0');
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      if (v === val) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel._zaPopulated = true;
+  }
+
+  document.querySelectorAll('select[data-min][data-max]').forEach(zaPopulateTimeSelect);
+  document.querySelectorAll('select.za-select').forEach(function(sel){
+    sel._zaPopulated = true;
+  });
+})();
+</script>
+{% endblock %}

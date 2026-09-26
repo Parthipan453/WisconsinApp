@@ -1,0 +1,849 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}
+    {{ program.program_name }} - Advising Support
+{% endblock %}
+
+
+{% block extra_css %}
+
+<link rel="stylesheet"
+      href="{% static 'staffdashboard/staff_dashboard.css' %}">
+
+<link rel="stylesheet"
+      href="{% static 'Student_Services/advising.css' %}">
+
+{% endblock %}
+
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_advising %}active{% endblock %}
+
+
+{% block content %}
+
+
+<!-- =========================================================
+     BREADCRUMB
+========================================================= -->
+
+<nav class="advising-breadcrumb" aria-label="Breadcrumb">
+
+    <ol>
+
+        <!-- Dashboard -->
+
+        <li>
+
+            <a href="{% url 'staff_dashboard' uuid=user.uuid %}">
+
+                <i class="ti ti-home"></i>
+
+                Dashboard
+
+            </a>
+
+        </li>
+
+
+        <li class="advising-breadcrumb-sep">
+
+            <i class="ti ti-chevron-right"></i>
+
+        </li>
+
+
+        <!-- Advising Support -->
+
+        <li>
+
+            <a href="{% url 'staff_advising' uuid=user.uuid %}">
+
+                Advising Support
+
+            </a>
+
+        </li>
+
+
+        <li class="advising-breadcrumb-sep">
+
+            <i class="ti ti-chevron-right"></i>
+
+        </li>
+
+
+        <!-- Department -->
+
+        <li>
+
+            <a href="{% url 'staff_advising_department' uuid=user.uuid department_id=department.department_id %}">
+
+                {{ department.department_name }}
+
+            </a>
+
+        </li>
+
+
+        <li class="advising-breadcrumb-sep">
+
+            <i class="ti ti-chevron-right"></i>
+
+        </li>
+
+
+        <!-- Program -->
+
+        <li aria-current="page">
+
+            <span class="advising-breadcrumb-current">
+
+                {{ program.program_name }}
+
+            </span>
+
+        </li>
+
+    </ol>
+
+</nav>
+
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================= -->
+
+<div class="advising-page-header">
+
+    <div>
+
+        <h1>
+            {{ program.program_name }}
+        </h1>
+
+        <p>
+            Manage admission batches and academic advising assignments.
+        </p>
+
+    </div>
+
+
+    <div class="dash-date-badge">
+
+        <i class="ti ti-calendar"></i>
+
+        {{ today|date:"d M Y, l" }}
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     BACK BUTTON
+========================================================= -->
+
+<div class="advising-actions">
+
+    <a href="{% url 'staff_advising_department' uuid=user.uuid department_id=department.department_id %}"
+       class="action-btn">
+
+        <i class="ti ti-arrow-left"></i>
+
+        Programs
+
+    </a>
+
+</div>
+
+
+
+<!-- =========================================================
+     PROGRAM SUMMARY
+========================================================= -->
+
+<div class="advising-stats">
+
+
+    <!-- Total Students -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-number">
+
+            {{ total_students }}
+
+        </div>
+
+        <div class="advising-stat-label">
+
+            Active Students
+
+        </div>
+
+    </div>
+
+
+    <!-- Assigned -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-number">
+
+            {{ total_assigned_students }}
+
+        </div>
+
+        <div class="advising-stat-label">
+
+            Assigned Students
+
+        </div>
+
+    </div>
+
+
+    <!-- Unassigned -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-number">
+
+            {{ total_unassigned_students }}
+
+        </div>
+
+        <div class="advising-stat-label">
+
+            Unassigned Students
+
+        </div>
+
+    </div>
+
+
+    <!-- Batches -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-number">
+
+            {{ batches|length }}
+
+        </div>
+
+        <div class="advising-stat-label">
+
+            Admission Batches
+
+        </div>
+
+    </div>
+
+
+</div>
+
+<!-- =========================================================
+     BULK ADVISOR ASSIGNMENT
+========================================================= -->
+
+<details class="advisor-assignment-panel">
+
+
+    <summary class="advisor-assignment-header">
+
+
+        <div class="advisor-assignment-header-text">
+
+
+            <div class="advisor-assignment-icon">
+
+                <i class="ti ti-user-check"></i>
+
+            </div>
+
+
+            <div>
+                
+
+                <h2>
+
+                    Assign Advisor
+
+                </h2>
+
+                <p>
+
+                    Assign an advisor to a group of students using
+                    their admission batch and roll number range.
+
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+        <i class="ti ti-chevron-down advisor-assignment-chevron"></i>
+
+
+    </summary>
+
+
+
+    <!-- Assignment Form -->
+
+    <form method="POST"
+          action="{% url 'staff_assign_advisor' uuid=user.uuid %}"
+          class="advisor-assignment-form">
+
+        {% csrf_token %}
+
+
+        <!-- Program -->
+
+        <input type="hidden"
+               name="program_id"
+               value="{{ program.program_id }}">
+
+
+
+        <div class="advisor-form-grid">
+
+
+            <!-- =================================================
+                 BATCH
+            ================================================== -->
+
+            <div class="advisor-form-group">
+
+                <label for="admission_batch">
+
+                    Admission Batch
+
+                </label>
+
+
+                <input type="number"
+                       id="admission_batch"
+                       name="admission_batch"
+                       class="form-control"
+                       placeholder="Example: 2026"
+                       min="2000"
+                       max="2100"
+                       required>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 ROLL FROM
+            ================================================== -->
+
+            <div class="advisor-form-group">
+
+                <label for="roll_number_from">
+
+                    Roll Number From
+
+                </label>
+
+
+                <input type="text"
+                       id="roll_number_from"
+                       name="roll_number_from"
+                       class="form-control"
+                       placeholder="Example: 26CS001"
+                       required>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 ROLL TO
+            ================================================== -->
+
+            <div class="advisor-form-group">
+
+                <label for="roll_number_to">
+
+                    Roll Number To
+
+                </label>
+
+
+                <input type="text"
+                       id="roll_number_to"
+                       name="roll_number_to"
+                       class="form-control"
+                       placeholder="Example: 26CS050"
+                       required>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 ADVISOR
+            ================================================== -->
+
+            <div class="advisor-form-group">
+
+                <label for="advisor_id">
+
+                    Advisor
+
+                </label>
+
+
+                <select id="advisor_id"
+                        name="advisor_id"
+                        class="form-select"
+                        required>
+
+
+                    <option value="">
+
+                        Select Advisor
+
+                    </option>
+
+
+                    {% for advisor in advisors %}
+
+                        <option value="{{ advisor.pk }}">
+
+                            {% if advisor.preferred_name %}
+
+                                {{ advisor.preferred_name }}
+
+                            {% else %}
+
+                                {{ advisor.user.get_full_name }}
+
+                            {% endif %}
+
+                            — {{ advisor.employee_id }}
+
+                        </option>
+
+                    {% endfor %}
+
+
+                </select>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+             FORM FOOTER
+        ================================================== -->
+
+        <div class="advisor-assignment-footer">
+
+
+            <small class="advisor-assignment-help">
+
+                Example:
+
+                <strong>26CS001 → 26CS050</strong>
+
+                assigns that student range to the selected advisor.
+
+            </small>
+
+
+            <button type="submit"
+                    class="advisor-assign-btn">
+
+                <i class="ti ti-user-plus"></i>
+
+                Assign Advisor
+
+            </button>
+
+
+        </div>
+
+
+    </form>
+
+
+</details>
+
+
+
+<!-- =========================================================
+     BATCHES SECTION
+========================================================= -->
+
+<div class="advising-department-section">
+
+
+    <!-- Section Header -->
+
+    <div class="advising-section-header">
+
+
+        <div>
+
+            <h2>
+
+                Admission Batches
+
+            </h2>
+
+
+            <p>
+
+                Select a batch to manage its students and advising
+                assignments.
+
+            </p>
+
+        </div>
+
+
+        <span class="advising-count-pill">
+
+            {{ batches|length }}
+
+            Batch{{ batches|length|pluralize }}
+
+        </span>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         BATCH CARDS
+    ====================================================== -->
+
+    <div class="advising-department-grid">
+
+
+        {% for batch in batches %}
+
+
+            <div class="advising-department-card advising-department-card--static">
+
+
+                <!-- =================================================
+                     BATCH HEADER
+                ================================================== -->
+
+                <div class="advising-card-top">
+
+
+                    <div class="department-avatar">
+
+                        {{ batch.batch|stringformat:"s"|slice:"-2:" }}
+
+                    </div>
+
+
+                    <div class="department-title">
+
+                        <h3>
+
+                            {{ batch.batch }} Batch
+
+                        </h3>
+
+
+                        <span>
+
+                            {{ program.program_name }}
+
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- Divider -->
+
+                <div class="advising-card-divider"></div>
+
+
+
+                <!-- =================================================
+                     BATCH INFORMATION
+                ================================================== -->
+
+                <div class="advising-card-info">
+
+
+                    <!-- Admission Batch -->
+
+                    <div class="advising-info-row">
+
+                        <span>
+
+                            <i class="ti ti-calendar"></i>
+
+                            Admission Batch
+
+                        </span>
+
+
+                        <strong>
+
+                            {{ batch.batch }}
+
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- Total Students -->
+
+                    <div class="advising-info-row">
+
+                        <span>
+
+                            <i class="ti ti-users"></i>
+
+                            Students
+
+                        </span>
+
+
+                        <strong>
+
+                            {{ batch.student_count }}
+
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- Assigned Students -->
+
+                    <div class="advising-info-row">
+
+                        <span>
+
+                            <i class="ti ti-user-check"></i>
+
+                            Assigned
+
+                        </span>
+
+
+                        <strong>
+
+                            {{ batch.assigned_count }}
+
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- Unassigned Students -->
+
+                    <div class="advising-info-row">
+
+                        <span>
+
+                            <i class="ti ti-user-exclamation"></i>
+
+                            Unassigned
+
+                        </span>
+
+
+                        {% if batch.unassigned_count > 0 %}
+
+                            <span class="advising-level-badge">
+
+                                {{ batch.unassigned_count }}
+
+                            </span>
+
+                        {% else %}
+
+                            <strong>
+
+                                0
+
+                            </strong>
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <!-- =================================================
+                         ADVISORS
+                    ================================================== -->
+
+                    <div class="advising-info-row advisor-info-row">
+
+                        <span>
+
+                            <i class="ti ti-user-check"></i>
+
+                            Advisors
+
+                        </span>
+
+
+                        <div class="batch-advisor-list">
+
+
+                            {% if batch.advisor_assignments %}
+
+
+                                {% for advisor in batch.advisors %}
+
+
+                                    <div class="batch-advisor-item">
+
+
+                                        <!-- Advisor Name -->
+
+                                        <div class="batch-advisor-name">
+
+                                            {% if advisor.preferred_name %}
+                                                {{ advisor.preferred_name }}
+                                            {% else %}
+                                                {{ advisor.user.get_full_name }}
+                                            {% endif %}
+
+                                        </div>
+
+
+                                        <!-- Roll Range -->
+
+                                        <!-- <div class="batch-advisor-range">
+
+                                            {{ assignment.roll_number_from }}
+
+                                            <span>
+
+                                                →
+
+                                            </span>
+
+                                            {{ assignment.roll_number_to }}
+
+                                        </div> -->
+
+
+                                    </div>
+
+
+                                {% endfor %}
+
+
+                            {% else %}
+
+
+                                <span class="advising-level-badge">
+
+                                    Not Assigned
+
+                                </span>
+
+
+                            {% endif %}
+
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     CARD FOOTER
+                ================================================== -->
+
+                <div class="advising-card-footer">
+
+
+                    <a href="{% url 'staff_advising_batch' uuid=user.uuid department_id=department.department_id program_id=program.program_id batch_year=batch.batch %}"
+                       class="department-action">
+
+
+                        View Students
+
+
+                    </a>
+
+
+                    <i class="ti ti-arrow-right"></i>
+
+
+                </div>
+
+
+            </div>
+
+
+        {% empty %}
+
+
+            <!-- =================================================
+                 EMPTY STATE
+            ================================================== -->
+
+            <div class="advising-empty-state">
+
+
+                <i class="ti ti-users-off"></i>
+
+
+                <h3>
+
+                    No Batches Found
+
+                </h3>
+
+
+                <p>
+
+                    No active students are currently assigned
+                    to {{ program.program_name }}.
+
+                </p>
+
+
+            </div>
+
+
+        {% endfor %}
+
+
+    </div>
+
+
+</div>
+
+
+{% endblock %}

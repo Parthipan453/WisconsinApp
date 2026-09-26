@@ -1,0 +1,286 @@
+<!-- kali code  -->
+{% load static %}
+{% if invitations %}
+  {% for invitation in invitations %}
+  {% with tournament=invitation.tournament %}
+  <div class="tt-card"
+       id="tt-card-{{ invitation.invitation_uuid }}"
+       data-invitation-uuid="{{ invitation.invitation_uuid }}"
+       data-status="{{ invitation.application_status }}">
+
+    <div class="tt-card-top">
+      <div class="tt-card-main">
+        <h4 class="tt-card-title">{{ tournament.tournament_name }}</h4>
+        <div class="tt-card-meta">
+          <span><i class="ti ti-barcode"></i> {{ tournament.tournament_code }}</span>
+          <span><i class="ti ti-ball-basketball"></i> {{ tournament.sport.sport_name }}</span>
+          <span><i class="ti ti-category"></i> {{ tournament.get_tournament_type_display }}</span>
+          <span><i class="ti ti-users"></i> {{ tournament.get_participation_type_display }}</span>
+        </div>
+      </div>
+      <span class="tt-badge tt-badge-{{ invitation.application_status|lower }}" data-status-badge>
+        {{ invitation.get_application_status_display }}
+      </span>
+    </div>
+
+    <div class="tt-card-details">
+      <div><i class="ti ti-calendar-event"></i> Start: {{ tournament.start_date|date:"d M Y" }}</div>
+      <div><i class="ti ti-calendar-event"></i> End: {{ tournament.end_date|date:"d M Y" }}</div>
+      <div><i class="ti ti-calendar-due"></i> Deadline: {{ tournament.registration_deadline|date:"d M Y" }}</div>
+      <div><i class="ti ti-cash"></i> Entry Fee: {{ tournament.entry_fee }}</div>
+    </div>
+
+    <div class="tt-card-action" data-action-area>
+      {% if invitation.application_status == "APPLIED" %}
+        <span class="tt-status-note tt-status-applied">
+          <i class="ti ti-clock-hour-4"></i> Applied — awaiting admin approval
+        </span>
+      {% elif invitation.application_status == "APPROVED" %}
+        <span class="tt-status-note tt-status-approved">
+          <i class="ti ti-circle-check"></i> Approved
+        </span>
+      {% elif invitation.application_status == "REJECTED" %}
+        <span class="tt-status-note tt-status-rejected">
+          <i class="ti ti-circle-x"></i> Rejected{% if invitation.application.admin_remarks %}: {{ invitation.application.admin_remarks }}{% endif %}
+        </span>
+      {% elif tournament.registration_deadline < today %}
+        <span class="tt-status-note tt-status-closed">
+          <i class="ti ti-lock"></i> Registration Closed
+        </span>
+      {% else %}
+        <button type="button" class="tt-apply-btn" data-toggle-form="tt-form-{{ invitation.invitation_uuid }}">
+          <i class="ti ti-send"></i> Apply Now
+        </button>
+      {% endif %}
+    </div>
+
+    {% if invitation.application_status == "INVITED" and tournament.registration_deadline >= today %}
+    <div class="tt-form-panel" id="tt-form-{{ invitation.invitation_uuid }}" style="display:none;">
+      <form class="tt-application-form"
+            data-submit-url="{% url 'faculty_tournament_application_submit' uuid=request.user.uuid invitation_uuid=invitation.invitation_uuid %}"
+            data-card-target="tt-card-{{ invitation.invitation_uuid }}"
+            data-participation-type="{{ tournament.participation_type }}"
+            data-min-participants="{{ tournament.minimum_participants }}"
+            data-max-participants="{{ tournament.maximum_participants }}">
+        {% csrf_token %}
+
+        
+<div class="tt-form-grid">
+
+    <!-- Participant Name - INDIVIDUAL ONLY -->
+    {% if tournament.participation_type != "TEAM" %}
+    <div class="tt-form-group">
+        <label>
+            Participant Name
+            <span class="tt-req">*</span>
+        </label>
+
+        <input
+            type="text"
+            name="entry_name"
+            maxlength="200"
+            required
+        >
+    </div>
+    {% endif %}
+
+
+    <div class="tt-form-group">
+        <label>
+            College
+            <span class="tt-req">*</span>
+        </label>
+
+        <select
+            name="college_id"
+            class="tt-choices-select tt-college-select"
+            data-placeholder="Select College"
+            required
+        >
+            <option value="">Select College</option>
+
+            {% for college in colleges %}
+                <option value="{{ college.school_id }}">
+                    {{ college.school_name }}
+                </option>
+            {% endfor %}
+
+            <option value="OTHER">Other</option>
+        </select>
+
+        <input
+            type="text"
+            name="other_college_name"
+            class="tt-other-input tt-other-college-input"
+            maxlength="200"
+            placeholder="Enter college name"
+            style="display:none;"
+        >
+    </div>
+
+
+    <div class="tt-form-group">
+        <label>Coach</label>
+
+        <select
+            name="coach_id"
+            class="tt-choices-select tt-coach-select"
+            data-placeholder="Select Coach"
+        >
+            <option value="">Select Coach</option>
+
+            {% for coach in coaches %}
+                <option value="{{ coach.coach_id }}">
+                    {{ coach.full_name }}
+                </option>
+            {% endfor %}
+
+            <option value="OTHER">Other</option>
+        </select>
+
+        <input
+            type="text"
+            name="other_coach_name"
+            class="tt-other-input tt-other-coach-input"
+            maxlength="150"
+            placeholder="Enter coach name"
+            style="display:none;"
+        >
+    </div>
+
+
+    {% if tournament.participation_type == "TEAM" %}
+    <div class="tt-form-group">
+        <label>
+            Internal Team
+            <span class="tt-req">*</span>
+        </label>
+
+        <select
+            name="internal_team_id"
+            class="tt-choices-select tt-team-select"
+            data-placeholder="Select Internal Team"
+            required
+        >
+            <option value="">Select Internal Team</option>
+
+            {% for team in internal_teams %}
+                <option value="{{ team.team_id }}">
+                    {{ team.team_name }}
+                </option>
+            {% endfor %}
+
+            <option value="OTHER">Other</option>
+        </select>
+
+        <input
+            type="text"
+            name="other_team_name"
+            class="tt-other-input tt-other-team-input"
+            maxlength="200"
+            placeholder="Enter team name"
+            style="display:none;"
+        >
+    </div>
+    {% endif %}
+
+
+    <div class="tt-form-group">
+        <label>Contact Person</label>
+
+        <input
+            type="text"
+            name="contact_person"
+            maxlength="150"
+            pattern="[A-Za-z\s.'-]*"
+            data-validate="alpha"
+        >
+        <span class="tt-field-error" data-field-error="contact_person" style="display:none;"></span>
+    </div>
+
+
+    <div class="tt-form-group">
+        <label>Contact Mobile</label>
+
+        <input
+            type="text"
+            name="contact_mobile"
+            maxlength="15"
+            inputmode="numeric"
+            pattern="[0-9]{1,15}"
+            data-validate="numeric"
+        >
+        <span class="tt-field-error" data-field-error="contact_mobile" style="display:none;"></span>
+    </div>
+
+</div>
+
+
+        {% if tournament.participation_type == "TEAM" %}
+        <div class="tt-players-section">
+          <div class="tt-players-header">
+            <label>Player Details <span class="tt-req">*</span></label>
+            <span class="tt-players-count">
+              <span class="tt-players-current">0</span> / min {{ tournament.minimum_participants }} — max {{ tournament.maximum_participants }}
+            </span>
+          </div>
+          <div class="tt-players-list"></div>
+          <button type="button" class="tt-add-player-btn"><i class="ti ti-plus"></i> Add Player</button>
+        </div>
+        {% endif %}
+
+        <div class="tt-form-group">
+          <label>Remarks to Organizer (optional)</label>
+          <textarea name="faculty_remarks" rows="2" maxlength="500"></textarea>
+        </div>
+
+        <div class="tt-form-error" style="display:none;"></div>
+
+        <div class="tt-form-actions mt-4">
+          <button type="button" class="tt-cancel-btn" data-toggle-form="tt-form-{{ invitation.invitation_uuid }}">Cancel</button>
+          <button type="submit" class="tt-submit-btn"><i class="ti ti-send"></i> Send Application</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  
+  {% endwith %}
+  {% endfor %}
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="tt-pagination">
+    <button type="button"
+            class="tt-page-btn tt-page-prev"
+            data-page="{{ page_obj.previous_page_number|default:1 }}"
+            {% if not page_obj.has_previous %}disabled{% endif %}>
+      <i class="ti ti-chevron-left"></i>
+    </button>
+    <span class="tt-page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <button type="button"
+            class="tt-page-btn tt-page-next"
+            data-page="{{ page_obj.next_page_number|default:page_obj.paginator.num_pages }}"
+            {% if not page_obj.has_next %}disabled{% endif %}>
+      <i class="ti ti-chevron-right"></i>
+    </button>
+  </div>
+  {% endif %}
+{% else %}
+  <div class="tt-empty">
+    <i class="ti ti-trophy-off"></i>
+    <p>No invitations in this category yet.</p>
+  </div>
+{% endif %}
+
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+>
+
+
+{% endblock %}

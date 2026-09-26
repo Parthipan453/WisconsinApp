@@ -1,0 +1,295 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Attendance{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rupa/teaching/attendance.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="attendance-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Attendance</h1>
+            <p>{% if current_semester %}{{ current_semester.semester_type }} {{ current_semester.academic_year }} — {% endif %}Track attendance per student across all your sections</p>
+        </div>
+        <a href="{% url 'student_attendance_list' %}" class="attendance-btn"><i class="ti ti-clipboard-check"></i> Take Attendance</a>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="filter-bar">
+        <div class="search-wrap">
+            <i class="ti ti-search"></i>
+            <input type="text" name="student" value="{{ student_search }}" placeholder="Search student name or ID...">
+        </div>
+
+        <select name="course" id="course-select">
+            <option value="">All Courses</option>
+            {% for c in courses_in_scope %}
+                <option value="{{ c.course_id }}" {% if course_filter == c.course_id|stringformat:"s" %}selected{% endif %}>
+                    {{ c.course_code }} — {{ c.course_name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="semester" id="semester-select">
+            <option value="">All Semesters</option>
+            {% for s in semesters_in_scope %}
+                <option value="{{ s.semester_id }}" {% if semester_filter == s.semester_id|stringformat:"s" %}selected{% endif %}>
+                    {{ s.semester__semester_type }} {{ s.semester__academic_year }}{% if current_semester and s.semester_id == current_semester.pk %} (Current){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="year" id="year-select">
+            <option value="">All Years</option>
+            <option value="1" {% if year_filter == "1" %}selected{% endif %}>Year 1</option>
+            <option value="2" {% if year_filter == "2" %}selected{% endif %}>Year 2</option>
+            <option value="3" {% if year_filter == "3" %}selected{% endif %}>Year 3</option>    
+            <option value="4" {% if year_filter == "4" %}selected{% endif %}>Year 4</option>
+            <option value="5" {% if year_filter == "5" %}selected{% endif %}>Year 5</option>
+        </select>
+
+        <button type="submit"><i class="ti ti-filter"></i> Filter</button>
+            {% if has_active_filters %}
+                <a href="{% url 'attendance_page' uuid=uuid %}" class="clear-link"><i class="ti ti-x"></i> Clear</a>
+            {% endif %}
+    </form>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <div class="icon red"><i class="ti ti-users"></i></div>
+            <div><h3>{{ total_students }}</h3><span>Total Students</span></div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green"><i class="ti ti-check"></i></div>
+            <div><h3>{{ present_today }}</h3><span>Present Today</span></div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange"><i class="ti ti-x"></i></div>
+            <div><h3>{{ absent_today }}</h3><span>Absent Today</span></div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon blue"><i class="ti ti-chart-donut"></i></div>
+            <div><h3>{{ attendance_rate }}%</h3><span>Attendance Rate</span></div>
+        </div>
+
+    </div>
+
+    <!-- Overview -->
+    <div class="attendance-grid">
+
+        <div class="card">
+            <div class="card-header">
+                <i class="ti ti-chart-donut"></i>
+                <h3>Overall Attendance</h3>
+            </div>
+            <div class="circle-wrapper">
+                <div class="circle-progress" style="background:conic-gradient(#ef4444 0% {{ attendance_rate }}%, #e5e7eb {{ attendance_rate }}% 100%);">
+                    <span>{{ attendance_rate }}%</span>
+                </div>
+                <p>{% if current_semester %}{{ current_semester.semester_type }} {{ current_semester.academic_year }}{% else %}Based on current filters{% endif %}</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="ti ti-calendar-stats"></i>
+                <h3>Monthly Progress</h3>
+            </div>
+            {% for month in monthly_progress %}
+                <div class="progress-item">
+                    <div class="label">
+                        <span>{{ month.label }}</span>
+                        <span>{{ month.pct }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill red-fill" style="width:{{ month.pct }}%"></div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="ti ti-calendar-off"></i>
+                    <p>No attendance data yet</p>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- Course-wise -->
+    <div class="card">
+        <div class="card-header">
+            <i class="ti ti-books"></i>
+            <h3>Course-wise Attendance</h3>
+        </div>
+        <div class="course-grid">
+            {% for course in course_wise %}
+                <div class="course-card">
+                    <h4>{{ course.course_name }}</h4>
+                    <div class="course-progress">
+                        <div class="course-fill {% if course.pct < 75 %}orange-bg{% endif %}" style="width:{{ course.pct }}%"></div>
+                    </div>
+                    <p>{{ course.pct }}%</p>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="ti ti-school-off"></i>
+                    <p>No courses in scope</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Student Attendance -->
+    <div class="card">
+        <div class="card-header">
+            <i class="ti ti-table"></i>
+            <h3>Student Attendance</h3>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Sessions</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in student_rows %}
+                    <tr>
+                        <td>{{ row.student_number }}</td>
+                        <td>
+                            <div class="student-cell">
+                                <div class="student-avatar">{{ row.initial }}</div>
+                                <span>{{ row.name }}</span>
+                            </div>
+                        </td>
+                        <td>{{ row.sessions }}</td>
+                        <td>{{ row.present }}</td>
+                        <td>{{ row.absent }}</td>
+                        <td>
+                            <span class="grade {% if row.pct >= 90 %}grade-a{% elif row.pct >= 75 %}grade-b{% elif row.pct >= 50 %}grade-c{% else %}grade-f{% endif %}">
+                                {{ row.pct }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="ti ti-user-search"></i>
+                                <p>No matching students found</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&student={{ student_search }}&course={{ course_filter }}&semester={{ semester_filter }}&year={{ year_filter }}&program={{ program_filter }}">...</a>
+            {% endif %}
+            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&student={{ student_search }}&course={{ course_filter }}&semester={{ semester_filter }}&year={{ year_filter }}&program={{ program_filter }}">...</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom-grid">
+
+        <div class="card">
+            <div class="card-header">
+                <i class="ti ti-activity"></i>
+                <h3>Recent Activity</h3>
+            </div>
+            {% for activity in recent_activities %}
+                <div class="timeline-item">
+                    <div class="timeline-dot {{ activity.dot_class }}-fill"></div>
+                    <div>
+                        <strong>{{ activity.title }}</strong>
+                        <p>{{ activity.description }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="ti ti-activity-heartbeat"></i>
+                    <p>No recent attendance activity</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="card summary-card">
+            <div class="card-header">
+                <i class="ti ti-report-analytics"></i>
+                <h3>Quick Summary</h3>
+            </div>
+
+            <div class="quick-stat">
+                <span class="quick-stat-label">Sessions Conducted</span>
+                <span class="quick-stat-value">{{ total_sessions_conducted }}</span>
+            </div>
+
+            <div class="quick-stat">
+                <span class="quick-stat-label">Overall Rate</span>
+                <span class="quick-stat-value">{{ overall_attendance_rate }}%</span>
+            </div>
+
+            {% if best_course %}
+            <div class="quick-stat">
+                <span class="quick-stat-label">Best Course</span>
+                <span class="quick-stat-value quick-stat-good">{{ best_course.course_name }} · {{ best_course.pct }}%</span>
+            </div>
+            {% endif %}
+
+            {% if lowest_course and lowest_course.pct < 75 %}
+            <div class="quick-stat">
+                <span class="quick-stat-label">Needs Attention</span>
+                <span class="quick-stat-value quick-stat-warn">{{ lowest_course.course_name }} · {{ lowest_course.pct }}%</span>
+            </div>
+            {% endif %}
+
+            {% if total_records == 0 %}
+            <div class="empty-state">
+                <i class="ti ti-calendar-off"></i>
+                <p>No attendance recorded yet</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+    new Choices('#course-select', { searchEnabled: true, itemSelectText: '', shouldSort: false });
+    new Choices('#semester-select', { searchEnabled: false, itemSelectText: '', shouldSort: false });
+    new Choices('#year-select', { searchEnabled: false, itemSelectText: '', shouldSort: false });
+    new Choices('#program-select', { searchEnabled: true, itemSelectText: '', shouldSort: false });
+</script>
+{% endblock %}

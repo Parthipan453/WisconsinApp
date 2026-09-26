@@ -1,0 +1,248 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Role Access Control Dashboard{% endblock %}
+{% block page_title %}Access Control{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_role_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_dashboard.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="permission-header" data-aos="fade-down">
+        <div class="permission-header__text">
+            <h1>Role Permission Access Control Dashboard</h1>
+            <p>Overview of roles, permissions and recent activity</p>
+        </div>
+        {% has_page_access "permission_management_list" as can_see_permission_roles_list %}
+        {% if can_see_permission_roles_list %}
+            <a href="{% url 'Permission:permission_role_list' %}" class="permission-btn-primary">
+                <i data-lucide="grid-3x3"></i> Permission Role List
+            </a>
+        {% endif %}
+    </div>
+    <div class="dash-stats" data-aos="fade-up" data-aos-delay="60">
+        <div class="dash-stat-card">
+            <div class="dash-stat-card__icon dash-stat-card__icon--red">
+                <i data-lucide="shield"></i>
+            </div>
+            <div>
+                <div class="dash-stat-card__val">{{ total_roles }}</div>
+                <div class="dash-stat-card__label">Total Roles</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-card__icon dash-stat-card__icon--blue">
+                <i data-lucide="key"></i>
+            </div>
+            <div>
+                <div class="dash-stat-card__val">{{ total_permissions }}</div>
+                <div class="dash-stat-card__label">Permissions</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-card__icon dash-stat-card__icon--green">
+                <i data-lucide="users"></i>
+            </div>
+            <div>
+                <div class="dash-stat-card__val">{{ total_users }}</div>
+                <div class="dash-stat-card__label">Total Users</div>
+            </div>
+        </div>
+    </div>
+    <div class="dash-charts-row" data-aos="fade-up" data-aos-delay="90">
+        <div class="permission-card dash-chart-card">
+            <div class="permission-card__head">
+                <h2 class="permission-card__title">
+                    <i data-lucide="bar-chart-3"></i>
+                    Permissions per Role
+                </h2>
+            </div>
+            <div class="permission-card__body">
+                <div class="dash-chart-wrap">
+                    {% if role_permission_counts %}
+                        <canvas id="rolePermissionChart"></canvas>
+                    {% else %}
+                        <div class="permission-empty">
+                            <i data-lucide="bar-chart-3"></i>
+                            <p>No role permission data available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="permission-card dash-chart-card">
+            <div class="permission-card__head">
+                <h2 class="permission-card__title">
+                    <i data-lucide="pie-chart"></i>
+                    Activity Breakdown
+                </h2>
+            </div>
+            <div class="permission-card__body">
+                <div class="dash-chart-wrap">
+                    {% if action_counts %}
+                        <canvas id="actionBreakdownChart"></canvas>
+                    {% else %}
+                        <div class="permission-empty">
+                            <i data-lucide="pie-chart"></i>
+                            <p>No activity available yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="permission-card" data-aos="fade-up" data-aos-delay="105">
+        <div class="permission-card__head">
+            <h2 class="permission-card__title">
+                <i data-lucide="shield-check"></i>
+                Roles Overview
+            </h2>
+            <a href="{% url 'Permission:permission_role_list' %}"
+               class="dash-view-all-link">
+                <span>Manage Roles</span> <i data-lucide="arrow-right"></i>
+            </a>
+        </div>
+        <div class="permission-card__body">
+
+            <div class="pm-tabs">
+                <button type="button" class="pm-tab is-active" data-role-tab="user">
+                    <i data-lucide="users"></i> Organization Roles
+                    <span class="pm-tab__count">{{ role_overview|length }}</span>
+                </button>
+                <button type="button" class="pm-tab" data-role-tab="medical">
+                    <i data-lucide="stethoscope"></i> Medical Roles
+                    <span class="pm-tab__count">{{ medical_role_overview|length }}</span>
+                </button>
+            </div>
+
+            <div class="pm-role-panel" data-role-panel="user">
+                {% if role_overview %}
+                    <div class="dash-role-grid">
+                        {% for item in role_overview %}
+                            <div class="dash-role-card">
+                                <div class="dash-role-card__head">
+                                    <div class="permission-role-cell">
+                                        <div class="permission-role-avatar permission-role-avatar--{{ item.color }}">
+                                            {{ item.role.role_name|first|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="permission-role-name">{{ item.role.role_name }}</div>
+                                            <div class="permission-role-sub">{{ item.role.user_count }} user{{ item.role.user_count|pluralize }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="dash-role-card__count">{{ item.permission_count }} permissions</span>
+                                </div>
+
+                                {% if item.modules %}
+                                    <div class="dash-role-card__modules">
+                                        {% for module in item.modules %}
+                                            <span class="dash-module-tag">{{ module }}</span>
+                                        {% endfor %}
+                                        {% if item.extra_modules %}
+                                            <span class="dash-module-tag dash-module-tag--muted">+{{ item.extra_modules }} more</span>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <p class="dash-role-card__empty">No modules assigned yet.</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="permission-empty">
+                        <i data-lucide="shield-off"></i>
+                        <p>No organization roles yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="pm-role-panel" data-role-panel="medical" hidden>
+                {% if medical_role_overview %}
+                    <div class="dash-role-grid">
+                        {% for item in medical_role_overview %}
+                            <div class="dash-role-card">
+                                <div class="dash-role-card__head">
+                                    <div class="permission-role-cell">
+                                        <div class="permission-role-avatar permission-role-avatar--{{ item.color }}">
+                                            {{ item.role.name|first|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="permission-role-name">{{ item.role.name }}</div>
+                                            <div class="permission-role-sub">{{ item.role.get_category_display }} · {{ item.role.user_count }} user{{ item.role.user_count|pluralize }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="dash-role-card__count">{{ item.permission_count }} permissions</span>
+                                </div>
+
+                                {% if item.modules %}
+                                    <div class="dash-role-card__modules">
+                                        {% for module in item.modules %}
+                                            <span class="dash-module-tag">{{ module }}</span>
+                                        {% endfor %}
+                                        {% if item.extra_modules %}
+                                            <span class="dash-module-tag dash-module-tag--muted">+{{ item.extra_modules }} more</span>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <p class="dash-role-card__empty">No modules assigned yet.</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="permission-empty">
+                        <i data-lucide="stethoscope"></i>
+                        <p>No medical staff roles yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    <div class="permission-card" data-aos="fade-up" data-aos-delay="120">
+        <div class="permission-card__head">
+            <h2 class="permission-card__title">
+                <i data-lucide="activity"></i>
+                Recent Activity
+            </h2>
+            <a href="{% url 'Permission:permission_audit_log' %}"
+               class="dash-view-all-link">
+                View Full Log <i data-lucide="arrow-right"></i>
+            </a>
+        </div>
+        <div class="permission-card__body">
+            <div class="permission-activity-list">
+                {% for log in recent_logs %}
+                    <div class="permission-activity-item">
+                        <div class="permission-audit-icon permission-audit-icon--{{ log.action }}">
+                            {% spaceless %}
+                                <i data-lucide="{% if log.action == 'unauthorized_attempt' %}{% elif log.action == 'permission_assigned' %}plus-circle{% elif log.action == 'permission_removed' %}minus-circle{% elif log.action == 'page_access_changed' %}lock{% elif log.action == 'administrator_setup' %}shield-check{% else %}edit{% endif %}">
+                                </i>
+                            {% endspaceless %}
+                        </div>
+                        <div class="permission-activity-body">
+                            <p class="permission-activity-desc">{{ log.friendly_description }}</p>
+                            <span class="permission-activity-meta">
+                                {{ log.action_by|default:"System" }} | {{ log.timestamp|date:"d M Y, h:i A" }}
+                            </span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="permission-empty">
+                        <i data-lucide="inbox"></i>
+                        <p>No activity yet. Actions in Permission Management will appear here.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {{ role_permission_counts|json_script:"role-permission-data" }}
+    {{ action_counts|json_script:"action-count-data" }}
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="{% static 'script/permission_role_list.js' %}"></script>
+    <script src="{% static 'script/permission_dashboard.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Login Reports{% endblock %}
+{% block page_title %}Login Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="{% static 'css/reports/user_reports.css' %}">
+<link rel="stylesheet" href="{% static 'css/reports/login_reports.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+
+{% endblock %}
+
+{% block content %}
+
+<div class="ur-page">
+
+    <!-- Header -->
+    <div class="ur-header">
+        <div>
+            <h2>Login Reports</h2>
+            <!-- <p>Monitor login sessions and audit activities.</p> -->
+            <nav class="ur-breadcrumb">
+                <a href="#">Dashboard</a>
+                <span>›</span>
+                <a href="#">Reports</a>
+                <span>›</span>
+                <span class="active">Login Reports</span>
+            </nav>
+        </div>
+
+        <div class="ur-export">
+
+            <button class="ur-btn" id="exportBtn">
+                Export Report
+                <span>▼</span>
+            </button>
+
+            <div class="ur-export-menu" id="exportMenu">
+
+                <!-- PDF -->
+                <div class="ur-submenu">
+                    <a href="#" class="ur-submenu-btn">
+                        <i class="fa-solid fa-file-pdf"></i> Export PDF ▸
+                    </a>
+
+                    <div class="ur-submenu-content">
+
+                        <a href="{% url 'export_login_pdf' %}?status=">
+                            All Logins
+                        </a>
+
+                        <a href="{% url 'export_login_pdf' %}?status=SUCCESS">
+                            Success
+                        </a>
+
+                        <a href="{% url 'export_login_pdf' %}?status=FAILED">
+                            Failed
+                        </a>
+
+                    </div>
+                </div>
+
+                <!-- Excel (ONLY ALL) -->
+                <a href="{% url 'export_login_excel' %}" class="excelBtn">
+                    <i class="fa-solid fa-file-excel"></i> Export Excel
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Statistics -->
+
+    <div class="ur-stats" data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+        <div class="ur-stat-card" role="listitem" data-aos="fade-up" data-aos-delay="100">
+            <div class="ur-stat-card__icon ur-stat-card__icon--admin" aria-hidden="true">
+                <i data-lucide="users"></i>
+            </div>
+
+            <div class="ur-card">
+                <h5>Total Logins</h5>
+                <h2 id="totalLogins">{{total_logins}}</h2>
+                <!-- <p>↑ from last month</p> -->
+                 <p id="totalLoginGrowth"></p>
+            </div>
+        </div>
+
+        <!-- <div class="ur-card" data-aos="fade-up" data-aos-delay="160"> -->
+        <div class="ur-stat-card" role="listitem" data-aos="fade-up" data-aos-delay="160">
+            <div class="ur-stat-card__icon ur-stat-card__icon--active" aria-hidden="true">
+                <i data-lucide="user-check"></i>
+            </div>
+            <div class="ur-card">
+                <h5>Online Users</h5>
+                <h2 id="onlineUsers">{{ online_users }}</h2>
+                <!-- <p>↑ 4.2% from last month</p> -->
+            </div>
+        </div>
+
+        <div class="ur-stat-card" data-aos="fade-up" data-aos-delay="220">
+            <div class="stat-card__icon ur-stat-card__icon--total">
+                <i data-lucide="user-x"></i>
+            </div>
+            <div class="ur-card">
+                <h5>Failed Logins</h5>
+                <h2 id="failedLogins">{{ failed_logins }}</h2>
+                <p id="failedGrowth"></p>
+            </div>
+        </div>
+
+        <div class="ur-stat-card" data-aos="fade-up" data-aos-delay="280">
+            <div class="stat-card__icon stat-card__icon--failed">
+                <i data-lucide="activity"></i>
+            </div>
+            <div class="ur-card">
+                <h5>Avg Session</h5>
+                <h2 id="avrgLogins">{{ avg_session }}</h2>
+            </div>
+        </div>
+
+        <div class="ur-stat-card" data-aos="fade-up" data-aos-delay="320">
+            <div class="stat-card__icon ur-stat-card__icon--student">
+                <i data-lucide="calendar-check"></i>
+            </div>
+            <div class="ur-card">
+
+                <h5>Today's Logins</h5>
+                <h2 id="todayLogins">{{ today_session }}</h2>
+                <!-- <p>↑ 4.2% from Yesterday</p> -->
+                 <p id="todayGrowth"></p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Charts -->
+
+    <div class="ur-grid">
+
+        <div class="ur-chart-card">
+            <div class="ur-card-header">
+                <h3>Login Trend</h3>
+            </div>
+            <canvas id="loginTrendChart"></canvas>
+        </div>
+
+        <div class="ur-chart-card">
+            <div class="ur-card-header">
+                <h3>Device Usage</h3>
+            </div>
+            <canvas id="deviceChart"></canvas>
+        </div>
+
+        <div class="ur-chart-card">
+            <div class="ur-card-header">
+                <h3>Login Status</h3>
+            </div>
+            <canvas id="loginStatusChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- Peak Login Hours -->
+
+    <div class="ur-grid full-width" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+
+        <div class="ur-chart-card" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:240 }}">
+            <div class="ur-card-header">
+                <h3>Peak Login Hours</h3>
+            </div>
+
+            <canvas id="peakHourChart"></canvas>
+        </div>
+        <div class="ur-chart-card" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:240 }}">
+            <div class="ur-card-header">
+                <!-- <h4>Browser Usage</h4> -->
+            </div>
+            <canvas id="browserChart"></canvas>
+        </div>
+
+    </div>
+
+
+    <!-- Recent Login Sessions -->
+
+    <div class="ur-table-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+
+        <div class="ur-table-header">
+            <h3>Recent Login Sessions</h3>
+            <div class="ur-toolbar">
+                <input type="text" id="sessionSearch" class="ur-search" placeholder="Search User">
+                <!-- <input type="date" id="dateFilter"> -->
+                <select id="statusFilter">
+                    <option value="">Status</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="FAILED">Failed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="ur-table-wrap">
+            <div class="ur-table-scroll">
+                <table class="ur-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Login</th>
+                            <!-- <th>Logout</th> -->
+                            <!-- <th>Duration</th> -->
+                            <th>Device</th>
+                            <th>Browser</th>
+                            <th>IP Address</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionTableBody">
+                  
+                </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- pagination -->
+
+    <div class="ur-footer">
+        <p class="ur-footer__count" id="sessionCount"></p>
+        <nav class="ur-pagination" id="sessionPagination">
+        </nav>
+    </div>
+
+    {% endblock %}
+
+    {% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="{% static 'script/reports/login_reports.js' %}"></script>
+
+    {% endblock %}

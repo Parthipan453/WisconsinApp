@@ -1,0 +1,388 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% block title %}Events{% endblock title %}
+{% block page_title %}Events Management{% endblock page_title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+    {% comment %} Choices.js for Dropdown {% endcomment %}
+    {% comment %} <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"> {% endcomment %}
+    {% comment %} Flatpickr {% endcomment %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    {% comment %} Global CSS {% endcomment %}
+    <link rel="stylesheet" href="{% static 'globals.css' %}" />
+    {% comment %} Custom CSS {% endcomment %}
+    <link rel="stylesheet"
+          href="{% static 'css/eventDashboard/event_dashboard.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'css/eventDashboard/partials/_base.css' %}">
+    <link rel="stylesheet"
+          href="{% static 'css/eventDashboard/partials/_modal.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="ev-page">
+        <!-- ===========================================
+                    HEADER
+============================================ -->
+        <div class="ev-header">
+            <div class="ev-header__left">
+                <h1 class="ev-title">Events</h1>
+                <nav class="ev-breadcrumb">
+                    <a href="#">Dashboard</a>
+                    <span class="ev-breadcrumb__sep">›</span>
+                    <a href="#">Content Management</a>
+                    <span class="ev-breadcrumb__sep">›</span>
+                    <span class="ev-breadcrumb__current">Events</span>
+                </nav>
+            </div>
+            <div class="ev-header__right">
+                <a href="{% url 'event_create' %}" class="ev-btn-create">
+                    {% comment %} <a href='#' class="ev-btn-create"> {% endcomment %}
+                    <span>＋</span>
+                    Create Event
+                </a>
+            </div>
+        </div>
+        <!-- ===========================================
+                STATISTICS
+============================================ -->
+        <div class="ev-stats">
+            <div class="ev-stat-card">
+                <div class="ev-stat-icon ev-total">
+                    <i class="ti ti-calendar-event"></i>
+                </div>
+                <div>
+                    <p class="ev-stat-label">Total Events</p>
+                    <h3>{{ total_events }}</h3>
+                </div>
+            </div>
+            <div class="ev-stat-card">
+                <div class="ev-stat-icon ev-published">
+                    <i class="ti ti-circle-check"></i>
+                </div>
+                <div>
+                    <p class="ev-stat-label">Published</p>
+                    <h3>{{ published_events }}</h3>
+                </div>
+            </div>
+            <div class="ev-stat-card">
+                <div class="ev-stat-icon ev-upcoming">
+                    <i class="ti ti-clock-hour-4"></i>
+                </div>
+                <div>
+                    <p class="ev-stat-label">Upcoming</p>
+                    <h3>{{ upcoming_events }}</h3>
+                </div>
+            </div>
+            <div class="ev-stat-card">
+                <div class="ev-stat-icon ev-draft">
+                    <i class="ti ti-edit-circle"></i>
+                </div>
+                <div>
+                    <p class="ev-stat-label">Draft</p>
+                    <h3>{{ draft_events }}</h3>
+                </div>
+            </div>
+            <div class="ev-stat-card">
+                <div class="ev-stat-icon ev-completed">
+                    <i class="ti ti-circle-check"></i>
+                </div>
+                <div>
+                    <p class="ev-stat-label">Completed</p>
+                    <h3>{{ completed_events }}</h3>
+                </div>
+            </div>
+        </div>
+        <!-- Management Cards -->
+        <div class="event-management-grid">
+            <a href="{% url 'manage_categories' %}" class="management-card">
+                <div class="management-icon">
+                    <i class="ti ti-category-filled"></i>
+                </div>
+                <div class="management-content">
+                    <h3>Manage Categories</h3>
+                    <p>
+                        Create, edit and organize event categories used
+                        throughout the Events module.
+                    </p>
+                    <div class="management-footer">
+                        <span class="management-count">{{ total_categories }} Categories</span>
+                        <span class="management-arrow">
+                            <i class="ti ti-arrow-right"></i>
+                        </span>
+                    </div>
+                </div>
+            </a>
+            <a href="{% url 'manage_venues' %}" class="management-card">
+                <div class="management-icon venue">
+                    <i class="ti ti-map-pin-filled"></i>
+                </div>
+                <div class="management-content">
+                    <h3>Manage Venues</h3>
+                    <p>
+                        Add, edit and maintain venues where events are
+                        conducted.
+                    </p>
+                    <div class="management-footer">
+                        <span class="management-count">{{ total_venues }} Venues</span>
+                        <span class="management-arrow">
+                            <i class="ti ti-arrow-right"></i>
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- ===========================================
+                TOOLBAR
+============================================ -->
+        <div class="ev-toolbar">
+            <div class="ev-toolbar-search">
+                <i class="ti ti-search"></i>
+                <input type="text"
+                       id="filterSearch"
+                       name="search"
+                       value="{{ search_query|default:'' }}"
+                       placeholder="Search by title, event code, venue or organizer...">
+            </div>
+            <div class="ev-toolbar-right">
+                <span class="ev-result-count" id="evResultCount">
+                    {% if page_obj.paginator.count > 0 %}
+                        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+                        of {{ page_obj.paginator.count }} Events
+                    {% else %}
+                        Showing 0 of 0 Events
+                    {% endif %}
+                </span>
+                <button class="ev-btn-filter" id="btnApplyFilter">
+                    <i class="ti ti-filter"></i>
+                    Filter
+                </button>
+                <button class="ev-btn-reset" id="btnResetFilter">
+                    <i class="ti ti-refresh"></i>
+                    Reset
+                </button>
+            </div>
+        </div>
+        <!-- ===========================================
+                    FILTERS
+============================================ -->
+        <div class="ev-filters" id="evFilters">
+            <div class="ev-filter-group">
+                <label>Category</label>
+                <select id="filterCategory" name="category">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.category_name }}"
+                                {% if selected_category == cat.category_name %}selected{% endif %}>
+                            {{ cat.category_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="ev-filter-group">
+                <label>Status</label>
+                <select id="filterStatus" name="status">
+                    <option value="">All Status</option>
+                    <option value="Published"
+                            {% if selected_status == 'Published' %}selected{% endif %}>Published</option>
+                    <option value="Draft" {% if selected_status == 'Draft' %}selected{% endif %}>Draft</option>
+                    <option value="Cancelled"
+                            {% if selected_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    <option value="Completed"
+                            {% if selected_status == 'Completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            <div class="ev-filter-group">
+                <label>Visibility</label>
+                <select id="filterVisibility" name="visibility">
+                    <option value="">All</option>
+                    <option value="Public"
+                            {% if selected_visibility == 'Public' %}selected{% endif %}>Public</option>
+                    <option value="Campus Only"
+                            {% if selected_visibility == 'Campus Only' %}selected{% endif %}>Campus Only</option>
+                    <option value="Invitation Only"
+                            {% if selected_visibility == 'Invitation Only' %}selected{% endif %}>Invitation Only</option>
+                </select>
+            </div>
+            {% comment %} <div class="ev-filter-group">
+                <label>Audience</label>
+                <select>
+                    <option>All Users</option>
+                    <option>Students</option>
+                    <option>Faculty</option>
+                    <option>Staff</option>
+                    <option>Admin</option>
+                </select>
+            </div> {% endcomment %}
+            <div class="ev-filter-group" id="from">
+                <label>From</label>
+                <input type="date"
+                       id="filterFromDate"
+                       name="from_date"
+                       value="{{ selected_from_date|default:'' }}"
+                       class="form-control date-picker"
+                       placeholder="start date">
+            </div>
+            <div class="ev-filter-group" id="to">
+                <label>To</label>
+                <input type="date"
+                       id="filterToDate"
+                       name="to_date"
+                       value="{{ selected_to_date|default:'' }}"
+                       class="form-control date-picker"
+                       placeholder="end date">
+            </div>
+        </div>
+        <!-- ===========================================
+                TABLE VIEW
+=========================================== -->
+        <div id="tableView">
+            <div class="ev-table-wrapper">
+                <div class="ev-table-scroll">
+                    <table class="ev-table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Category</th>
+                                <th>Venue</th>
+                                <th>Date</th>
+                                {% comment %} <th>Audience</th> {% endcomment %}
+                                <th>Status</th>
+                                <th>Visibility</th>
+                                <th>Created On</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTableBody">
+                            {% for event in events %}
+                                <tr>
+                                    <td>
+                                        <div class="ev-event">
+                                            <div>
+                                                <h4>{{ event.event_title }}</h4>
+                                                <span>{{ event.event_code }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="ev-category">{{ event.event_category.category_name }}</td>
+                                    <td>
+                                        {% if event.venue %}
+                                            {{ event.venue.venue_name }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td class="ev-date">
+                                        <span>{{ event.start_datetime|date:"d M Y" }}</span>
+                                        <span>{{ event.start_datetime|time:"h:i A" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ev-status {{ event.event_status|lower }}">{{ event.event_status }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ev-visibility {{ event.event_visibility|slugify }}">{{ event.event_visibility }}</span>
+                                    </td>
+                                    <td>{{ event.created_at|date:"d M Y" }}</td>
+                                    <td>
+                                        <div class="ev-actions">
+                                            <!-- View -->
+                                            <a href="{% url 'event_detail' event.event_id %}" title="View Event">
+                                                <i class="ti ti-eye"></i>
+                                            </a>
+                                            <!-- Edit -->
+                                            <a href="{% url 'event_edit' event.event_id %}" title="Edit Event">
+                                                <i class="ti ti-edit"></i>
+                                            </a>
+                                            {% if event.event_status == "Draft" %}
+                                                <a href="#"
+                                                   class="btn-event-action"
+                                                   data-action="publish"
+                                                   data-event-id="{{ event.event_id }}"
+                                                   data-event-title="{{ event.event_title }}"
+                                                   title="Publish">
+                                                    <i class="ti ti-world"></i>
+                                                </a>
+                                            {% elif event.event_status == "Published" %}
+                                                <a href="#"
+                                                   class="btn-event-action"
+                                                   data-action="unpublish"
+                                                   data-event-id="{{ event.event_id }}"
+                                                   data-event-title="{{ event.event_title }}"
+                                                   title="Unpublish">
+                                                    <i class="ti ti-world-off"></i>
+                                                </a>
+                                                <a href="#"
+                                                   class="btn-event-action"
+                                                   data-action="cancel"
+                                                   data-event-id="{{ event.event_id }}"
+                                                   data-event-title="{{ event.event_title }}"
+                                                   title="Cancel Event">
+                                                    <i class="ti ti-ban"></i>
+                                                </a>
+                                                {% if not event.end_datetime and event.is_past_start %}
+                                                    <a href="#"
+                                                       class="btn-event-action"
+                                                       data-action="complete"
+                                                       data-event-id="{{ event.event_id }}"
+                                                       data-event-title="{{ event.event_title }}"
+                                                       title="Mark as Completed">
+                                                        <i class="ti ti-circle-check"></i>
+                                                    </a>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr id="noEventsRow">
+                                    <td colspan="8" class="text-center">No events found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- ===========================================
+                PAGINATION
+============================================ -->
+        <div class="ev-pagination" id="evPagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if selected_from_date %}&from_date={{ selected_from_date }}{% endif %}{% if selected_to_date %}&to_date={{ selected_to_date }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <button>Previous</button>
+                </a>
+            {% else %}
+                <button disabled>Previous</button>
+            {% endif %}
+            {% for item in page_numbers %}
+                {% if item == "..." %}
+                    <span>...</span>
+                {% elif item == page_obj.number %}
+                    <button class="active">{{ item }}</button>
+                {% else %}
+                    <a href="?page={{ item }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if selected_from_date %}&from_date={{ selected_from_date }}{% endif %}{% if selected_to_date %}&to_date={{ selected_to_date }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                        <button>{{ item }}</button>
+                    </a>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if selected_from_date %}&from_date={{ selected_from_date }}{% endif %}{% if selected_to_date %}&to_date={{ selected_to_date }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <button>Next</button>
+                </a>
+            {% else %}
+                <button disabled>Next</button>
+            {% endif %}
+        </div>
+    </div>
+{% endblock content %}
+{% block global_modal %}
+    {% include "eventDashboard/partials/_modals.html" %}
+{% endblock global_modal %}
+{% block extra_js %}
+    {% comment %} Choices.JS script for dropdown  {% endcomment %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    {% comment %} Flatpickr {% endcomment %}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="{% static 'script/eventDashboard/event_dashboard.js' %}"></script>
+{% endblock extra_js %}

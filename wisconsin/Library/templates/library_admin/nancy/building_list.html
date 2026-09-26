@@ -1,0 +1,2129 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Buildings{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/library_admin/nancy/building_list.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="building-page">
+
+    <!-- ===========================================
+                    PAGE HEADER
+    ============================================ -->
+
+    <div class="page-header">
+
+        <div>
+
+            <h1>
+
+                <!-- <i class="ti ti-building-community"></i> -->
+
+                Buildings
+
+            </h1>
+             <div class="breadcrumb">
+                <a href="{% url 'library_dashboard' request.user.uuid %}">Dashboard</a>
+                <span>›</span>
+
+                <!-- <a href="#">Library</a>
+                <span>›</span> -->
+
+                <span class="active">Buildings</span>
+            </div>
+
+          
+
+        </div>
+
+        <a href="{% url 'building_add' %}" class="btn btn-primary">
+
+            <i class="ti ti-plus"></i>
+
+            Add Building
+
+        </a>
+
+    </div>
+
+
+
+    <!-- ===========================================
+                    STATISTICS
+    ============================================ -->
+
+    <div class="stats-section">
+
+        <div class="stats-grid">
+
+            <!-- Total Buildings -->
+
+            <div class="stats-card">
+
+                <div class="stats-icon stats-icon--total">
+
+                    <i class="fa-solid fa-building"></i>
+
+                </div>
+
+                <div class="stats-content">
+
+                    <p class="stats-label">
+                        Total Buildings
+                    </p>
+
+                    <p class="stats-value">
+                        {{ total_buildings }}
+                    </p>
+
+                    <p class="stats-delta stats-delta--up">
+
+                        <i class="fa-solid fa-arrow-up"></i>
+
+                        All Buildings
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Active Buildings -->
+
+            <div class="stats-card">
+
+                <div class="stats-icon stats-icon--active">
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                </div>
+
+                <div class="stats-content">
+
+                    <p class="stats-label">
+                        Active Buildings
+                    </p>
+
+                    <p class="stats-value">
+                        {{ active_buildings }}
+                    </p>
+
+                    <p class="stats-delta stats-delta--up">
+
+                        <i class="fa-solid fa-arrow-up"></i>
+
+                        Currently Active
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Libraries -->
+
+            <div class="stats-card">
+
+                <div class="stats-icon stats-icon--library">
+
+                    <i class="fa-solid fa-building-columns"></i>
+
+                </div>
+
+                <div class="stats-content">
+
+                    <p class="stats-label">
+                        Libraries
+                    </p>
+
+                    <p class="stats-value">
+                        {{ total_libraries }}
+                    </p>
+
+                    <p class="stats-delta stats-delta--up">
+
+                        <i class="fa-solid fa-arrow-up"></i>
+
+                        Library Locations
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Resources -->
+
+            <div class="stats-card">
+
+                <div class="stats-icon stats-icon--resource">
+
+                    <i class="fa-solid fa-book"></i>
+
+                </div>
+
+                <div class="stats-content">
+
+                    <p class="stats-label">
+                        Resources
+                    </p>
+
+                    <p class="stats-value">
+                        {{ total_resources }}
+                    </p>
+
+                    <p class="stats-delta stats-delta--up">
+
+                        <i class="fa-solid fa-arrow-up"></i>
+
+                        Library Resources
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ===========================================
+                    CONTENT GRID
+    ============================================ -->
+
+    <div class="content-grid">
+
+        
+
+        <div class="content-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>
+
+                        <i class="ti ti-list-details"></i>
+
+                        Building Directory
+
+                    </h2>
+
+                    <p>
+
+                        Browse and manage all university buildings.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- ajax html  -->
+
+            <div
+                id="buildingAjax"
+                data-url="{% url 'building_list' %}"
+                style="display:none;">
+            </div>
+
+
+
+            <!-- ===================================
+                        SEARCH BAR
+            ==================================== -->
+
+            <div class="table-toolbar">
+
+                <div class="search-box">
+
+                    <i class="ti ti-search"></i>
+
+                    <input
+                        type="text"
+                        id="buildingSearch"
+                        placeholder="Search by building name, code or address..."
+                        autocomplete="off"
+                        value="{{ search_query }}">
+
+                </div>
+
+            </div>
+                        <!-- ===================================
+                        BUILDING TABLE
+            ==================================== -->
+
+            <div id="buildingContent">
+
+                <div class="table-responsive">
+
+                    <table class="building-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>#</th>
+
+                                <th>Building</th>
+
+                                <th>Code</th>
+
+                                <!-- <th>Floors</th>
+                                
+                                <th>Rooms</th> -->
+
+                                <th>Libraries</th>
+
+                                <th>Address</th>
+
+                                <th>Status</th>
+
+                                <th>Updated</th>
+
+                                <th class="text-center">Actions</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="buildingTableBody">
+
+                            {% for building in page_obj %}
+
+                            <tr class="building-row">
+
+                                <td>
+
+                                    {{ page_obj.start_index|add:forloop.counter0 }}
+
+                                </td>
+
+                                <td>
+
+                                    <div class="building-info">
+
+                                        <div class="building-image">
+
+                                            {% if building.building_image %}
+
+                                                <img
+                                                    src="{{ building.building_image.url }}"
+                                                    alt="{{ building.building_name }}">
+
+                                            {% else %}
+
+                                                <i class="ti ti-building-community"></i>
+
+                                            {% endif %}
+
+                                        </div>
+
+                                        <div class="building-details">
+
+                                            <button
+                                                type="button"
+                                                class="building-name-modal-trigger"
+                                                onclick="openBuildingLibraries({{ building.id }})"
+                                            >
+
+                                                {{ building.building_name }}
+
+                                            </button>
+
+                                            <!-- <span>
+
+                                            {{ building.total_floors }} Floor{{ building.total_floors|pluralize }}
+                                            •
+                                            {{ building.total_rooms }} Room{{ building.total_rooms|pluralize }}
+
+                                            </span> -->
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                                <td>
+
+                                    <span class="building-code">
+
+                                        {{ building.building_code }}
+
+                                    </span>
+
+                                </td>
+
+                                <!-- <td>
+
+                                    <span class="count-badge">
+
+                                        {{ building.total_floors }}
+
+                                        Floor{{ building.total_floors|pluralize }}
+
+                                    </span>
+
+                                </td> 
+
+                                <td>
+
+                                    <span class="count-badge">
+
+                                        {{ building.total_rooms }}
+
+                                        Room{{ building.total_rooms|pluralize }}
+
+                                    </span>
+
+                                </td> -->
+
+                                <td>
+
+                                    <span class="library-count">
+
+                                        {{ building.total_libraries }}
+
+                                        Library{{ building.total_libraries|pluralize }}
+
+                                    </span>
+
+                                </td>
+
+                                <td>
+
+                                    <div class="address-cell">
+
+                                        {% if building.address %}
+
+                                            {{ building.address|truncatechars:20 }}
+
+                                        {% else %}
+
+                                            —
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+                                <td>
+                                        <span class="status-badge {% if building.status == 'ACTIVE' %}active{% else %}inactive{% endif %}">
+                                            {% if building.status == "ACTIVE" %}
+                                                Active
+                                            {% else %}
+                                                Inactive
+                                            {% endif %}
+                                        </span>
+
+                                    <!-- {% if building.is_full_crud %}
+
+                                        <span class="status-badge active">
+
+                                            Active
+
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge inactive">
+
+                                            Inactive
+
+                                        </span>
+
+                                    {% endif %} -->
+
+                                </td>
+
+                                <td>
+
+                                    {{ building.updated_at|date:"d M Y" }}
+
+                                </td>
+
+                                <td>
+
+                                    <div class="action-buttons">
+
+                                        <a
+                                            href="{% url 'building_edit' building.id %}"
+                                            class="action-btn edit"
+                                            title="Edit">
+
+                                            <i class="ti ti-edit"></i>
+
+                                        </a>
+
+                                        <!-- <button
+                                            type="button"
+                                            class="action-btn toggle"
+
+                                            data-url="{% url 'building_toggle' building.id %}"
+
+                                            title="Toggle Status">
+
+                                            {% if building.status == "ACTIVE" %}
+                                                <i class="ti ti-toggle-right"></i>
+                                            {% else %}
+                                                <i class="ti ti-toggle-left"></i>
+                                            {% endif %}
+
+                                        </button> -->
+
+                                        <a href="{% url 'building_toggle' building.id %}"
+                                            class="action-btn {% if building.status == 'ACTIVE' %}btn-enable{% else %}btn-disable{% endif %}"
+                                            title="{% if building.status == 'ACTIVE' %}Deactivate{% else %}Activate{% endif %}">
+
+                                                <!-- <i class="ti ti-{% if building.status == 'ACTIVE' %}eye{% else %}eye-off{% endif %}"></i> -->
+                                                 <i class="ti ti-{% if building.status == 'ACTIVE' %}toggle-right{% else %}toggle-left{% endif %}"></i>
+
+                                        </a>
+
+                                        
+                                        <button
+                                            type="button"
+
+                                            class="action-btn delete"
+
+                                            data-url="{% url 'building_delete' building.id %}"
+
+                                            data-name="{{ building.building_name }}"
+
+                                            title="Delete">
+
+                                            <i class="ti ti-trash"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                            {% empty %}
+
+                            <tr>
+
+                                <td colspan="10">
+
+                                    <div class="empty-state">
+
+                                        <i class="ti ti-building-community"></i>
+
+                                        <h3>
+
+                                            No Buildings Found
+
+                                        </h3>
+
+                                        <p>
+
+                                            No buildings match your search.
+
+                                        </p>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                    <!-- ===========================================
+                                TABLE FOOTER
+                    ============================================ -->
+
+                    {% if page_obj.has_other_pages %}
+
+                    <div class="buildings-table-footer">
+
+
+                        <!-- SHOWING INFORMATION -->
+
+                        <div class="buildings-pagination-info">
+
+                            Showing
+
+                            <strong>
+                                {{ page_obj.start_index }}
+                            </strong>
+
+                            to
+
+                            <strong>
+                                {{ page_obj.end_index }}
+                            </strong>
+
+                            of
+
+                            <strong>
+                                {{ page_obj.paginator.count }}
+                            </strong>
+
+                            buildings
+
+                        </div>
+
+
+                        <!-- PAGINATION -->
+
+                        <div class="buildings-pagination-wrapper">
+
+                            <div class="buildings-pagination">
+
+
+                                <!-- PREVIOUS -->
+
+                                {% if page_obj.has_previous %}
+
+                                    <a
+                                        href="?page={{ page_obj.previous_page_number }}"
+                                        class="buildings-pagination-btn"
+                                    >
+                                        Previous
+                                    </a>
+
+                                {% else %}
+
+                                    <button
+                                        type="button"
+                                        class="buildings-pagination-btn disabled"
+                                        disabled
+                                    >
+                                        Previous
+                                    </button>
+
+                                {% endif %}
+
+
+                                <!-- PAGE NUMBERS -->
+
+                                {% for item in page_numbers %}
+
+                                    {% if item == "..." %}
+
+                                        <span class="buildings-pagination-ellipsis">
+
+                                            ...
+
+                                        </span>
+
+
+                                    {% elif item == page_obj.number %}
+
+                                        <button
+                                            type="button"
+                                            class="buildings-page-number active"
+                                        >
+                                            {{ item }}
+                                        </button>
+
+
+                                    {% else %}
+
+                                        <a
+                                            href="?page={{ item }}"
+                                            class="buildings-page-number"
+                                        >
+                                            {{ item }}
+                                        </a>
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+
+                                <!-- NEXT -->
+
+                                {% if page_obj.has_next %}
+
+                                    <a
+                                        href="?page={{ page_obj.next_page_number }}"
+                                        class="buildings-pagination-btn"
+                                    >
+                                        Next
+                                    </a>
+
+                                {% else %}
+
+                                    <button
+                                        type="button"
+                                        class="buildings-pagination-btn disabled"
+                                        disabled
+                                    >
+                                        Next
+                                    </button>
+
+                                {% endif %}
+
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+        </div>
+
+
+    </div>
+    
+
+
+</div>
+
+
+{% endblock %}
+
+<!-- ===========================================
+            DELETE MODAL
+=========================================== -->
+{% block global_modal %}
+<div
+    class="modal-overlay"
+    id="deleteModal">
+
+    <div class="delete-modal">
+
+        <div class="modal-icon">
+
+            <i class="ti ti-trash"></i>
+
+        </div>
+
+        <h3>
+
+            Delete Building
+
+        </h3>
+
+        <p>
+
+            Are you sure you want to delete
+
+            <strong id="deleteBuildingName">
+
+            </strong>?
+
+        </p>
+
+        <p class="warning-text">
+
+            This action cannot be undone.
+
+        </p>
+
+        <form
+            id="deleteForm"
+            method="POST">
+
+            {% csrf_token %}
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="cancelDelete">
+
+                    <i class="ti ti-x"></i>
+
+                    Cancel
+
+                </button>
+
+                <button
+                    type="submit"
+                    class="btn btn-danger">
+
+                    <i class="ti ti-trash"></i>
+
+                    Delete
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- BUILDING LIBRARIES MODAL -->
+<!-- ===================================================== -->
+
+<div
+    class="building-libraries-overlay"
+    id="buildingLibrariesModal"
+>
+
+    <div
+        class="building-libraries-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="buildingLibrariesTitle"
+    >
+
+        <!-- ========================================= -->
+        <!-- MODAL HEADER -->
+        <!-- ========================================= -->
+
+        <div class="building-libraries-modal-header">
+
+            <div class="building-libraries-title-wrap">
+
+                <div class="building-libraries-icon">
+
+                    <i class="fa-solid fa-building"></i>
+
+                </div>
+
+                <div>
+
+                    <h3 id="buildingLibrariesTitle">
+
+                        Building Libraries
+
+                    </h3>
+
+                    <p id="buildingLibrariesSubtitle">
+
+                        Libraries available in this building
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- CLOSE BUTTON -->
+
+            <button
+                type="button"
+                class="building-libraries-close"
+                id="closeBuildingLibrariesModal"
+                aria-label="Close modal"
+            >
+
+                <i class="fa-solid fa-xmark"></i>
+
+            </button>
+
+        </div>
+
+
+        <!-- ========================================= -->
+        <!-- BUILDING INFO -->
+        <!-- ========================================= -->
+
+        <div class="building-libraries-building-info">
+
+            <div class="building-libraries-building-details">
+
+                <span class="building-libraries-label">
+
+                    BUILDING
+
+                </span>
+
+                <h4 id="modalBuildingName">
+
+                    —
+
+                </h4>
+
+                <span
+                    class="building-libraries-code"
+                    id="modalBuildingCode"
+                >
+
+                    —
+
+                </span>
+
+            </div>
+
+
+            <div class="building-libraries-count">
+
+                <i class="fa-solid fa-building-columns"></i>
+
+                <div>
+
+                    <strong id="modalLibraryCount">
+
+                        0
+
+                    </strong>
+
+                    <span>
+
+                        Libraries
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ========================================= -->
+        <!-- MODAL BODY -->
+        <!-- ========================================= -->
+
+        <div class="building-libraries-modal-body">
+
+
+            <!-- LOADING STATE -->
+
+            <div
+                class="building-libraries-loading"
+                id="buildingLibrariesLoading"
+            >
+
+                <div class="building-libraries-spinner"></div>
+
+                <p>
+
+                    Loading libraries...
+
+                </p>
+
+            </div>
+
+
+            <!-- LIBRARIES CONTAINER -->
+
+            <div
+                class="building-libraries-list"
+                id="buildingLibrariesList"
+            >
+
+            </div>
+
+
+            <!-- EMPTY STATE -->
+
+            <div
+                class="building-libraries-empty"
+                id="buildingLibrariesEmpty"
+                style="display: none;"
+            >
+
+                <div class="building-libraries-empty-icon">
+
+                    <i class="fa-solid fa-building-columns"></i>
+
+                </div>
+
+                <h4>
+
+                    No Libraries Found
+
+                </h4>
+
+                <p>
+
+                    There are currently no libraries assigned
+                    to this building.
+
+                </p>
+
+            </div>
+
+
+            <!-- ERROR STATE -->
+
+            <div
+                class="building-libraries-error"
+                id="buildingLibrariesError"
+                style="display: none;"
+            >
+
+                <div class="building-libraries-error-icon">
+
+                    <i class="fa-solid fa-circle-exclamation"></i>
+
+                </div>
+
+                <h4>
+
+                    Unable to Load Libraries
+
+                </h4>
+
+                <p>
+
+                    Please try again.
+
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- ========================================= -->
+        <!-- MODAL FOOTER -->
+        <!-- ========================================= -->
+
+        <div class="building-libraries-modal-footer">
+
+            <button
+                type="button"
+                class="building-libraries-cancel-btn"
+                id="cancelBuildingLibrariesModal"
+            >
+
+                Close
+
+            </button>
+
+
+            <a
+                href="{% url 'library_list' %}"
+                class="building-libraries-view-all-btn"
+                id="viewAllBuildingLibraries"
+            >
+
+                <i class="fa-solid fa-arrow-right"></i>
+
+                View All Libraries
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+    /*==================================================
+                    ELEMENTS
+    ==================================================*/
+
+    var searchInput = document.getElementById("buildingSearch");
+
+    var tableBody = document.getElementById("buildingTableBody");
+
+    var deleteModal = document.getElementById("deleteModal");
+
+    var deleteForm = document.getElementById("deleteForm");
+
+    var deleteBuildingName = document.getElementById("deleteBuildingName");
+
+    var cancelDelete = document.getElementById("cancelDelete");
+
+    var alerts = document.querySelectorAll(".alert");
+
+
+    /*==================================================
+                    AJAX ELEMENTS
+    ==================================================*/
+
+    var ajaxContainer = document.getElementById("buildingAjax");
+
+    var paginationWrapper = document.getElementById("paginationWrapper");
+
+    var currentSearch = "";
+
+    var currentPage = 1;
+
+    var isLoading = false;
+
+
+    /*==================================================
+                SHOW LOADING
+    ==================================================*/
+
+    function showLoading() {
+
+        if (!tableBody) return;
+
+        tableBody.innerHTML =
+
+            '<tr>' +
+
+                '<td colspan="10">' +
+
+                    '<div class="empty-state">' +
+
+                        '<i class="ti ti-loader-2 ti-spin"></i>' +
+
+                        '<h3>Loading Buildings...</h3>' +
+
+                    '</div>' +
+
+                '</td>' +
+
+            '</tr>';
+
+    }
+
+    /*==================================================
+                HIDE LOADING
+    ==================================================*/
+
+    function hideLoading() {
+
+        isLoading = false;
+
+    }
+
+
+    /*==================================================
+            BIND PAGINATION
+==================================================*/
+/* =====================================================
+   BUILDINGS PAGINATION BIND
+===================================================== */
+
+function bindPagination() {
+
+    var pageLinks = document.querySelectorAll(
+
+        ".buildings-pagination a.buildings-pagination-btn, " +
+        ".buildings-pagination a.buildings-page-number"
+
+    );
+
+
+    for (
+        var i = 0;
+        i < pageLinks.length;
+        i++
+    ) {
+
+        pageLinks[i].onclick = function (e) {
+
+            e.preventDefault();
+
+
+            var url = new URL(
+
+                this.href,
+                window.location.origin
+
+            );
+
+
+            currentPage = url.searchParams.get(
+
+                "page"
+
+            );
+
+
+            loadBuildings(
+
+                currentPage,
+
+                currentSearch
+
+            );
+
+        };
+
+    }
+
+}
+
+    /*==================================================
+            LOAD BUILDINGS
+==================================================*/
+
+function loadBuildings(page, search) {
+
+    if (isLoading) {
+
+        return;
+
+    }
+
+    isLoading = true;
+
+    showLoading();
+
+    var url = ajaxContainer.dataset.url;
+
+    url += "?page=" + page;
+
+    if (search) {
+
+        url += "&search=" + encodeURIComponent(search);
+
+    }
+
+    fetch(url, {
+
+        headers: {
+
+            "X-Requested-With": "XMLHttpRequest"
+
+        }
+
+    })
+
+.then(function(response){
+
+    return response.text();
+
+})
+
+.then(function(html){
+
+    
+
+    var parser = new DOMParser();
+
+    var documentHTML = parser.parseFromString(
+
+        html,
+
+        "text/html"
+
+    );
+
+    var newContent = documentHTML.getElementById(
+
+        "buildingContent"
+
+    );
+
+    
+
+    if (newContent) {
+
+        document.getElementById(
+
+            "buildingContent"
+
+        ).innerHTML = newContent.innerHTML;
+
+    }
+
+    hideLoading();
+
+     bindPagination();
+
+})
+
+.catch(function(error){
+
+    console.log(error);
+
+    hideLoading();
+
+});
+
+    
+
+
+}
+
+
+    /*==================================================
+                    HELPER FUNCTIONS
+    ==================================================*/
+
+    function openModal(modal) {
+
+        if (!modal) return;
+
+        modal.classList.add("show");
+
+        document.body.style.overflow = "hidden";
+
+    }
+
+
+    function closeModal(modal) {
+
+        if (!modal) return;
+
+        modal.classList.remove("show");
+
+        document.body.style.overflow = "";
+
+    }
+
+
+    function showConfirm(message) {
+
+        return confirm(message);
+
+    }
+
+
+    function getCSRFToken() {
+
+        var csrf = document.querySelector(
+            "input[name='csrfmiddlewaretoken']"
+        );
+
+        if (csrf) {
+            return csrf.value;
+        }
+
+        return "";
+
+    }
+
+
+
+    /*==================================================
+                AJAX LIVE SEARCH
+==================================================*/
+
+var searchTimer = null;
+
+if (searchInput) {
+
+    searchInput.addEventListener("keyup", function () {
+
+        clearTimeout(searchTimer);
+
+        currentSearch = this.value.trim();
+
+        searchTimer = setTimeout(function () {
+
+            currentPage = 1;
+
+            loadBuildings(
+
+                currentPage,
+
+                currentSearch
+
+            );
+
+        }, 300);
+
+    });
+
+}
+    /*==================================================
+                DELETE MODAL CLOSE EVENTS
+    ==================================================*/
+
+    if (cancelDelete) {
+
+        cancelDelete.addEventListener("click", function () {
+
+            closeModal(deleteModal);
+
+        });
+
+    }
+
+
+    if (deleteModal) {
+
+        deleteModal.addEventListener("click", function (e) {
+
+            if (e.target === deleteModal) {
+
+                closeModal(deleteModal);
+
+            }
+
+        });
+
+    }
+
+
+
+    /*==================================================
+                    ESC KEY
+    ==================================================*/
+
+    document.addEventListener("keydown", function (e) {
+
+        if (e.key === "Escape") {
+
+            closeModal(deleteModal);
+
+        }
+
+    });
+
+        /*==================================================
+                    DELETE BUILDING
+    ==================================================*/
+
+    var deleteButtons = document.querySelectorAll(".action-btn.delete");
+
+    for (var i = 0; i < deleteButtons.length; i++) {
+
+        deleteButtons[i].addEventListener("click", function (e) {
+
+            e.preventDefault();
+
+            var url = this.getAttribute("data-url");
+
+            var name = this.getAttribute("data-name");
+
+            if (deleteForm) {
+                deleteForm.setAttribute("action", url);
+            }
+
+            if (deleteBuildingName) {
+                deleteBuildingName.textContent = name;
+            }
+
+            openModal(deleteModal);
+
+        });
+
+    }
+
+
+
+    /*==================================================
+                DELETE FORM SUBMIT
+    ==================================================*/
+
+    if (deleteForm) {
+
+        deleteForm.addEventListener("submit", function () {
+
+            var submitButton = deleteForm.querySelector(
+                "button[type='submit']"
+            );
+
+            if (submitButton) {
+
+                submitButton.disabled = true;
+
+                submitButton.innerHTML =
+                    '<i class="ti ti-loader-2"></i> Deleting...';
+
+            }
+
+        });
+
+    }
+
+
+
+    /*==================================================
+                CLOSE MODAL AFTER DELETE
+    ==================================================*/
+
+    window.addEventListener("pageshow", function () {
+
+        closeModal(deleteModal);
+
+    });
+
+        /*==================================================
+                    TOGGLE BUILDING STATUS
+    ==================================================*/
+
+    var toggleButtons = document.querySelectorAll(".action-btn.toggle");
+
+    for (var i = 0; i < toggleButtons.length; i++) {
+
+        toggleButtons[i].addEventListener("click", function (e) {
+
+            e.preventDefault();
+
+            var url = this.getAttribute("data-url");
+
+            var row = this.closest(".building-row");
+
+            var buildingName = "this building";
+
+            if (row) {
+
+                var title = row.querySelector(".building-details h4");
+
+                if (title) {
+
+                    buildingName = title.textContent.trim();
+
+                }
+
+            }
+
+            var confirmed = confirm(
+                'Are you sure you want to change the status of "' +
+                buildingName +
+                '"?'
+            );
+
+            if (!confirmed) {
+
+                return;
+
+            }
+
+            var icon = this.querySelector("i");
+
+            if (icon) {
+
+                icon.className = "ti ti-loader-2";
+
+            }
+
+            this.style.pointerEvents = "none";
+
+            window.location.href = url;
+
+        });
+
+    }
+
+
+
+    /*==================================================
+                ACTION BUTTON ANIMATION
+    ==================================================*/
+
+    var actionButtons = document.querySelectorAll(".action-btn");
+
+    for (var j = 0; j < actionButtons.length; j++) {
+
+        actionButtons[j].addEventListener("mouseenter", function () {
+
+            this.style.transition = "all .25s ease";
+
+        });
+
+    }
+
+        /*==================================================
+                    AUTO HIDE ALERTS
+    ==================================================*/
+
+    if (alerts.length > 0) {
+
+        setTimeout(function () {
+
+            for (var i = 0; i < alerts.length; i++) {
+
+                alerts[i].style.transition = "opacity .4s ease";
+
+                alerts[i].style.opacity = "0";
+
+            }
+
+            setTimeout(function () {
+
+                for (var j = 0; j < alerts.length; j++) {
+
+                    if (alerts[j].parentNode) {
+
+                        alerts[j].parentNode.removeChild(alerts[j]);
+
+                    }
+
+                }
+
+            }, 400);
+
+        }, 4000);
+
+    }
+
+
+
+    /*==================================================
+                    CTRL + /
+    ==================================================*/
+
+    document.addEventListener("keydown", function (e) {
+
+        if (e.ctrlKey && e.key === "/") {
+
+            e.preventDefault();
+
+            if (searchInput) {
+
+                searchInput.focus();
+
+                searchInput.select();
+
+            }
+
+        }
+
+    });
+
+
+
+    /*==================================================
+                    ENTER SEARCH
+    ==================================================*/
+
+    if (searchInput) {
+
+        searchInput.addEventListener("keydown", function (e) {
+
+            if (e.key === "Enter") {
+
+                e.preventDefault();
+
+            }
+
+        });
+
+    }
+
+
+
+    /*==================================================
+                    WINDOW RESIZE
+    ==================================================*/
+
+    window.addEventListener("resize", function () {
+
+        if (window.innerWidth > 768) {
+
+            document.body.style.overflow = "";
+
+        }
+
+    });
+
+
+    /*==================================================
+                AJAX PAGINATION
+    ==================================================*/
+
+    document.addEventListener("click", function (e) {
+
+        var pageLink = e.target.closest(".pagination .page-link");
+
+        if (!pageLink) {
+
+            return;
+
+        }
+
+        if (pageLink.classList.contains("disabled")) {
+
+            return;
+
+        }
+
+        if (pageLink.classList.contains("active")) {
+
+            return;
+
+        }
+
+        if (pageLink.tagName.toLowerCase() !== "a") {
+
+            return;
+
+        }
+
+        e.preventDefault();
+
+        var url = new URL(pageLink.href);
+
+        var page = url.searchParams.get("page") || 1;
+
+        currentPage = page;
+
+        loadBuildings(page, currentSearch);
+
+    });
+
+
+
+    bindPagination();
+
+
+
+    /*==================================================
+                    DEBUG
+    ==================================================*/
+
+    console.log("Building List JavaScript Loaded Successfully.");
+
+});
+
+    
+</script>
+
+<!-- ===================================================== -->
+<!-- BUILDING LIBRARIES MODAL -->
+<!-- ===================================================== -->
+
+<script>
+
+    const buildingLibrariesUrlTemplate =
+        "{% url 'building_libraries' 0 %}";
+
+
+    function openBuildingLibraries(buildingId) {
+
+        const modal =
+            document.getElementById(
+                "buildingLibrariesModal"
+            );
+
+        if (!modal) {
+            return;
+        }
+
+
+        // =============================================
+        // MODAL ELEMENTS
+        // =============================================
+
+        const buildingName =
+            document.getElementById(
+                "modalBuildingName"
+            );
+
+        const buildingCode =
+            document.getElementById(
+                "modalBuildingCode"
+            );
+
+        const libraryCount =
+            document.getElementById(
+                "modalLibraryCount"
+            );
+
+        const loading =
+            document.getElementById(
+                "buildingLibrariesLoading"
+            );
+
+        const libraryList =
+            document.getElementById(
+                "buildingLibrariesList"
+            );
+
+        const emptyState =
+            document.getElementById(
+                "buildingLibrariesEmpty"
+            );
+
+        const errorState =
+            document.getElementById(
+                "buildingLibrariesError"
+            );
+
+
+        // =============================================
+        // RESET
+        // =============================================
+
+        buildingName.textContent = "Loading...";
+        buildingCode.textContent = "—";
+        libraryCount.textContent = "0";
+
+        libraryList.innerHTML = "";
+
+        loading.style.display = "flex";
+        emptyState.style.display = "none";
+        errorState.style.display = "none";
+
+
+        // =============================================
+        // OPEN MODAL
+        // =============================================
+
+        modal.classList.add("show");
+
+        document.body.style.overflow = "hidden";
+
+
+        // =============================================
+        // CORRECT AJAX URL
+        // =============================================
+
+        const url =
+            buildingLibrariesUrlTemplate.replace(
+                "/0/",
+                `/${buildingId}/`
+            );
+
+
+        console.log(
+            "Loading libraries from:",
+            url
+        );
+
+
+        // =============================================
+        // FETCH LIBRARIES
+        // =============================================
+
+        fetch(
+            url,
+            {
+                method: "GET",
+
+                headers: {
+                    "X-Requested-With":
+                        "XMLHttpRequest"
+                }
+            }
+        )
+
+        .then(function(response) {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    `Unable to load libraries. Status: ${response.status}`
+                );
+
+            }
+
+            return response.json();
+
+        })
+
+        .then(function(data) {
+
+            loading.style.display = "none";
+
+
+            // BUILDING DETAILS
+
+            buildingName.textContent =
+                data.building.building_name || "—";
+
+            buildingCode.textContent =
+                data.building.building_code || "—";
+
+            libraryCount.textContent =
+                data.total_libraries || 0;
+
+
+            // EMPTY STATE
+
+            if (
+                !data.libraries ||
+                data.libraries.length === 0
+            ) {
+
+                emptyState.style.display = "flex";
+
+                return;
+
+            }
+
+
+            // DISPLAY LIBRARIES
+
+            data.libraries.forEach(
+                function(library) {
+
+                    let imageHtml = "";
+
+
+                    if (library.image) {
+
+                        imageHtml = `
+
+                            <img
+                                src="${library.image}"
+                                alt="${library.library_name}"
+                            >
+
+                        `;
+
+                    } else {
+
+                        imageHtml = `
+
+                            <i class="fa-solid fa-building-columns"></i>
+
+                        `;
+
+                    }
+
+
+                    const statusClass =
+                        library.status === "ACTIVE"
+                            ? "active"
+                            : "inactive";
+
+
+                    const statusText =
+                        library.status === "ACTIVE"
+                            ? "Active"
+                            : "Inactive";
+
+
+                    libraryList.innerHTML += `
+
+                        <div class="building-library-card">
+
+                            <div class="building-library-avatar">
+
+                                ${imageHtml}
+
+                            </div>
+
+
+                            <div class="building-library-details">
+
+                                <div class="building-library-top">
+
+                                    <div>
+
+                                        <h4>
+                                            ${library.library_name}
+                                        </h4>
+
+                                        <span class="building-library-code">
+
+                                            ${library.library_code}
+
+                                        </span>
+
+                                    </div>
+
+
+                                    <span
+                                        class="building-library-status ${statusClass}"
+                                    >
+
+                                        <i class="fa-solid fa-circle"></i>
+
+                                        ${statusText}
+
+                                    </span>
+
+                                </div>
+
+
+                                <div class="building-library-meta">
+
+                                    <span>
+
+                                        <i class="fa-solid fa-location-dot"></i>
+
+                                        ${library.address}
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i class="fa-solid fa-envelope"></i>
+
+                                        ${library.email}
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i class="fa-solid fa-phone"></i>
+
+                                        ${library.phone}
+
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <a
+                                href="${library.view_url}"
+                                class="building-library-view-btn"
+                            >
+
+                                <i class="fa-regular fa-eye"></i>
+
+                                View
+
+                            </a>
+
+                        </div>
+
+                    `;
+
+                }
+            );
+
+        })
+
+        .catch(function(error) {
+
+            console.error(
+                "Building libraries error:",
+                error
+            );
+
+            loading.style.display = "none";
+
+            errorState.style.display = "flex";
+
+        });
+
+    }
+
+    // =====================================================
+// CLOSE BUILDING LIBRARIES MODAL
+// =====================================================
+
+function closeBuildingLibrariesModal() {
+
+    const modal = document.getElementById(
+        "buildingLibrariesModal"
+    );
+
+    if (modal) {
+
+        modal.classList.remove("show");
+
+    }
+
+    document.body.style.overflow = "";
+
+}
+
+
+// =====================================================
+// MODAL CLOSE EVENTS
+// =====================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const modal = document.getElementById(
+            "buildingLibrariesModal"
+        );
+
+        const closeButton = document.getElementById(
+            "closeBuildingLibrariesModal"
+        );
+
+        const cancelButton = document.getElementById(
+            "cancelBuildingLibrariesModal"
+        );
+
+
+        // CLOSE ICON
+
+        if (closeButton) {
+
+            closeButton.addEventListener(
+                "click",
+                function () {
+
+                    closeBuildingLibrariesModal();
+
+                }
+            );
+
+        }
+
+
+        // CLOSE BUTTON
+
+        if (cancelButton) {
+
+            cancelButton.addEventListener(
+                "click",
+                function () {
+
+                    closeBuildingLibrariesModal();
+
+                }
+            );
+
+        }
+
+
+        // CLICK OUTSIDE MODAL
+
+        if (modal) {
+
+            modal.addEventListener(
+                "click",
+                function (event) {
+
+                    if (event.target === modal) {
+
+                        closeBuildingLibrariesModal();
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        // ESCAPE KEY
+
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Escape" &&
+                    modal &&
+                    modal.classList.contains("show")
+                ) {
+
+                    closeBuildingLibrariesModal();
+
+                }
+
+            }
+        );
+
+    }
+);
+
+</script>
+
+
+{% endblock %}

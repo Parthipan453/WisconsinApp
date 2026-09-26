@@ -1,0 +1,226 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Borrow Requests | Staff Portal{% endblock %}
+
+{% block nav_library_open %}open{% endblock %}
+{% block nav_library_submenu %}open{% endblock %}
+{% block nav_library_requests %}active{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/staff_library/borrow_request.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="lib-home">
+
+  <div class="lib-page-header">
+    <div>
+      <h1>Borrow Requests</h1>
+      <p>Track the status of every book you've requested to borrow.</p>
+    </div>
+  </div>
+
+  {% if not has_library_profile %}
+    <section class="lib-panel">
+      <p style="color: var(--lib-text-gray); font-size: 14px;">
+        Your library account isn't set up yet. Please contact library staff to get access to borrowing.
+      </p>
+    </section>
+
+  {% else %}
+
+    <section class="lib-panel">
+      <div class="lib-panel-header">
+        <h3 class="lib-section-title">Your Requests</h3>
+      </div>
+
+      {% if borrow_requests %}
+
+        <div class="lib-filter-tabs" id="libFilterTabs">
+          <button type="button" class="lib-filter-tab active" data-filter="ALL">
+            All <span class="lib-tab-count"></span>
+          </button>
+          <button type="button" class="lib-filter-tab" data-filter="PENDING">
+            Pending <span class="lib-tab-count"></span>
+          </button>
+          <button type="button" class="lib-filter-tab" data-filter="APPROVED">
+            Approved <span class="lib-tab-count"></span>
+          </button>
+          <button type="button" class="lib-filter-tab" data-filter="ISSUED">
+            Issued <span class="lib-tab-count"></span>
+          </button>
+          <button type="button" class="lib-filter-tab" data-filter="RETURNED">
+            Returned <span class="lib-tab-count"></span>
+          </button>
+          <button type="button" class="lib-filter-tab" data-filter="REJECTED">
+            Rejected <span class="lib-tab-count"></span>
+          </button>
+          <button type="button" class="lib-filter-tab" data-filter="CANCELLED">
+            Cancelled <span class="lib-tab-count"></span>
+          </button>
+        </div>
+
+        <ul class="lib-book-list" id="libRequestList">
+          {% for req in borrow_requests %}
+            <li data-status="{{ req.status }}">
+              <!-- <span class="lib-mini-cover {% cycle 'lib-mini-1' 'lib-mini-2' 'lib-mini-3' 'lib-mini-4' 'lib-mini-5' %}"></span> -->
+
+              <!-- BOOK COVER -->
+              {% if req.resource.cover_image %}
+
+                  <span class="lib-mini-cover">
+                      <img 
+                          src="{{ req.resource.cover_image.url }}"
+                          alt="{{ req.resource.title }}"
+                      >
+                  </span>
+
+              {% else %}
+
+                  <span class="lib-mini-cover lib-mini-default">
+                      <i class="ti ti-book"></i>
+                  </span>
+
+              {% endif %}
+
+              <div style="flex: 1;">
+                <p class="lib-book-title">{{ req.resource.title }}</p>
+                <p class="lib-book-author">
+                  {{ req.resource.author }}
+                  &middot; {{ req.resource.library.library_name|default:"—" }}
+                </p>
+
+                {% if req.status == "PENDING" %}
+                  <p class="lib-announce-date" style="margin-top: 4px;">
+                    Requested {{ req.request_date|date:"M d, Y" }} &middot; awaiting librarian review
+                  </p>
+                {% elif req.status == "APPROVED" %}
+                  <p class="lib-announce-date" style="margin-top: 4px;">
+                    Approved {{ req.approved_date|date:"M d, Y" }}
+                    {% if req.approved_by %}by {{ req.approved_by }}{% endif %}
+                    &middot; ready for pickup
+                  </p>
+                {% elif req.status == "ISSUED" %}
+                  <p class="lib-announce-date" style="margin-top: 4px;">
+                    Picked up &middot; you currently have this book
+                  </p>
+                {% elif req.status == "RETURNED" %}
+                  <p class="lib-announce-date" style="margin-top: 4px;">
+                    Requested {{ req.request_date|date:"M d, Y" }} &middot; returned
+                  </p>
+                {% elif req.status == "REJECTED" %}
+                  <p class="lib-announce-date" style="margin-top: 4px;">
+                    Requested {{ req.request_date|date:"M d, Y" }} &middot; declined
+                  </p>
+                  {% if req.rejection_reason %}
+                    <p class="lib-rejection-reason">"{{ req.rejection_reason }}"</p>
+                  {% endif %}
+                {% elif req.status == "CANCELLED" %}
+                  <p class="lib-announce-date" style="margin-top: 4px;">
+                    Requested {{ req.request_date|date:"M d, Y" }} &middot; cancelled by you
+                  </p>
+                {% endif %}
+              </div>
+
+              {% if req.status == "PENDING" %}
+                <span class="lib-request-status lib-request-status-pending">Pending</span>
+                <form method="post" action="{% url 'staff_cancel_borrow_request' uuid=request.user.uuid request_id=req.uuid %}">
+                  {% csrf_token %}
+                  <button type="submit" class="lib-request-btn">Cancel</button>
+                </form>
+              {% elif req.status == "APPROVED" %}
+                <span class="lib-request-status lib-request-status-approved">Approved</span>
+              {% elif req.status == "ISSUED" %}
+                <span class="lib-request-status lib-request-status-issued">Issued</span>
+              {% elif req.status == "RETURNED" %}
+                <span class="lib-request-status lib-request-status-returned">Returned</span>
+              {% elif req.status == "REJECTED" %}
+                <span class="lib-request-status lib-request-status-rejected">Rejected</span>
+              {% elif req.status == "CANCELLED" %}
+                <span class="lib-request-status lib-request-status-cancelled">Cancelled</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+
+        <p class="lib-filter-empty" id="libFilterEmpty" style="display: none;">
+          No requests in this category.
+        </p>
+
+      {% else %}
+        <p style="color: var(--lib-text-gray); font-size: 13.5px; padding: 12px 0;">
+          You haven't requested any books yet.
+          <a href="{% url 'staff_library_home' uuid=request.user.uuid %}" style="color: var(--lib-red); font-weight: 600;">
+            Search the catalog
+          </a>
+          to get started.
+        </p>
+      {% endif %}
+    </section>
+
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  {% if messages %}
+    {% for message in messages %}
+      {% if message.tags == "error" %}
+        toastError("{{ message|escapejs }}");
+      {% elif message.tags == "success" %}
+        toastSuccess("{{ message|escapejs }}");
+      {% elif message.tags == "warning" %}
+        toastWarning("{{ message|escapejs }}");
+      {% else %}
+        toastInfo("{{ message|escapejs }}");
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  (function () {
+    var tabsWrap = document.getElementById("libFilterTabs");
+    if (!tabsWrap) return;
+
+    var rows = document.querySelectorAll("#libRequestList li");
+    var emptyMsg = document.getElementById("libFilterEmpty");
+    var tabs = tabsWrap.querySelectorAll(".lib-filter-tab");
+
+    function countFor(filter) {
+      if (filter === "ALL") return rows.length;
+      var n = 0;
+      rows.forEach(function (row) {
+        if (row.getAttribute("data-status") === filter) n++;
+      });
+      return n;
+    }
+
+    tabs.forEach(function (tab) {
+      var filter = tab.getAttribute("data-filter");
+      tab.querySelector(".lib-tab-count").textContent = countFor(filter);
+    });
+
+    function applyFilter(filter) {
+      var visibleCount = 0;
+
+      rows.forEach(function (row) {
+        var match = filter === "ALL" || row.getAttribute("data-status") === filter;
+        row.classList.toggle("lib-row-hidden", !match);
+        if (match) visibleCount++;
+      });
+
+      emptyMsg.style.display = visibleCount === 0 ? "block" : "none";
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t) { t.classList.remove("active"); });
+        tab.classList.add("active");
+        applyFilter(tab.getAttribute("data-filter"));
+      });
+    });
+  })();
+</script>
+{% endblock %}

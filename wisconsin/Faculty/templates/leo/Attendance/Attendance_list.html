@@ -1,0 +1,202 @@
+<!-- Leo's Code Start -->
+
+{% extends 'faculty_base.html' %} {% load static %} {% block title %} Student
+Attendance {% endblock %} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{% static 'css/leo/Attendance/Attendance_list.css' %}"
+/>
+{% endblock %} {% block content %}
+<div class="attendance-page">
+  <div class="attendance-header">
+    <div>
+      <h2>Student Attendance</h2>
+
+      <p>Manage your class attendance and monitor attendance sessions.</p>
+    </div>
+    <form method="get" class="attendance-date-form">
+        <input type="date" name="date" class="attendance-date-input"
+               value="{{ selected_date|date:'Y-m-d' }}"
+                    onkeydown="return false;"
+                    onpaste="return false;"
+                    ondrop="return false;"
+               onchange="this.form.submit()">
+        {% if selected_date != today %}
+        <a href="{% url 'student_attendance_list' %}" class="attendance-btn attendance-btn-today">
+            <i class="ti ti-calendar-event"></i> Today
+        </a>
+        {% endif %}
+    </form>
+    {% comment %} <button class="btn attendance-btn">
+      <i class="ti ti-calendar-plus"></i>
+
+      Attendance History
+    </button> {% endcomment %}
+  </div>
+
+  <div class="summary-grid">
+    <div>
+      <div class="summary-card">
+        <div class="summary-icon red">
+          <i class="ti ti-book"></i>
+        </div>
+
+        <div>
+          <h3>{{ todays_classes_count }}</h3>
+          <span>{% if selected_date == today %}Today's Classes{% else %}Classes on {{ selected_date|date:"d M" }}{% endif %}</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="summary-card">
+        <div class="summary-icon blue">
+          <i class="ti ti-users"></i>
+        </div>
+
+        <div>
+          <h3>{{ total_students_today }}</h3>
+
+          <span>Total Students</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="summary-card">
+        <div class="summary-icon orange">
+          <i class="ti ti-clock-hour-3"></i>
+        </div>
+
+        <div>
+          <h3>{{ pending_classes_count }}</h3>
+          <span>Pending Classes</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="summary-card">
+        <div class="summary-icon green">
+          <i class="ti ti-circle-check"></i>
+        </div>
+
+        <div>
+          <h3>{{ completed_today_count }}</h3>
+          <span>
+              {% if selected_date == today %}
+                  Completed Today
+              {% else %}
+                  Completed on {{ selected_date|date:"d M" }}
+              {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ================= ATTENDANCE SESSIONS ================= -->
+  <div class="section-heading">
+      <h3>Scheduled Sessions</h3>
+  </div>  
+  <div class="summary-grid">
+      {% for session in attendance_sessions %}
+      <div>
+        <div class="course-card">
+          <div class="course-top">
+            <span class="semester-badge">{{ session.section.semester_id }}</span>
+            <span class="course-code">{{ session.course.course_code }}</span>
+          </div>
+
+          <h4>{{ session.course.course_name }}</h4>
+
+          <p class="department">
+            {{ session.course.department.department_name }}
+          </p>
+
+          <div class="course-info">
+            <div>
+              <small>Section</small>
+              {% if session.section %}
+              <strong>{{ session.section }}</strong>
+              {% else %}
+              <strong>-</strong>
+              {% endif %}
+            </div>
+
+            <div>
+              <small>Year</small>
+              <strong>{{ session.section.semester_id.academic_year }}</strong>
+            </div>
+          </div>
+
+          <div class="course-info">
+            <div>
+              <small>Day</small>
+              {% if session.schedule %}
+              <strong>{{ session.schedule.get_day_of_week_display }}</strong>
+              {% else %}
+              <strong>{{ session.attendance_date|date:'l' }}</strong>
+              {% endif %}
+            </div>
+
+            <div>
+              <small>Timing</small>
+              {% if session.schedule %}
+              <strong>{{ session.schedule.start_time|time:"g:i A" }}</strong>
+              <strong> - {{ session.schedule.end_time|time:"g:i A" }}</strong>
+              {% else %}
+              <strong>-</strong>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="course-footer">
+            <span style="margin-bottom: 7px">
+              <i class="ti ti-users"></i>
+              {{ session.student_count }} Students
+            </span>
+
+            <div class="course-actions">
+              {% if session.has_session %}
+                {% if session.status == "CLOSED" %}
+                <a href="{% url 'student_attendance_view' session.id %}?date={{ selected_date|date:'Y-m-d' }}" class="view-btn text-decoration-none">
+                  <i class="ti ti-eye"></i> View
+                </a>
+                {% elif session.status == "OPEN" %}
+                <a href="{% url 'student_attendance_take' session.id %}?date={{ selected_date|date:'Y-m-d' }}" class="take-btn text-decoration-none">
+                  <i class="ti ti-checkup-list"></i> Continue Attendance
+                </a>
+                {% endif %}
+              {% else %}
+              {% if selected_date <= today %}
+                <a href="{% url 'student_attendance_start' session.section.section_id session.schedule.pk %}?date={{ selected_date|date:'Y-m-d' }}" class="take-btn text-decoration-none">
+                  <i class="ti ti-checkup-list"></i> Take Attendance
+                </a>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-attendance">
+        <div class="empty-icon">
+          <i class="ti ti-calendar-off"></i>
+        </div>
+        <h3>No Courses Assigned</h3>
+        <p>You currently have no course sections assigned for attendance.</p>
+        <a href="javascript:void(0)" id="refreshPage" class="attendance-btn text-decoration-none">
+          <i class="ti ti-refresh"></i> Refresh
+        </a>
+      </div>
+      {% endfor %}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById("refreshPage").addEventListener("click", function () {
+    location.reload();
+  });
+</script>
+{% endblock %}
+<!-- Leo's Code End -->

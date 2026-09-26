@@ -1,0 +1,77 @@
+{% load static form_helpers %}
+<div class="application-wizard-page">
+  <header class="application-wizard-header">
+    <div class="application-wizard-header-inner">
+      <a href="." class="application-wizard-brand" aria-label="Universities of Wisconsin applicant portal">
+        <img src="{% static 'images/apply-uw.png' %}" alt="Universities of Wisconsin">
+      </a>
+      <nav class="application-wizard-actions" aria-label="Application actions">
+        <a href=".">Save &amp; Return Later</a>
+        <button type="button" class="application-wizard-delete" onclick="openDeleteModal('{{ app.application_id }}','{{ app.Reference_id|escapejs }}')">Delete Application</button>
+        <a href="?logout">Sign Out</a>
+      </nav>
+    </div>
+
+    {% regroup workflow_steps by step.form as form_groups %}
+    <div class="application-wizard-progress-shell">
+      <div class="application-wizard-progress" aria-label="Application progress">
+      <ol class="application-wizard-form-tabs" aria-label="Application forms">
+        {% for form_group in form_groups %}
+        <li class="application-wizard-form-tab{% if form_group.grouper == dynamic_section.form %} is-active{% endif %}">
+          <a href="./?state=info&amp;app_id={{ app.application_id }}&amp;uuid={{ applicant.uuid }}&amp;step={{ form_group.list.0.step.code }}">
+            <i data-lucide="user-round" aria-hidden="true"></i>
+            <span>{{ form_group.grouper.name|default:"Application form" }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+      <ol class="application-wizard-section-tabs" aria-label="Form sections">
+        {% for form_group in form_groups %}
+        {% if form_group.grouper == dynamic_section.form %}
+        {% for ws in form_group.list %}
+        {% with s=ws.step c=ws.step.code cm=ws.is_complete %}
+        <li class="application-wizard-section-tab{% if step_code == c %} is-active{% elif cm %} is-complete{% endif %}">
+          <a href="./?state=info&amp;app_id={{ app.application_id }}&amp;uuid={{ applicant.uuid }}&amp;step={{ c }}"{% if step_code == c %} aria-current="step"{% endif %}>
+            <span class="application-wizard-section-icon" aria-hidden="true">
+              {% if cm and step_code != c %}<i data-lucide="check"></i>{% else %}{{ forloop.counter }}{% endif %}
+            </span>
+            <span class="application-wizard-section-name">{{ s.name }}</span>
+          </a>
+        </li>
+        {% endwith %}
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+      </ol>
+      </div>
+      <div class="application-wizard-progress-meta" aria-live="polite">{{ progress }}% complete</div>
+    </div>
+  </header>
+
+  <main class="application-wizard-content">
+    <section class="application-wizard-form-panel" aria-labelledby="application-section-title">
+      <div class="application-wizard-form-heading">
+        <h1 id="application-section-title">{{ step_name }}</h1>
+        {% if step_description %}<p>{{ step_description }}</p>{% endif %}
+      </div>
+
+      <form method="POST" novalidate class="application-wizard-form" enctype="multipart/form-data"
+            data-dynamic-autosave data-autosave-url="{% url 'applicants_autosave_field' %}" data-app-id="{{ app.application_id }}" data-section-code="{{ dynamic_section.code }}">
+        {% csrf_token %}
+        <div class="application-wizard-fields">
+          {% render_dynamic_section dynamic_fields %}
+        </div>
+        <footer class="application-wizard-footer">
+          <button type="submit" class="application-wizard-button application-wizard-button-primary" data-uw-loading-text="Saving...">
+            <span>Continue</span><i data-lucide="arrow-right" aria-hidden="true"></i>
+          </button>
+          {% if prev_url %}
+          <a href="{{ prev_url }}" class="application-wizard-button application-wizard-button-secondary">
+            <i data-lucide="arrow-left" aria-hidden="true"></i><span>Back</span>
+          </a>
+          {% endif %}
+        </footer>
+      </form>
+    </section>
+  </main>
+</div>

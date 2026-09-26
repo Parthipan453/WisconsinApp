@@ -1,0 +1,415 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}{{ club.club_name }}{% endblock %}
+{% block page_title %}Club Details{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/reports/club.css' %}">
+<link rel="stylesheet" href="{% static 'css/reports/club_view.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+{% endblock %}
+
+{% block content %}
+<div class="cv-page">
+
+    <!-- BACK BAR -->
+    <div class="cv-topbar" data-aos="fade-down" data-aos-duration="400">
+        <a href="{% url 'club' %}" class="cv-btn cv-btn--ghost">
+            <i data-lucide="arrow-left"></i><span>Back</span>
+        </a>
+        <button type="button" class="cv-btn cv-btn--primary" data-bs-toggle="modal" data-bs-target="#editClubModal">
+            <i data-lucide="square-pen"></i><span>Edit Club</span>
+        </button>
+    </div>
+
+    <!-- HERO -->
+    <section class="cv-hero" data-aos="fade-up" data-aos-duration="500">
+        {% if club.image %}
+        <img src="{{ club.image.url }}" class="cv-hero__banner" alt="{{ club.club_name }} cover">
+        {% else %}
+        <img src="{% static 'images/default-club-banner.jpg' %}" class="cv-hero__banner" alt="Default banner">
+        {% endif %}
+        <div class="cv-hero__scrim"></div>
+
+        <div class="cv-hero__content">
+            <div class="cv-hero__logo">
+                {% if club.logo %}
+                <img src="{{ club.logo.url }}" alt="{{ club.club_name }} logo">
+                {% else %}
+                <i data-lucide="land-plot"></i>
+                {% endif %}
+            </div>
+
+            <h1 class="cv-hero__name">{{ club.club_name }}</h1>
+
+            <div class="cv-hero__tags">
+                <span class="cv-chip">
+                    <i data-lucide="target"></i>{{ club.sport.sport_name|cut:" M"|cut:" F"|lower }}
+                </span>
+                {% if club.is_active %}
+                <span class="cv-chip cv-chip--active"><i data-lucide="check-circle-2"></i>Active</span>
+                {% else %}
+                <span class="cv-chip cv-chip--inactive"><i data-lucide="pause-circle"></i>Inactive</span>
+                {% endif %}
+            </div>
+
+            {% if club.description %}
+            <p class="cv-hero__tagline">&ldquo;{{ club.description }}&rdquo;</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- STAT STRIP -->
+    <section class="cv-stats" data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+        <div class="cv-stat-card">
+            <div class="cv-stat-card__icon">
+                <i data-lucide="shield"></i>
+            </div>
+            <div class="cv-stat-card__body">
+                <span class="cv-stat-card__value">{{ club.total_teams }}</span>
+                <span class="cv-stat-card__label">Teams</span>
+            </div>
+
+        </div>
+
+        <div class="cv-stat-card">
+            <div class="cv-stat-card__icon">
+                <i data-lucide="user-round"></i>
+            </div>
+            <div class="cv-stat-card__body">
+                <span class="cv-stat-card__value">{{ club.total_coaches }}</span>
+                <span class="cv-stat-card__label">Coaches</span>
+            </div>
+        </div>
+
+        <div class="cv-stat-card">
+            <div class="cv-stat-card__icon">
+                <!-- <i data-lucide="dribbble"></i> -->
+                <i data-lucide="target"></i>
+
+            </div>
+            <div class="cv-stat-card__body">
+                <span class="cv-stat-card__value">{{ club.sport.sport_name }}</span>
+                <span class="cv-stat-card__label">Sport</span>
+            </div>
+        </div>
+
+        <div class="cv-stat-card">
+            <div class="cv-stat-card__icon">
+                {% if club.is_active %}
+                <i data-lucide="badge-check"></i>
+                {% else %}
+                <i data-lucide="ban"></i>
+                {% endif %}
+            </div>
+            <div class="cv-stat-card__body">
+                <span class="cv-stat-card__value">
+                    {% if club.is_active %}
+                    Active
+                    {% else %}
+                    Inactive
+                    {% endif %}
+                </span>
+                <span class="cv-stat-card__label">Status</span>
+            </div>
+        </div>
+
+
+    </section>
+
+    <!-- CLUB INFORMATION -->
+    <section class="cv-panel" data-aos="fade-up" data-aos-duration="500" data-aos-delay="120">
+        <div class="cv-panel__head">
+            <h2><i data-lucide="info"></i>Club Information</h2>
+        </div>
+        <div class="cv-panel__body">
+            <dl class="cv-infogrid">
+                <div class="cv-infogrid__row">
+                    <dt>Club Name</dt>
+                    <dd>{{ club.club_name }}</dd>
+                </div>
+                <div class="cv-infogrid__row">
+                    <dt>Sport</dt>
+                    <dd>{{ club.sport.sport_name }}</dd>
+                </div>
+                <div class="cv-infogrid__row cv-infogrid__row--wide">
+                    <dt>Description</dt>
+                    <dd>{{ club.description|default:"—" }}</dd>
+                </div>
+                <div class="cv-infogrid__row">
+                    <dt>Status</dt>
+                    <dd>
+                        {% if club.is_active %}
+                        <span class="cv-badge cv-badge--active">Active</span>
+                        {% else %}
+                        <span class="cv-badge cv-badge--inactive">Inactive</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="cv-infogrid__row">
+                    <dt>Created On</dt>
+                    <dd>{{ club.created_at|date:"d M Y" }}</dd>
+                </div>
+                <div class="cv-infogrid__row">
+                    <dt>Updated On</dt>
+                    <dd>{{ club.updated_at|date:"d M Y" }}</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <!-- TEAMS -->
+    <section class="cv-panel" data-aos="fade-up" data-aos-duration="500" data-aos-delay="160">
+        <div class="cv-panel__head">
+            <h2><i data-lucide="shield"></i>Teams</h2>
+
+            <span class="cv-panel__count">
+                {{ teams|length }}
+            </span>
+
+            <div class="cv-search">
+                <i data-lucide="search"></i>
+                <input type="text" id="teamSearch" placeholder="Search team...">
+            </div>
+
+            <!-- </div> -->
+        </div>
+        <div class="cv-panel__body cv-cardlist" id="teamtable">
+            {% for team in teams %}
+            <div class="cv-item-card">
+
+                <div class="cv-item-card__head">
+                    <span class="cv-item-card__title">
+                        <i data-lucide="shield"></i>
+                        {{ team.team_name }}
+                    </span>
+
+                    {% if team.status %}
+                    <span class="cv-badge cv-badge--active">Active</span>
+                    {% else %}
+                    <span class="cv-badge cv-badge--inactive">Inactive</span>
+                    {% endif %}
+                </div>
+
+                <div class="cv-item-card__grid">
+
+                    <div>
+                        <span>Division</span>
+                        <strong>{{ team.division }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Season</span>
+                        <strong>{{ team.season|default:"-" }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Head Coach</span>
+                        <strong>{{ team.head_coach.staff_id|default:"-" }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Facility</span>
+                        <strong>{{ team.home_facility.facility_name|default:"-" }}</strong>
+                    </div>
+
+                </div>
+
+            </div>
+            {% empty %}
+            <p class="cv-empty">No Teams Found.</p>
+            {% endfor %}
+
+        </div>
+
+        <div id="teamNoResults" class="cv-empty" style="display:none;">
+            No Teams Found.
+        </div>
+    </section>
+
+    <!-- COACHES -->
+    <section class="cv-panel" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+        <div class="cv-panel__head">
+            <h2><i data-lucide="user-round"></i>Coaches</h2>
+            <!-- <span class="cv-panel__count">{{ coaches|length }}</span> -->
+            <!-- <div class="cv-head-actions"> -->
+
+            <span class="cv-panel__count">
+                {{ coaches|length }}
+            </span>
+
+            <div class="cv-search">
+                <i data-lucide="search"></i>
+                <input type="text" id="coachSearch" placeholder="Search coach...">
+            </div>
+
+            <!-- </div> -->
+        </div>
+        <div class="cv-panel__body cv-cardlist" id="coachtable">
+            {% for coach in coaches %}
+            <div class="cv-item-card">
+
+                <div class="cv-item-card__head">
+
+                    <span class="cv-item-card__title">
+                        <i data-lucide="user-round"></i>
+                        {{ coach.staff_id }}
+                    </span>
+
+                    <span class="cv-badge cv-badge--head">
+                        {{ coach.get_role_display }}
+                    </span>
+
+                </div>
+
+                <div class="cv-item-card__grid">
+
+                    <div>
+                        <span>Hire Date</span>
+                        <strong>{{ coach.hire_date|date:"d M Y" }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Status</span>
+                        <strong>
+                            {% if coach.is_active %}
+                            Active
+                            {% else %}
+                            Inactive
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <div class="wide">
+                        <span>Certifications</span>
+                        <strong>{{ coach.certifications|default:"-" }}</strong>
+                    </div>
+
+                </div>
+
+            </div>
+            {% empty %}
+            <p class="cv-empty">No Coaches Found.</p>
+            {% endfor %}
+
+        </div>
+        <div id="coachNoResults" class="cv-empty" style="display:none;">
+            No Coaches Found.
+        </div>
+
+
+    </section>
+
+    <!-- FACILITIES -->
+    <!-- <section class="cv-panel" data-aos="fade-up" data-aos-duration="500" data-aos-delay="240">
+        <div class="cv-panel__head">
+            <h2><i data-lucide="building-2"></i>Facilities</h2>
+            <span class="cv-panel__count">{{ facilities|length }}</span>
+        </div>
+        <div class="cv-panel__body cv-cardlist">
+            
+            {% for facility in facilities %}
+            <div class="cv-item-card">
+                <div class="cv-item-card__head">
+                    <span class="cv-item-card__title"><i data-lucide="landmark"></i>{{ facility.facility_name }}</span>
+                    <span class="cv-badge cv-badge--{{ facility.status|lower }}">{{ facility.status }}</span>
+                </div>
+                <div class="cv-item-card__grid">
+                    <div><span>Type</span><strong>{{ facility.facility_type }}</strong></div>
+                    <div><span>Capacity</span><strong>{{ facility.capacity }}</strong></div>
+                    <div><span>Location</span><strong>{{ facility.location }}</strong></div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="cv-empty">No facilities linked yet.</p>
+            {% endfor %}
+        </div>
+    </section> -->
+
+
+</div>
+{% endblock %}
+
+<!-- EDIT CLUB MODAL -->
+{% block global_modal %}
+<div class="modal fade" id="editClubModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <form id="editClubForm" method="POST" action="{% url 'club_update' club.id %}"
+                enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Sports Club</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Club Name <span style="color:red"> *</span></label>
+                            <input type="text" name="club_name" class="form-control" value="{{ club.club_name }}"
+                                required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sport <span style="color:red"> *</span></label>
+                            <select name="sport" class="form-select editclubsport" required>
+                                <option value="">Select Sport</option>
+                                {% for sport in sports %}
+                                <option value="{{ sport.id }}" {% if sport.id == club.sport.id %}selected{% endif %}>
+                                    {{ sport.sport_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Description <small class="text-muted">(optinal)</small></label>
+                            <textarea name="description" class="form-control" rows="2">{{ club.description }}</textarea>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status <span style="color:red"> *</span></label>
+                            <select name="status" class="form-select editclubstatus" required>
+                                <option value="ACTIVE" {% if club.is_active %}selected{% endif %}>Active</option>
+                                <option value="INACTIVE" {% if not club.is_active %}selected{% endif %}>Inactive
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Club Logo <small class="text-muted">(optinal)</small></label>
+                            <input type="file" name="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/*">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cover Image</label>
+                            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/*">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/reports/club_view.js' %}"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+{% endblock %}

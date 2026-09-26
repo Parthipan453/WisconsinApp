@@ -1,0 +1,242 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Edit Attendance — {{ record.faculty.user.get_full_name }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/attendance_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/Eric/edit_attendance.css' %}">
+{% endblock %}
+
+{% block nav_attenance_open %}open{% endblock %}
+{% block nav_attenance_submenu %}open{% endblock %}
+{% block nav_att_records %}active{% endblock %}
+
+{% block content %}
+{% include "Eric/partials/messages.html" %}
+<div class="za-root">
+  <div class="za-flex-between-mb">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0 small">
+        <li class="breadcrumb-item"><a href="{% url 'faculty_attendance' request.user.uuid %}" class="text-uw">Attendance</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'attendance_records' request.user.uuid %}" class="text-uw">Faculty</a></li>
+        <li class="breadcrumb-item active">{{ record.faculty.user.get_full_name }} · {{ record.date|date:"M d, Y" }}</li>
+      </ol>
+    </nav>
+    <a href="{% url 'attendance_records' request.user.uuid %}" class="za-btn za-btn-outline za-btn-ripple"><i class="ti ti-arrow-left"></i> Back</a>
+  </div>
+
+  <div class="ea-profile-card" data-aos="fade-up">
+    <div class="ea-profile-bg">
+      <div class="ea-profile-blob"></div>
+    </div>
+    <div class="ea-profile-inner">
+      <div class="ea-avatar-ring">
+        {% if record.faculty.profile_photo %}
+        <img src="{{ record.faculty.profile_photo.url }}" alt="" class="ea-avatar-img">
+        {% else %}
+        <span class="ea-avatar-initials">{{ record.faculty.user.first_name|first|upper }}{{ record.faculty.user.last_name|first|upper }}</span>
+        {% endif %}
+      </div>
+      <div class="ea-profile-body">
+        <h1 class="ea-name">{{ record.faculty.user.get_full_name }}</h1>
+        <div class="ea-badges">
+          <span class="ea-badge"><i class="ti ti-id"></i> {{ record.faculty.employee_id }}</span>
+          {% if record.faculty.faculty_rank %}
+          <span class="ea-badge"><i class="ti ti-user-star"></i> {{ record.faculty.faculty_rank }}</span>
+          {% endif %}
+          <span class="ea-badge"><i class="ti ti-building"></i> {{ dept_name }}</span>
+          <span class="ea-badge"><i class="ti ti-mail"></i> {{ record.faculty.email }}</span>
+        </div>
+      </div>
+      <div class="ea-date-chip">
+        <i class="ti ti-calendar"></i>
+        <span>{{ record.date|date:"D, M d, Y" }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-timeline-card" data-aos="fade-up" data-aos-delay="50">
+    <div class="ea-tl-header">
+      <i class="ti ti-clock-record"></i>
+      <span>Current Record</span>
+      <span class="ea-status-pill status-{{ record.status|lower }}">{{ record.get_status_display }}</span>
+    </div>
+    <div class="ea-tl-body">
+      <div class="ea-tl-track">
+        <div class="ea-tl-stop">
+          <div class="ea-tl-dot ea-dot-ci"></div>
+          <div class="ea-tl-line"></div>
+        </div>
+        <div class="ea-tl-stop">
+          <div class="ea-tl-dot ea-dot-co{% if record.check_out %} active{% endif %}"></div>
+        </div>
+      </div>
+      <div class="ea-tl-content">
+        <div class="ea-tl-entry">
+          <span class="ea-tl-label"><i class="ti ti-login"></i> Check In</span>
+          <span class="ea-tl-time">{% if record.check_in %}{{ record.check_in|time:"H:i" }}{% else %}<span class="ea-na">&mdash;</span>{% endif %}</span>
+           
+        </div>
+        <div class="ea-tl-arrow"><i class="ti ti-arrow-right"></i></div>
+        <div class="ea-tl-entry">
+          <span class="ea-tl-label"><i class="ti ti-logout"></i> Check Out</span>
+          <span class="ea-tl-time">{% if record.check_out %}{{ record.check_out|time:"H:i" }}{% else %}<span class="ea-na">&mdash;</span>{% endif %}</span>
+         </div>
+        <div class="ea-tl-divider"></div>
+        <div class="ea-tl-metrics">
+          <div class="ea-tl-metric">
+            <i class="ti ti-clock-hour-5"></i>
+            <span>{% if record.total_hours_worked is not None %}{{ record.total_hours_worked }}h{% else %}&mdash;{% endif %}</span>
+            <small>worked</small>
+          </div>
+          {% if record.late_minutes %}
+          <div class="ea-tl-metric ea-metric-warn">
+            <i class="ti ti-alert-triangle"></i>
+            <span>{{ record.late_minutes }}m</span>
+            <small>late</small>
+          </div>
+          {% endif %}
+          {% if record.early_leave_minutes %}
+          <div class="ea-tl-metric ea-metric-danger">
+            <i class="ti ti-alert-circle"></i>
+            <span>{{ record.early_leave_minutes }}m</span>
+            <small>early</small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ea-form-card" data-aos="fade-up" data-aos-delay="80">
+    <div class="ea-form-header">
+      <div class="ea-form-hd-left">
+        <i class="ti ti-edit-circle"></i>
+        <span>Edit Attendance Record</span>
+      </div>
+      <span class="ea-form-hd-badge">{{ record.get_status_display }}</span>
+    </div>
+
+    <form method="POST" action="{% url 'edit_attendance' record.id %}"
+          id="ea-form"
+          data-ci-end="09:00"
+          data-co-end="17:00">
+      {% csrf_token %}
+
+      <div class="ea-wh-section">
+        <div class="ea-wh-info">
+          <span><i class="ti ti-building-clock"></i> Expected: <strong>09:00</strong> – <strong>17:00</strong></span>
+          <span>Worked: <strong id="zaWhLabel">{% if record.total_hours_worked is not None %}{{ record.total_hours_worked }}h{% else %}&mdash;{% endif %}</strong></span>
+        </div>
+        <div class="ea-wh-track">
+          <div class="ea-wh-fill" id="zaWhFill" style="width:{% if record.total_hours_worked is not None and expected_day_duration > 0 %}{% widthratio record.total_hours_worked expected_day_duration 100 %}%{% else %}0%{% endif %};"></div>
+        </div>
+      </div>
+
+      <div class="ea-form-grid">
+        <div class="ea-field">
+          <label class="ea-field-label"><i class="ti ti-login ea-icon-green"></i> Check In</label>
+          <div class="ea-input-wrap">
+            <select name="check_in" id="ea-ci" class="ea-input"
+                   data-min="06:00" data-max="12:00"
+                   data-ci-end="09:00" data-co-end="17:00">
+              <option value="{{ record.check_in|time:'H:i'|default:'' }}" selected>{{ record.check_in|time:'H:i'|default:'' }}</option>
+            </select>
+            <i class="ti ti-clock ea-input-icon"></i>
+          </div>
+        </div>
+
+        <div class="ea-field">
+          <label class="ea-field-label"><i class="ti ti-logout ea-icon-red"></i> Check Out</label>
+          <div class="ea-input-wrap">
+            <select name="check_out" id="ea-co" class="ea-input"
+                   data-min="12:00" data-max="23:59"
+                   data-ci-end="09:00" data-co-end="17:00">
+              <option value="{{ record.check_out|time:'H:i'|default:'' }}" selected>{{ record.check_out|time:'H:i'|default:'' }}</option>
+            </select>
+            <i class="ti ti-clock ea-input-icon"></i>
+          </div>
+        </div>
+
+        <div class="ea-field">
+          <label class="ea-field-label"><i class="ti ti-tag"></i> Status <span class="ea-auto-badge" id="ea-auto-status">auto</span></label>
+          <div class="za-select-wrap">
+          <select name="status" id="ea-st" class="za-select">
+            <option value="" {% if not record.status %}selected{% endif %} disabled>Select status</option>
+            <option value="PRESENT" {% if record.status == 'PRESENT' %}selected{% endif %}>Present</option>
+            <option value="LATE" {% if record.status == 'LATE' %}selected{% endif %}>Late</option>
+            <option value="ABSENT" {% if record.status == 'ABSENT' %}selected{% endif %}>Absent</option>
+            <option value="ON_LEAVE" {% if record.status == 'ON_LEAVE' %}selected{% endif %}>On Leave</option>
+            <option value="HALF_DAY" {% if record.status == 'HALF_DAY' %}selected{% endif %}>Half Day</option>
+          </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-computed">
+        <div class="ea-computed-item ea-comp-late">
+          <i class="ti ti-alert-triangle"></i>
+          <div>
+            <span class="ea-comp-label">Late</span>
+            <strong id="ea-late">{% if record.late_minutes > 0 %}{{ record.late_minutes }} min{% else %}0 min{% endif %}</strong>
+          </div>
+        </div>
+        <div class="ea-computed-item ea-comp-early">
+          <i class="ti ti-alert-circle"></i>
+          <div>
+            <span class="ea-comp-label">Early Leave</span>
+            <strong id="ea-early">{% if record.early_leave_minutes > 0 %}{{ record.early_leave_minutes }} min{% else %}0 min{% endif %}</strong>
+          </div>
+        </div>
+        <div class="ea-computed-item ea-comp-hours">
+          <i class="ti ti-clock-hour-5"></i>
+          <div>
+            <span class="ea-comp-label">Total Hours</span>
+            <strong id="ea-hours">{% if record.total_hours_worked is not None %}{{ record.total_hours_worked }}h{% else %}&mdash;{% endif %}</strong>
+          </div>
+        </div>
+        <div class="ea-computed-item ea-comp-pct">
+          <i class="ti ti-percent"></i>
+          <div>
+            <span class="ea-comp-label">of Day</span>
+            <strong>{% if record.total_hours_worked is not None and expected_day_duration > 0 %}{% widthratio record.total_hours_worked expected_day_duration 100 %}%{% else %}&mdash;{% endif %}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="ea-actions">
+        <a href="{% url 'attendance_records' request.user.uuid %}" class="za-btn za-btn-outline"><i class="ti ti-x"></i> Cancel</a>
+        <button type="submit" class="za-btn za-btn-primary za-btn-ripple"><i class="ti ti-device-floppy"></i> Update Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/Eric/attendance_base.js' %}"></script>
+<script src="{% static 'js/Eric/edit_attendance.js' %}"></script>
+<script>
+(function(){
+  if (typeof toMins === 'undefined') return;
+  function zaPopulateTimeSelect(sel){
+    if (sel._zaPopulated) return;
+    var min = sel.getAttribute('data-min') || '00:00';
+    var max = sel.getAttribute('data-max') || '23:59';
+    var val = sel.value;
+    sel.innerHTML = '';
+    var minM = toMins(min) || 0, maxM = toMins(max) || 1439;
+    for (var m = minM; m <= maxM; m += 5) {
+      var h = Math.floor(m/60), i = m%60;
+      var v = String(h).padStart(2,'0') + ':' + String(i).padStart(2,'0');
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      if (v === val) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel._zaPopulated = true;
+  }
+  document.querySelectorAll('select[data-min][data-max]').forEach(zaPopulateTimeSelect);
+})();
+</script>
+{% endblock %}

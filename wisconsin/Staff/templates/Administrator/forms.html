@@ -1,0 +1,834 @@
+<!-- /* ******************************************** Arun Code ********************************************************** */ -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Forms &amp; Documents — Staff Portal{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+<style>
+.fd-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.fd-modal-overlay.open {
+    display: flex;
+}
+.fd-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.fd-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid #eee;
+}
+.fd-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: #1a1a1a;
+}
+.fd-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #888;
+    line-height: 1;
+}
+.fd-modal-close:hover {
+    color: #c5050c;
+}
+.fd-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.fd-modal-body label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+.fd-modal-body input,
+.fd-modal-body select {
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.fd-modal-body input:focus,
+.fd-modal-body select:focus {
+    outline: none;
+    border-color: #c5050c;
+}
+.fd-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+}
+.fd-page-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.fd-quick-card,
+.fd-quick-card:visited,
+.fd-quick-card:hover,
+.fd-quick-card * {
+    text-decoration: none !important;
+    color: inherit;
+}
+.fd-quick-count {
+    color: #6b7280;
+}
+.fd-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #fff;
+    color: #111;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    width: clamp(260px, 90vw, 340px);
+    max-width: calc(100vw - 40px);
+    border-top: 3px solid #c0392b;
+    border-left: 0.5px solid #e8e8e8;
+    border-right: 0.5px solid #e8e8e8;
+    border-bottom: 0.5px solid #e8e8e8;
+    z-index: 10000;
+    box-sizing: border-box;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    animation: fdDropIn 0.5s cubic-bezier(.34, 1.56, .64, 1) forwards;
+    overflow: hidden;
+}
+.fd-toast-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #fdecea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #c0392b;
+    flex-shrink: 0;
+}
+.fd-toast-success .fd-toast-icon { background: #e8f8ee; color: #22c55e; }
+.fd-toast-info .fd-toast-icon { background: #e8f1fc; color: #3b82f6; }
+.fd-toast-error .fd-toast-icon { background: #fdecea; color: #c0392b; }
+.fd-toast-warning .fd-toast-icon { background: #fef3e2; color: #f59e0b; }
+.fd-toast-success { border-top-color: #22c55e; }
+.fd-toast-info { border-top-color: #3b82f6; }
+.fd-toast-warning { border-top-color: #f59e0b; }
+.fd-toast-txt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+.fd-toast-txt b {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fd-toast-txt small {
+    font-size: 12px;
+    color: #999;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+}
+.fd-toast-close {
+    margin-left: auto;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 15px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+}
+.fd-toast-close:hover { color: #999; }
+@keyframes fdDropIn {
+    from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fdFadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-20px); }
+}
+@media (max-width: 480px) {
+    .fd-toast {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block nav_admin_open %}open{% endblock %}
+{% block nav_admin_submenu %}open{% endblock %}
+{% block nav_forms %}active{% endblock %}
+
+{% block content %}
+<!-- ══════════════════════════
+     PAGE HEADER
+══════════════════════════ -->
+<div class="fd-page-header" data-aos="fade-down">
+  <div>
+    <h1>Forms &amp; Documents</h1>
+    <p>Access, submit, and manage all official university forms and document requests.</p>
+  </div>
+  <div class="fd-header-actions">
+    <button class="fd-btn fd-btn-ghost" onclick="toggleFdFilters()">
+      <i class="ti ti-filter"></i>
+      <span>Filter</span>
+    </button>
+    <a class="fd-btn fd-btn-ghost text-decoration-none" href="?{{ querystring }}&export=csv">
+      <i class="ti ti-download"></i>
+      <span>Export</span>
+    </a>
+    <button class="fd-btn fd-btn-primary" onclick="openFdUploadModal()">
+      <i class="ti ti-plus"></i>
+      <span>Upload Form</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     KPI STRIP
+══════════════════════════ -->
+<div class="fd-kpi-strip" data-aos="fade-up" data-aos-delay="50">
+
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <span class="fd-kpi-icon blue"><i class="ti ti-file-description"></i></span>
+      <span class="fd-kpi-label">Total Forms</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ total_forms }}">{{ total_forms }}</div>
+    <div class="fd-kpi-sub"><span class="up">↑ {{ added_this_month }}</span> added this month</div>
+  </div>
+
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <span class="fd-kpi-icon orange"><i class="ti ti-clock"></i></span>
+      <span class="fd-kpi-label">Pending Signatures</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ pending_signatures }}">{{ pending_signatures }}</div>
+    <div class="fd-kpi-sub"><span class="neutral">—</span> awaiting sign-off</div>
+  </div>
+
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <span class="fd-kpi-icon green"><i class="ti ti-circle-check"></i></span>
+      <span class="fd-kpi-label">Updated This Week</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ updated_this_week }}">{{ updated_this_week }}</div>
+    <div class="fd-kpi-sub"><span class="neutral">—</span> uploaded or revised</div>
+  </div>
+
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <span class="fd-kpi-icon red"><i class="ti ti-alert-triangle"></i></span>
+      <span class="fd-kpi-label">Expiring Soon</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ expiring_soon }}">{{ expiring_soon }}</div>
+    <div class="fd-kpi-sub"><span class="neutral">—</span> within 30 days</div>
+  </div>
+
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <span class="fd-kpi-icon purple"><i class="ti ti-archive"></i></span>
+      <span class="fd-kpi-label">Archived</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ archived_count }}">{{ archived_count }}</div>
+    <div class="fd-kpi-sub"><span class="neutral">—</span> accessible anytime</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════
+     CATEGORY TABS + SEARCH
+══════════════════════════ -->
+<form method="get" class="fd-toolbar" id="fdFilterForm">
+  <div class="fd-tabs">
+    <button type="submit" name="category" value="all"
+            class="fd-tab {% if category_filter == 'all' %}active{% endif %}">
+      All <span class="fd-tab-badge">{{ total_forms }}</span>
+    </button>
+    {% for cat in category_counts %}
+    <button type="submit" name="category" value="{{ cat.code }}"
+            class="fd-tab {% if category_filter == cat.code %}active{% endif %}">
+      {{ cat.label }}
+      <span class="fd-tab-badge
+        {% if cat.code == 'hr' %}blue{% elif cat.code == 'academic' %}purple
+        {% elif cat.code == 'finance' %}green{% elif cat.code == 'compliance' %}orange
+        {% else %}red{% endif %}">{{ cat.count }}</span>
+    </button>
+    {% endfor %}
+  </div>
+  <div class="fd-search">
+    <i class="ti ti-search"></i>
+    <input type="text" name="search" id="fdSearchInput"
+           placeholder="Search forms &amp; documents…" value="{{ search_query }}">
+  </div>
+</form>
+
+<!-- ══════════════════════════
+     QUICK ACCESS CATEGORIES
+══════════════════════════ -->
+<div class="fd-quick-grid">
+  {% for cat in category_counts %}
+  <a class="fd-quick-card" href="?category={{ cat.code }}">
+    <div class="fd-quick-icon
+      {% if cat.code == 'hr' %}blue{% elif cat.code == 'academic' %}purple
+      {% elif cat.code == 'finance' %}green{% elif cat.code == 'compliance' %}orange
+      {% else %}red{% endif %}">
+      <i class="ti
+        {% if cat.code == 'hr' %}ti-users{% elif cat.code == 'academic' %}ti-book
+        {% elif cat.code == 'finance' %}ti-coin{% elif cat.code == 'compliance' %}ti-shield-check
+        {% else %}ti-device-laptop{% endif %}"></i>
+    </div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">{{ cat.label }} Forms</div>
+      <div class="fd-quick-count">{{ cat.count }} form{{ cat.count|pluralize }}</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- ══════════════════════════
+     FORMS TABLE
+══════════════════════════ -->
+<div class="fd-table-wrap">
+  <table class="fd-table">
+    <thead>
+      <tr>
+        <th>Form / Document</th>
+        <th>Category</th>
+        <th>Department</th>
+        <th>Last Updated</th>
+        <th>Version</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="fdTableBody">
+      {% if forms %}
+        {% for form in forms %}
+        <tr data-cat="{{ form.form_category|default:'' }}" data-form-id="{{ form.id }}">
+          <td>
+            <div class="fd-form-title">{{ form.title }}</div>
+            <div class="fd-form-id">FORM-{{ form.id|stringformat:"03d" }} · {{ form.file_extension }}</div>
+          </td>
+          <td>
+            <span class="fd-cat-badge {{ form.form_category|default:'hr' }}">
+              {{ form.get_form_category_display|default:"Uncategorized" }}
+            </span>
+          </td>
+          <td><span class="fd-dept">{{ form.department_name|default:"—" }}</span></td>
+          <td><span class="fd-date">{{ form.updated_at|date:"M d, Y" }}</span></td>
+          <td><span class="fd-version">v{{ form.version }}</span></td>
+          <td>
+            <span class="fd-status
+              {% if form.status == 'pending_signature' %}pending
+              {% elif form.status == 'expiring' %}expiring
+              {% elif form.status == 'archived' %}archived
+              {% else %}active{% endif %}">
+              {{ form.get_status_display }}
+            </span>
+          </td>
+          <td>
+            <div class="fd-actions">
+              <a class="fd-action-btn download" title="Download"
+                 href="{% url 'download_resource' uuid=uuid resource_id=form.id %}">
+                <i class="ti ti-download"></i>
+              </a>
+              {% if form.file %}
+              <a class="fd-action-btn view" title="Preview" target="_blank"
+                 href="{{ form.file.url }}">
+                <i class="ti ti-eye"></i>
+              </a>
+              {% endif %}
+              <button class="fd-action-btn edit" title="Edit"
+                      onclick="openFdEditModal({{ form.id }})">
+                <i class="ti ti-pencil"></i>
+              </button>
+              <button class="fd-action-btn reject" title="Delete"
+                      onclick="deleteFdForm({{ form.id }})">
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center; padding:60px 20px; color:#999;">
+            <i class="ti ti-file-off" style="font-size:48px; display:block; margin-bottom:12px;"></i>
+            <h3 style="margin:0; color:#666;">No Forms Found</h3>
+            <p style="margin:4px 0 0;">No forms match your current filters, or none have been uploaded yet.</p>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════
+     PAGINATION
+══════════════════════════ -->
+<div class="fd-pagination">
+  <span class="fd-page-info">
+    Showing {{ forms.start_index|default:0 }}–{{ forms.end_index|default:0 }} of {{ total_forms }} forms
+  </span>
+  <div class="fd-page-controls">
+    {% if forms.has_previous %}
+      <a class="fd-page-btn" href="?{{ querystring }}&page={{ forms.previous_page_number }}">
+        <i class="ti ti-chevron-left"></i>
+      </a>
+    {% else %}
+      <span class="fd-page-btn disabled"><i class="ti ti-chevron-left"></i></span>
+    {% endif %}
+
+    {% for num in forms.paginator.page_range %}
+      {% if num == forms.number %}
+        <button class="fd-page-btn active">{{ num }}</button>
+      {% elif num == 1 or num == forms.paginator.num_pages or num|add:"-1" == forms.number or num|add:"1" == forms.number %}
+        <a class="fd-page-btn" href="?{{ querystring }}&page={{ num }}">{{ num }}</a>
+      {% elif num == 2 and forms.number > 4 %}
+        <span class="fd-page-ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+
+    {% if forms.has_next %}
+      <a class="fd-page-btn" href="?{{ querystring }}&page={{ forms.next_page_number }}">
+        <i class="ti ti-chevron-right"></i>
+      </a>
+    {% else %}
+      <span class="fd-page-btn disabled"><i class="ti ti-chevron-right"></i></span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     BOTTOM GRID
+══════════════════════════ -->
+<div class="fd-bottom-grid">
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <span class="fd-widget-title"><i class="ti ti-history"></i> Recently Updated</span>
+    </div>
+    <div class="fd-recent-list">
+      {% if recently_updated %}
+        {% for r in recently_updated %}
+        <div class="fd-recent-item">
+          <div class="fd-recent-icon
+            {% if r.form_category == 'hr' %}blue{% elif r.form_category == 'academic' %}purple
+            {% elif r.form_category == 'finance' %}green{% elif r.form_category == 'compliance' %}orange
+            {% else %}red{% endif %}">
+            <i class="ti ti-file-text"></i>
+          </div>
+          <div class="fd-recent-body">
+            <div class="fd-recent-title">{{ r.title }}</div>
+            <div class="fd-recent-meta">
+              {% if r.uploaded_by %}Updated by {{ r.uploaded_by.get_full_name }}{% else %}Updated{% endif %}
+              · {{ r.updated_at|date:"M d" }} · FORM-{{ r.id|stringformat:"03d" }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="fd-recent-item" style="justify-content:center; color:#999; padding:20px;">
+          No forms uploaded yet
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <span class="fd-widget-title"><i class="ti ti-chart-donut"></i> By Category</span>
+    </div>
+    <div class="fd-type-list">
+      {% for cat in category_counts %}
+      <div class="fd-type-row">
+        <span class="fd-type-label">{{ cat.label }}</span>
+        <div class="fd-type-track">
+          <div class="fd-type-fill {{ cat.code }}" style="width:{{ cat.pct }}%"></div>
+        </div>
+        <span class="fd-type-pct">{{ cat.pct }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <span class="fd-widget-title"><i class="ti ti-clock"></i> Needs Attention</span>
+    </div>
+    <div class="fd-pending-list">
+      {% if needs_attention %}
+        {% for item in needs_attention %}
+        <div class="fd-pending-item">
+          <div class="fd-pending-dot {% if item.status == 'expiring' %}red{% else %}orange{% endif %}"></div>
+          <div class="fd-pending-body">
+            <div class="fd-pending-title">{{ item.title }}</div>
+            <div class="fd-pending-meta">
+              {% if item.status == 'expiring' %}
+                Expires {{ item.expires_at|date:"M d, Y" }}
+              {% else %}
+                Awaiting signature
+              {% endif %}
+              · FORM-{{ item.id|stringformat:"03d" }}
+            </div>
+          </div>
+          <a class="fd-sign-btn {% if item.status == 'expiring' %}red{% endif %}"
+             href="{% url 'download_resource' uuid=uuid resource_id=item.id %}">
+            {% if item.status == 'expiring' %}Renew{% else %}Review{% endif %}
+          </a>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="fd-pending-item" style="justify-content:center; color:#999; padding:20px;">
+          Nothing needs attention right now
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════
+     UPLOAD MODAL
+══════════════════════════ -->
+<div class="fd-modal-overlay" id="fdUploadModal">
+  <div class="fd-modal">
+    <div class="fd-modal-header">
+      <h2>Upload Form</h2>
+      <button class="fd-modal-close" onclick="closeFdUploadModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fd-modal-body">
+      <label>Title</label>
+      <input type="text" id="fdUpTitle" placeholder="e.g. Employee Leave Request Form">
+
+      <label>Category</label>
+      <select id="fdUpCategory">
+        {% for code, label in form_categories %}
+          <option value="{{ code }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Department</label>
+      <input type="text" id="fdUpDept" placeholder="e.g. Human Resources">
+
+      <label>Version</label>
+      <input type="text" id="fdUpVersion" value="1.0">
+
+      <label>Status</label>
+      <select id="fdUpStatus">
+        <option value="active">Active</option>
+        <option value="pending_signature">Pending Signature</option>
+        <option value="expiring">Expiring</option>
+        <option value="archived">Archived</option>
+      </select>
+
+      <label>Expires On (optional)</label>
+      <input type="date" id="fdUpExpires">
+
+      <label>File</label>
+      <input type="file" id="fdUpFile">
+    </div>
+    <div class="fd-modal-footer">
+      <button class="fd-btn fd-btn-ghost" onclick="closeFdUploadModal()">Cancel</button>
+      <button class="fd-btn fd-btn-primary" onclick="submitFdUpload()">
+        <i class="ti ti-upload"></i> Upload
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     EDIT MODAL
+══════════════════════════ -->
+<div class="fd-modal-overlay" id="fdEditModal">
+  <div class="fd-modal">
+    <div class="fd-modal-header">
+      <h2>Edit Form</h2>
+      <button class="fd-modal-close" onclick="closeFdEditModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fd-modal-body">
+      <input type="hidden" id="fdEditId">
+
+      <label>Title</label>
+      <input type="text" id="fdEditTitle">
+
+      <label>Category</label>
+      <select id="fdEditCategory">
+        {% for code, label in form_categories %}
+          <option value="{{ code }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Department</label>
+      <input type="text" id="fdEditDept">
+
+      <label>Version</label>
+      <input type="text" id="fdEditVersion">
+
+      <label>Status</label>
+      <select id="fdEditStatus">
+        <option value="active">Active</option>
+        <option value="pending_signature">Pending Signature</option>
+        <option value="expiring">Expiring</option>
+        <option value="archived">Archived</option>
+      </select>
+
+      <label>Expires On</label>
+      <input type="date" id="fdEditExpires">
+    </div>
+    <div class="fd-modal-footer">
+      <button class="fd-btn fd-btn-ghost" onclick="closeFdEditModal()">Cancel</button>
+      <button class="fd-btn fd-btn-primary" onclick="submitFdEdit()">
+        <i class="ti ti-check"></i> Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const FD_UUID = "{{ uuid }}";
+const FD_UPLOAD_URL = "{% url 'upload_resource' uuid=uuid %}";
+const FD_DELETE_URL_TEMPLATE = "{% url 'delete_resource' uuid=uuid resource_id=999999 %}";
+const FD_UPDATE_URL_TEMPLATE = "{% url 'update_form_resource' uuid=uuid resource_id=999999 %}";
+</script>
+<script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return '';
+}
+
+function showFdToast(message, type) {
+  type = type || 'info';
+  document.querySelectorAll('.fd-toast').forEach(t => t.remove());
+
+  const titleMap = { success: 'Success', error: 'Error', info: 'Info', warning: 'Warning' };
+  const iconMap = {
+    success: '<i class="ti ti-circle-check"></i>',
+    info: '<i class="ti ti-info-circle"></i>',
+    warning: '<i class="ti ti-alert-triangle"></i>',
+    error: '<i class="ti ti-circle-x"></i>',
+  };
+
+  const toast = document.createElement('div');
+  toast.className = 'fd-toast fd-toast-' + type;
+  toast.innerHTML = `
+    <div class="fd-toast-icon">${iconMap[type] || iconMap.info}</div>
+    <div class="fd-toast-txt">
+      <b>${titleMap[type] || 'Notice'}</b>
+      <small>${message}</small>
+    </div>
+    <button class="fd-toast-close" onclick="this.closest('.fd-toast').remove()"><i class="ti ti-x"></i></button>
+  `;
+  document.body.appendChild(toast);
+
+  setTimeout(function () {
+    toast.style.animation = 'fdFadeOut 0.35s ease forwards';
+    setTimeout(() => toast.remove(), 350);
+  }, 4000);
+}
+
+function toggleFdFilters() {
+  document.getElementById('fdFilterForm').classList.toggle('fd-toolbar-expanded');
+}
+
+// ---------- Upload ----------
+function openFdUploadModal() {
+  document.getElementById('fdUploadModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeFdUploadModal() {
+  document.getElementById('fdUploadModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function submitFdUpload() {
+  const fileInput = document.getElementById('fdUpFile');
+  if (!fileInput.files.length) {
+    showFdToast('Please choose a file to upload.', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('files', fileInput.files[0]);
+  formData.append('title', document.getElementById('fdUpTitle').value);
+  formData.append('resource_type', 'form');
+  formData.append('form_category', document.getElementById('fdUpCategory').value);
+  formData.append('department_name', document.getElementById('fdUpDept').value);
+  formData.append('version', document.getElementById('fdUpVersion').value || '1.0');
+  formData.append('status', document.getElementById('fdUpStatus').value);
+  formData.append('expires_at', document.getElementById('fdUpExpires').value);
+
+  fetch(FD_UPLOAD_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    body: formData,
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showFdToast(data.message || 'Form uploaded successfully!', 'success');
+        setTimeout(() => location.reload(), 900);
+      } else {
+        showFdToast(data.message || 'Upload failed.', 'error');
+      }
+    })
+    .catch(err => showFdToast('Error: ' + err.message, 'error'));
+}
+
+// ---------- Edit ----------
+function openFdEditModal(formId) {
+  const row = document.querySelector(`tr[data-form-id="${formId}"]`);
+  if (!row) return;
+
+  document.getElementById('fdEditId').value = formId;
+  document.getElementById('fdEditTitle').value = row.querySelector('.fd-form-title')?.textContent.trim() || '';
+  document.getElementById('fdEditDept').value = row.querySelector('.fd-dept')?.textContent.trim() || '';
+  document.getElementById('fdEditVersion').value = (row.querySelector('.fd-version')?.textContent.trim() || 'v1.0').replace(/^v/, '');
+  document.getElementById('fdEditCategory').value = row.dataset.cat || 'hr';
+
+  document.getElementById('fdEditModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeFdEditModal() {
+  document.getElementById('fdEditModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function submitFdEdit() {
+  const id = document.getElementById('fdEditId').value;
+  const payload = {
+    title: document.getElementById('fdEditTitle').value,
+    form_category: document.getElementById('fdEditCategory').value,
+    department_name: document.getElementById('fdEditDept').value,
+    version: document.getElementById('fdEditVersion').value,
+    status: document.getElementById('fdEditStatus').value,
+    expires_at: document.getElementById('fdEditExpires').value,
+  };
+
+  const url = FD_UPDATE_URL_TEMPLATE.replace('999999', id);
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify(payload),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showFdToast(data.message || 'Form updated!', 'success');
+        closeFdEditModal();
+        setTimeout(() => location.reload(), 700);
+      } else {
+        showFdToast(data.message || 'Update failed.', 'error');
+      }
+    })
+    .catch(err => showFdToast('Error: ' + err.message, 'error'));
+}
+
+// ---------- Delete ----------
+function deleteFdForm(formId) {
+  if (!confirm('Delete this form permanently? This cannot be undone.')) return;
+
+  const url = FD_DELETE_URL_TEMPLATE.replace('999999', formId);
+  fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showFdToast(data.message || 'Form deleted.', 'success');
+        setTimeout(() => location.reload(), 700);
+      } else {
+        showFdToast(data.message || 'Delete failed.', 'error');
+      }
+    })
+    .catch(err => showFdToast('Error: ' + err.message, 'error'));
+}
+
+// ---------- KPI counter animation ----------
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.fd-kpi-value.counter').forEach(counter => {
+    const target = parseInt(counter.getAttribute('data-target')) || 0;
+    let current = 0;
+    const duration = 1200;
+    const steps = 40;
+    const increment = target / steps;
+
+    function animate() {
+      current += increment;
+      if (current < target) {
+        counter.textContent = Math.floor(current);
+        requestAnimationFrame(animate);
+      } else {
+        counter.textContent = target;
+      }
+    }
+    counter.textContent = '0';
+    requestAnimationFrame(animate);
+  });
+
+  document.querySelectorAll('.fd-modal-overlay').forEach(modal => {
+    modal.addEventListener('click', function (e) {
+      if (e.target === this) {
+        this.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
+
+
+<!-- /* ******************************************** Arun Code ********************************************************** */ -->

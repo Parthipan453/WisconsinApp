@@ -1,0 +1,477 @@
+<!-- /* ******************************************** Arun Code ********************************************************** */ -->
+
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Staff Dashboard — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<style>
+  /* Reset default anchor styling for elements that used to be plain divs */
+  .kpi-link, .legend-item, .bar-item, .dt-row {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .dt-row { display: flex; }
+</style>
+{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<!-- ══════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════ -->
+
+<div class="dash-page-header">
+  <div>
+    <h1>Staff Dashboard</h1>
+    <p>
+      {{ greeting }},
+      {% if user.staff_profile.preferred_name %}{{ user.staff_profile.preferred_name }}
+      {% else %}{{ user.get_full_name }}{% endif %}!
+      Here is an overview of your work, tasks and important updates.
+    </p>
+  </div>
+  <div class="dash-date-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    {{ today|date:"d M Y, l" }}
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     KPI STRIP
+══════════════════════════════════════ -->
+<div class="kpi-strip">
+
+  <div class="kpi-card">
+    <div class="kpi-top">
+      <div class="kpi-icon red">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+      </div>
+      <span class="kpi-label">Open Tasks</span>
+    </div>
+    <div class="kpi-value counter" data-target="{{ open_tasks_count }}">0</div>
+    <a href="{% url 'support_tickets_list' uuid=request.user.uuid %}?status=open" class="kpi-link">
+      Pending tasks
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top">
+      <div class="kpi-icon green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+      </div>
+      <span class="kpi-label">Request to Process</span>
+    </div>
+    <div class="kpi-value counter" data-target="{{ requests_count }}">0</div>
+    <a href="{% url 'staff_requests' uuid=request.user.uuid %}?status=PENDING" class="kpi-link">
+      Awaiting your action
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top">
+      <div class="kpi-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+        </svg>
+      </div>
+      <span class="kpi-label">Students Assisted</span>
+    </div>
+    <div class="kpi-value counter" data-target="{{ students_assisted }}">0</div>
+    <a href="{% url 'staff_student_records' uuid=request.user.uuid %}" class="kpi-link">
+      This month
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top">
+      <div class="kpi-icon orange">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <span class="kpi-label">Leave Balance</span>
+    </div>
+    <div class="kpi-value counter" data-target="{{ leave_days }}">0</div>
+    <a href="{% url 'staff_leave_dashboard' uuid=request.user.uuid %}" class="kpi-link">
+      Days available
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-top">
+      <div class="kpi-icon purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="7"/>
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+        </svg>
+      </div>
+      <span class="kpi-label">Training Status</span>
+    </div>
+    <div class="kpi-value">
+      <span class="counter" data-target="{{ training_completed }}">0</span>
+      /
+      <span class="counter" data-target="{{ training_total }}">0</span>
+    </div>
+    <a href="{% url 'staff_work_overview' uuid=request.user.uuid %}" class="kpi-link">
+      Completed
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════
+     MIDDLE ROW  (3 columns)
+══════════════════════════════════════ -->
+<div class="dash-grid" style="margin-bottom: 16px;">
+
+  <!-- Task Status Overview -->
+  <div class="widget-card">
+    <div class="widget-header">
+      <span class="widget-title">Task Status Overview</span>
+      <button class="widget-filter">
+        All Time
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="donut-wrap">
+      <div class="donut-svg-wrap">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <circle cx="65" cy="65" r="50" fill="none" stroke="#f0f0f0" stroke-width="18"/>
+          {% if donut_data.total %}
+          <circle cx="65" cy="65" r="50" fill="none" stroke="#22c55e" stroke-width="18"
+                  stroke-dasharray="{{ donut_data.completed.dash }} 314.16"
+                  stroke-dashoffset="{{ donut_data.completed.offset }}"
+                  stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          <circle cx="65" cy="65" r="50" fill="none" stroke="#3b82f6" stroke-width="18"
+                  stroke-dasharray="{{ donut_data.in_progress.dash }} 314.16"
+                  stroke-dashoffset="{{ donut_data.in_progress.offset }}"
+                  stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          <circle cx="65" cy="65" r="50" fill="none" stroke="#f59e0b" stroke-width="18"
+                  stroke-dasharray="{{ donut_data.pending.dash }} 314.16"
+                  stroke-dashoffset="{{ donut_data.pending.offset }}"
+                  stroke-linecap="round" transform="rotate(-90 65 65)"/>
+          {% endif %}
+        </svg>
+        <div class="donut-center-text">
+          <span class="donut-num">{{ donut_data.total }}</span>
+          <span class="donut-sub">Total Tickets</span>
+        </div>
+      </div>
+
+      <div class="donut-legend">
+        <a href="{% url 'support_tickets_list' uuid=request.user.uuid %}?status=resolved" class="legend-item">
+          <span class="legend-dot" style="background:#22c55e"></span>
+          Completed
+          <span class="legend-pct">{{ donut_data.completed.count }} ({{ donut_data.completed.pct }}%)</span>
+        </a>
+        <a href="{% url 'support_tickets_list' uuid=request.user.uuid %}?status=in_progress" class="legend-item">
+          <span class="legend-dot" style="background:#3b82f6"></span>
+          In Progress
+          <span class="legend-pct">{{ donut_data.in_progress.count }} ({{ donut_data.in_progress.pct }}%)</span>
+        </a>
+        <a href="{% url 'support_tickets_list' uuid=request.user.uuid %}?status=open" class="legend-item">
+          <span class="legend-dot" style="background:#f59e0b"></span>
+          Pending
+          <span class="legend-pct">{{ donut_data.pending.count }} ({{ donut_data.pending.pct }}%)</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Requests by Category -->
+  <div class="widget-card">
+    <div class="widget-header">
+      <span class="widget-title">Requests by Category</span>
+    </div>
+
+    <div class="bar-list">
+      {% for cat in category_counts %}
+      <a href="{% url 'staff_requests' uuid=request.user.uuid %}?type={{ cat.url_type }}" class="bar-item">
+        <div class="bar-label-row">
+          <span>{{ cat.label }}</span>
+          <span class="bar-count">{{ cat.count }}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:{{ cat.pct }}%;background:{{ cat.color }}"></div>
+        </div>
+      </a>
+      {% empty %}
+      <p style="color:#888; font-size:13px; padding:12px 0;">No pending requests.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Monthly Workload -->
+  <div class="widget-card">
+    <div class="widget-header">
+      <span class="widget-title">Monthly Workload</span>
+      <button class="widget-filter">
+        Last 6 months
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+    {{ month_labels|json_script:"workload-labels" }}
+    {{ workload_data|json_script:"workload-values" }}
+    <div class="line-chart-wrap">
+      <canvas id="workloadChart" data-axis-max="{{ workload_axis_max }}"></canvas>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════
+     BOTTOM ROW  (3 columns)
+══════════════════════════════════════ -->
+<div class="dash-grid-2col">
+
+  <!-- My Upcoming Tasks -->
+  <div class="widget-card">
+    <div class="widget-header">
+      <span class="widget-title">My Upcoming Tasks</span>
+      <a href="{% url 'staff_work_overview' request.user.uuid %}" class="widget-link">View All</a>
+    </div>
+
+    {% for task in upcoming_tasks %}
+    <a href="{{ task.href }}" class="dt-row">
+      <div class="dt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="dt-body">
+        <div class="dt-name">{{ task.title }}</div>
+        <div class="dt-meta">Student ID {{ task.student_id }}</div>
+      </div>
+      <div class="dt-right">
+        <span class="status-badge status-{{ task.priority|lower }}">{{ task.priority }}</span>
+        <span class="dt-date">{{ task.date|date:"d M Y" }}</span>
+      </div>
+    </a>
+    {% empty %}
+    <p style="color:#888; font-size:13px; padding:16px 0;">No upcoming tasks right now.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Recent Requests -->
+  <div class="widget-card">
+    <div class="widget-header">
+      <span class="widget-title">Recent Requests</span>
+      <a href="{% url 'staff_requests' request.user.uuid %}" class="widget-link">View All</a>
+    </div>
+
+    {% for req in recent_requests %}
+    <a href="{{ req.href }}" class="dt-row">
+      <div class="dt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="dt-body">
+        <div class="dt-name">{{ req.title }}</div>
+        <div class="dt-meta">Student ID {{ req.student_id }}</div>
+      </div>
+      <div class="dt-right">
+        <span class="badge badge-{{ req.status|lower }}">{{ req.status }}</span>
+        <span class="dt-date">{{ req.date|date:"d M Y" }}</span>
+      </div>
+    </a>
+    {% empty %}
+    <p style="color:#888; font-size:13px; padding:16px 0;">No recent requests.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Important Announcements -->
+  <div class="widget-card">
+    <div class="widget-header">
+      <span class="widget-title">Important Announcements</span>
+      <a href="#" class="widget-link">View All</a>
+    </div>
+
+    {% for ann in announcements %}
+    <div class="dt-row">
+      <div class="dt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="dt-body">
+        <div class="dt-name">{{ ann.title }}</div>
+        <div class="dt-meta">{{ ann.body|default:""|truncatewords:12 }}</div>
+      </div>
+      <div class="dt-right">
+        <span class="dt-date">{{ ann.posted_at|date:"d M Y" }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <p style="color:#888; font-size:13px; padding:16px 0;">No announcements at this time.</p>
+    {% endfor %}
+  </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const ctx = document.getElementById('workloadChart');
+  if (!ctx) return;
+
+  const labels = JSON.parse(document.getElementById('workload-labels').textContent);
+  const values = JSON.parse(document.getElementById('workload-values').textContent);
+  const axisMax = Number(ctx.dataset.axisMax) || 10;
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Workload',
+        data: values,
+        borderColor: '#C5050C',
+        backgroundColor: 'rgba(197,5,12,0.06)',
+        borderWidth: 2,
+        pointBackgroundColor: '#C5050C',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.35,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#1a1a1a',
+          bodyColor: '#555',
+          borderColor: '#ebebeb',
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {
+            label: ctx => ' ' + ctx.parsed.y + ' tasks'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#888',
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0,
+            font: {
+              size:
+                window.innerWidth <= 250 ? 5 :
+                window.innerWidth <= 320 ? 7 :
+                11
+            }
+          }
+        },
+        y: {
+          grid: { color: '#f5f5f5' },
+          ticks: { font: { size: 11 }, color: '#888' },
+          min: 0,
+          max: axisMax,
+        }
+      }
+    }
+  });
+})();
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const counters = document.querySelectorAll(".counter");
+
+  counters.forEach(counter => {
+
+    const target = Number(counter.dataset.target);
+    const duration = 1200;
+
+    let startTime = null;
+
+    function animate(time) {
+
+      if (!startTime) startTime = time;
+
+      const progress = Math.min(
+        (time - startTime) / duration,
+        1
+      );
+
+      const current =
+        Math.floor(progress * target);
+
+      counter.textContent =
+        current.toLocaleString();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        counter.textContent =
+          target.toLocaleString();
+      }
+    }
+
+    requestAnimationFrame(animate);
+
+  });
+
+});
+</script>
+{% endblock %}
+
+
+<!-- /* ******************************************** Arun Code ********************************************************** */ -->

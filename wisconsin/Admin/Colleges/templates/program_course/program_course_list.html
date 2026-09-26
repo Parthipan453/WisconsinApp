@@ -1,0 +1,491 @@
+<!--Steve code -->
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Program Curriculum{% endblock %}
+{% block page_title %}Program Curriculum{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'colleges/css/program_course_list.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="df-page">
+
+    <!-- Page Header -->
+    <div class="df-page-header-card">
+        <div class="df-header-left">
+            <h2 class="df-page-title">Program Curriculum</h2>
+            <nav class="df-breadcrumb">
+                <span>Dashboard</span>
+                <span class="sep">›</span>
+                <span>Administration</span>
+                <span class="sep">›</span>
+                <span class="active">Program Curriculum</span>
+            </nav>
+        </div>
+        <div class="df-header-right">
+
+            {% if has_programs and has_courses %}
+
+                <a href="{% url 'add_program_course' %}" class="btn-save">
+                    <svg width="15" height="15" fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+
+                    Add Program Curriculum
+                </a>
+
+            {% else %}
+
+                <button
+                    class="btn-save"
+                    data-bs-toggle="modal"
+                    data-bs-target="#programCourseRequirementModal">
+
+                    <svg width="15" height="15" fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+
+                    Add Program Curriculum
+
+                </button>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="pc-filter-card">
+        <form method="GET" id="filterForm" class="pc-filter-form">
+
+            <div class="pc-filter-grid">
+
+                <div class="pc-filter-field pc-filter-search">
+                    <span class="pc-filter-icon">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="7"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </span>
+                    <input
+                        type="text"
+                        name="search"
+                        id="searchInput"
+                        class="pc-filter-input"
+                        placeholder="Search program or course…"
+                        value="{{ search }}"
+                        autocomplete="off">
+                </div>
+
+                <div class="pc-filter-field">
+                    <label class="pc-filter-label">Semester</label>
+                    <select name="semester" id="semesterSelect" class="pc-filter-select">
+                        <option value="">All Semesters</option>
+                        {% for value, label in semester_choices %}
+                            <option value="{{ value }}" {% if selected_semester == value|stringformat:"s" %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="pc-filter-field">
+                    <label class="pc-filter-label">Program</label>
+                    <select name="program" id="programSelect" class="pc-filter-select">
+                        <option value="">All Programs</option>
+                        {% for program in programs %}
+                            <option value="{{ program.pk }}" {% if selected_program == program.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ program.program_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="pc-filter-field">
+                    <label class="pc-filter-label">Status</label>
+                    <select name="status" id="statusSelect" class="pc-filter-select">
+                        <option value="">All Status</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="pc-filter-field">
+                    <label class="pc-filter-label">Elective</label>
+                    <select name="elective" id="electiveSelect" class="pc-filter-select">
+                        <option value="">All</option>
+                        <option value="yes" {% if selected_elective == "yes" %}selected{% endif %}>Elective Only</option>
+                        <option value="no" {% if selected_elective == "no" %}selected{% endif %}>Core Only</option>
+                    </select>
+                </div>
+
+                <div class="pc-filter-actions">
+                    <button type="submit" class="pc-btn-apply">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18M6 9.75h12M10 15h4"/>
+                        </svg>
+                        Apply
+                    </button>
+                    <a href="{% url 'program_course_list' %}" class="pc-btn-reset">
+                        Reset
+                    </a>
+                </div>
+
+            </div>
+        </form>
+
+        {% if active_filters %}
+        <div class="pc-active-filters">
+            <span class="pc-active-label">Active filters:</span>
+
+            {% if search %}
+                <span class="pc-chip">Search: “{{ search }}”</span>
+            {% endif %}
+            {% if selected_semester %}
+                <span class="pc-chip">Semester {{ selected_semester }}</span>
+            {% endif %}
+            {% if selected_program %}
+                <span class="pc-chip">Program filtered</span>
+            {% endif %}
+            {% if selected_status %}
+                <span class="pc-chip">{{ selected_status|title }}</span>
+            {% endif %}
+            {% if selected_elective %}
+                <span class="pc-chip">{% if selected_elective == "yes" %}Elective Only{% else %}Core Only{% endif %}</span>
+            {% endif %}
+
+            <a href="{% url 'program_course_list' %}" class="pc-clear-all">Clear all ×</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Result count -->
+    <div class="pc-result-bar">
+        <span class="pc-result-count">
+            {{ group_count }} curriculum group{{ group_count|pluralize }} · {{ total_count }} course{{ total_count|pluralize }} total
+        </span>
+        {% if groups %}
+        <button type="button" class="pc-expand-all-btn" id="expandAllBtn">
+            Expand All
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Grouped List -->
+    <div class="pc-list">
+
+        {% for group in groups %}
+        <div class="pc-group-card">
+
+            <button type="button" class="pc-group-header" data-target="group-{{ forloop.counter }}">
+                <div class="pc-group-main">
+                    <div class="pc-card-icon">
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+                    <div class="pc-group-body-text">
+                        <p class="pc-group-program">{{ group.program.program_name }}</p>
+                        <p class="pc-group-sub">{{ group.study_year_display }} &middot; {{ group.term_display }}</p>
+                    </div>
+                </div>
+
+                <div class="pc-group-meta">
+                    <span class="pc-badge pc-badge-count">{{ group.course_count }} course{{ group.course_count|pluralize }}</span>
+                    <span class="pc-badge pc-badge-active">{{ group.active_count }} active</span>
+                    {% if group.elective_count %}
+                    <span class="pc-badge pc-badge-elective">{{ group.elective_count }} elective</span>
+                    {% endif %}
+                    <svg class="pc-group-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+            </button>
+
+            <div class="pc-group-content" id="group-{{ forloop.counter }}">
+                <div class="pc-group-content-inner">
+                    {% for item in group.courses %}
+                    <div class="pc-course-row">
+
+                        <div class="pc-course-row-main">
+                            <p class="pc-course-row-name">{{ item.course.course_code }} — {{ item.course.course_name }}</p>
+                        </div>
+
+                        <div class="pc-course-row-meta">
+                            {% if item.is_elective %}
+                                <span class="pc-badge pc-badge-elective">Elective</span>
+                            {% else %}
+                                <span class="pc-badge pc-badge-core">Core</span>
+                            {% endif %}
+
+                            {% if item.status == "ACTIVE" %}
+                                <span class="pc-badge pc-badge-active">Active</span>
+                            {% else %}
+                                <span class="pc-badge pc-badge-inactive">Inactive</span>
+                            {% endif %}
+
+                            <div class="pc-actions">
+                                <a href="{% url 'edit_program_course' item.program_course_id %}"
+                                class="pc-edit-btn" title="Edit">
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                    </svg>
+                                </a>
+
+                                {% if item.status == "ACTIVE" %}
+                                <button type="button" class="pc-status-btn deactivate-btn"
+                                    data-bs-toggle="modal" data-bs-target="#statusModal"
+                                    data-url="{% url 'toggle_program_course_status' item.program_course_id %}"
+                                    data-name="{{ item.course.course_name }}"
+                                    data-action="deactivate" title="Deactivate">
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                                    </svg>
+                                </button>
+                                {% else %}
+                                <button type="button" class="pc-status-btn activate-btn"
+                                    data-bs-toggle="modal" data-bs-target="#statusModal"
+                                    data-url="{% url 'toggle_program_course_status' item.program_course_id %}"
+                                    data-name="{{ item.course.course_name }}"
+                                    data-action="activate" title="Activate">
+                                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                                    </svg>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+        {% empty %}
+
+        <div class="pc-empty">
+            <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/>
+            </svg>
+            <p class="pc-empty-title">No Program Curriculum Found</p>
+            <p class="pc-empty-sub">Try adjusting your filters or add a new curriculum entry.</p>
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pc-pagination">
+
+        <!-- Previous -->
+        {% if page_obj.has_previous %}
+            <a class="pc-page-btn"
+               href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </a>
+        {% else %}
+            <span class="pc-page-btn disabled">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </span>
+        {% endif %}
+
+        <!-- Page Numbers (with ellipsis gaps) -->
+        <div class="pc-page-numbers">
+            {% for item in page_range %}
+                {% if item == "..." %}
+                    <span class="pc-page-ellipsis">…</span>
+                {% elif item == page_obj.number %}
+                    <span class="pc-page-num active">{{ item }}</span>
+                {% else %}
+                    <a class="pc-page-num"
+                       href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ item }}">
+                        {{ item }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Next -->
+        {% if page_obj.has_next %}
+            <a class="pc-page-btn"
+               href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        {% else %}
+            <span class="pc-page-btn disabled">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </span>
+        {% endif %}
+
+        <span class="pc-page-info">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+    </div>
+    {% endif %}
+
+</div>
+
+
+{% endblock %}
+
+
+{% block global_modal %}
+
+
+<div class="modal fade"
+     id="statusModal"
+     tabindex="-1"
+     aria-labelledby="statusModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modern-status-modal">
+            <div class="status-modal-header">
+                <div class="status-modal-icon">!</div>
+                <h4 class="status-modal-title" id="statusModalLabel">Confirm Action</h4>
+            </div>
+            <div class="status-modal-body">
+                <p id="statusMessage">Are you sure?</p>
+            </div>
+            <div class="status-modal-footer">
+                <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="confirmStatusBtn" class="btn-confirm">Confirm</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade"
+     id="programCourseRequirementModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content modern-status-modal">
+
+            <div class="status-modal-header">
+
+                <div class="status-modal-icon">
+
+                    <svg width="34"
+                         height="34"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+
+                        <path d="M12 2L3 7l9 5 9-5-9-5z"/>
+                        <path d="M5 10v5c0 3 3 5 7 5s7-2 7-5v-5"/>
+
+                    </svg>
+
+                </div>
+
+                <h4 class="status-modal-title">
+                    Requirements Missing
+                </h4>
+
+            </div>
+
+            <div class="status-modal-body">
+
+                <p>
+                    Before creating a
+                    <strong>Program Curriculum</strong>,
+                    the following prerequisites must exist.
+                </p>
+
+                <div style="margin-top:20px;text-align:left;display:inline-block;">
+
+                    {% if has_programs %}
+                        <div style="margin-bottom:12px;color:#198754;font-weight:600;">
+                            ✓ Academic Program Available
+                        </div>
+                    {% else %}
+                        <div style="margin-bottom:12px;color:#dc3545;font-weight:600;">
+                            ✕ Academic Program Required
+                        </div>
+                    {% endif %}
+
+                    {% if has_courses %}
+                        <div style="color:#198754;font-weight:600;">
+                            ✓ Course Available
+                        </div>
+                    {% else %}
+                        <div style="color:#dc3545;font-weight:600;">
+                            ✕ Course Required
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="status-modal-footer">
+
+                <button
+                    type="button"
+                    class="btn-cancel"
+                    data-bs-dismiss="modal">
+
+                    Stay Here
+
+                </button>
+
+                {% if not has_programs %}
+                    <a href="{% url 'add_program' %}"
+                       class="btn-confirm">
+                        Create Program
+                    </a>
+                {% endif %}
+
+                {% if not has_courses %}
+                    <a href="{% url 'course_add' %}"
+                       class="btn-confirm">
+                        Create Course
+                    </a>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'colleges/js/program_course_list.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Page Access Control{% endblock %}
+{% block page_title %}Page Access{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_role_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_page_access.css' %}">
+    <link rel="stylesheet" href="{% static 'css/page_location.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="permission-page-access">
+
+        <div class="permission-header">
+            <div class="permission-header__text">
+                <h1>Page access control</h1>
+                <p>Choose which roles can open each page in the system.</p>
+            </div>
+            <div class="permission-header__actions">
+                <form method="post" action="{% url 'Permission:permission_page_access_sync' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="permission-btn-outline">
+                        <i data-lucide="refresh-cw"></i>
+                        Scan for new pages
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="permission-info-banner">
+            <i data-lucide="info"></i>
+            <span>
+                The <strong>Administrator</strong> always has access to every page, so it isn't listed here.
+                Turn off every role for a page to hide it from everyone except the Administrator.
+                Click <strong>"Scan for new pages"</strong> any time you've added a page to the project — it'll show up here automatically.
+            </span>
+        </div>
+
+        {% if not pages %}
+            <div class="permission-empty">
+            <i data-lucide="layout-grid"></i>
+            <p>No pages registered yet. Click "Scan for new pages" to detect pages automatically.</p>
+            </div>
+        {% else %}
+
+            <div class="pm-tabs">
+                {% for tab in tabs %}
+                    <button type="button" class="pm-tab{% if forloop.first %} is-active{% endif %}" data-role-tab="{{ tab.code }}">
+                        {% if tab.code == "medical" %}
+                            <i data-lucide="stethoscope"></i>
+                        {% else %}
+                            <i data-lucide="users"></i>
+                        {% endif %}
+                        {{ tab.label }}
+                        <span class="pm-tab__count">{{ tab.pages|length }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+
+            <div class="permission-legend">
+                <span class="permission-legend__title">Legend:</span>
+                <span class="permission-legend__item"><span class="permission-legend__dot permission-legend__dot--on"></span> Role has access</span>
+                <span class="permission-legend__item"><span class="permission-legend__dot permission-legend__dot--off"></span> No access</span>
+                <span class="permission-legend__item"><i data-lucide="code" style="width:12px;height:12px;"></i> Click "Technical details" for the page key and URL path</span>
+            </div>
+
+            <form method="post" id="pageAccessForm">
+                {% csrf_token %}
+
+                {% for tab in tabs %}
+                <div class="pm-role-panel" data-role-panel="{{ tab.code }}"{% if not forloop.first %} hidden{% endif %}>
+                    {% if tab.grouped_pages %}
+                        {% for category, category_pages in tab.grouped_pages.items %}
+                            <div class="permission-page-group">
+                                <div class="permission-page-group__head" data-toggle-group>
+                                    <h2 class="permission-page-group__label">
+                                        {% if tab.code == "medical" %}<i data-lucide="stethoscope"></i>{% else %}<i data-lucide="folder"></i>{% endif %}
+                                        {{ category }}
+                                    </h2>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <span class="permission-page-group__count">
+                                            <i data-lucide="file-text" style="width:12px;height:12px;"></i>
+                                            {{ category_pages|length }} page{{ category_pages|length|pluralize }}
+                                        </span>
+                                        <i data-lucide="chevron-down" class="permission-page-group__toggle"></i>
+                                    </div>
+                                </div>
+
+                                <div class="permission-page-group__body">
+                                    {% for page in category_pages %}
+                                        <div class="permission-page-row">
+                                            <div class="permission-page-info">
+                                                <div class="permission-page-icon"><i data-lucide="{{ page.icon }}"></i></div>
+                                                <div class="permission-page-text">
+                                                    <div class="permission-page-name">
+                                                        {{ page.display_name }}
+                                                        {% if page.is_auto_discovered %}
+                                                        <span class="permission-badge-auto" title="Auto-discovered — you can still edit this">auto</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    {% with crumbs=page.display_breadcrumb|crumb_parts %}
+                                                        {% if crumbs %}
+                                                            <div class="page-location" role="note"
+                                                                aria-label="Page location: {{ page.display_breadcrumb }}">
+                                                            <button type="button" class="page-location__label" data-toggle-location aria-expanded="false">
+                                                                <i data-lucide="folder-tree"></i> Located under
+                                                                <i data-lucide="chevron-down" class="page-location__toggle-icon" aria-hidden="true"></i>
+                                                            </button>
+                                                            <span class="page-location__trail" hidden>
+                                                                {% for crumb in crumbs %}
+                                                                <span class="page-location__chip{% if forloop.last %} page-location__chip--current{% endif %}">{{ crumb }}</span>
+                                                                {% if not forloop.last %}
+                                                                    <i data-lucide="chevron-right" class="page-location__sep" aria-hidden="true"></i>
+                                                                {% endif %}
+                                                                {% endfor %}
+                                                            </span>
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                    {% if page.description %}
+                                                        <div class="permission-page-desc">{{ page.description }}</div>
+                                                    {% endif %}
+                                                    <button type="button" class="permission-tech-toggle" data-toggle-tech>
+                                                        <i data-lucide="code"></i> Technical details
+                                                    </button>
+                                                    <div class="permission-tech-details" hidden>
+                                                        <span>page key: <code>{{ page.page_key }}</code></span>
+                                                        <span>path: <code>{{ page.path_prefix }}</code></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="permission-role-chips-col">
+                                                {% if tab.code == "medical" %}
+                                                <div class="permission-role-chips permission-role-chips--medical">
+                                                    <span class="permission-role-chips__label"><i data-lucide="stethoscope"></i> Medical</span>
+                                                    {% for role in medical_roles %}
+                                                        <label class="permission-role-chip permission-role-chip--medical" data-role-chip>
+                                                            <input type="checkbox"
+                                                                    name="page_{{ page.pk }}_medical_roles"
+                                                                    value="{{ role.pk }}"
+                                                                    {% if role.pk in granted_medical_role_ids_by_page|get_item:page.pk %}checked{% endif %}>
+                                                            <span class="permission-role-chip__dot"></span>
+                                                            <span>{{ role.name }}</span>
+                                                        </label>
+                                                    {% empty %}
+                                                        <span class="permission-no-roles">No medical roles exist yet.</span>
+                                                    {% endfor %}
+                                                </div>
+                                                {% else %}
+                                                <div class="permission-role-chips">
+                                                    {% if admin_role %}
+                                                        <label class="permission-role-chip is-checked permission-role-chip--admin" data-role-chip title="Administrator always has access — cannot be changed">
+                                                            <input type="checkbox" checked disabled>
+                                                            <span class="permission-role-chip__dot"></span>
+                                                            <span>{{ admin_role.role_name }}</span>
+                                                        </label>
+                                                    {% endif %}
+                                                    {% for role in tab.roles %}
+                                                        <label class="permission-role-chip" data-role-chip>
+                                                            <input type="checkbox"
+                                                                    name="page_{{ page.pk }}_roles"
+                                                                    value="{{ role.pk }}"
+                                                                    {% if role.pk in granted_role_ids_by_page|get_item:page.pk %}checked{% endif %}>
+                                                            <span class="permission-role-chip__dot"></span>
+                                                            <span>{{ role.role_name }}</span>
+                                                        </label>
+                                                    {% empty %}
+                                                        <span class="permission-no-roles">No {{ tab.label|lower }} roles exist yet.</span>
+                                                    {% endfor %}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+
+                                            <button type="button" class="permission-page-edit" data-edit-page
+                                                data-pk="{{ page.pk }}"
+                                                data-name="{{ page.display_name }}"
+                                                data-desc="{{ page.description }}"
+                                                data-category="{{ page.category }}"
+                                                data-icon="{{ page.icon }}"
+                                                title="Edit page details">
+                                                <i data-lucide="pencil"></i>
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="permission-empty">
+                            {% if tab.code == "medical" %}
+                                <i data-lucide="stethoscope"></i>
+                                <p>No Medical-app pages registered yet.</p>
+                            {% else %}
+                                <i data-lucide="layout-grid"></i>
+                                <p>No {{ tab.label|lower }} pages registered yet.</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="permission-save-bar">
+                    <span class="permission-save-bar__hint">Changes take effect immediately for everyone in the affected role.</span>
+                    <button type="submit" class="permission-btn-save">
+                        <i data-lucide="save"></i> Save page access
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+    {% endblock %}
+
+    {% block global_modal %}
+        <div class="permission-modal-overlay" id="editPageModal" hidden>
+            <div class="permission-modal">
+                <div class="permission-modal__head">
+                    <h3 class="permission-modal__title">Edit page details</h3>
+                    <button type="button" class="permission-modal__close" id="editPageClose"><i data-lucide="x"></i></button>
+                </div>
+                <div class="permission-modal__body">
+                    <div class="permission-field">
+                        <label>Display name</label>
+                        <input type="text" id="editName">
+                    </div>
+                    <div class="permission-field">
+                        <label>Icon</label>
+                        <div class="permission-icon-picker">
+                            <span class="permission-icon-picker__preview" id="editIconPreview"><i data-lucide="file"></i></span>
+                            <select id="editIcon" class="permission-icon-select" aria-hidden="true" tabindex="-1">
+                                <option value="file">File</option>
+                                <option value="layout-dashboard">Layout Dashboard</option>
+                                <option value="layout-grid">Layout Grid</option>
+                                <option value="shield">Shield</option>
+                                <option value="key">Key</option>
+                                <option value="lock">Lock</option>
+                                <option value="users">Users</option>
+                                <option value="users-round">Users Round</option>
+                                <option value="user">User</option>
+                                <option value="file-text">File Text</option>
+                                <option value="clipboard-list">Clipboard List</option>
+                                <option value="clipboard">Clipboard</option>
+                                <option value="calendar">Calendar</option>
+                                <option value="bar-chart-2">Bar Chart</option>
+                                <option value="graduation-cap">Graduation Cap</option>
+                                <option value="briefcase">Briefcase</option>
+                                <option value="building">Building</option>
+                                <option value="building-2">Building 2</option>
+                                <option value="newspaper">Newspaper</option>
+                                <option value="trophy">Trophy</option>
+                                <option value="stethoscope">Stethoscope</option>
+                                <option value="heart-pulse">Heart Pulse</option>
+                                <option value="folder">Folder</option>
+                                <option value="settings">Settings</option>
+                                <option value="database">Database</option>
+                                <option value="bell">Bell</option>
+                                <option value="mail">Mail</option>
+                                <option value="map-pin">Map Pin</option>
+                                <option value="book-open">Book Open</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="permission-modal__foot">
+                    <button type="button" class="permission-btn-outline" id="editPageCancel">Cancel</button>
+                    <button type="button" class="permission-btn-save" id="editPageSave">Save</button>
+                </div>
+            </div>
+        </div>
+    {% endblock %}
+
+    {% block extra_js %}
+    <script>
+        window.PA_SYNC_URL = "{% url 'Permission:permission_page_access_sync' %}";
+        window.PA_UPDATE_URL_BASE = "/permission/page-access/";
+    </script>
+    <script src="{% static 'script/permission_role_list.js' %}"></script>
+    <script src="{% static 'script/permission_page_access.js' %}"></script>
+{% endblock %}

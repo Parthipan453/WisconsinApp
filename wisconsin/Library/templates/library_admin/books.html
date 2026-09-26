@@ -1,0 +1,1626 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Library Books{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/library_admin/books.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="books-page">
+
+    <!-- ========================= -->
+    <!-- Page Header -->
+    <!-- ========================= -->
+
+    <div class="books-header">
+
+        <div class="header-left">
+
+            <h2>Books</h2>
+
+            <div class="breadcrumb">
+                <a href="{% url 'library_dashboard' request.user.uuid %}">Dashboard</a>
+                <span>›</span>
+
+                <span class="active">Books</span>
+            </div>
+
+        </div>
+
+        <div class="header-right">
+
+            <a href="{% url 'add_book' %}" class="add-book-btn">
+                <i class="fa-solid fa-plus"></i>
+                   <span>Add Book</span>
+            </a>
+
+        </div>
+
+    </div>
+
+
+<!-- ====================================== -->
+<!-- Books Statistics -->
+<!-- ====================================== -->
+
+<div class="book-stats" role="list" aria-label="Library statistics">
+
+    <!-- Total Books -->
+
+    <div class="book-stat-card" role="listitem">
+
+        <div class="book-stat-card__icon book-stat-card__icon--total">
+
+            <i class="fa-solid fa-book"></i>
+
+        </div>
+
+        <div class="book-stat-card__body">
+
+            <p class="book-stat-card__label">
+                Total Books
+            </p>
+
+            <p class="book-stat-card__value">
+                {{ total_books }}
+            </p>
+
+            <p class="book-stat-card__delta book-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Library Collection
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Available Books -->
+
+    <div class="book-stat-card" role="listitem">
+
+        <div class="book-stat-card__icon book-stat-card__icon--available">
+
+            <i class="fa-solid fa-book-open"></i>
+
+        </div>
+
+        <div class="book-stat-card__body">
+
+            <p class="book-stat-card__label">
+                Available Books
+            </p>
+
+            <p class="book-stat-card__value">
+                {{ available_books }}
+            </p>
+
+            <p class="book-stat-card__delta book-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Ready to Borrow
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Borrowed Books -->
+
+    <div class="book-stat-card" role="listitem">
+
+        <div class="book-stat-card__icon book-stat-card__icon--borrowed">
+
+            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+
+        </div>
+
+        <div class="book-stat-card__body">
+
+            <p class="book-stat-card__label">
+                Borrowed Books
+            </p>
+
+            <p class="book-stat-card__value">
+                {{ borrowed_books }}
+            </p>
+
+            <p class="book-stat-card__delta book-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Currently Issued
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Categories -->
+
+    <div class="book-stat-card" role="listitem">
+
+        <div class="book-stat-card__icon book-stat-card__icon--category">
+
+            <i class="fa-solid fa-layer-group"></i>
+
+        </div>
+
+        <div class="book-stat-card__body">
+
+            <p class="book-stat-card__label">
+                Categories
+            </p>
+
+            <p class="book-stat-card__value">
+                {{ total_categories }}
+            </p>
+
+            <p class="book-stat-card__delta book-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Resource Categories
+
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+    <!-- =================================== -->
+    <!-- Search & Filter Section -->
+    <!-- =================================== -->
+
+    <div class="books-toolbar">
+
+        <form id="searchForm" method="GET" class="search-form">
+
+    <div class="search-box">
+
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+        <input
+
+            type="text"
+
+            name="q"
+
+            id="book-search"
+
+            placeholder="Search by title, author, ISBN or subject..."
+
+            value="{{ search_query }}"
+
+            autocomplete="off"
+
+        >
+
+    </div>
+
+</form>
+
+        <div class="toolbar-buttons">
+
+            <button
+                type="button"
+                class="filter-btn"
+                id="toggleFilter">
+
+                    <i class="fa-solid fa-filter"></i>
+
+                      Filter
+
+            </button>
+
+            <a href="javascript:void(0);" class="reset-btn" id="resetFilters">
+    <i class="fa-solid fa-rotate-left"></i>
+    Reset
+</a>
+
+        </div>
+
+    </div>
+
+    <div class="filter-card" id="filterCard">
+
+    <div class="row g-3">
+
+        <!-- Category -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+                Category
+            </label>
+
+            <select id="categoryFilter" class="form-select library-choice">
+
+                <option value="">All Categories</option>
+
+                {% for category in categories %}
+
+                    <option value="{{ category.id }}">
+
+                        {{ category.title }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+        <!-- Resource Type -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+                Resource Type
+            </label>
+
+            <select id="typeFilter" class="form-select library-choice">
+
+                <option value="">All Types</option>
+
+                {% for value, label in resource_types %}
+
+                    <option value="{{ value }}">
+
+                        {{ label }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+        <!-- Status -->
+        <div class="col-xl-2 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+                Status
+            </label>
+
+            <select id="statusFilter" class="form-select library-choice">
+
+                <option value="">All Status</option>
+
+                {% for value, label in status_choices %}
+
+                    <option value="{{ value }}">
+
+                        {{ label }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+        <!-- Language -->
+        <div class="col-xl-2 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+                Language
+            </label>
+
+            <select id="languageFilter" class="form-select library-choice">
+
+                <option value="">All Languages</option>
+
+                {% for language in languages %}
+
+                    <option value="{{ language }}">
+
+                        {{ language }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+        <!-- Availability -->
+        <div class="col-xl-2 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+                Availability
+            </label>
+
+            <select id="availabilityFilter" class="form-select library-choice">
+
+                <option value="">All</option>
+
+                <option value="available">
+                    Available
+                </option>
+
+                <option value="unavailable">
+                    Unavailable
+                </option>
+
+            </select>
+
+        </div>
+
+    </div>
+
+</div>
+
+    <!-- <div class="filter-actions mt-4">
+
+        <button
+            class="btn btn-primary"
+            id="applyFilters">
+
+            Apply Filters
+
+        </button>
+
+        <button
+            class="btn btn-outline-secondary"
+            id="clearFilters">
+
+            Reset
+
+        </button>
+
+    </div> -->
+
+
+
+
+    <!-- =================================== -->
+    <!-- Books Table -->
+    <!-- =================================== -->
+
+    <div class="table-card">
+
+        <div class="table-responsive">
+
+            <table class="table books-table align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th style="width:45px;">
+                            <!-- <input type="checkbox"> -->
+                             #
+                        </th>
+
+                        <th>BOOK</th>
+
+                        <th>ISBN</th>
+
+                        <th>AUTHOR</th>
+
+                        <th>CATEGORY</th>
+
+                        <th>TYPE</th>
+
+                        <th>COPIES</th>
+
+                        <th>STATUS</th>
+
+                        <th>ACTIONS</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="books-body">
+
+                    {% for book in books %}
+
+                <tr>
+
+                    <td>
+                        <!-- <input type="checkbox" value="{{ book.id }}"> -->
+                         {{ forloop.counter }}
+                    </td>
+
+                    <!-- Book -->
+
+                    <td>
+
+                        <div class="book-info">
+
+                            <div class="book-avatar">
+
+                                <i class="fa-solid fa-book"></i>
+
+                            </div>
+
+                            <div class="book-details">
+
+                                <h6>{{ book.title }}</h6>
+
+                                <span>
+                                    {{ book.library.library_name }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <!-- ISBN -->
+
+                    <td>
+                        <span class="isbn-text">
+                           {{ book.isbn_issn|default:"—" }}
+                        </span>
+                    </td>
+
+                    <!-- Author -->
+
+                    <td>
+
+                        {{ book.author }}
+
+                    </td>
+
+                    <!-- Category -->
+
+                    <td>
+
+                        {% if book.category %}
+
+                            <span class="category-badge">
+
+                                {{ book.category.title }}
+
+                            </span>
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- Resource Type -->
+
+                    <td>
+
+                        <span class="type-badge">
+
+                            {{ book.get_resource_type_display }}
+
+                        </span>
+
+                    </td>
+
+                    <!-- Copies -->
+
+                    <td>
+
+                        <span class="copies-badge">
+
+                            {{ book.available_copies }}
+
+                            /
+
+                            {{ book.total_copies }}
+
+                        </span>
+
+                    </td>
+
+                    <!-- Status -->
+
+                    <td>
+
+                        {% if book.status == "ACTIVE" %}
+
+                            <span class="status active">
+
+                                <i class="fa-solid fa-circle"></i>
+
+                                Active
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="status inactive">
+
+                                <i class="fa-solid fa-circle"></i>
+
+                                Inactive
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- Actions -->
+
+                    <td>
+
+                        <div class="table-actions">
+
+                            <a href="{% url 'view_book' book.uuid %}"
+                               class="view-btn"
+                               title="View">
+
+                                <i class="fa-regular fa-eye"></i>
+
+                            </a>
+
+                            <a href="{% url 'edit_book' book.uuid %}"
+                               class="edit-btn"
+                               title="Edit">
+
+                                <i class="fa-regular fa-pen-to-square"></i>
+
+                            </a>
+
+                         <a href="javascript:void(0)"
+   class="delete-btn"
+   title="Delete"
+   data-title="{{ book.title }}"
+   data-url="{% url 'delete_book' book.uuid %}"
+   onclick="openDeleteModal(this)">
+
+    <i class="fa-solid fa-trash"></i>
+
+</a>
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+    <td colspan="9" class="text-center py-5">
+
+        <i class="fa-solid fa-book-open fa-2x text-secondary mb-3"></i>
+
+        <h5>No books found</h5>
+
+        <p>
+
+            No books match
+
+            <strong>"{{ search_query }}"</strong>
+
+        </p>
+
+    </td>
+
+</tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+         <!-- =================================== -->
+    <!-- Table Footer -->
+    <!-- =================================== -->
+
+    <!-- =================================== -->
+<!-- TABLE FOOTER -->
+<!-- =================================== -->
+
+<div class="table-footer">
+
+    <div class="table-info">
+
+        Showing
+
+        <strong id="startIndex">
+
+            {{ page_obj.start_index }}
+
+        </strong>
+
+        to
+
+        <strong id="endIndex">
+
+            {{ page_obj.end_index }}
+
+        </strong>
+
+        of
+
+        <strong id="totalBooks">
+
+            {{ page_obj.paginator.count }}
+
+        </strong>
+
+        book{{ page_obj.paginator.count|pluralize }}
+
+    </div>
+
+    <div class="books-pagination-wrapper">
+
+    <ul
+        class="books-pagination"
+        id="pagination"
+    ></ul>
+
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+{% endblock %}
+
+<!-- ========================================= -->
+<!-- DELETE BOOK MODAL -->
+<!-- ========================================= -->
+
+{% block global_modal %}
+
+<div class="modal-overlay" id="deleteBookModal">
+
+    <div class="delete-modal">
+
+        <!-- Header -->
+
+        <div class="modal-header">
+
+            <h3>Delete Book</h3>
+
+        </div>
+
+        <!-- Body -->
+
+       <div class="modal-body">
+
+    <div class="modal-icon">
+
+        <i class="ti ti-alert-triangle"></i>
+
+    </div>
+
+    <p class="modal-text">
+
+        Are you sure you want to delete
+        <strong id="deleteBookName"></strong>?
+
+    </p>
+
+    <p class="modal-warning">
+
+        This action cannot be undone.
+
+    </p>
+
+</div>
+
+        <!-- Footer -->
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="modal-btn-cancel"
+                onclick="closeDeleteModal()">
+
+                Cancel
+
+            </button>
+
+            <form method="POST" id="deleteBookForm">
+
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="modal-btn-delete">
+
+                    Delete
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+// =====================================================
+// LIBRARY BOOKS AJAX
+// =====================================================
+
+const viewBookUrl =
+"{% url 'view_book' '00000000-0000-0000-0000-000000000000' %}";
+
+
+// =====================================================
+// PAGE LOAD
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    initializeFilterToggle();
+
+    initializeFilters();
+
+    initializeReset();
+
+    loadBooks(1);
+
+});
+
+// =====================================================
+// FILTER TOGGLE
+// =====================================================
+
+function initializeFilterToggle() {
+
+    const filterBtn = document.getElementById("toggleFilter");
+
+    const filterCard = document.getElementById("filterCard");
+
+    if (!filterBtn || !filterCard) {
+        console.log("Filter button or filter card not found.");
+        return;
+    }
+
+    filterBtn.addEventListener("click", function () {
+
+        filterCard.classList.toggle("show");
+
+    });
+
+}
+// =====================================================
+// SEARCH + FILTER EVENTS
+// =====================================================
+
+function initializeFilters() {
+
+    const search = document.getElementById("book-search");
+
+    const category = document.getElementById("categoryFilter");
+
+    const type = document.getElementById("typeFilter");
+
+    const status = document.getElementById("statusFilter");
+
+    const language = document.getElementById("languageFilter");
+
+    const availability = document.getElementById("availabilityFilter");
+
+    let typingTimer;
+
+    if (search) {
+
+        search.addEventListener("input", function () {
+
+            clearTimeout(typingTimer);
+
+            typingTimer = setTimeout(function(){
+
+            loadBooks(1);
+
+            },300);
+
+        });
+
+    }
+
+    if (category){
+
+    category.addEventListener("change", function(){
+
+        loadBooks(1);
+
+    });
+
+}
+
+if (type){
+
+    type.addEventListener("change", function(){
+
+        loadBooks(1);
+
+    });
+
+}
+
+if (status){
+
+    status.addEventListener("change", function(){
+
+        loadBooks(1);
+
+    });
+
+}
+
+if (language){
+
+    language.addEventListener("change", function(){
+
+        loadBooks(1);
+
+    });
+
+}
+
+if (availability){
+
+    availability.addEventListener("change", function(){
+
+        loadBooks(1);
+
+    });
+
+}
+
+}
+
+// =====================================================
+// AJAX
+// =====================================================
+
+// =====================================================
+// AJAX LOAD BOOKS
+// =====================================================
+
+function loadBooks(page = 1){
+
+    const params = new URLSearchParams({
+
+        q: document.getElementById("book-search").value,
+
+        category: document.getElementById("categoryFilter").value,
+
+        resource_type: document.getElementById("typeFilter").value,
+
+        status: document.getElementById("statusFilter").value,
+
+        language: document.getElementById("languageFilter").value,
+
+        availability: document.getElementById("availabilityFilter").value,
+
+        page: page
+
+    });
+
+    fetch(
+
+        window.location.pathname + "?" + params.toString(),
+
+        {
+
+            method: "GET",
+
+            cache: "no-store",
+
+            headers:{
+
+                "X-Requested-With":"XMLHttpRequest"
+
+            }
+
+        }
+
+    )
+
+    .then(function(response){
+
+        return response.json();
+
+    })
+
+    .then(function(data){
+
+        renderBooks(
+
+            data.books,
+
+            data.pagination.start_index
+
+        );
+
+        renderPagination(
+
+            data.pagination
+
+        );
+
+    })
+
+    .catch(function(error){
+
+        console.error(
+
+            "AJAX Error:",
+
+            error
+
+        );
+
+    });
+
+}
+// =====================================================
+// RENDER BOOKS
+// =====================================================
+
+function renderBooks(books, startIndex){
+
+    const tbody = document.getElementById("books-body");
+
+    tbody.innerHTML = "";
+
+    if(books.length === 0){
+
+        tbody.innerHTML = `
+
+<tr>
+
+    <td colspan="9" class="text-center py-5">
+
+        <i class="fa-solid fa-book-open fa-2x text-secondary mb-3"></i>
+
+        <h5>No Books Found</h5>
+
+        <p>No matching books found.</p>
+
+    </td>
+
+</tr>
+
+`;
+
+        return;
+
+    }
+
+    books.forEach(function(book, index){
+
+        let statusBadge = "";
+
+        if(book.status === "ACTIVE"){
+
+            statusBadge = `
+
+                <span class="status active">
+
+                    <i class="fa-solid fa-circle"></i>
+
+                    Active
+
+                </span>
+
+            `;
+
+        }
+
+        else{
+
+            statusBadge = `
+
+                <span class="status inactive">
+
+                    <i class="fa-solid fa-circle"></i>
+
+                    Inactive
+
+                </span>
+
+            `;
+
+        }
+
+        let categoryBadge =
+
+            book.category === "—"
+
+            ? "—"
+
+            : `<span class="category-badge">${book.category}</span>`;
+
+        tbody.innerHTML += `
+
+<tr>
+
+    <td>${startIndex + index}</td>
+
+    <td>
+
+        <div class="book-info">
+
+            <div class="book-avatar">
+
+                <i class="fa-solid fa-book"></i>
+
+            </div>
+
+            <div class="book-details">
+
+                <h6>${book.title}</h6>
+
+                <span>${book.library}</span>
+
+            </div>
+
+        </div>
+
+    </td>
+
+    <td>
+
+        <span class="isbn-text">
+
+            ${book.isbn}
+
+        </span>
+
+    </td>
+
+    <td>
+
+        ${book.author}
+
+    </td>
+
+    <td>
+
+        ${categoryBadge}
+
+    </td>
+
+    <td>
+
+        <span class="type-badge">
+
+            ${book.resource_type}
+
+        </span>
+
+    </td>
+
+    <td>
+
+        <span class="copies-badge">
+
+            ${book.available}/${book.total}
+
+        </span>
+
+    </td>
+
+    <td>
+
+        ${statusBadge}
+
+    </td>
+
+    <td>
+
+        <div class="table-actions">
+
+            <a
+
+                href="${book.view_url}"
+
+                class="view-btn"
+
+                title="View">
+
+                <i class="fa-regular fa-eye"></i>
+
+            </a>
+
+            <a
+
+                href="${book.edit_url}"
+
+                class="edit-btn"
+
+                title="Edit">
+
+                <i class="fa-regular fa-pen-to-square"></i>
+
+            </a>
+
+            <a
+
+                href="javascript:void(0)"
+
+                class="delete-btn"
+
+                data-title="${book.title}"
+
+                data-url="${book.delete_url}"
+
+                onclick="openDeleteModal(this)"
+
+                title="Delete">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </a>
+
+        </div>
+
+    </td>
+
+</tr>
+
+`;
+
+    });
+
+}
+// =====================================================
+// RENDER PAGINATION
+// =====================================================
+
+// =====================================================
+// BOOKS PAGINATION
+// =====================================================
+
+function renderPagination(pagination) {
+
+    const paginationContainer =
+        document.getElementById("pagination");
+
+
+    if (!paginationContainer) {
+        return;
+    }
+
+
+    paginationContainer.innerHTML = "";
+
+
+    const currentPage =
+        Number(pagination.current_page || 1);
+
+
+    const totalPages =
+        Number(pagination.num_pages || 1);
+
+
+    // =================================================
+    // CREATE PREVIOUS BUTTON
+    // =================================================
+
+    const previousItem =
+        document.createElement("li");
+
+
+    if (pagination.has_previous) {
+
+        previousItem.innerHTML = `
+
+            <button
+                type="button"
+                class="books-pagination-btn books-prev-btn"
+            >
+                Previous
+            </button>
+
+        `;
+
+
+        previousItem
+            .querySelector("button")
+            .addEventListener(
+                "click",
+                function () {
+
+                    loadBooks(
+                        pagination.previous_page
+                    );
+
+                }
+            );
+
+    } else {
+
+        previousItem.innerHTML = `
+
+            <button
+                type="button"
+                class="books-pagination-btn disabled"
+                disabled
+            >
+                Previous
+            </button>
+
+        `;
+
+    }
+
+
+    paginationContainer.appendChild(
+        previousItem
+    );
+
+
+    // =================================================
+    // CREATE PAGE BUTTON
+    // =================================================
+
+    function createPageButton(pageNumber) {
+
+        const pageItem =
+            document.createElement("li");
+
+
+        const pageButton =
+            document.createElement("button");
+
+
+        pageButton.type =
+            "button";
+
+
+        pageButton.className =
+            "books-page-number";
+
+
+        if (
+            pageNumber === currentPage
+        ) {
+
+            pageButton.classList.add(
+                "active"
+            );
+
+        }
+
+
+        pageButton.textContent =
+            pageNumber;
+
+
+        pageButton.addEventListener(
+            "click",
+            function () {
+
+                loadBooks(
+                    pageNumber
+                );
+
+            }
+        );
+
+
+        pageItem.appendChild(
+            pageButton
+        );
+
+
+        paginationContainer.appendChild(
+            pageItem
+        );
+
+    }
+
+
+    // =================================================
+    // CREATE ELLIPSIS
+    // =================================================
+
+    function createEllipsis() {
+
+        const ellipsis =
+            document.createElement("li");
+
+
+        ellipsis.className =
+            "books-pagination-ellipsis";
+
+
+        ellipsis.textContent =
+            "...";
+
+
+        paginationContainer.appendChild(
+            ellipsis
+        );
+
+    }
+
+
+    // =================================================
+    // PAGE NUMBER LOGIC
+    // =================================================
+
+    if (totalPages <= 4) {
+
+        for (
+            let page = 1;
+            page <= totalPages;
+            page++
+        ) {
+
+            createPageButton(page);
+
+        }
+
+    }
+
+
+    else if (currentPage <= 2) {
+
+        // Example:
+        // 1 2 ... 10
+
+        createPageButton(1);
+        createPageButton(2);
+
+        createEllipsis();
+
+        createPageButton(totalPages);
+
+    }
+
+
+    else if (
+        currentPage >= totalPages - 1
+    ) {
+
+        // Example:
+        // 1 ... 9 10
+
+        createPageButton(1);
+
+        createEllipsis();
+
+        createPageButton(
+            totalPages - 1
+        );
+
+        createPageButton(
+            totalPages
+        );
+
+    }
+
+
+    else {
+
+        // Example:
+        // 1 ... 5 ... 10
+
+        createPageButton(1);
+
+        createEllipsis();
+
+        createPageButton(
+            currentPage
+        );
+
+        createEllipsis();
+
+        createPageButton(
+            totalPages
+        );
+
+    }
+
+
+    // =================================================
+    // CREATE NEXT BUTTON
+    // =================================================
+
+    const nextItem =
+        document.createElement("li");
+
+
+    if (pagination.has_next) {
+
+        nextItem.innerHTML = `
+
+            <button
+                type="button"
+                class="books-pagination-btn books-next-btn"
+            >
+                Next
+            </button>
+
+        `;
+
+
+        nextItem
+            .querySelector("button")
+            .addEventListener(
+                "click",
+                function () {
+
+                    loadBooks(
+                        pagination.next_page
+                    );
+
+                }
+            );
+
+    } else {
+
+        nextItem.innerHTML = `
+
+            <button
+                type="button"
+                class="books-pagination-btn disabled"
+                disabled
+            >
+                Next
+            </button>
+
+        `;
+
+    }
+
+
+    paginationContainer.appendChild(
+        nextItem
+    );
+
+}
+// =====================================================
+// RESET FILTERS
+// =====================================================
+
+function initializeReset() {
+
+    const resetBtn = document.getElementById("resetFilters");
+
+    if (!resetBtn) return;
+
+    resetBtn.addEventListener("click", function (e) {
+
+        e.preventDefault();
+
+        const search = document.getElementById("book-search");
+        const category = document.getElementById("categoryFilter");
+        const type = document.getElementById("typeFilter");
+        const status = document.getElementById("statusFilter");
+        const language = document.getElementById("languageFilter");
+        const availability = document.getElementById("availabilityFilter");
+
+        if (search) search.value = "";
+
+        if (category) category.selectedIndex = 0;
+
+        if (type) type.selectedIndex = 0;
+
+        if (status) status.selectedIndex = 0;
+
+        if (language) language.selectedIndex = 0;
+
+        if (availability) availability.selectedIndex = 0;
+
+        const filterCard = document.getElementById("filterCard");
+
+        if (filterCard) {
+
+            filterCard.classList.remove("show");
+
+        }
+
+        loadBooks();
+
+    });
+
+}
+// =====================================================
+// DELETE BOOK MODAL
+// =====================================================
+
+const deleteModal = document.getElementById("deleteBookModal");
+
+const deleteForm = document.getElementById("deleteBookForm");
+
+const deleteBookName = document.getElementById("deleteBookName");
+
+
+// =====================================================
+// OPEN DELETE MODAL
+// =====================================================
+
+function openDeleteModal(button) {
+
+    const bookTitle = button.dataset.title;
+
+    const deleteUrl = button.dataset.url;
+
+    deleteBookName.textContent = bookTitle;
+
+    deleteForm.action = deleteUrl;
+
+    deleteModal.classList.add("show");
+
+}
+
+
+// =====================================================
+// CLOSE DELETE MODAL
+// =====================================================
+
+function closeDeleteModal() {
+
+    deleteModal.classList.remove("show");
+
+}
+
+
+// =====================================================
+// CLOSE MODAL WHEN CLICKING OUTSIDE
+// =====================================================
+
+window.addEventListener("click", function (e) {
+
+    if (e.target === deleteModal) {
+
+        closeDeleteModal();
+
+    }
+
+});
+
+
+// =====================================================
+// CLOSE MODAL USING ESC KEY
+// =====================================================
+
+window.addEventListener("keydown", function (e) {
+
+    if (e.key === "Escape") {
+
+        closeDeleteModal();
+
+    }
+
+});
+
+
+</script>
+
+{% endblock %}
+
+

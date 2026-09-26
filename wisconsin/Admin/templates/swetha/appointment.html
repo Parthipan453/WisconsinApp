@@ -1,0 +1,456 @@
+{% extends "dashboard_base.html" %} 
+{% load static %} 
+{% block title %}Appointment {% endblock %} 
+{% block page_title %}Appointment {% endblock %} 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<link rel="stylesheet" href="{% static 'css/swetha/appointment.css' %}" />
+{% endblock %}
+{% block content %}
+
+<div class="ao">
+  <section class="ao__hero">
+    <div class="ao__hero-content">
+      <div class="ao__hero-icon"><i data-lucide="calendar-days"></i></div>
+      <div>
+        <h2 class="ao__hero-title">Appointment</h2>
+        <p class="ao__hero-subtitle">
+          View and monitor all scheduled patient appointments across
+          departments.
+        </p>
+      </div>
+    </div>
+
+    <div class="ao__hero-date">
+      <i data-lucide="calendar"></i>
+      <span> {{ today|date:"d M Y" }} </span>
+    </div>
+  </section>
+
+  <section class="ao__stats">
+    <div class="ao__card">
+      <div class="ao__card-icon blue">
+        <i data-lucide="calendar-check"></i>
+      </div>
+
+      <div>
+        <span class="ao__card-label">Today's Appointments </span>
+        <h3 class="ao__card-value">{{ today_count }}</h3>
+      </div>
+    </div>
+
+    <div class="ao__card">
+      <div class="ao__card-icon orange">
+        <i data-lucide="clock-3"></i>
+      </div>
+
+      <div>
+        <span class="ao__card-label"> Pending </span>
+        <h3 class="ao__card-value">{{ pending_count }}</h3>
+      </div>
+    </div>
+
+    <div class="ao__card">
+      <div class="ao__card-icon green">
+        <i data-lucide="badge-check"></i>
+      </div>
+      <div>
+        <span class="ao__card-label"> Checked In </span>
+        <h3 class="ao__card-value">{{ checked_count }}</h3>
+      </div>
+    </div>
+
+    <div class="ao__card">
+      <div class="ao__card-icon purple">
+        <i data-lucide="clipboard-check"></i>
+      </div>
+
+      <div>
+        <span class="ao__card-label">Completed</span>
+        <h3 class="ao__card-value">{{ completed_count }}</h3>
+      </div>
+    </div>
+
+    <div class="ao__card">
+      <div class="ao__card-icon red"><i data-lucide="x-circle"></i></div>
+
+      <div>
+        <span class="ao__card-label"> Cancelled </span>
+        <h3 class="ao__card-value">{{ cancelled_count }}</h3>
+      </div>
+    </div>
+  </section>
+
+  <section class="ao__filters">
+    <div class="ao__search">
+      <i data-lucide="search"></i>
+      <input
+        type="text"
+        id="appointmentSearch"
+        placeholder="Search appointment, patient..."
+      />
+    </div>
+
+    <select id="departmentFilter" class="form-select">
+      <option value="">All Departments</option>
+      {% for dept in departments %}
+      <option value="{{ dept.id }}">{{ dept.department_name }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="statusFilter" class="form-select">
+      <option value="">All Status</option>
+      <option value="PENDING">Pending</option>
+      <option value="CONFIRMED">Confirmed</option>
+      <option value="CHECKED_IN">Checked In</option>
+      <option value="IN_PROGRESS">In Progress</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+
+    <select id="priorityFilter" class="form-select">
+      <option value="">All Priority</option>
+      <option value="LOW">Low</option>
+      <option value="NORMAL">Normal</option>
+      <option value="HIGH">High</option>
+      <option value="EMERGENCY">Emergency</option>
+    </select>
+    <button type="button" id="resetFilters" class="ao__reset-btn">
+      <i data-lucide="rotate-ccw"></i>
+      Reset
+    </button>
+  </section>
+
+  <!-- <div class="ao__table-wrapper">
+
+        <table class="ao__table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Appointment</th>
+                    <th>Patient Name</th>
+                    <th>Pateint Role</th>
+                    <th>Department</th>
+                    <th>Doctor</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody id="appointmentTable">
+
+                {% for appointment in appointments %}
+                <tr class="ao__row"
+                    data-search="{{ appointment.appointment_number }}
+                                {% if appointment.patient.student %}
+                                    {{ appointment.patient.student }}
+                                {% elif appointment.patient.staff %}
+                                    {{ appointment.patient.staff }}
+                                {% elif appointment.patient.faculty %}
+                                    {{ appointment.patient.faculty }}
+                                {% endif %}
+                                {% if appointment.medical_staff %}
+                                    {{ appointment.medical_staff.user.get_full_name }}
+                                {% endif %}
+                                {{ appointment.medical_staff.department_name }}
+                               "
+                    data-department="{{ appointment.medical_staff.department_name }}"
+                    data-status="{{ appointment.status }}" data-priority="{{ appointment.priority }}">
+                    <td>
+                        {{ forloop.counter }}
+                    </td>
+
+                    <td>
+                        <strong> {{ appointment.appointment_number }} </strong>
+                    </td>
+
+                    <td>{{ appointment.patient }}</td>
+                    <td>
+                        {% if appointment.patient.patient_type == "STUDENT" %}
+                            <span class="role-badge role-student">
+                                {{ appointment.patient.get_patient_type_display }}
+                            </span>
+                        {% elif appointment.patient.patient_type == "STAFF" %}
+                            <span class="role-badge role-staff">
+                                {{ appointment.patient.get_patient_type_display }}
+                            </span>
+                        {% elif appointment.patient.patient_type == "FACULTY" %}
+                            <span class="role-badge role-faculty">
+                                {{ appointment.patient.get_patient_type_display }}
+                            </span>
+                        {% elif appointment.patient.patient_type == "ADMIN" %}
+                            <span class="role-badge role-admin">
+                                {{ appointment.patient.get_patient_type_display }}
+                            </span>
+                        {% elif appointment.patient.patient_type == "VISITOR" %}
+                            <span class="role-badge role-visitor">
+                                {{ appointment.patient.get_patient_type_display }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if appointment.medical_staff and appointment.medical_staff.department %}
+                            {{ appointment.medical_staff.department.department_name }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if appointment.medical_staff %}
+                        {{ appointment.medical_staff.user.get_full_name }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{ appointment.appointment_date|date:"d M Y" }}
+                    </td>
+
+                    <td>
+                        {{ appointment.appointment_time|time:"h:i A" }}
+                    </td>
+
+                    <td>
+                        <span class="priority priority-{{ appointment.priority|lower }}">
+                            {{ appointment.get_priority_display }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="status status-{{ appointment.status|lower }}">
+                            {{ appointment.get_status_display }}
+                        </span>
+                    </td>
+
+                </tr>
+                  {% endfor %}
+
+                <tr id="noResultsRow" style="display:none;">
+                    <td colspan="10">
+                        <div class="ao__empty">
+                            <i data-lucide="calendar-x"></i>
+                            <h4>No appointments found </h4>
+                            <p>Try changing your search or filters.</p>
+                        </div>
+                    </td>
+                </tr>
+              
+            </tbody>
+
+        </table>
+
+    </div> -->
+
+  <div id="appointmentTableContainer">
+    <div class="ao__table-wrapper">
+      <table class="ao__table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Appointment</th>
+            <th>Patient Name</th>
+            <th>Pateint Role</th>
+            <th>Department</th>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Priority</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody id="appointmentTable">
+          {% for appointment in appointments %}
+
+          <tr
+            class="ao__row"
+            data-search="{{ appointment.appointment_number }}
+                        {% if appointment.patient.student %}
+                            {{ appointment.patient.student }}
+                        {% elif appointment.patient.staff %}
+                            {{ appointment.patient.staff }}
+                        {% elif appointment.patient.faculty %}
+                            {{ appointment.patient.faculty }}
+                        {% endif %}
+                        {% if appointment.medical_staff %}
+                            {{ appointment.medical_staff.user.get_full_name }}
+                        {% endif %}
+                        {{ appointment.medical_staff.department.department_name|default:'' }}"
+            data-department="{{ appointment.medical_staff.department.id|default:'' }}"
+            data-status="{{ appointment.status }}"
+            data-priority="{{ appointment.priority }}"
+          >
+            <td>{{ forloop.counter0|add:appointments.start_index }}</td>
+
+            <td>
+              <strong> {{ appointment.appointment_number }} </strong>
+            </td>
+
+            <td>{{ appointment.patient }}</td>
+
+            <td>
+              {% if appointment.patient.patient_type == "STUDENT" %}
+              <span class="role-badge role-student">
+                {{ appointment.patient.get_patient_type_display }}
+              </span>
+
+              {% elif appointment.patient.patient_type == "STAFF" %}
+              <span class="role-badge role-staff">
+                {{ appointment.patient.get_patient_type_display }}
+              </span>
+
+              {% elif appointment.patient.patient_type == "FACULTY" %}
+              <span class="role-badge role-faculty">
+                {{ appointment.patient.get_patient_type_display }}
+              </span>
+
+              {% elif appointment.patient.patient_type == "ADMIN" %}
+              <span class="role-badge role-admin">
+                {{ appointment.patient.get_patient_type_display }}
+              </span>
+
+              {% elif appointment.patient.patient_type == "VISITOR" %}
+              <span class="role-badge role-visitor">
+                {{ appointment.patient.get_patient_type_display }}
+              </span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if appointment.medical_staff and appointment.medical_staff.department %} 
+              {{ appointment.medical_staff.department.department_name }} 
+              {% else %} — 
+              {% endif %}
+            </td>
+
+            <td>
+              {% if appointment.medical_staff %} 
+              {{ appointment.medical_staff.user.get_full_name }}
+               {% else %} — 
+               {% endif %}
+            </td>
+
+            <td>{{ appointment.appointment_date|date:"d M Y" }}</td>
+
+            <td>{{ appointment.appointment_time|time:"h:i A" }}</td>
+
+            <td>
+              <span class="priority priority-{{ appointment.priority|lower }}">
+                {{ appointment.get_priority_display }}
+              </span>
+            </td>
+
+            <td>
+              <span class="status status-{{ appointment.status|lower }}">
+                {{ appointment.get_status_display }}
+              </span>
+            </td>
+          </tr>
+
+          {% empty %}
+
+          <tr>
+            <td colspan="10">
+              <div class="ao__empty">
+                <i data-lucide="calendar-x"></i>
+                <h4>No appointments found</h4>
+                <p>Try changing your search or filters.</p>
+              </div>
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ao__pagination-bar">
+      <span class="ao__pagination-summary">
+        {% if appointments.paginator.count > 0 %} Showing 
+        {{ appointments.start_index }} - {{ appointments.end_index }} of 
+        {{ appointments.paginator.count }} Appointments {% else %} 
+        Showing 0 of 0 Appointments {% endif %}
+      </span>
+
+      <div class="ao__pagination" id="appointmentPagination">
+        <!-- PREVIOUS -->
+
+        {% if appointments.has_previous %}
+
+        <a
+          href="?page={{ appointments.previous_page_number }}"
+          class="ao__page-btn"
+          data-page="{{ appointments.previous_page_number }}"
+        >
+          <i data-lucide="chevron-left"></i>
+        </a>
+
+        {% else %}
+
+        <button
+          type="button"
+          class="ao__page-btn ao__page-btn--disabled"
+          disabled
+        >
+          <i data-lucide="chevron-left"></i>
+        </button>
+
+        {% endif %}
+
+        <!-- PAGE NUMBERS -->
+
+        {% for page in appointments.paginator.page_range %}
+
+        <a
+          href="?page={{ page }}"
+          class="ao__page-btn {% if page == appointments.number %}ao__page-btn--active{% endif %}"
+          data-page="{{ page }}"
+        >
+          {{ page }}
+        </a>
+
+        {% endfor %}
+
+        <!-- NEXT -->
+
+        {% if appointments.has_next %}
+
+        <a
+          href="?page={{ appointments.next_page_number }}"
+          class="ao__page-btn"
+          data-page="{{ appointments.next_page_number }}"
+        >
+          <i data-lucide="chevron-right"></i>
+        </a>
+
+        {% else %}
+
+        <button
+          type="button"
+          class="ao__page-btn ao__page-btn--disabled"
+          disabled
+        >
+          <i data-lucide="chevron-right"></i>
+        </button>
+
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/swetha/appointment.js' %}"></script>
+
+<script>
+  lucide.createIcons();
+</script>
+
+{% endblock %}

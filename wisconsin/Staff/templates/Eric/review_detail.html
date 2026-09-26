@@ -1,0 +1,199 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+{% load review_extras %}
+
+{% block title %}Review {{ app.Reference_id }} · Admissions{% endblock %}
+
+{% block nav_admissions_open %}open{% endblock %}
+{% block nav_admissions_submenu %}open{% endblock %}
+{% block nav_my_reviews %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/review_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/Eric/manual_review.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="prm-page">
+
+  <nav class="prm-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'my_reviews' request.user.uuid %}"><i class="ti ti-arrow-left"></i> My reviews</a>
+    <span class="prm-breadcrumb__sep"><i class="ti ti-chevron-right"></i></span>
+    <span class="prm-breadcrumb__current">{{ app.Reference_id }}</span>
+  </nav>
+
+  <header class="prm-hero">
+    <div class="prm-hero__decor" aria-hidden="true">
+      <span class="prm-hero__blob prm-hero__blob--1"></span>
+      <span class="prm-hero__blob prm-hero__blob--2"></span>
+      <span class="prm-hero__ring"></span>
+      <span class="prm-hero__dots"></span>
+    </div>
+
+    <div class="prm-hero__inner">
+      <div class="prm-hero__top">
+        <span class="prm-avatar" data-name="{{ applicant.first_name }} {{ applicant.last_name }}" aria-hidden="true">
+          {{ applicant.first_name|slice:":1" }}{{ applicant.last_name|slice:":1" }}
+        </span>
+        <div class="prm-hero__copy">
+          <span class="prm-eyebrow"><i class="ti ti-clipboard-text"></i> Manual review</span>
+          <h2 class="prm-name prm-title__accent">{{ applicant.first_name }} {{ applicant.last_name }}</h2>
+
+          <div class="prm-hero__chips">
+            <span class="prm-chip prm-chip--ref"><i class="ti ti-hash"></i>{{ app.Reference_id }}</span>
+            <span class="prm-chip prm-chip--gold">{{ app.program|default:"Program" }}</span>
+            <span class="prm-chip prm-chip--amber">{{ app.admission_cycle|default:"Cycle" }}</span>
+            {% if assignment %}
+            <span class="prm-pill">
+              <span class="prm-dot prm-dot--{{ assignment.status }}"></span>{{ assignment.get_status_display }}
+            </span>
+            {% endif %}
+          </div>
+
+          <div class="prm-hero__meta">
+            <span class="prm-meta"><i class="ti ti-mail"></i> {{ applicant.email }}</span>
+            <span class="prm-meta"><i class="ti ti-building"></i> {{ app.university|default:"—" }}</span>
+            <span class="prm-meta"><i class="ti ti-calendar"></i> {{ app.submitted_date|date:"M d, Y"|default:"Not submitted" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prm-facts">
+      <div class="prm-fact">
+        <div class="prm-fact__label">Applicant type</div>
+        <div class="prm-fact__value">{{ app.get_applicant_type_display }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Degree level</div>
+        <div class="prm-fact__value">{{ app.degree_level|default:"—" }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Apply method</div>
+        <div class="prm-fact__value">{{ app.get_apply_method_display|default:"—" }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Residency</div>
+        <div class="prm-fact__value">{{ app.residency_status|default:"—" }}</div>
+      </div>
+      <div class="prm-fact">
+        <div class="prm-fact__label">Reference</div>
+        <div class="prm-fact__value" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;">{{ app.Reference_id }}</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="prm-live-region"
+       data-live-event="status_changed documents_changed materials_requested section_reviewed review_started offline_extracted ready_for_decision decision_made assignment_created"
+       data-live-url="{% url 'review_detail' request.user.uuid app.application_id %}?partial=workspace">
+  {% include "Eric/partials/live/workspace.html" %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "notifications/live.html" with live_app_id=app.application_id %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.prm-avatar').forEach(function (el) {
+            var name = el.getAttribute('data-name') || '?';
+            var h = 0;
+            for (var i = 0; i < name.length; i++) {
+                h = (h * 31 + name.charCodeAt(i)) % 360;
+            }
+            var warm = 345 + (h % 41);
+            if (warm > 360) warm -= 360;
+            el.style.background = 'linear-gradient(135deg, hsl(' + warm + ', 62%, 46%), hsl(' + ((warm + 22) % 360) + ', 68%, 30%))';
+        });
+
+        document.querySelectorAll('.choices-select').forEach(function (sel) {
+            new Choices(sel, {
+                searchEnabled: false,
+                itemSelectText: '',
+                shouldSort: false
+            });
+        });
+
+        document.querySelectorAll('.prm-mr-verdict').forEach(function (form) {
+            var btnsWrap = form.querySelector('.prm-mr-verdict__btns');
+            if (!btnsWrap) return;
+
+            btnsWrap.addEventListener('click', function (e) {
+                var btn = e.target.closest('button[name="status"]');
+                if (!btn) return;
+                e.preventDefault();
+
+                var statusValue = btn.value;
+                var cardEl = form.closest('section') || form.closest('.prm-card');
+
+                var fd = new FormData(form);
+                fd.set('status', statusValue);
+                btn.style.opacity = '0.5';
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function (r) { return r.json(); }).then(function (d) {
+                    btn.style.opacity = '1';
+                    if (!d.ok) return;
+                    var status = d.status;
+
+                    if (status === 'reviewed') {
+                        btnsWrap.innerHTML =
+                            '<button type="button" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok is-active"><i class="ti ti-circle-check"></i> Reviewed</button>';
+                    } else {
+                        var ai = status === 'issue' ? ' is-active' : '';
+                        var as = status === 'issue_solved' ? ' is-active' : '';
+                        btnsWrap.innerHTML =
+                            '<button type="button" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok"><i class="ti ti-circle-check"></i> Reviewed</button>' +
+                            '<button type="button" name="status" value="issue" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--issue' + ai + '"><i class="ti ti-flag"></i> Issue Found</button>' +
+                            '<button type="button" name="status" value="issue_solved" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--solved' + as + '"><i class="ti ti-tool"></i> Issue Solved</button>';
+                    }
+
+                    var noteTA = form.querySelector('textarea[name="internal_note"]');
+                    if (noteTA && d.internal_note !== undefined) noteTA.value = d.internal_note;
+
+                    var chipEl = cardEl ? cardEl.querySelector('.prm-chip') : null;
+                    if (chipEl) {
+                        chipEl.className = 'prm-chip';
+                        if (status === 'reviewed') { chipEl.className += ' prm-chip--green'; chipEl.innerHTML = '<i class="ti ti-check"></i> Reviewed'; }
+                        else if (status === 'issue') { chipEl.className += ' prm-chip--red'; chipEl.innerHTML = '<i class="ti ti-flag"></i> Issue Found'; }
+                        else if (status === 'issue_solved') { chipEl.className += ' prm-chip--blue'; chipEl.innerHTML = '<i class="ti ti-tool"></i> Issue Solved'; }
+                        else { chipEl.className += ' prm-chip--gray'; chipEl.innerHTML = '<i class="ti ti-clock"></i> Not reviewed'; }
+                    }
+
+                    var progressCard = document.querySelector('.prm-mr-progress');
+                    if (progressCard) {
+                        var total = parseInt(progressCard.getAttribute('data-section-total')) || 1;
+                        progressCard.querySelector('.prm-stat-reviewed').textContent = d.reviewed_count;
+                        progressCard.querySelector('.prm-stat-issue').textContent = d.issue_count;
+                        progressCard.querySelector('.prm-stat-pending').textContent = d.not_reviewed_count;
+                        var doneTotal = d.reviewed_count + d.issue_count + d.issue_solved_count;
+                        progressCard.querySelector('.prm-stat-done-total').textContent = doneTotal;
+                        var pct = Math.round((doneTotal / total) * 100);
+                        progressCard.querySelector('.prm-mr-progress__fill').style.width = pct + '%';
+                    }
+
+                    if (status === 'issue' && d.email_draft) {
+                        var oldDraft = cardEl ? cardEl.querySelector('.prm-email-draft') : null;
+                        if (!oldDraft && cardEl) {
+                            var gmailUrl2 = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(d.email_draft.to) + '&su=' + encodeURIComponent(d.email_draft.subject) + '&body=' + encodeURIComponent(d.email_draft.body);
+                            var draftHtml = '<div class="prm-email-draft" style="margin:0 0 12px;border-left:4px solid #e8590c;background:#fff8f5;border-radius:6px;padding:12px 14px;">' +
+                                '<p style="margin:0 0 6px;font-size:13px;color:#666;"><b>To:</b> ' + d.email_draft.to + '</p>' +
+                                '<div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;white-space:pre-wrap;margin:6px 0 10px;">' + d.email_draft.body + '</div>' +
+                                '<a href="' + gmailUrl2 + '" target="_blank" rel="noopener" class="prm-btn prm-btn--primary prm-btn--sm" style="text-decoration:none;"><i class="ti ti-brand-gmail"></i> Open in Gmail</a>' +
+                                '</div>';
+                            form.insertAdjacentHTML('beforebegin', draftHtml);
+                        }
+                    } else {
+                        var rmDraft = cardEl ? cardEl.querySelector('.prm-email-draft') : null;
+                        if (rmDraft) rmDraft.remove();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

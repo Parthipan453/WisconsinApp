@@ -1,0 +1,753 @@
+{% extends "staff_base.html" %}
+{% load static %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_staff/graduation/graduation_form.css' %}">
+{% endblock %}
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_graduation %}active{% endblock %}
+{% block content %}
+    <div class="graduation-page">
+        <div class="graduation-breadcrumb">
+            <span>PHD MANAGEMENT</span>
+            <i class="fa-solid fa-chevron-right"></i>
+            <strong>GRADUATION</strong>
+        </div>
+        <section class="graduation-hero">
+            <div class="hero-icon">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="hero-content">
+                <span class="hero-label">ACADEMIC COMPLETION</span>
+                <h1>
+                    {% if is_update %}
+                        Update Graduation
+                    {% else %}
+                        Create Graduation
+                    {% endif %}
+                </h1>
+                <p>
+                    {% if is_update %}
+                        Review and update the graduation record before Chair Faculty approval.
+                    {% else %}
+                        Create a doctoral graduation record after verifying all academic requirements.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="hero-status">
+                <span class="workspace-badge">
+                    <span></span>
+                    Staff Workspace
+                </span>
+            </div>
+        </section>
+        <div class="form-layout">
+            <section class="form-card">
+                <div class="card-header">
+                    <div class="card-header-icon">
+                        <i class="fa-solid fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <span class="section-label">GRADUATION DETAILS</span>
+                        <h2>Graduation Information</h2>
+                    </div>
+                </div>
+                {% if form.non_field_errors %}
+                    <div class="form-alert error-alert">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <div>
+                            {% for error in form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                <form method="post" id="graduationForm" novalidate>
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <div class="section-title">
+                            <span>01</span>
+                            <div>
+                                <h3>
+                                    {% if is_update %}
+                                        Student Information
+                                    {% else %}
+                                        Student Selection
+                                    {% endif %}
+                                </h3>
+                                <p>
+                                    {% if is_update %}
+                                        The student associated with this graduation record.
+                                    {% else %}
+                                        Select the PhD student to verify graduation eligibility.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% if is_update %}
+                            <div class="field-group full-width">
+                                <label>PhD student</label>
+                                <div class="student-locked-field">
+                                    <div class="student-locked-icon">
+                                        <i class="fa-solid fa-user-graduate"></i>
+                                    </div>
+                                    <div class="student-locked-content">
+                                        <strong>{{ form.phd_student.value|default:graduation.phd_student }}</strong>
+                                        <span>Student selection is locked for this graduation record.</span>
+                                    </div>
+                                    <div class="student-locked-status">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </div>
+                                </div>
+                                <input type="hidden"
+                                       name="{{ form.phd_student.html_name }}"
+                                       value="{{ form.phd_student.value }}">
+                                {% if form.phd_student.errors %}
+                                    <div class="field-error">
+                                        {% for error in form.phd_student.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="field-group full-width">
+                                <label for="{{ form.phd_student.id_for_label }}">
+                                    {{ form.phd_student.label }}
+                                    <span>*</span>
+                                </label>
+                                <select name="{{ form.phd_student.html_name }}"
+                                        id="{{ form.phd_student.id_for_label }}"
+                                        class="form-select choices-select"
+                                        data-placeholder="Select PhD Student"
+                                        required>
+                                    <option value="">Select PhD Student</option>
+                                    {% for option in form.phd_student %}
+                                        {{ option }}
+                                    {% endfor %}
+                                </select>
+                                {% if form.phd_student.errors %}
+                                    <div class="field-error">
+                                        {% for error in form.phd_student.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="eligibility-box" id="eligibilityBox">
+                                <div class="eligibility-head">
+                                    <div class="eligibility-title">
+                                        <div class="eligibility-icon">
+                                            <i class="fa-solid fa-award"></i>
+                                        </div>
+                                        <div>
+                                            <span>ACADEMIC VERIFICATION</span>
+                                            <h6 class="fw-bold">Graduation Eligibility</h6>
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                            class="eligibility-button"
+                                            id="checkEligibilityBtn"
+                                            disabled>
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                        <span>Check Eligibility</span>
+                                    </button>
+                                </div>
+                                <div class="eligibility-message" id="eligibilityMessage">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <span>Select a PhD student to begin eligibility verification.</span>
+                                </div>
+                                <div class="eligibility-progress" id="eligibilityProgress">
+                                    <div class="progress-top">
+                                        <span>Verification Progress</span>
+                                        <strong id="progressCount">0 / 15</strong>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class="progress-fill" id="progressFill"></div>
+                                    </div>
+                                </div>
+                                <div class="checkpoint-list" id="checkpointList"></div>
+                                <div class="eligibility-result" id="eligibilityResult"></div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-section">
+                        <div class="section-title">
+                            <span>02</span>
+                            <div>
+                                <h3>Graduation Schedule</h3>
+                                <p>Enter the official graduation ceremony schedule.</p>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="field-group">
+                                <label for="{{ form.graduation_date.id_for_label }}">
+                                    {{ form.graduation_date.label }}
+                                    <span>*</span>
+                                </label>
+                                {{ form.graduation_date }}
+                                {% if form.graduation_date.errors %}
+                                    <div class="field-error">
+                                        {% for error in form.graduation_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="field-group">
+                                <label for="{{ form.graduation_time.id_for_label }}">
+                                    {{ form.graduation_time.label }}
+                                    <span>*</span>
+                                </label>
+                                {{ form.graduation_time }}
+                                {% if form.graduation_time.errors %}
+                                    <div class="field-error">
+                                        {% for error in form.graduation_time.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="field-group full-width">
+                                <label for="{{ form.graduation_location.id_for_label }}">
+                                    {{ form.graduation_location.label }}
+                                    <span>*</span>
+                                </label>
+                                {{ form.graduation_location }}
+                                {% if form.graduation_location.errors %}
+                                    <div class="field-error">
+                                        {% for error in form.graduation_location.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <div class="section-title">
+                            <span>03</span>
+                            <div>
+                                <h3>Academic Result</h3>
+                                <p>Record the student's final academic performance.</p>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="field-group">
+                                <label for="{{ form.final_gpa.id_for_label }}">
+                                    {{ form.final_gpa.label }}
+                                    <span>*</span>
+                                </label>
+                                {{ form.final_gpa }}
+                                <small class="field-help">Enter GPA between 0.00 and 10.00.</small>
+                                {% if form.final_gpa.errors %}
+                                    <div class="field-error">
+                                        {% for error in form.final_gpa.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="submission-notice">
+                        <div class="notice-icon">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+                        <div>
+                            <strong>Chair Faculty Approval</strong>
+                            <p>
+                                This graduation record will remain pending until it is
+                                reviewed and approved by the Chair Faculty.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <a href="{% if is_update %}{% url 'Leo_Staff:graduation_detail' graduation_id=graduation.graduation_id %}{% else %}{% url 'Leo_Staff:graduation_list' %}{% endif %}"
+                           class="cancel-button">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="submit-button"
+                                id="submitGraduationBtn"
+                                {% if not is_update %}disabled{% endif %}>
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            {% if is_update %}
+                                Update Graduation
+                            {% else %}
+                                Create Graduation
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </section>
+            <aside class="side-column">
+                <div class="side-card">
+                    <div class="side-card-header">
+                        <div class="side-icon">
+                            <i class="fa-solid fa-lightbulb"></i>
+                        </div>
+                        <div>
+                            <span>STAFF GUIDANCE</span>
+                            <h3>
+                                {% if is_update %}
+                                    Before You Update
+                                {% else %}
+                                    Before You Create
+                                {% endif %}
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guidance-list">
+                        {% if is_update %}
+                            <div class="guidance-item">
+                                <span>01</span>
+                                <div>
+                                    <strong>Review student record</strong>
+                                    <p>
+                                        Confirm that the graduation record belongs to
+                                        the correct PhD student.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guidance-item">
+                                <span>02</span>
+                                <div>
+                                    <strong>Review ceremony details</strong>
+                                    <p>
+                                        Verify the graduation date, time and location
+                                        before updating the record.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guidance-item">
+                                <span>03</span>
+                                <div>
+                                    <strong>Review final GPA</strong>
+                                    <p>
+                                        Make sure the final GPA is accurate before
+                                        submitting the update.
+                                    </p>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="guidance-item">
+                                <span>01</span>
+                                <div>
+                                    <strong>Verify eligibility</strong>
+                                    <p>
+                                        Run the eligibility check before submitting
+                                        the graduation record.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guidance-item">
+                                <span>02</span>
+                                <div>
+                                    <strong>Review final requirements</strong>
+                                    <p>
+                                        Final dissertation approval and defense pass
+                                        must be confirmed.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guidance-item">
+                                <span>03</span>
+                                <div>
+                                    <strong>Review ceremony details</strong>
+                                    <p>
+                                        Make sure the graduation date, time, location
+                                        and GPA are correct.
+                                    </p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="side-card requirement-card">
+                    <div class="side-card-header">
+                        <div class="side-icon">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+                        <div>
+                            <span>WORKFLOW</span>
+                            <h3>Graduation Process</h3>
+                        </div>
+                    </div>
+                    <div class="workflow-list">
+                        {% if is_update %}
+                            <div>
+                                <span>1</span>
+                                <p>Review graduation record</p>
+                            </div>
+                            <div>
+                                <span>2</span>
+                                <p>Update graduation details</p>
+                            </div>
+                            <div>
+                                <span>3</span>
+                                <p>Submit updated record</p>
+                            </div>
+                            <div>
+                                <span>4</span>
+                                <p>Chair Faculty approval</p>
+                            </div>
+                        {% else %}
+                            <div>
+                                <span>1</span>
+                                <p>Check eligibility</p>
+                            </div>
+                            <div>
+                                <span>2</span>
+                                <p>Enter graduation details</p>
+                            </div>
+                            <div>
+                                <span>3</span>
+                                <p>Create graduation record</p>
+                            </div>
+                            <div>
+                                <span>4</span>
+                                <p>Chair Faculty approval</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const isUpdate = {{ is_update|yesno:"true,false" }};
+            const studentSelect = document.getElementById("id_phd_student");
+            const submitButton = document.getElementById("submitGraduationBtn");
+
+           document.querySelectorAll(".flatpickr-date, input[data-date-picker]").forEach(function (field) {
+                if (field._flatpickr) {
+                    field._flatpickr.destroy();
+                }
+
+                flatpickr(field, {
+                    dateFormat: "Y-m-d",
+                    minDate: "today",
+                    disableMobile: true,
+                    allowInput: false,
+                    monthSelectorType: "dropdown",
+                    static: true
+                });
+            });
+
+            if (isUpdate) {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+
+                return;
+            }
+
+            if (!studentSelect) {
+                return;
+            }
+
+            const checkButton = document.getElementById("checkEligibilityBtn");
+            const checkpointList = document.getElementById("checkpointList");
+            const eligibilityMessage = document.getElementById("eligibilityMessage");
+            const eligibilityProgress = document.getElementById("eligibilityProgress");
+            const progressCount = document.getElementById("progressCount");
+            const progressFill = document.getElementById("progressFill");
+            const eligibilityResult = document.getElementById("eligibilityResult");
+
+            let eligibilityData = null;
+            let checking = false;
+
+            new Choices(studentSelect, {
+                searchEnabled: true,
+                searchPlaceholderValue: "Search student...",
+                itemSelectText: "",
+                shouldSort: false,
+                allowHTML: false,
+                noResultsText: "No students found",
+                noChoicesText: "No students available",
+                placeholder: true,
+                placeholderValue: "Select PhD Student"
+            });
+
+            function resetEligibility() {
+                eligibilityData = null;
+
+                checkpointList.innerHTML = "";
+                eligibilityResult.innerHTML = "";
+                eligibilityResult.className = "eligibility-result";
+
+                eligibilityProgress.classList.remove("show");
+
+                progressFill.style.width = "0%";
+                progressCount.textContent = "0 / 15";
+
+                submitButton.disabled = true;
+
+                if (studentSelect.value) {
+                    checkButton.disabled = false;
+
+                    eligibilityMessage.innerHTML = `
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>
+                            Click "Check Eligibility" to verify the student's
+                            graduation requirements.
+                        </span>
+                    `;
+                } else {
+                    checkButton.disabled = true;
+
+                    eligibilityMessage.innerHTML = `
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>
+                            Select a PhD student to begin eligibility verification.
+                        </span>
+                    `;
+                }
+            }
+
+            studentSelect.addEventListener("change", function () {
+                resetEligibility();
+            });
+
+            async function checkEligibility() {
+                if (!studentSelect.value || checking) {
+                    return;
+                }
+
+                checking = true;
+
+                checkButton.disabled = true;
+                submitButton.disabled = true;
+
+                checkpointList.innerHTML = "";
+                eligibilityResult.innerHTML = "";
+                eligibilityResult.className = "eligibility-result";
+
+                eligibilityProgress.classList.add("show");
+
+                progressFill.style.width = "0%";
+                progressCount.textContent = "0 / 15";
+
+                eligibilityMessage.innerHTML = `
+                    <span class="loading-spinner"></span>
+                    <span>Checking graduation requirements...</span>
+                `;
+
+                const url =
+                    "{% url 'Leo_Staff:graduation_check_eligibility' %}?student_id=" +
+                    encodeURIComponent(studentSelect.value);
+
+                try {
+                    const response = await fetch(url, {
+                        method: "GET",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest"
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(
+                            data.message || "Unable to verify eligibility."
+                        );
+                    }
+
+                    eligibilityData = data;
+
+                    const checkpoints = data.checkpoints || [];
+                    const total = checkpoints.length;
+
+                    progressCount.textContent = "0 / " + total;
+
+                    for (let index = 0; index < checkpoints.length; index++) {
+                        const checkpoint = checkpoints[index];
+
+                        await new Promise(resolve =>
+                            setTimeout(resolve, 700)
+                        );
+
+                        const item = document.createElement("div");
+
+                        item.className =
+                            "checkpoint-item " +
+                            (
+                                checkpoint.completed
+                                    ? "completed"
+                                    : "failed"
+                            );
+
+                        item.innerHTML = `
+                            <div class="checkpoint-number">
+                                ${String(index + 1).padStart(2, "0")}
+                            </div>
+
+                            <div class="checkpoint-status">
+                                <i class="fa-solid ${
+                                    checkpoint.completed
+                                        ? "fa-check"
+                                        : "fa-xmark"
+                                }"></i>
+                            </div>
+
+                            <div class="checkpoint-content">
+                                <strong>${checkpoint.label}</strong>
+                                <span>${checkpoint.message}</span>
+                            </div>
+                        `;
+
+                        checkpointList.appendChild(item);
+
+                        requestAnimationFrame(() => {
+                            item.classList.add("visible");
+                        });
+
+                        const completedCount = index + 1;
+
+                        const percentage =
+                            Math.round(
+                                (completedCount / total) * 100
+                            );
+
+                        progressCount.textContent =
+                            completedCount + " / " + total;
+
+                        progressFill.style.width =
+                            percentage + "%";
+                    }
+
+                    await new Promise(resolve =>
+                        setTimeout(resolve, 400)
+                    );
+
+                    if (data.existing_graduation) {
+                        eligibilityResult.className =
+                            "eligibility-result result-warning";
+
+                        eligibilityResult.innerHTML = `
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+
+                            <div>
+                                <strong>
+                                    Graduation Record Already Exists
+                                </strong>
+
+                                <span>
+                                    A graduation record already exists for this student.
+                                </span>
+                            </div>
+                        `;
+
+                        submitButton.disabled = true;
+
+                    } else if (data.eligible) {
+                        eligibilityResult.className =
+                            "eligibility-result result-success";
+
+                        eligibilityResult.innerHTML = `
+                            <i class="fa-solid fa-circle-check"></i>
+
+                            <div>
+                                <strong>
+                                    Student Is Eligible
+                                </strong>
+
+                                <span>
+                                    All graduation requirements have been
+                                    successfully verified.
+                                </span>
+                            </div>
+                        `;
+
+                        submitButton.disabled = false;
+
+                    } else {
+                        eligibilityResult.className =
+                            "eligibility-result result-error";
+
+                        eligibilityResult.innerHTML = `
+                            <i class="fa-solid fa-circle-xmark"></i>
+
+                            <div>
+                                <strong>
+                                    Student Is Not Eligible
+                                </strong>
+
+                                <span>
+                                    One or more graduation requirements are incomplete.
+                                </span>
+                            </div>
+                        `;
+
+                        submitButton.disabled = true;
+                    }
+
+                    eligibilityMessage.innerHTML = `
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>
+                            Eligibility verification completed for
+                            ${data.student.name}.
+                        </span>
+                    `;
+
+                } catch (error) {
+                    eligibilityMessage.innerHTML = `
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>${error.message}</span>
+                    `;
+
+                    eligibilityResult.className =
+                        "eligibility-result result-error";
+
+                    eligibilityResult.innerHTML = `
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+
+                        <div>
+                            <strong>Verification Failed</strong>
+
+                            <span>
+                                Please try again.
+                            </span>
+                        </div>
+                    `;
+
+                    submitButton.disabled = true;
+
+                } finally {
+                    checking = false;
+
+                    checkButton.disabled =
+                        !studentSelect.value;
+                }
+            }
+
+            checkButton.addEventListener(
+                "click",
+                checkEligibility
+            );
+
+            if (studentSelect.value) {
+                checkButton.disabled = false;
+            }
+        });
+    </script>
+{% endblock %}

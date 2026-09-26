@@ -1,0 +1,700 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Library Home | Staff Portal{% endblock %}
+
+{% block nav_library_open %}open{% endblock %}
+{% block nav_library_submenu %}open{% endblock %}
+{% block nav_library_home %}active{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/staff_library/home.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="lib-home">
+
+  <!-- PAGE HEADER -->
+  <div class="lib-page-header">
+    <div>
+      <h1>Library Home</h1>
+      <p>Discover, explore and access knowledge resources from UW&ndash;Madison Libraries.</p>
+    </div>
+  </div>
+
+  <!-- SEARCH BANNER -->
+  <section class="lib-search-banner">
+    <div class="lib-crest" aria-hidden="true">W</div>
+    <h2>Find Your Next Great Read</h2>
+    <p>Search our extensive collection of books, journals, e-resources and more.</p>
+
+    <form class="lib-search-bar" method="get" action="{% url 'staff_library_home' uuid=request.user.uuid %}">
+      <i class="ti ti-search lib-search-icon"></i>
+      <input
+        type="text"
+        name="q"
+        value="{{ search_query }}"
+        placeholder="Search by title, author, subject, ISBN..."
+      />
+      <select name="scope" aria-label="Library scope">
+        <option value="all" {% if library_scope == "all" %}selected{% endif %}>All Libraries</option>
+        {% for lib in libraries %}
+          <option value="{{ lib.library_code }}" {% if library_scope == lib.library_code %}selected{% endif %}>
+            {{ lib.library_name }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit"><i class="ti ti-search"></i> Search</button>
+    </form>
+
+    <div class="lib-popular-searches">
+      <span class="label">Popular Searches:</span>
+      <a href="?q=Machine+Learning" class="tag">Machine Learning</a>
+      <a href="?q=Data+Science" class="tag">Data Science</a>
+      <a href="?q=Artificial+Intelligence" class="tag">Artificial Intelligence</a>
+      <a href="?q=Research+Methods" class="tag">Research Methods</a>
+      <a href="?q=Python+Programming" class="tag">Python Programming</a>
+    </div>
+  </section>
+
+  {% if search_query %}
+  <!-- SEARCH RESULTS (shown only when the user has searched) -->
+  <section class="lib-panel" style="margin-bottom: 24px;">
+    <div class="lib-panel-header">
+      <h3 class="lib-section-title">
+        Search Results for &ldquo;{{ search_query }}&rdquo;
+        <span style="font-weight: 400; color: var(--lib-text-gray); font-size: 13px;">
+          ({{ search_results|length }} found)
+        </span>
+      </h3>
+      <a href="{% url 'staff_library_home' uuid=request.user.uuid %}" class="lib-view-all">Clear</a>
+    </div>
+
+    {% if search_results %}
+      <ul class="lib-book-list">
+        {% for book in search_results %}
+          <li>
+            {% if book.cover_image %}
+              <span class="lib-mini-cover">
+                <img src="{{ book.cover_image.url }}" alt="{{ book.title }}">
+              </span>
+            {% else %}
+              <span class="lib-mini-cover lib-mini-default">
+                <i class="ti ti-book"></i>
+              </span>
+            {% endif %}
+            <div style="flex: 1;">
+              <p class="lib-book-title">{{ book.title }}</p>
+              <p class="lib-book-author">
+                {{ book.author }}
+                &middot; {{ book.library.library_name|default:"—" }}
+                {% if book.available_copies > 0 %}
+                  <span style="color:#2f8f4f;">&middot; {{ book.available_copies }} available</span>
+                {% else %}
+                  <span style="color:#b0392f;">&middot; Checked out</span>
+                {% endif %}
+              </p>
+            </div>
+
+            {% if book.id in borrowed_resource_ids %}
+              <span class="lib-request-status lib-request-status-borrowed">Currently Borrowed</span>
+            {% elif book.id in pending_resource_ids %}
+              <span class="lib-request-status lib-request-status-pending">Requested</span>
+            {% else %}
+              <form method="post" action="{% url 'staff_borrow_request' uuid=request.user.uuid book_uuid=book.uuid %}">
+                {% csrf_token %}
+                <input type="hidden" name="q" value="{{ search_query }}" />
+                <input type="hidden" name="scope" value="{{ library_scope }}" />
+                <button type="submit" class="lib-request-btn">
+                  <i class="ti ti-bookmark-plus"></i> Request to Borrow
+                </button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color: var(--lib-text-gray); font-size: 13.5px; padding: 12px 0;">
+        No resources matched your search. Try a different title, author, or ISBN.
+      </p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- ============================================
+       NEW ARRIVALS 
+  ============================================= -->
+  <section class="lib-panel lib-fullwidth-panel">
+    <div class="lib-panel-header">
+      <h3 class="lib-section-title">
+        <i class="ti ti-books"></i>
+        New Arrivals
+        <span class="lib-panel-subtitle">Recently added books to the library collection.</span>
+      </h3>
+      <a href="{% url 'staff_new_arrivals' uuid=request.user.uuid %}" class="lib-view-all">View All</a>
+    </div>
+
+    {% if new_arrivals %}
+      <div class="lib-scroll-wrap">
+        <button type="button"
+                class="lib-scroll-btn lib-scroll-left"
+                data-target="newArrivalsRow"
+                data-direction="left"
+                aria-label="Scroll left">
+            <i class="ti ti-chevron-left"></i>
+        </button>
+        <div class="lib-scroll-row" id="newArrivalsRow">
+          {% for book in new_arrivals %}
+            <div class="lib-scroll-card">
+              {% if forloop.counter <= 3 %}<span class="lib-new-tag">NEW</span>{% endif %}
+
+              <div class="lib-scroll-cover borrow-cover-trigger"
+                  data-book-uuid="{{ book.uuid }}"
+                  data-book-title="{{ book.title|escape }}"
+                  data-book-author="{{ book.author|default:'Unknown author'|escape }}"
+                  data-book-library="{{ book.library.library_name|default:'—'|escape }}"
+                  data-book-image="{% if book.cover_image %}{{ book.cover_image.url }}{% endif %}"
+                  data-request-url="{% url 'staff_borrow_request' uuid=request.user.uuid book_uuid=book.uuid %}">
+
+                  {% if book.cover_image %}
+
+                      <img
+                          src="{{ book.cover_image.url }}"
+                          alt="{{ book.title }}"
+                      >
+
+                  {% else %}
+
+                      <div class="default-book-cover">
+                          <i class="ti ti-book"></i>
+                      </div>
+
+                  {% endif %}
+
+              </div>
+
+              <p class="lib-scroll-title">{{ book.title }}</p>
+              <p class="lib-scroll-author">{{ book.author }}</p>
+
+              <div class="lib-scroll-footer">
+                {% if book.available_copies > 0 %}
+                  <span class="lib-scroll-available"><i class="ti ti-circle-check"></i> Available</span>
+                {% else %}
+                  <span class="lib-scroll-unavailable"><i class="ti ti-circle-x"></i> Checked out</span>
+                {% endif %}
+                <!-- <i class="ti ti-bookmark lib-scroll-bookmark"></i> -->
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button"
+                class="lib-scroll-btn lib-scroll-right"
+                data-target="newArrivalsRow"
+                data-direction="right"
+                aria-label="Scroll right">
+            <i class="ti ti-chevron-right"></i>
+        </button>
+      </div>
+    {% else %}
+      <p class="lib-empty-msg">No books have been added yet.</p>
+    {% endif %}
+  </section>
+
+  <!-- ============================================
+       POPULAR BOOKS 
+  ============================================= -->
+  <section class="lib-panel lib-fullwidth-panel">
+    <div class="lib-panel-header">
+      <h3 class="lib-section-title">
+        <i class="ti ti-star"></i>
+        Popular Books
+        <span class="lib-panel-subtitle">Most borrowed and highly rated by our users.</span>
+      </h3>
+      <!-- <a href="#" class="lib-view-all">View All</a> -->
+    </div>
+
+    {% if popular_books %}
+      <div class="lib-scroll-wrap">
+        <button type="button"
+                class="lib-scroll-btn lib-scroll-left"
+                data-target="popularBooksRow"
+                data-direction="left"
+                aria-label="Scroll left">
+            <i class="ti ti-chevron-left"></i>
+        </button>
+        <div class="lib-scroll-row" id="popularBooksRow">
+          {% for book in popular_books %}
+            <div class="lib-scroll-card">
+              <div class="lib-scroll-cover borrow-cover-trigger"
+                  data-book-uuid="{{ book.uuid }}"
+                  data-book-title="{{ book.title|escape }}"
+                  data-book-author="{{ book.author|default:'Unknown author'|escape }}"
+                  data-book-library="{{ book.library.library_name|default:'—'|escape }}"
+                  data-book-image="{% if book.cover_image %}{{ book.cover_image.url }}{% endif %}"
+                  data-request-url="{% url 'staff_borrow_request' uuid=request.user.uuid book_uuid=book.uuid %}">
+
+                  {% if book.cover_image %}
+
+                      <img
+                          src="{{ book.cover_image.url }}"
+                          alt="{{ book.title }}"
+                      >
+
+                  {% else %}
+
+                      <div class="default-book-cover">
+                          <i class="ti ti-book"></i>
+                      </div>
+
+                  {% endif %}
+
+              </div>
+
+
+              <p class="lib-scroll-title">{{ book.title }}</p>
+              <p class="lib-scroll-author">{{ book.author }}</p>
+
+              <div class="lib-scroll-footer">
+                <span class="lib-scroll-popularity">
+                  <i class="ti ti-flame"></i>
+                  {{ book.borrow_count|default:0 }} borrow{{ book.borrow_count|pluralize }}
+                </span>
+                <!-- <i class="ti ti-bookmark lib-scroll-bookmark"></i> -->
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <button type="button"
+                class="lib-scroll-btn lib-scroll-right"
+                data-target="popularBooksRow"
+                data-direction="right"
+                aria-label="Scroll right">
+            <i class="ti ti-chevron-right"></i>
+        </button>
+      </div>
+    {% else %}
+      <p class="lib-empty-msg">No borrowing activity yet.</p>
+    {% endif %}
+  </section>
+
+  <!-- HELP BANNER -->
+  <section class="lib-help-banner">
+    <div class="lib-help-left">
+      <span class="lib-help-icon"><i class="ti ti-message-circle-2"></i></span>
+      <div>
+        <p class="lib-help-title">Need Help Finding Something?</p>
+        <p class="lib-help-desc">Our librarians are here to help you find the resources you need.</p>
+      </div>
+    </div>
+    <a href="#" class="lib-ask-btn"><i class="ti ti-message-circle-2"></i> Ask a Librarian</a>
+  </section>
+
+</div>
+
+<!-- =====================================================
+     BORROW REQUEST CONFIRMATION MODAL
+     ===================================================== -->
+
+<div class="borrow-modal-overlay" id="borrowRequestModal">
+
+    <div class="borrow-modal">
+
+        <button
+            type="button"
+            class="borrow-modal-close"
+            id="borrowModalClose"
+            aria-label="Close"
+        >
+            <i class="ti ti-x"></i>
+        </button>
+
+        <div class="borrow-modal-header">
+            <h3>Request to Borrow</h3>
+            <p>
+                Confirm that you want to request this book.
+            </p>
+        </div>
+
+        <div class="borrow-modal-book">
+
+            <div class="borrow-modal-cover">
+                <img
+                    id="borrowModalImage"
+                    src=""
+                    alt=""
+                >
+            </div>
+
+            <div class="borrow-modal-info">
+
+                <h4 id="borrowModalTitle">
+                    —
+                </h4>
+
+                <p>
+                    <strong>Author:</strong>
+                    <span id="borrowModalAuthor">—</span>
+                </p>
+
+                <p>
+                    <strong>Library:</strong>
+                    <span id="borrowModalLibrary">—</span>
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="borrow-modal-message">
+            <i class="ti ti-info-circle"></i>
+
+            <span>
+                Your request will be sent to the library
+                for approval.
+            </span>
+        </div>
+
+        <form
+            method="post"
+            id="borrowRequestForm"
+        >
+
+            {% csrf_token %}
+
+            <div class="borrow-modal-actions">
+
+                <button
+                    type="button"
+                    class="borrow-modal-cancel"
+                    id="borrowModalCancel"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="borrow-modal-confirm"
+                >
+                    Request to Borrow
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    {% if messages %}
+        {% for message in messages %}
+            {% if message.tags == "error" %}
+                toastError("{{ message|escapejs }}");
+            {% elif message.tags == "success" %}
+                toastSuccess("{{ message|escapejs }}");
+            {% elif message.tags == "warning" %}
+                toastWarning("{{ message|escapejs }}");
+            {% else %}
+                toastInfo("{{ message|escapejs }}");
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+     /* ======================================================
+       LIBRARY BOOK CAROUSELS
+       ====================================================== */
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+    var carouselRows = [
+        document.getElementById("newArrivalsRow"),
+        document.getElementById("popularBooksRow")
+    ];
+
+    carouselRows.forEach(function (row) {
+
+        if (!row) {
+            return;
+        }
+
+        var animationFrame;
+        var isPaused = false;
+        var speed = 0.5; // pixels per frame
+
+        /* ==========================================
+           CONTINUOUS AUTO SCROLL
+        ========================================== */
+
+        function autoScroll() {
+
+            if (!isPaused) {
+
+                row.scrollLeft += speed;
+
+                /*
+                 * When reaching the end,
+                 * smoothly restart from beginning.
+                 */
+                if (
+                    row.scrollLeft >=
+                    row.scrollWidth - row.clientWidth - 1
+                ) {
+
+                    row.scrollLeft = 0;
+                }
+            }
+
+            animationFrame =
+                requestAnimationFrame(autoScroll);
+        }
+
+
+        /* ==========================================
+           PAUSE WHEN HOVERING BOOK COVER
+        ========================================== */
+
+        var covers = row.querySelectorAll(
+            ".lib-scroll-cover"
+        );
+
+        covers.forEach(function (cover) {
+
+            cover.addEventListener(
+                "mouseenter",
+                function () {
+
+                    isPaused = true;
+
+                }
+            );
+
+            cover.addEventListener(
+                "mouseleave",
+                function () {
+
+                    isPaused = false;
+
+                }
+            );
+
+        });
+
+
+        /* ==========================================
+           LEFT / RIGHT BUTTONS
+        ========================================== */
+
+        var wrapper =
+            row.closest(".lib-scroll-wrap");
+
+        if (wrapper) {
+
+            var buttons =
+                wrapper.querySelectorAll(
+                    ".lib-scroll-btn"
+                );
+
+            buttons.forEach(function (btn) {
+
+                btn.addEventListener(
+                    "click",
+                    function () {
+
+                        var direction =
+                            btn.getAttribute(
+                                "data-direction"
+                            );
+
+                        
+                        isPaused = true;
+
+                        var amount =
+                            row.clientWidth * 0.7;
+
+                        if (direction === "left") {
+                            amount = -amount;
+                        }
+
+                        row.scrollBy({
+                            left: amount,
+                            behavior: "smooth"
+                        });
+
+                        /*
+                         * Resume after manual movement.
+                         */
+                        setTimeout(function () {
+                            isPaused = false;
+                        }, 700);
+
+                    }
+                );
+
+            });
+
+        }
+
+
+        /* ==========================================
+           START
+        ========================================== */
+
+        autoScroll();
+
+    });
+
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const modal =
+        document.getElementById("borrowRequestModal");
+
+    const closeButton =
+        document.getElementById("borrowModalClose");
+
+    const cancelButton =
+        document.getElementById("borrowModalCancel");
+
+    const form =
+        document.getElementById("borrowRequestForm");
+
+    const modalImage =
+        document.getElementById("borrowModalImage");
+
+    const modalTitle =
+        document.getElementById("borrowModalTitle");
+
+    const modalAuthor =
+        document.getElementById("borrowModalAuthor");
+
+    const modalLibrary =
+        document.getElementById("borrowModalLibrary");
+
+
+    /* =====================================================
+       OPEN MODAL
+       ===================================================== */
+
+    document.querySelectorAll(".borrow-cover-trigger")
+        .forEach(function (cover) {
+
+            cover.addEventListener("click", function () {
+
+                const title =
+                    cover.dataset.bookTitle || "Book";
+
+                const author =
+                    cover.dataset.bookAuthor || "Unknown author";
+
+                const library =
+                    cover.dataset.bookLibrary || "—";
+
+                const image =
+                    cover.dataset.bookImage || "";
+
+                const requestUrl =
+                    cover.dataset.requestUrl;
+
+
+                modalTitle.textContent = title;
+                modalAuthor.textContent = author;
+                modalLibrary.textContent = library;
+
+                if (image) {
+
+                    modalImage.src = image;
+                    modalImage.alt = title;
+
+                } else {
+
+                    modalImage.removeAttribute("src");
+                    modalImage.alt = title;
+
+                }
+
+
+                /* Set POST destination */
+
+                form.action = requestUrl;
+
+
+                /* Show modal */
+
+                modal.classList.add("active");
+
+                document.body.style.overflow = "hidden";
+
+            });
+
+        });
+
+
+    /* =====================================================
+       CLOSE MODAL
+       ===================================================== */
+
+    function closeBorrowModal() {
+
+        modal.classList.remove("active");
+
+        document.body.style.overflow = "";
+
+    }
+
+
+    closeButton.addEventListener(
+        "click",
+        closeBorrowModal
+    );
+
+    cancelButton.addEventListener(
+        "click",
+        closeBorrowModal
+    );
+
+
+    /* =====================================================
+       CLICK OUTSIDE
+       ===================================================== */
+
+    modal.addEventListener(
+        "click",
+        function (event) {
+
+            if (event.target === modal) {
+
+                closeBorrowModal();
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       ESC KEY
+       ===================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape" &&
+                modal.classList.contains("active")
+            ) {
+
+                closeBorrowModal();
+
+            }
+
+        }
+    );
+
+});
+</script>
+{% endblock %}

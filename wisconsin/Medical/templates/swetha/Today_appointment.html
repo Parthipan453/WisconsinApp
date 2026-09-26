@@ -1,0 +1,460 @@
+<!-- swetha's code -->
+
+{% extends "medical_base.html" %} {% load static %} {% block title %}Today's
+Patient Queue{% endblock %} {% block page_title %}Today's Patient Queue
+{% endblock %} 
+
+{% block extra_css %}
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+/>
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+/>
+
+<link
+  rel="stylesheet"
+  href="{% static 'css/swetha/Today_appointment.css' %}"
+/>
+
+{% endblock %} {% block content %}
+
+<div class="mas-wrapper"> 
+
+  <div class="mas-page-header">
+    <div class="mas-page-title">
+      <h2>
+        <i class="fas fa-user-doctor"></i>
+        Today's Patient Queue
+      </h2>
+
+      <p>
+        Manage waiting patients, consultations, prescriptions and treatment
+        details.
+      </p>
+    </div>
+
+    <div class="mas-page-date">
+      <i class="fas fa-calendar-day"></i>
+
+      <span> {% now "l, d M Y" %} </span>
+    </div>
+  </div>
+
+  <div class="mas-overview-grid">
+    <!-- TOTAL -->
+
+    <div class="mas-overview-card">
+      <div class="mas-icon total">
+        <i class="fas fa-users"></i>
+      </div>
+
+      <div class="mas-overview-content">
+        <h3 id="totalCount">{{ total }}</h3>
+
+        <span> Total Patients </span>
+      </div>
+    </div>
+
+    <!-- WAITING -->
+
+    <div class="mas-overview-card">
+      <div class="mas-icon pending">
+        <i class="fas fa-hourglass-half"></i>
+      </div>
+
+      <div class="mas-overview-content">
+        <h3 id="waitingCount">{{ waiting }}</h3>
+
+        <span> Waiting </span>
+      </div>
+    </div>
+
+    <!-- IN PROGRESS -->
+
+    <div class="mas-overview-card">
+      <div class="mas-icon confirmed">
+        <i class="fas fa-user-doctor"></i>
+      </div>
+
+      <div class="mas-overview-content">
+        <h3 id="inProgressCount">{{ in_progress }}</h3>
+
+        <span> In Progress </span>
+      </div>
+    </div>
+
+    <!-- COMPLETED -->
+
+    <div class="mas-overview-card">
+      <div class="mas-icon completed">
+        <i class="fas fa-file-medical"></i>
+      </div>
+
+      <div class="mas-overview-content">
+        <h3 id="completedCount">{{ completed }}</h3>
+
+        <span> Completed </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mas-layout">
+    <div class="mas-left-panel">
+
+      <div class="mas-filter-tabs">
+        <!-- ALL -->
+
+        <button type="button" class="mas-filter-tab active" data-status="all">
+          ALL
+
+          <span class="mas-tab-count" id="allTabCount"> {{ total }} </span>
+        </button>
+
+        <!-- WAITING -->
+
+        <button type="button" class="mas-filter-tab" data-status="WAITING">
+          WAITING
+
+          <span class="mas-tab-count" id="waitingTabCount">
+            {{ waiting }}
+          </span>
+        </button>
+
+        <!-- IN PROGRESS -->
+
+        <button type="button" class="mas-filter-tab" data-status="IN_PROGRESS">
+          IN PROGRESS
+
+          <span class="mas-tab-count" id="inProgressTabCount">
+            {{ in_progress }}
+          </span>
+        </button>
+
+        <button type="button" class="mas-filter-tab" data-status="ADMITTED">
+          ADMITTED
+          <span class="mas-tab-count" id="admittedTabCount">
+            {{ admitted }}
+          </span>
+        </button>
+
+        <!-- COMPLETED -->
+
+        <button type="button" class="mas-filter-tab" data-status="COMPLETED">
+          COMPLETED
+
+          <span class="mas-tab-count" id="completedTabCount">
+            {{ completed }}
+          </span>
+        </button>
+      </div>
+      <div class="mas-patient-grid-wrapper">
+        <div class="mas-filter-actions">
+          <!-- SEARCH -->
+          <div class="mas-search">
+            <i class="fas fa-search"></i>
+
+            <input
+              type="text"
+              id="appointmentSearch"
+              placeholder="Search patient..."
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- PATIENT TYPE -->
+          <select id="typeFilter" class="mas-select">
+            <option value="">All Patients</option>
+
+            <option value="student">Student</option>
+
+            <option value="faculty">Faculty</option>
+
+            <option value="staff">Staff</option>
+
+            <option value="admin">Admin</option>
+
+            <option value="visitor">Visitor</option>
+          </select>
+        </div>
+
+        <div class="mas-patient-grid" id="patientGrid">
+          {% for registration in registrations %}
+          <div
+            class="mas-patient-item"
+            data-id="{{ registration.id }}"
+            data-patient="{{ registration.patient.id }}"
+             data-registration-id="{{ registration.id }}"
+            data-status="{{ registration.status }}"
+            data-registration-type="{{ registration.registration_type }}"
+            data-admission-status="{{ registration.admission_status }}"
+
+            {% if registration.patient.student %}
+              data-name="{{ registration.patient.student.user.full_name|default:'' }}"
+              data-type="STUDENT"
+
+            {% elif registration.patient.staff %}
+              data-name="{{ registration.patient.staff.user.full_name|default:'' }}"
+              data-type="STAFF"
+
+            {% elif registration.patient.faculty %}
+              data-name="{{ registration.patient.faculty.user.full_name|default:'' }}"
+              data-type="FACULTY"
+
+            {% elif registration.patient.admin %}
+              data-name="{{ registration.patient.admin.full_name|default:'' }}"
+              data-type="ADMIN"
+
+            {% else %}
+              data-name="{{ registration.patient.visitor_name|default:'' }}"
+              data-type="VISITOR"
+            {% endif %}
+          >
+            <!-- AVATAR -->
+
+            <div class="mas-profile-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+
+            <!-- PATIENT NAME -->
+
+          <h4>
+            {% if registration.patient.student %}
+                {{ registration.patient.student.user.full_name }}
+            {% elif registration.patient.staff %}
+                {{ registration.patient.staff.user.full_name }}
+            {% elif registration.patient.faculty %}
+                {{ registration.patient.faculty.user.full_name }}
+            {% elif registration.patient.admin %}
+                {{ registration.patient.admin.full_name }}
+            {% else %}
+                {{ registration.patient.visitor_name }}
+            {% endif %}
+        </h4>
+
+            <!-- QUEUE NUMBER -->
+
+            <span class="mas-patient-number">
+            {% if registration.registration_type == "APPOINTMENT" %} 
+            {% if registration.appointment %} 
+              {{registration.appointment.appointment_number }} {% else %} 
+              {{registration.registration_number }} {% endif %} 
+            {% else %} 
+              {% if registration.token_number != None %} 
+              TK-{{ registration.token_number|stringformat:"03d" }} {% else %} 
+              {{registration.registration_number }} {% endif %} {% endif %}
+            </span>
+
+            <!-- AMBULANCE ARRIVAL -->
+            {% if registration.arrived_by_ambulance %}
+            <span class="mas-ambulance-badge">
+                <i class="fas fa-ambulance"></i>
+                Ambulance
+            </span>
+            {% endif %}
+
+            <!-- REGISTRATION TYPE -->
+
+            <span class="mas-role-badge">
+              {% if registration.registration_type == "APPOINTMENT" %}
+
+              <i class="fas fa-calendar-check"></i>
+              Appointment {% else %}
+
+              <i class="fas fa-person-walking"></i>
+              Walk-in {% endif %}
+            </span>
+          </div>
+
+        {% empty %}
+
+          <div class="mas-empty-state">
+            <div class="mas-empty-icon">
+              <i class="fas fa-users-slash"></i>
+            </div>
+
+            <h3>No Patients Today</h3>
+
+            <p>No patients are currently assigned to your queue.</p>
+          </div>
+
+          {% endfor %}
+        </div>
+
+        <div class="mas-pagination" id="pagination">
+          <button type="button" class="mas-page-btn" id="prevPage" disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+
+          <span class="mas-page-info" id="pageInfo"> Page 1 of 1 </span>
+
+          <button type="button" class="mas-page-btn" id="nextPage">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mas-right-panel">
+      <div id="patientPreview">
+
+        <div class="mas-preview-empty">
+          <i class="fas fa-user-doctor"></i>
+
+          <h3>Select a Patient</h3>
+
+          <p>Select a patient from the queue to view their details.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="consultationContainer"></div>
+</div>
+
+<div id="mas-toast-container"></div>
+
+<div id="consultationModal" class="mas-modal" style="display: none">
+  <div class="mas-modal-overlay"></div>
+
+  <div class="mas-modal-content">
+    <!-- HEADER -->
+
+    <div class="mas-modal-header">
+      <div>
+        <h3>
+          <i class="fas fa-file-medical"></i>
+
+          Complete Consultation
+        </h3>
+
+        <p id="consultationPatientName">Patient</p>
+      </div>
+
+      <button type="button" class="mas-modal-close" id="closeConsultationModal">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- BODY -->
+
+    <div class="mas-modal-body">
+      <!-- DIAGNOSIS -->
+
+      <div class="mas-form-group">
+        <label for="diagnosis">
+          Diagnosis
+
+          <span class="required"> * </span>
+        </label>
+
+        <textarea
+          id="diagnosis"
+          rows="4"
+          placeholder="Enter diagnosis..."
+        ></textarea>
+      </div>
+
+      <!-- TREATMENT -->
+
+      <div class="mas-form-group">
+        <label for="treatment"> Treatment </label>
+
+        <textarea
+          id="treatment"
+          rows="4"
+          placeholder="Enter treatment provided..."
+        ></textarea>
+      </div>
+
+      <!-- MEDICATIONS -->
+
+      <div class="mas-form-group">
+        <label for="medications"> Prescription / Medications </label>
+
+        <textarea
+          id="medications"
+          rows="4"
+          placeholder="Enter prescribed medicines, dosage, duration..."
+        ></textarea>
+      </div>
+
+      <!-- NOTES -->
+
+      <div class="mas-form-group">
+        <label for="consultationNotes"> Additional Notes </label>
+
+        <textarea
+          id="consultationNotes"
+          rows="3"
+          placeholder="Enter additional consultation notes..."
+        ></textarea>
+      </div>
+
+      <!-- FOLLOW UP -->
+
+      <div class="mas-form-row">
+        <div class="mas-form-group">
+          <label>
+            <input type="checkbox" id="followUpRequired" />
+
+            Follow-up Required
+          </label>
+        </div>
+
+        <div
+          class="mas-form-group"
+          id="followUpDateWrapper"
+          style="display: none"
+        >
+          <label for="followUpDate"> Follow-up Date </label>
+
+          <input type="date" id="followUpDate" />
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+
+    <div class="mas-modal-footer">
+      <button
+        type="button"
+        class="mas-btn mas-btn-secondary"
+        id="cancelConsultation"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="mas-btn mas-btn-success"
+        id="completeConsultationBtn"
+      >
+        <i class="fas fa-check-circle"></i>
+
+        Complete Consultation
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+ {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+  const patientDetailsUrl =
+    "{% url 'Medical:patient_details' 0 %}";
+
+  const athleteInjuryCreateUrl =
+    "{% url 'Medical:create_athlete_injury' %}";
+</script>
+
+<script src="{% static 'js/swetha/Today_appointment.js' %}"></script>
+
+{% endblock %}

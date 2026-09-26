@@ -1,0 +1,974 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Single Enrollment — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<style>
+    /* ── Page shell ─────────────────────────────────────────── */
+    .form-page {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        padding: 10px 0;
+        max-width: 1280px;
+        width: 100%;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    /* ── Header card ────────────────────────────────────────── */
+    .course-form-header-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        width: 100%;
+        box-sizing: border-box;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .04);
+        min-width: 0;
+    }
+    .course-form-header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .course-form-title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #1b1f3b;
+        line-height: 1.2;
+    }
+    .course-form-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #8c8f9c;
+        flex-wrap: wrap;
+        line-height: 1.5;
+    }
+    .course-form-breadcrumb .sep { color: #8c8f9c; }
+    .course-form-breadcrumb .active { color: #dc3545; font-weight: 600; }
+    .course-form-header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-shrink: 0;
+    }
+    .course-form-back {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 170px;
+        height: 42px;
+        padding: 0 16px;
+        background: #fff;
+        color: #495057;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        gap: 7px;
+        white-space: nowrap;
+        transition: .3s;
+        box-sizing: border-box;
+    }
+    .course-form-back:hover {
+        background: #f8f9fa;
+        border-color: #adb5bd;
+        color: #1a1a1a;
+        transform: translateY(-2px);
+    }
+    .course-form-back i { width: 15px; height: 15px; flex-shrink: 0; }
+
+    /* ── Single column layout ───────────────────────────────── */
+    .form-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    /* ── Card ───────────────────────────────────────────────── */
+    .f-card {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .f-card__hd {
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .f-card__icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .f-card__icon i { width: 17px; height: 17px; }
+    .f-card__icon.red { background: #fff0f0; color: #c5050c; }
+    .f-card__icon.blue { background: #eff6ff; color: #2563eb; }
+    .f-card__icon.green { background: #f0fdf4; color: #16a34a; }
+    .f-card__icon.purple { background: #faf5ff; color: #9333ea; }
+    .f-card__title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    .f-card__body { padding: 1.25rem; }
+
+    /* ── Grid ───────────────────────────────────────────────── */
+    .row { display: flex; flex-wrap: wrap; margin: 0 -0.75rem; }
+    .g-3 { row-gap: 1rem; }
+    .col-md-6 { flex: 0 0 50%; max-width: 50%; padding: 0 0.75rem; box-sizing: border-box; }
+    .col-12 { flex: 0 0 100%; max-width: 100%; padding: 0 0.75rem; box-sizing: border-box; }
+
+    /* ── Form labels ────────────────────────────────────────── */
+    .form-label {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .req { color: #c5050c; font-size: 13px; line-height: 1; }
+
+    /* ── Controls ───────────────────────────────────────────── */
+    .form-control,
+    .form-select {
+        font-size: 13px;
+        border: 1.5px solid #dee2e6;
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: #1a1a1a;
+        background: #fff;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .form-control::placeholder { color: #adb5bd; }
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #c5050c;
+        box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.1);
+        outline: none;
+    }
+    .form-control:disabled,
+    .form-select:disabled {
+        background: #f3f4f6;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    /* ── Invalid state ──────────────────────────────────────── */
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        border-color: #c5050c;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23c5050c' d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3E%3Cpath fill='%23c5050c' d='M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 14px;
+        padding-right: 36px;
+    }
+    .form-control.is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.12);
+    }
+
+    /* ── Error message ──────────────────────────────────────── */
+    .field-err {
+        font-size: 12px;
+        color: #c5050c;
+        margin-top: 5px;
+        display: none;
+        align-items: center;
+        gap: 4px;
+    }
+    .field-err i { width: 12px; height: 12px; flex-shrink: 0; }
+    .field-err.show { display: flex; }
+
+    /* ── Hint text ──────────────────────────────────────────── */
+    .f-hint {
+        font-size: 11.5px;
+        color: #6b7280;
+        display: block;
+        margin-top: 4px;
+    }
+
+    /* ── Req note ───────────────────────────────────────────── */
+    .req-note {
+        font-size: 12px;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0.7rem 1.25rem;
+        border-top: 1px solid #f0f0f0;
+        background: #fafafa;
+    }
+    .req-note i { width: 13px; height: 13px; color: #c5050c; }
+
+    /* ── Action row ─────────────────────────────────────────── */
+    .form-action-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+    .btn-cancel {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1.5px solid #dee2e6;
+        background: #fff;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+    .btn-cancel:hover { background: #f8f9fa; border-color: #adb5bd; color: #1a1a1a; }
+    .btn-cancel i { width: 14px; height: 14px; }
+    .btn-save {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        background: #c5050c;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        transition: background 0.18s, transform 0.12s;
+    }
+    .btn-save:hover { background: #a30009; }
+    .btn-save:active { transform: scale(0.98); }
+    .btn-save i { width: 16px; height: 16px; }
+    .btn-save:disabled { background: #e9ecef; color: #adb5bd; cursor: not-allowed; transform: none; }
+
+    /* ── Section loading ────────────────────────────────────── */
+    .section-loading {
+        display: none;
+        color: #6b7280;
+        font-size: 13px;
+        margin-top: 4px;
+    }
+
+    /* ── Alert messages ─────────────────────────────────────── */
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert i { font-size: 20px; }
+
+    /* ── Choices.js overrides ───────────────────────────────── */
+    .form-page .choices { width: 100%; min-width: 0; margin-bottom: 0; }
+    .form-page .choices__inner {
+        min-height: 38px;
+        padding: 5px 10px;
+        border: 1.5px solid #dee2e6;
+        border-radius: 8px;
+        background: #fff;
+        font-size: 13px;
+    }
+    .form-page .choices.is-focused .choices__inner,
+    .form-page .choices.is-open .choices__inner {
+        border-color: #c5050c;
+        box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.1);
+    }
+    .form-page .choices__list--single { padding: 0 4px 0 0; }
+    .form-page .choices__list--single .choices__item { color: #1a1a1a; font-size: 13px; }
+    .form-page .choices__placeholder { color: #9ca3af; }
+    .form-page .choices[data-type*="select-one"]::after {
+        border-color: #6b7280 transparent transparent;
+        right: 12px;
+    }
+    .form-page .choices[data-type*="select-one"].is-open::after {
+        border-color: transparent transparent #6b7280;
+    }
+    .form-page .choices__list--dropdown {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 4px 14px rgba(16,24,40,0.10);
+        z-index: 50;
+    }
+    .form-page .choices__list--dropdown .choices__item {
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #374151;
+    }
+    .form-page .choices__list--dropdown .choices__item--selectable.is-highlighted,
+    .form-page .choices__list--dropdown .choices__item.is-selected {
+        background: #f3f4f6;
+        color: #1a1a1a;
+    }
+    .form-page .choices__input { border: 0 !important; padding: 8px 12px !important; }
+    .form-page .choices__list--dropdown .choices__placeholder { padding: 8px 12px; }
+    .form-page .choices.is-disabled .choices__inner {
+        background: #f3f4f6;
+        cursor: not-allowed;
+    }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 768px) {
+        .form-page { padding: 1rem; }
+        .course-form-header-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px;
+        }
+        .course-form-header-right { align-self: flex-start; }
+        .course-form-title { font-size: 20px; }
+        .f-card__hd {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 20px 20px 16px;
+        }
+        .f-card__title { font-size: 16px; }
+        .f-card__body { padding: 20px; }
+        .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+        .form-control, .form-select { padding: 10px 14px; font-size: 14px; }
+        .form-action-row {
+            flex-direction: column-reverse;
+            align-items: stretch;
+            gap: 12px;
+        }
+        .btn-cancel, .btn-save {
+            justify-content: center;
+            width: 100%;
+            padding: 12px 20px;
+        }
+        .req-note { font-size: 11px; }
+    }
+
+    @media (max-width: 480px) {
+        .form-page { padding: 0.75rem; overflow-x: hidden; }
+        .course-form-header-card { padding: 12px 16px; border-radius: 12px; }
+        .course-form-title { font-size: 16px; word-break: break-word; }
+        .course-form-back { padding: 8px 14px; font-size: 12px; white-space: normal; min-width: auto; }
+        .f-card { overflow-x: hidden; }
+        .f-card__hd { padding: 16px 16px 12px; flex-wrap: wrap; }
+        .f-card__body { padding: 16px; overflow-x: hidden; }
+        .f-card__title { font-size: 15px; word-break: break-word; }
+        .f-card__icon { width: 30px; height: 30px; flex-shrink: 0; }
+        .f-card__icon i { width: 15px; height: 15px; }
+        .form-label { font-size: 11px; word-break: break-word; }
+        .form-control, .form-select { padding: 8px 12px; font-size: 13px; min-width: 0; }
+        .btn-save, .btn-cancel { font-size: 13px; padding: 10px 16px; white-space: normal; }
+        .req-note { word-break: break-word; }
+    }
+</style>
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_enrollment %}active{% endblock %}
+
+{% block content %}
+
+<div class="form-page">
+
+    <!-- Page Header -->
+    <div class="course-form-header-card">
+        <div class="course-form-header-left">
+            <h2 class="course-form-title">Single Enrollment</h2>
+            <nav class="course-form-breadcrumb" aria-label="breadcrumb">
+                <span>Dashboard</span>
+                <span class="sep">›</span>
+                <span>Enrollment</span>
+                <span class="sep">›</span>
+                <span class="active">Single Enrollment</span>
+            </nav>
+            <p style="font-size: 12px; color: grey; margin: 0;">Fill in the details below to enroll a student in a course.</p>
+        </div>
+        <div class="course-form-header-right">
+            <a href="{% url 'staff_enrollment' request.user.uuid %}" class="course-form-back">
+                <i class="ti ti-arrow-left"></i>
+                Back to Enrollment
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="formMessages"></div>
+
+    <form id="enrollmentForm" novalidate>
+        {% csrf_token %}
+
+        <div class="form-stack">
+
+            {# ── Enrollment Information ── #}
+            <div class="f-card">
+                <div class="f-card__hd">
+                    <div class="f-card__icon red"><i class="ti ti-user-plus"></i></div>
+                    <span class="f-card__title">Enrollment Information</span>
+                </div>
+                <div class="f-card__body">
+                    <div class="row g-3">
+
+                        {# Student #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="studentSelect">
+                                Student <span class="req">*</span>
+                            </label>
+                            <select name="student_id" id="studentSelect" class="form-control" required data-validate="required-select" data-error-msg="Please select a student">
+                                <option value="">Select Student</option>
+                                {% for student in students %}
+                                    <option value="{{ student.id }}">
+                                        {{ student.get_full_name }} ({{ student.student_profile.student_number|default:'N/A' }})
+                                    </option>
+                                {% empty %}
+                                    <option value="">No students available</option>
+                                {% endfor %}
+                            </select>
+                            <div class="field-err" id="err_studentSelect">
+                                <i class="ti ti-alert-circle"></i>
+                                <span></span>
+                            </div>
+                        </div>
+
+                        {# Department #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="departmentSelect">
+                                Department <span class="req">*</span>
+                            </label>
+                            <select name="department_id" id="departmentSelect" class="form-control" disabled>
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                    <option value="{{ dept.department_id }}">
+                                        {{ dept.department_name }}
+                                    </option>
+                                {% empty %}
+                                    <option value="">No departments available</option>
+                                {% endfor %}
+                            </select>
+                            <span class="f-hint">Auto-filled when student is selected</span>
+                        </div>
+
+                        {# Academic Program #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="academicProgramSelect">
+                                Academic Program <span class="req">*</span>
+                            </label>
+                            <select name="academic_program_id" id="academicProgramSelect" class="form-control" disabled>
+                                <option value="">Select Academic Program</option>
+                                {% for program in academic_programs %}
+                                    <option value="{{ program.program_id }}">
+                                        {{ program.program_name }}
+                                    </option>
+                                {% empty %}
+                                    <option value="">No programs available</option>
+                                {% endfor %}
+                            </select>
+                            <span class="f-hint">Auto-filled when student is selected</span>
+                        </div>
+
+                        {# Course #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="courseSelect">
+                                Course <span class="req">*</span>
+                            </label>
+                            <select name="course_id" id="courseSelect" class="form-control" required data-validate="required-select" data-error-msg="Please select a course">
+                                <option value="">Select Department First</option>
+                                {% for course in courses %}
+                                    <option value="{{ course.course_id }}" data-dept="{{ course.department.department_id|default:'' }}" data-program-id="{{ course.academic_program.program_id|default:'' }}" data-credits="{{ course.credits }}">{{ course.course_code }} - {{ course.course_name }}</option>
+                                {% empty %}
+                                    <option value="">No courses available</option>
+                                {% endfor %}
+                            </select>
+                            <div class="field-err" id="err_courseSelect">
+                                <i class="ti ti-alert-circle"></i>
+                                <span></span>
+                            </div>
+                        </div>
+
+                        {# Section #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="sectionSelect">
+                                Section <span class="req">*</span>
+                            </label>
+                            <select name="section_id" id="sectionSelect" class="form-control" required data-validate="required-select" data-error-msg="Please select a course section">
+                                <option value="">Select Course First</option>
+                            </select>
+                            <div class="section-loading" id="sectionLoading">
+                                <i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Loading sections...
+                            </div>
+                            <div class="field-err" id="err_sectionSelect">
+                                <i class="ti ti-alert-circle"></i>
+                                <span></span>
+                            </div>
+                        </div>
+
+                        {# Term #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="semesterSelect">
+                                Term <span class="req">*</span>
+                            </label>
+                            <select name="semester_id" id="semesterSelect" class="form-control" disabled data-validate="required-select" data-error-msg="Please select a term">
+                                <option value="">Select Term</option>
+                                <option value="FALL">Fall</option>
+                                <option value="SPRING">Spring</option>
+                                <option value="SUMMER">Summer</option>
+                                <option value="WINTER">Winter</option>
+                            </select>
+                            <div class="field-err" id="err_semesterSelect">
+                                <i class="ti ti-alert-circle"></i>
+                                <span></span>
+                            </div>
+                        </div>
+
+                        {# Enrollment Status #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="statusSelect">
+                                Enrollment Status <span class="req">*</span>
+                            </label>
+                            <select name="enrollment_status" id="statusSelect" class="form-control" required data-validate="required-select" data-error-msg="Please select an enrollment status">
+                                <option value="FULL_TIME">Full-Time</option>
+                                <option value="PART_TIME">Part-Time</option>
+                            </select>
+                            <div class="field-err" id="err_statusSelect">
+                                <i class="ti ti-alert-circle"></i>
+                                <span></span>
+                            </div>
+                        </div>
+
+                        {# Credit Load #}
+                        <div class="col-md-6">
+                            <label class="form-label" for="creditLoad">
+                                Credit Load <span class="req">*</span>
+                            </label>
+                            <input type="number" name="credit_load" id="creditLoad" class="form-control"
+                                   value="3" min="1" max="21" readonly>
+                            <span class="f-hint">Enter the number of credits (1–21)</span>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="req-note">
+                    <i class="ti ti-info-circle"></i>
+                    All fields marked <strong style="color:#c5050c;margin:0 2px;">*</strong> are required.
+                </div>
+            </div>
+
+            {# ── Action row — Save + Cancel ── #}
+            <div class="form-action-row">
+                <a href="{% url 'staff_enrollment' request.user.uuid %}" class="btn-cancel">
+                    <i class="ti ti-x"></i>Cancel
+                </a>
+                <button type="submit" class="btn-save" id="submitBtn">
+                    <i class="ti ti-device-floppy"></i>Create Enrollment
+                </button>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<style>
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script id="programCourseTermsData" type="application/json">{{ program_course_terms_json|safe }}</script>
+<script>
+// ============================================
+// NEW ENROLLMENT - JAVASCRIPT
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('courseSelect');
+    const sectionSelect = document.getElementById('sectionSelect');
+    const sectionLoading = document.getElementById('sectionLoading');
+    const form = document.getElementById('enrollmentForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const messagesDiv = document.getElementById('formMessages');
+    const studentSelect = document.getElementById('studentSelect');
+    const semesterSelect = document.getElementById('semesterSelect');
+    const departmentSelect = document.getElementById('departmentSelect');
+    const academicProgramSelect = document.getElementById('academicProgramSelect');
+    const statusSelect = document.getElementById('statusSelect');
+    const creditLoad = document.getElementById('creditLoad');
+
+    /* ── Snapshot course options before Choices.js touches them ── */
+    const allCourseOptions = Array.from(courseSelect.querySelectorAll('option[data-dept]')).map(o => o.cloneNode(true));
+
+    /* ── Program Curriculum term → Term auto-fill (uses ProgramCourse.term) ── */
+    const programCourseTerms = JSON.parse(document.getElementById('programCourseTermsData').textContent);
+    function autoFillSemester() {
+        const programId = academicProgramSelect.value;
+        let term;
+        if (courseSelect.value && programId) {
+            const terms = programCourseTerms[`${courseSelect.value}:${programId}`] || [];
+            if (terms.length) term = terms[0];
+        }
+        reinitChoices(semesterSelect, { searchEnabled: semesterSelect.options.length > 7 }, term);
+    }
+    function resetSemesterToCurrent() {
+        reinitChoices(semesterSelect, { searchEnabled: semesterSelect.options.length > 7 }, '');
+    }
+
+    /* ── Choices.js ── */
+    window.choicesMap = {};
+    const choicesDefaults = { searchEnabled: false, shouldSort: false, itemSelectText: '', allowHTML: false, removeItemButton: false };
+    function reinitChoices(selectEl, opts, value) {
+        if (window.choicesMap[selectEl.id]) { window.choicesMap[selectEl.id].destroy(); }
+        if (typeof value !== 'undefined') { selectEl.value = value; }
+        window.choicesMap[selectEl.id] = new Choices(selectEl, { ...choicesDefaults, ...opts });
+    }
+
+    reinitChoices(studentSelect, { searchEnabled: studentSelect.options.length > 7 });
+    reinitChoices(semesterSelect, { searchEnabled: semesterSelect.options.length > 7 });
+    reinitChoices(departmentSelect, { searchEnabled: departmentSelect.options.length > 7, searchPosition: 'dropdown' });
+    reinitChoices(academicProgramSelect, { searchEnabled: false, searchPosition: 'dropdown' });
+    reinitChoices(courseSelect, { searchEnabled: false });
+    reinitChoices(sectionSelect, { searchEnabled: false });
+    reinitChoices(statusSelect, { searchEnabled: false });
+
+    /* ── Field-level validation ── */
+    const VALIDATORS = {
+        'required-select': (v, msg) => (v && v !== '') ? null : (msg || 'Please select an option.'),
+    };
+
+    function validateField(el) {
+        const raw = el.getAttribute('data-validate') || '';
+        const rules = raw.split('|').map(r => r.trim()).filter(Boolean);
+        const val = el.value;
+        const customMsg = el.getAttribute('data-error-msg');
+        let error = null;
+
+        for (const rule of rules) {
+            if (VALIDATORS[rule]) { error = VALIDATORS[rule](val, customMsg); if (error) break; }
+        }
+
+        const errEl = document.getElementById('err_' + el.id);
+
+        if (error) {
+            el.classList.add('is-invalid');
+            if (errEl) {
+                errEl.querySelector('span').textContent = error;
+                errEl.classList.add('show');
+            }
+        } else {
+            el.classList.remove('is-invalid');
+            if (errEl) {
+                errEl.querySelector('span').textContent = '';
+                errEl.classList.remove('show');
+            }
+        }
+
+        return !error;
+    }
+
+    function clearFieldError(el) {
+        el.classList.remove('is-invalid');
+        const errEl = document.getElementById('err_' + el.id);
+        if (errEl) {
+            errEl.querySelector('span').textContent = '';
+            errEl.classList.remove('show');
+        }
+    }
+
+    document.querySelectorAll('[data-validate]').forEach(el => {
+        el.addEventListener('change', () => {
+            if (el.classList.contains('is-invalid')) validateField(el);
+        });
+    });
+
+    /* ── Load sections when course changes ── */
+    courseSelect.addEventListener('change', function() {
+        const courseId = this.value;
+        clearFieldError(courseSelect);
+
+        sectionSelect.innerHTML = '<option value="">Select Section</option>';
+        sectionSelect.disabled = true;
+
+        if (!courseId) {
+            sectionSelect.innerHTML = '<option value="">Select Course First</option>';
+            sectionSelect.disabled = false;
+            reinitChoices(sectionSelect, { searchEnabled: false });
+            return;
+        }
+
+        const selectedCourse = this.options[this.selectedIndex];
+        const credits = selectedCourse?.getAttribute('data-credits');
+        if (credits) creditLoad.value = credits;
+        autoFillSemester();
+
+        sectionLoading.style.display = 'block';
+        sectionSelect.disabled = true;
+
+        fetch(`/staff/api/get-course-sections/?course_id=${courseId}&semester_id=${encodeURIComponent(semesterSelect.value)}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                sectionLoading.style.display = 'none';
+                sectionSelect.disabled = false;
+
+                if (data.success && data.sections && data.sections.length > 0) {
+                    sectionSelect.innerHTML = '<option value="">Select Section</option>';
+                    data.sections.forEach(section => {
+                        const option = document.createElement('option');
+                        option.value = section.id;
+                        option.textContent = `Section ${section.section_number} - ${section.semester} (${section.faculty_name})`;
+                        sectionSelect.appendChild(option);
+                    });
+                } else {
+                    sectionSelect.innerHTML = '<option value="">No sections available</option>';
+                }
+                reinitChoices(sectionSelect, { searchEnabled: data.sections && data.sections.length > 6 });
+            })
+            .catch(error => {
+                sectionLoading.style.display = 'none';
+                sectionSelect.disabled = false;
+                sectionSelect.innerHTML = '<option value="">Error loading sections</option>';
+                reinitChoices(sectionSelect, { searchEnabled: false });
+                showMessage('Error loading course sections. Please try again.', 'error');
+            });
+    });
+
+    /* ── Auto-fill department and academic program when student changes ── */
+    studentSelect.addEventListener('change', function() {
+        const studentId = this.value;
+        clearFieldError(studentSelect);
+
+        if (!studentId) {
+            departmentSelect.value = '';
+            academicProgramSelect.value = '';
+            filterCoursesByDepartment('');
+            resetSemesterToCurrent();
+            reinitChoices(departmentSelect, { searchEnabled: departmentSelect.options.length > 7, searchPosition: 'dropdown' });
+            reinitChoices(academicProgramSelect, { searchEnabled: false, searchPosition: 'dropdown' });
+            return;
+        }
+
+        fetch(`/staff/api/get-student-academic-profile/?student_id=${studentId}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    resetSemesterToCurrent();
+                    const departmentOption = Array.from(departmentSelect.options).find(
+                        option => option.value === String(data.department_id)
+                    );
+
+                    if (departmentOption) {
+                        departmentSelect.value = departmentOption.value;
+                        filterCoursesByDepartment(departmentOption.value);
+                    } else {
+                        departmentSelect.value = '';
+                        filterCoursesByDepartment('');
+                    }
+
+                    if (data.program_id) {
+                        academicProgramSelect.value = data.program_id;
+                    } else {
+                        academicProgramSelect.value = '';
+                    }
+
+                    reinitChoices(departmentSelect, { searchEnabled: departmentSelect.options.length > 7, searchPosition: 'dropdown' });
+                    reinitChoices(academicProgramSelect, { searchEnabled: false, searchPosition: 'dropdown' });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching student profile:', error);
+            });
+    });
+
+    /* ── Filter courses when department changes ── */
+    function filterCoursesByDepartment(deptId) {
+        courseSelect.innerHTML = '<option value="">Select Department First</option>';
+        let hasVisible = false;
+
+        allCourseOptions.forEach(opt => {
+            const optDeptId = (opt.getAttribute('data-dept') || '').toString().trim();
+            if (!deptId || optDeptId === deptId.toString().trim()) {
+                courseSelect.appendChild(opt.cloneNode(true));
+                hasVisible = true;
+            }
+        });
+
+        if (!deptId) {
+            courseSelect.innerHTML = '<option value="">Select Department First</option>';
+        } else if (!hasVisible) {
+            courseSelect.innerHTML = '<option value="">No courses available for this department</option>';
+        }
+
+        courseSelect.value = '';
+        sectionSelect.innerHTML = '<option value="">Select Course First</option>';
+        sectionSelect.disabled = true;
+        reinitChoices(courseSelect, { searchEnabled: false });
+        reinitChoices(sectionSelect, { searchEnabled: false });
+    }
+
+    departmentSelect.addEventListener('change', function() {
+        filterCoursesByDepartment(this.value);
+    });
+
+    /* ── Form submit ── */
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        let allValid = true;
+
+        const requiredFields = [
+            { el: studentSelect, msg: 'Please select a student' },
+            { el: semesterSelect, msg: 'Please select a term' },
+            { el: courseSelect, msg: 'Please select a course' },
+            { el: sectionSelect, msg: 'Please select a course section' },
+        ];
+
+        requiredFields.forEach(field => {
+            if (!validateField(field.el)) {
+                allValid = false;
+            }
+        });
+
+        if (!allValid) {
+            const first = document.querySelector('.is-invalid');
+            if (first) {
+                first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        departmentSelect.disabled = false;
+        academicProgramSelect.disabled = false;
+        sectionSelect.disabled = false;
+
+        const formData = new FormData(form);
+        const data = {
+            student_id: formData.get('student_id'),
+            semester_id: semesterSelect.value,
+            course_section_id: formData.get('section_id'),
+            enrollment_status: formData.get('enrollment_status'),
+            credit_load: formData.get('credit_load'),
+        };
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Creating...';
+
+        fetch('/staff/api/create-enrollment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            return response.text().then(text => {
+                try {
+                    const result = JSON.parse(text);
+                    if (!result.success) {
+                        const errEl = document.getElementById('err_studentSelect');
+                        const studentErr = result.error || 'Failed to create enrollment';
+                        studentSelect.classList.add('is-invalid');
+                        if (errEl) {
+                            errEl.querySelector('span').textContent = studentErr;
+                            errEl.classList.add('show');
+                        }
+                        studentSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i>Create Enrollment';
+                        return null;
+                    }
+                    return result;
+                } catch (e) {
+                    showMessage('Server error. Please try again.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i>Create Enrollment';
+                    return null;
+                }
+            });
+        })
+        .then(result => {
+            if (!result) return;
+            showMessage(`${result.message} — Redirecting...`, 'success');
+            setTimeout(() => {
+                window.location.href = '{% url "staff_enrollment" request.user.uuid %}';
+            }, 1500);
+        })
+        .catch(error => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i>Create Enrollment';
+            showMessage('An error occurred. Please try again.', 'error');
+        });
+    });
+
+    /* ── Show message function ── */
+    function showMessage(message, type) {
+        messagesDiv.innerHTML = `
+            <div class="alert alert-${type}">
+                <i class="ti ti-${type === 'success' ? 'check-circle' : 'alert-circle'}"></i>
+                ${message}
+            </div>
+        `;
+        if (type === 'success') {
+            setTimeout(() => {
+                const alert = messagesDiv.querySelector('.alert');
+                if (alert) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => { messagesDiv.innerHTML = ''; }, 500);
+                }
+            }, 5000);
+        }
+    }
+
+    /* ── Get CSRF token ── */
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

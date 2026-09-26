@@ -1,0 +1,2327 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Annual Progress Reviews{% endblock title %}
+
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/AnnualProgress/annual_progress.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+    <div class="aprv-page">
+
+        {% comment %} <div class="aprv-breadcrumb">
+            <a href="{% url 'faculty_dashboard' uuid=faculty.user.uuid %}">
+                <i class="bi bi-grid-1x2-fill"></i>
+                Faculty
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}">
+                PhD Management
+            </a>
+            <i class="bi bi-chevron-right"></i>
+            <span>Annual Progress</span>
+        </div> {% endcomment %}
+
+        <section class="aprv-hero">
+            <div class="aprv-hero-pattern"></div>
+
+            <div class="aprv-hero-content">
+
+                <div class="aprv-hero-left">
+
+                    <div class="aprv-eyebrow">
+                        <span></span>
+                        Annual Academic Performance
+                    </div>
+
+                    <h1>
+                        Annual Progress
+                        <strong>Reviews</strong>
+                    </h1>
+
+                    <p>
+                        {% if is_chair and is_committee_member %}
+                            Manage annual progress reviews for doctoral students assigned
+                            to you as Chair Faculty and Committee Member.
+                        {% elif is_chair %}
+                            Evaluate the yearly academic performance of doctoral students
+                            assigned to you as Chair Faculty and record the committee's
+                            consolidated assessment.
+                        {% elif is_committee_member %}
+                            Review annual academic performance records for doctoral
+                            students assigned to your doctoral committee.
+                        {% else %}
+                            Access annual academic performance records available to you.
+                        {% endif %}
+                    </p>
+
+                    <div class="aprv-hero-pills">
+
+                        {% if is_chair %}
+                            <span>
+                                <i class="bi bi-person-badge-fill"></i>
+                                Chair Faculty
+                            </span>
+                        {% endif %}
+
+                        {% if is_committee_member %}
+                            <span>
+                                <i class="bi bi-people-fill"></i>
+                                Committee Member
+                            </span>
+                        {% endif %}
+
+                        <span>
+                            <i class="bi bi-calendar3"></i>
+                            Year-wise Review
+                        </span>
+
+                        {% if can_create_review %}
+                            <span>
+                                <i class="bi bi-shield-check"></i>
+                                Chair Review Access
+                            </span>
+                        {% else %}
+                            <span>
+                                <i class="bi bi-eye-fill"></i>
+                                Read-only Access
+                            </span>
+                        {% endif %}
+
+                        <span>
+                            <i class="bi bi-eye-fill"></i>
+                            Student & Advisor Visible
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="aprv-hero-right">
+
+                    <div class="aprv-hero-icon">
+                        {% if can_create_review %}
+                            <i class="bi bi-clipboard2-check-fill"></i>
+                        {% else %}
+                            <i class="bi bi-eye-fill"></i>
+                        {% endif %}
+                    </div>
+
+                    <div class="aprv-hero-role">
+                        <small>REVIEW WORKSPACE</small>
+
+                        <strong>
+                            {{ workspace_role }}
+                        </strong>
+
+                        <span>
+                            {% if can_create_review %}
+                                <i class="bi bi-pencil-square"></i>
+                                Review Access
+                            {% else %}
+                                <i class="bi bi-lock-fill"></i>
+                                View Only
+                            {% endif %}
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <section class="aprv-stat-grid">
+
+            <div class="aprv-stat-card aprv-stat-total">
+                <div class="aprv-stat-icon">
+                    <i class="bi bi-clipboard-data-fill"></i>
+                </div>
+
+                <div class="aprv-stat-content">
+                    <span>Total Reviews</span>
+                    <strong>{{ total_reviews }}</strong>
+                    <small>Annual reviews recorded</small>
+                </div>
+
+                <div class="aprv-stat-decoration">
+                    <i class="bi bi-clipboard-check"></i>
+                </div>
+            </div>
+
+            <div class="aprv-stat-card aprv-stat-good">
+                <div class="aprv-stat-icon">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+
+                <div class="aprv-stat-content">
+                    <span>Satisfactory</span>
+                    <strong>{{ satisfactory_reviews }}</strong>
+                    <small>Performance satisfactory</small>
+                </div>
+
+                <div class="aprv-stat-decoration">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+            </div>
+
+            <div class="aprv-stat-card aprv-stat-warning">
+                <div class="aprv-stat-icon">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                </div>
+
+                <div class="aprv-stat-content">
+                    <span>Needs Improvement</span>
+                    <strong>{{ needs_improvement_reviews }}</strong>
+                    <small>Requires improvement</small>
+                </div>
+
+                <div class="aprv-stat-decoration">
+                    <i class="bi bi-activity"></i>
+                </div>
+            </div>
+
+            <div class="aprv-stat-card aprv-stat-danger">
+                <div class="aprv-stat-icon">
+                    <i class="bi bi-x-circle-fill"></i>
+                </div>
+
+                <div class="aprv-stat-content">
+                    <span>Unsatisfactory</span>
+                    <strong>{{ unsatisfactory_reviews }}</strong>
+                    <small>Requires attention</small>
+                </div>
+
+                <div class="aprv-stat-decoration">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="aprv-info">
+
+            <div class="aprv-info-icon">
+                <i class="bi bi-info-circle-fill"></i>
+            </div>
+
+            <div class="aprv-info-content">
+
+                <strong>About Annual Progress Review</strong>
+
+                <p>
+                    Each review records the doctoral student's overall academic
+                    performance for a specific review year through a progress score,
+                    committee assessment and final performance status.
+                </p>
+
+            </div>
+
+            <div class="aprv-info-flow">
+
+                {% if is_chair %}
+                    <span>
+                        <i class="bi bi-person-badge-fill"></i>
+                        Chair
+                    </span>
+
+                    <i class="bi bi-arrow-right"></i>
+                {% endif %}
+
+                {% if is_committee_member %}
+                    <span>
+                        <i class="bi bi-people-fill"></i>
+                        Committee
+                    </span>
+
+                    <i class="bi bi-arrow-right"></i>
+                {% endif %}
+
+                <span>
+                    <i class="bi bi-clipboard-check-fill"></i>
+                    Review
+                </span>
+
+                <i class="bi bi-arrow-right"></i>
+
+                <span>
+                    <i class="bi bi-eye-fill"></i>
+                    Student & Advisor
+                </span>
+
+            </div>
+
+        </section>
+
+        <section class="aprv-students aprv-student-workspace">
+
+            <div class="aprv-students-header">
+
+                <div class="aprv-students-heading">
+
+                    <span class="aprv-section-label">
+                        <i class="bi bi-people-fill"></i>
+
+                        {% if is_chair and is_committee_member %}
+                            Chair & Committee Workspace
+                        {% elif is_chair %}
+                            Chair Faculty Workspace
+                        {% elif is_committee_member %}
+                            Committee Member Workspace
+                        {% else %}
+                            Faculty Workspace
+                        {% endif %}
+                    </span>
+
+                    <h2>Your Doctoral Students</h2>
+
+                    <p>
+                        {% if is_chair and is_committee_member %}
+                            Students assigned to you through your Chair and Committee
+                            Member responsibilities are shown below.
+                        {% elif is_chair %}
+                            Students assigned to you as Chair Faculty are shown below.
+                            You can create and manage annual progress reviews.
+                        {% elif is_committee_member %}
+                            Doctoral students assigned to your approved committee
+                            memberships are shown below for review and reference.
+                        {% else %}
+                            Students available through your current academic assignments
+                            are shown below.
+                        {% endif %}
+                    </p>
+
+                </div>
+
+                <div class="aprv-students-summary">
+
+                    <div class="aprv-students-summary-icon">
+                        {% if is_committee_member and not is_chair %}
+                            <i class="bi bi-people-fill"></i>
+                        {% else %}
+                            <i class="bi bi-mortarboard-fill"></i>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <strong>{{ total_assigned_students }}</strong>
+                        <span>Assigned Students</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="aprv-student-filter">
+
+                <div class="aprv-student-filter-header">
+
+                    <div>
+
+                        <span class="aprv-section-label">
+                            <i class="bi bi-funnel-fill"></i>
+                            Student Directory
+                        </span>
+
+                        <h3>Find Your Students</h3>
+
+                        <p>
+                            Search and filter assigned doctoral students quickly.
+                        </p>
+
+                    </div>
+
+                    <div class="aprv-student-filter-count">
+                        <i class="bi bi-people-fill"></i>
+                        <strong>{{ student_paginator.count }}</strong>
+                        <span>Matching Students</span>
+                    </div>
+
+                </div>
+
+                <form method="get" class="aprv-student-filter-form">
+
+                    <div class="aprv-student-filter-field aprv-student-search">
+
+                        <label for="studentSearch">
+                            <i class="bi bi-search"></i>
+                            Student
+                        </label>
+
+                        <div class="aprv-student-search-box">
+
+                            <i class="bi bi-search"></i>
+
+                            <input
+                                type="text"
+                                id="studentSearch"
+                                name="student_q"
+                                value="{{ student_search }}"
+                                placeholder="Search student name or ID..."
+                                autocomplete="off"
+                            >
+
+                            {% if student_search %}
+                                <a
+                                    href="?{% if selected_student_status %}student_status={{ selected_student_status }}&{% endif %}{% if selected_student_program %}student_program={{ selected_student_program|urlencode }}{% endif %}"
+                                    class="aprv-student-search-clear"
+                                    aria-label="Clear student search"
+                                >
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                    <div class="aprv-student-filter-field">
+
+                        <label for="studentStatus">
+                            <i class="bi bi-clipboard-check"></i>
+                            Review Status
+                        </label>
+
+                        <select id="studentStatus" name="student_status">
+
+                            <option value="">
+                                All Students
+                            </option>
+
+                            <option
+                                value="PENDING"
+                                {% if selected_student_status == "PENDING" %}selected{% endif %}
+                            >
+                                Review Pending
+                            </option>
+
+                            <option
+                                value="COMPLETED"
+                                {% if selected_student_status == "COMPLETED" %}selected{% endif %}
+                            >
+                                Review Completed
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="aprv-student-filter-field">
+
+                        <label for="studentProgram">
+                            <i class="bi bi-mortarboard-fill"></i>
+                            Program
+                        </label>
+
+                        <select id="studentProgram" name="student_program">
+
+                            <option value="">
+                                All Programs
+                            </option>
+
+                            {% for program in student_programs %}
+                                <option
+                                    value="{{ program }}"
+                                    {% if selected_student_program == program %}selected{% endif %}
+                                >
+                                    {{ program }}
+                                </option>
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <div class="aprv-student-filter-actions">
+
+                        <button
+                            type="submit"
+                            class="aprv-student-filter-apply"
+                        >
+                            <i class="bi bi-search"></i>
+                            Find Students
+                        </button>
+
+                        <a
+                            href="{% url 'faculty_annual_progress_list' uuid=faculty.user.uuid %}"
+                            class="aprv-student-filter-reset"
+                        >
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Reset
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+            <div class="aprv-student-results-bar">
+
+                <div>
+                    <i class="bi bi-database-check"></i>
+
+                    Showing
+
+                    <strong>{{ student_page.start_index }}</strong>
+
+                    –
+
+                    <strong>{{ student_page.end_index }}</strong>
+
+                    of
+
+                    <strong>{{ student_page.paginator.count }}</strong>
+
+                    students
+                </div>
+
+                {% if selected_student_status or selected_student_program or student_search %}
+                    <span class="aprv-student-filter-active">
+                        <i class="bi bi-funnel-fill"></i>
+                        Filters Applied
+                    </span>
+                {% endif %}
+
+            </div>
+
+            {% if students %}
+
+                <div class="aprv-student-grid aprv-student-grid-modern">
+
+                    {% for student in students %}
+
+                        <article
+                            class="aprv-student-card aprv-student-card-modern"
+                            style="--student-delay: {{ forloop.counter0 }}"
+                        >
+
+                            <div class="aprv-student-card-top">
+
+                                <div class="aprv-student-profile">
+
+                                    <div class="aprv-student-avatar">
+                                        {{ student.student.user.first_name|slice:":1"|upper }}
+                                    </div>
+
+                                    <div class="aprv-student-name">
+
+                                        <h3>
+                                            {{ student.student.user.get_full_name }}
+                                        </h3>
+
+                                        <span>
+                                            <i class="bi bi-person-badge-fill"></i>
+                                            {{ student.student.student_number }}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="aprv-student-review-badge
+                                    {% if student.current_year_reviewed %}
+                                        aprv-student-review-complete
+                                    {% else %}
+                                        aprv-student-review-pending
+                                    {% endif %}
+                                ">
+
+                                    {% if student.current_year_reviewed %}
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        Reviewed
+                                    {% else %}
+                                        <i class="bi bi-clock-fill"></i>
+                                        Review Pending
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-student-program">
+
+                                <div class="aprv-student-program-icon">
+                                    <i class="bi bi-mortarboard-fill"></i>
+                                </div>
+
+                                <div>
+
+                                    <small>DOCTORAL PROGRAM</small>
+
+                                    <strong>
+                                        {% if student.phd_program %}
+                                            {{ student.phd_program.program_name }}
+                                        {% else %}
+                                            Program Not Assigned
+                                        {% endif %}
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-student-details">
+
+                                <div class="aprv-student-detail">
+
+                                    <span>
+                                        <i class="bi bi-person-workspace"></i>
+                                        Advisor
+                                    </span>
+
+                                    <strong>
+                                        {% if student.advisor %}
+                                            {{ student.advisor.user.get_full_name }}
+                                        {% else %}
+                                            Not Assigned
+                                        {% endif %}
+                                    </strong>
+
+                                </div>
+
+                                <div class="aprv-student-detail">
+
+                                    <span>
+                                        <i class="bi bi-bar-chart-fill"></i>
+                                        Review Records
+                                    </span>
+
+                                    <strong>
+                                        {{ student.review_count }}
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-student-current-review">
+
+                                <div class="aprv-current-review-icon">
+
+                                    {% if student.current_year_reviewed %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-calendar-plus"></i>
+                                    {% endif %}
+
+                                </div>
+
+                                <div>
+
+                                    <span>
+                                        {{ student.current_year }} Annual Review
+                                    </span>
+
+                                    {% if student.current_year_reviewed %}
+                                        <strong>
+                                            Review already recorded
+                                        </strong>
+                                    {% else %}
+                                        <strong>
+                                            Review not created yet
+                                        </strong>
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-student-action">
+
+                                {% if student.current_year_reviewed %}
+
+                                    <a
+                                        href="{% url 'faculty_annual_progress_detail' uuid=faculty.user.uuid phd_student_id=student.phd_student_id %}"
+                                        class="aprv-student-view-review"
+                                    >
+
+                                        <span class="aprv-make-review-icon">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </span>
+
+                                        <span class="aprv-make-review-text">
+
+                                            <strong>
+                                                View Review
+                                            </strong>
+
+                                            <small>
+                                                View {{ student.current_year }} annual review
+                                            </small>
+
+                                        </span>
+
+                                        <i class="bi bi-arrow-up-right aprv-make-review-arrow"></i>
+
+                                    </a>
+
+                                {% elif student.can_create_review %}
+
+                                    <a
+                                        href="{% url 'faculty_annual_progress_create' uuid=faculty.user.uuid phd_student_id=student.phd_student_id %}"
+                                        class="aprv-make-review"
+                                    >
+
+                                        <span class="aprv-make-review-icon">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </span>
+
+                                        <span class="aprv-make-review-text">
+
+                                            <strong>
+                                                Make Review
+                                            </strong>
+
+                                            <small>
+                                                Create {{ student.current_year }} Annual Progress Review
+                                            </small>
+
+                                        </span>
+
+                                        <i class="bi bi-arrow-up-right aprv-make-review-arrow"></i>
+
+                                    </a>
+
+                                {% else %}
+
+                                    <div class="aprv-student-view-review">
+
+                                        <span class="aprv-make-review-icon">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </span>
+
+                                        <span class="aprv-make-review-text">
+
+                                            <strong>
+                                                Review Pending
+                                            </strong>
+
+                                            <small>
+                                                Chair Faculty will create the annual review
+                                            </small>
+
+                                        </span>
+
+                                        <i class="bi bi-lock-fill aprv-make-review-arrow"></i>
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        </article>
+
+                    {% endfor %}
+
+                </div>
+
+                {% if student_page.paginator.num_pages > 1 %}
+
+                    <div class="aprv-student-pagination">
+
+                        <div class="aprv-pagination-info">
+
+                            Showing
+
+                            <strong>
+                                {{ student_page.start_index }}
+                            </strong>
+
+                            –
+
+                            <strong>
+                                {{ student_page.end_index }}
+                            </strong>
+
+                            of
+
+                            <strong>
+                                {{ student_page.paginator.count }}
+                            </strong>
+
+                            students
+
+                        </div>
+
+                        <div class="aprv-pagination-controls">
+
+                            {% if student_page.has_previous %}
+
+                                <a
+                                    href="?student_page={{ student_page.previous_page_number }}{% if student_search %}&student_q={{ student_search|urlencode }}{% endif %}{% if selected_student_status %}&student_status={{ selected_student_status }}{% endif %}{% if selected_student_program %}&student_program={{ selected_student_program|urlencode }}{% endif %}"
+                                    class="aprv-page-btn"
+                                >
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+
+                            {% else %}
+
+                                <span class="aprv-page-btn disabled">
+                                    <i class="bi bi-chevron-left"></i>
+                                </span>
+
+                            {% endif %}
+
+                            {% for number in student_page.paginator.get_elided_page_range %}
+
+                                {% if number == student_page.paginator.ELLIPSIS %}
+
+                                    <span class="aprv-page-dots">
+                                        …
+                                    </span>
+
+                                {% elif number == student_page.number %}
+
+                                    <span class="aprv-page-btn active">
+                                        {{ number }}
+                                    </span>
+
+                                {% else %}
+
+                                    <a
+                                        href="?student_page={{ number }}{% if student_search %}&student_q={{ student_search|urlencode }}{% endif %}{% if selected_student_status %}&student_status={{ selected_student_status }}{% endif %}{% if selected_student_program %}&student_program={{ selected_student_program|urlencode }}{% endif %}"
+                                        class="aprv-page-btn"
+                                    >
+                                        {{ number }}
+                                    </a>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                            {% if student_page.has_next %}
+
+                                <a
+                                    href="?student_page={{ student_page.next_page_number }}{% if student_search %}&student_q={{ student_search|urlencode }}{% endif %}{% if selected_student_status %}&student_status={{ selected_student_status }}{% endif %}{% if selected_student_program %}&student_program={{ selected_student_program|urlencode }}{% endif %}"
+                                    class="aprv-page-btn"
+                                >
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+
+                            {% else %}
+
+                                <span class="aprv-page-btn disabled">
+                                    <i class="bi bi-chevron-right"></i>
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            {% else %}
+
+                <div class="aprv-students-empty aprv-student-no-results">
+
+                    <div class="aprv-students-empty-icon">
+                        <i class="bi bi-person-x-fill"></i>
+                    </div>
+
+                    <span>
+                        No Matching Students
+                    </span>
+
+                    <h3>
+                        No Doctoral Students Found
+                    </h3>
+
+                    <p>
+                        Try changing the search or filter selections.
+                    </p>
+
+                    <a
+                        href="{% url 'faculty_annual_progress_list' uuid=faculty.user.uuid %}"
+                        class="aprv-student-empty-reset"
+                    >
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        Clear Student Filters
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+        <section class="aprv-filter aprv-live-filter">
+
+            <div class="aprv-filter-header">
+
+                <div>
+
+                    <span class="aprv-section-label">
+                        <i class="bi bi-funnel-fill"></i>
+                        Review Directory
+                    </span>
+
+                    <h2>
+                        Find Annual Reviews
+                    </h2>
+
+                    <p>
+                        Search and filter recorded reviews instantly.
+                        Results are loaded directly from the database.
+                    </p>
+
+                </div>
+
+                <div class="aprv-live-status">
+                    <span class="aprv-live-dot"></span>
+                    <span>Live Search</span>
+                </div>
+
+            </div>
+
+            <div class="aprv-filter-grid">
+
+                <div class="aprv-field aprv-search-field aprv-live-search">
+
+                    <label for="aprvSearch">
+                        <i class="bi bi-search"></i>
+                        Student
+                    </label>
+
+                    <div class="aprv-search-box">
+
+                        <i class="bi bi-search aprv-search-icon"></i>
+
+                        <input
+                            type="text"
+                            id="aprvSearch"
+                            value="{{ search_query }}"
+                            placeholder="Type student name or ID..."
+                            autocomplete="off"
+                        >
+
+                        <span
+                            class="aprv-search-loader"
+                            id="aprvSearchLoader"
+                        ></span>
+
+                        <button
+                            type="button"
+                            id="aprvSearchClear"
+                            aria-label="Clear search"
+                        >
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+
+                    </div>
+
+                    <small class="aprv-live-hint">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                        Results update while you type
+                    </small>
+
+                </div>
+
+                <div class="aprv-field">
+
+                    <label for="aprvYear">
+                        <i class="bi bi-calendar3"></i>
+                        Review Year
+                    </label>
+
+                    <select id="aprvYear">
+
+                        <option value="">
+                            All Years
+                        </option>
+
+                        {% for year in review_years %}
+
+                            <option
+                                value="{{ year }}"
+                                {% if selected_year == year|stringformat:"s" %}selected{% endif %}
+                            >
+                                {{ year }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="aprv-field">
+
+                    <label for="aprvStatus">
+                        <i class="bi bi-bar-chart-fill"></i>
+                        Performance Status
+                    </label>
+
+                    <select id="aprvStatus">
+
+                        <option value="">
+                            All Statuses
+                        </option>
+
+                        <option
+                            value="SATISFACTORY"
+                            {% if selected_status == "SATISFACTORY" %}selected{% endif %}
+                        >
+                            Satisfactory
+                        </option>
+
+                        <option
+                            value="NEEDS_IMPROVEMENT"
+                            {% if selected_status == "NEEDS_IMPROVEMENT" %}selected{% endif %}
+                        >
+                            Needs Improvement
+                        </option>
+
+                        <option
+                            value="UNSATISFACTORY"
+                            {% if selected_status == "UNSATISFACTORY" %}selected{% endif %}
+                        >
+                            Unsatisfactory
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="aprv-field">
+
+                    <label for="aprvProgram">
+                        <i class="bi bi-mortarboard-fill"></i>
+                        Program
+                    </label>
+
+                    <select id="aprvProgram">
+
+                        <option value="">
+                            All Programs
+                        </option>
+
+                        {% for program in programs %}
+
+                            <option
+                                value="{{ program }}"
+                                {% if selected_program == program %}selected{% endif %}
+                            >
+                                {{ program }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="aprv-filter-footer">
+
+                <div class="aprv-filter-result">
+
+                    <div class="aprv-result-icon">
+                        <i class="bi bi-database-check"></i>
+                    </div>
+
+                    <div>
+                        <strong id="aprvVisibleCount">
+                            {{ review_paginator.count }}
+                        </strong>
+
+                        <span id="aprvResultText">
+                            matching reviews
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="aprv-filter-actions">
+
+                    <button
+                        type="button"
+                        class="aprv-btn aprv-btn-primary"
+                        id="aprvApply"
+                    >
+                        <i class="bi bi-arrow-repeat"></i>
+                        Refresh Results
+                    </button>
+
+                    <button
+                        type="button"
+                        class="aprv-btn aprv-btn-reset"
+                        id="aprvReset"
+                    >
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        Reset
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="aprv-reviews">
+
+            <div class="aprv-reviews-header">
+
+                <div class="aprv-reviews-title">
+
+                    <div class="aprv-reviews-icon">
+                        <i class="bi bi-clipboard2-check-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Annual Performance
+                        </span>
+
+                        <h2>
+                            Review Records
+                        </h2>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="aprv-record-label"
+                    id="aprvRecordLabel"
+                >
+                    <i class="bi bi-database-check"></i>
+                    {{ total_reviews }} Recorded Reviews
+                </div>
+
+            </div>
+
+            <div
+                class="aprv-review-loading"
+                id="aprvReviewLoading"
+            >
+
+                <div class="aprv-review-loading-spinner">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <strong>
+                    Loading Reviews
+                </strong>
+
+                <small>
+                    Fetching matching review records...
+                </small>
+
+            </div>
+
+            <div
+                class="aprv-review-grid"
+                id="aprvReviewGrid"
+            >
+
+                {% for review in reviews %}
+
+                    <article
+                        class="aprv-review-card"
+                        data-student="{{ review.phd_student.student.user.get_full_name|lower }} {{ review.phd_student.student.student_number|lower }}"
+                        data-year="{{ review.review_year }}"
+                        data-status="{{ review.status }}"
+                        data-program="{{ review.phd_student.phd_program.program_name|lower }}"
+                    >
+
+                        <div class="aprv-card-top">
+
+                            <div class="aprv-student">
+
+                                <div class="aprv-avatar">
+                                    {{ review.phd_student.student.user.first_name|slice:":1"|upper }}
+                                </div>
+
+                                <div class="aprv-student-info">
+
+                                    <h3>
+                                        {{ review.phd_student.student.user.get_full_name }}
+                                    </h3>
+
+                                    <span>
+                                        <i class="bi bi-person-badge"></i>
+                                        {{ review.phd_student.student.student_number }}
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-year">
+
+                                <small>
+                                    REVIEW YEAR
+                                </small>
+
+                                <strong>
+                                    <i class="bi bi-calendar3"></i>
+                                    {{ review.review_year }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-program">
+
+                            <div class="aprv-program-icon">
+                                <i class="bi bi-mortarboard-fill"></i>
+                            </div>
+
+                            <div>
+
+                                <small>
+                                    DOCTORAL PROGRAM
+                                </small>
+
+                                <strong>
+                                    {% if review.phd_student.phd_program %}
+                                        {{ review.phd_student.phd_program.program_name }}
+                                    {% else %}
+                                        Program Not Assigned
+                                    {% endif %}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-card-details">
+
+                            <div class="aprv-detail">
+
+                                <span>
+                                    <i class="bi bi-person-workspace"></i>
+                                    Advisor
+                                </span>
+
+                                <strong>
+                                    {% if review.phd_student.advisor %}
+                                        {{ review.phd_student.advisor.user.get_full_name }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+
+                            </div>
+
+                            <div class="aprv-detail">
+
+                                <span>
+                                    <i class="bi bi-hash"></i>
+                                    Review ID
+                                </span>
+
+                                <strong>
+                                    #{{ review.review_id }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-performance">
+
+                            <div class="aprv-performance-header">
+
+                                <div>
+
+                                    <span>
+                                        <i class="bi bi-speedometer2"></i>
+                                        Progress Score
+                                    </span>
+
+                                    <strong>
+                                        {{ review.progress_score }}
+                                    </strong>
+
+                                </div>
+
+                                <div class="aprv-score-label">
+                                    / 100
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-score-track">
+
+                                <div
+                                    class="aprv-score-fill"
+                                    style="width: {{ review.progress_score }}%;"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-status-row">
+
+                            {% if review.status == "SATISFACTORY" %}
+
+                                <span class="aprv-status aprv-status-success">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Satisfactory
+                                </span>
+
+                            {% elif review.status == "NEEDS_IMPROVEMENT" %}
+
+                                <span class="aprv-status aprv-status-warning">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    Needs Improvement
+                                </span>
+
+                            {% elif review.status == "UNSATISFACTORY" %}
+
+                                <span class="aprv-status aprv-status-danger">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    Unsatisfactory
+                                </span>
+
+                            {% else %}
+
+                                <span class="aprv-status aprv-status-warning">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                    Pending
+                                </span>
+
+                            {% endif %}
+
+                            <span class="aprv-visibility">
+                                <i class="bi bi-eye-fill"></i>
+                                Student & Advisor
+                            </span>
+
+                        </div>
+
+                        <div class="aprv-comments">
+
+                            <div class="aprv-comments-label">
+                                <i class="bi bi-chat-left-text-fill"></i>
+                                Committee Comments
+                            </div>
+
+                            <p>
+                                {{ review.committee_comments|default:"No comments recorded."|truncatechars:145 }}
+                            </p>
+
+                        </div>
+
+                        <div class="aprv-card-footer">
+
+                            <div class="aprv-footer-meta">
+                                <i class="bi bi-clock-history"></i>
+                                Annual Review
+                            </div>
+
+                            <a
+                                href="{% url 'faculty_annual_progress_detail' uuid=faculty.user.uuid phd_student_id=review.phd_student.phd_student_id %}"
+                                class="aprv-review-btn"
+                            >
+                                <span>
+                                    Review Details
+                                </span>
+
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+            {% if not reviews %}
+
+                <div
+                    class="aprv-empty"
+                    id="aprvInitialEmpty"
+                >
+
+                    <div class="aprv-empty-icon">
+                        <i class="bi bi-clipboard-x"></i>
+                    </div>
+
+                    <span>
+                        No Review Records
+                    </span>
+
+                    <h3>
+                        No Annual Progress Reviews Available
+                    </h3>
+
+                    <p>
+                        {% if can_create_review %}
+                            Your recorded annual progress reviews will appear here.
+                            Select a student above to create the first review.
+                        {% else %}
+                            Annual progress reviews created by the Chair Faculty
+                            will appear here.
+                        {% endif %}
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+            <div
+                class="aprv-filter-empty"
+                id="aprvFilterEmpty"
+                hidden
+            >
+
+                <div>
+                    <i class="bi bi-search"></i>
+                </div>
+
+                <h3>
+                    No Matching Reviews
+                </h3>
+
+                <p>
+                    Try changing the search or filter selections.
+                </p>
+
+                <button
+                    type="button"
+                    id="aprvClearFilters"
+                >
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    Clear Filters
+                </button>
+
+            </div>
+
+            <div
+                class="aprv-review-pagination"
+                id="aprvPagination"
+                hidden
+            ></div>
+
+        </section>
+
+    </div>
+{% endblock content %}
+
+{% block extra_js %}
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        (function () {
+
+            const searchInput = document.getElementById("aprvSearch");
+            const searchClear = document.getElementById("aprvSearchClear");
+            const yearSelect = document.getElementById("aprvYear");
+            const statusSelect = document.getElementById("aprvStatus");
+            const programSelect = document.getElementById("aprvProgram");
+            const applyButton = document.getElementById("aprvApply");
+            const resetButton = document.getElementById("aprvReset");
+            const clearButton = document.getElementById("aprvClearFilters");
+
+            const reviewGrid = document.getElementById("aprvReviewGrid");
+            const pagination = document.getElementById("aprvPagination");
+            const visibleCount = document.getElementById("aprvVisibleCount");
+            const recordLabel = document.getElementById("aprvRecordLabel");
+            const emptyState = document.getElementById("aprvFilterEmpty");
+            const initialEmptyState = document.getElementById("aprvInitialEmpty");
+            const loading = document.getElementById("aprvReviewLoading");
+            const searchLoader = document.getElementById("aprvSearchLoader");
+
+            let searchTimer = null;
+            let activeRequest = null;
+            let currentPage = 1;
+
+            const yearChoice = yearSelect
+                ? new Choices(yearSelect, {
+                    searchEnabled: false,
+                    itemSelectText: "",
+                    shouldSort: false,
+                    allowHTML: false
+                })
+                : null;
+
+            const statusChoice = statusSelect
+                ? new Choices(statusSelect, {
+                    searchEnabled: false,
+                    itemSelectText: "",
+                    shouldSort: false,
+                    allowHTML: false
+                })
+                : null;
+
+            const programChoice = programSelect
+                ? new Choices(programSelect, {
+                    searchEnabled: true,
+                    searchPlaceholderValue: "Search programs...",
+                    itemSelectText: "",
+                    shouldSort: false,
+                    allowHTML: false
+                })
+                : null;
+
+            function escapeHtml(value) {
+                return String(value ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            function normalizeScore(value) {
+                const score = Number(value || 0);
+
+                if (Number.isNaN(score)) {
+                    return "0.00";
+                }
+
+                return score.toFixed(2);
+            }
+
+            function getStatusConfig(status) {
+
+                if (status === "SATISFACTORY") {
+                    return {
+                        className: "aprv-status-success",
+                        icon: "bi-check-circle-fill",
+                        label: "Satisfactory"
+                    };
+                }
+
+                if (status === "NEEDS_IMPROVEMENT") {
+                    return {
+                        className: "aprv-status-warning",
+                        icon: "bi-exclamation-circle-fill",
+                        label: "Needs Improvement"
+                    };
+                }
+
+                if (status === "UNSATISFACTORY") {
+                    return {
+                        className: "aprv-status-danger",
+                        icon: "bi-x-circle-fill",
+                        label: "Unsatisfactory"
+                    };
+                }
+
+                return {
+                    className: "aprv-status-warning",
+                    icon: "bi-info-circle-fill",
+                    label: "Pending"
+                };
+            }
+
+            function createReviewCard(review, index) {
+
+                const status = getStatusConfig(
+                    review.status
+                );
+
+                const score = normalizeScore(
+                    review.progress_score
+                );
+
+                const animationDelay = Math.min(
+                    index * 45,
+                    300
+                );
+
+                const roleLabel = review.can_create_review
+                    ? "Chair Review"
+                    : "Committee View";
+
+                return `
+                    <article
+                        class="aprv-review-card aprv-review-card-enter"
+                        style="--aprv-delay: ${animationDelay}ms;"
+                    >
+
+                        <div class="aprv-card-top">
+
+                            <div class="aprv-student">
+
+                                <div class="aprv-avatar">
+                                    ${escapeHtml(review.avatar)}
+                                </div>
+
+                                <div class="aprv-student-info">
+
+                                    <h3>
+                                        ${escapeHtml(review.student_name)}
+                                    </h3>
+
+                                    <span>
+                                        <i class="bi bi-person-badge"></i>
+                                        ${escapeHtml(review.student_number)}
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-year">
+
+                                <small>
+                                    REVIEW YEAR
+                                </small>
+
+                                <strong>
+                                    <i class="bi bi-calendar3"></i>
+                                    ${escapeHtml(review.review_year)}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-program">
+
+                            <div class="aprv-program-icon">
+                                <i class="bi bi-mortarboard-fill"></i>
+                            </div>
+
+                            <div>
+
+                                <small>
+                                    DOCTORAL PROGRAM
+                                </small>
+
+                                <strong>
+                                    ${escapeHtml(review.program)}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-card-details">
+
+                            <div class="aprv-detail">
+
+                                <span>
+                                    <i class="bi bi-person-workspace"></i>
+                                    Advisor
+                                </span>
+
+                                <strong>
+                                    ${escapeHtml(review.advisor)}
+                                </strong>
+
+                            </div>
+
+                            <div class="aprv-detail">
+
+                                <span>
+                                    <i class="bi bi-hash"></i>
+                                    Review ID
+                                </span>
+
+                                <strong>
+                                    #${escapeHtml(review.review_id)}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-performance">
+
+                            <div class="aprv-performance-header">
+
+                                <div>
+
+                                    <span>
+                                        <i class="bi bi-speedometer2"></i>
+                                        Progress Score
+                                    </span>
+
+                                    <strong>
+                                        ${score}
+                                    </strong>
+
+                                </div>
+
+                                <div class="aprv-score-label">
+                                    / 100
+                                </div>
+
+                            </div>
+
+                            <div class="aprv-score-track">
+
+                                <div
+                                    class="aprv-score-fill"
+                                    style="width: ${Math.min(
+                                        Number(review.progress_score || 0),
+                                        100
+                                    )}%;"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="aprv-status-row">
+
+                            <span class="aprv-status ${status.className}">
+                                <i class="bi ${status.icon}"></i>
+                                ${status.label}
+                            </span>
+
+                            <span class="aprv-visibility">
+                                <i class="bi bi-eye-fill"></i>
+                                ${roleLabel}
+                            </span>
+
+                        </div>
+
+                        <div class="aprv-comments">
+
+                            <div class="aprv-comments-label">
+                                <i class="bi bi-chat-left-text-fill"></i>
+                                Committee Comments
+                            </div>
+
+                            <p>
+                                ${escapeHtml(
+                                    review.comments ||
+                                    "No comments recorded."
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="aprv-card-footer">
+
+                            <div class="aprv-footer-meta">
+                                <i class="bi bi-clock-history"></i>
+                                Annual Review
+                            </div>
+
+                            <a
+                                href="${escapeHtml(review.detail_url)}"
+                                class="aprv-review-btn"
+                            >
+                                <span>
+                                    Review Details
+                                </span>
+
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+
+                        </div>
+
+                    </article>
+                `;
+            }
+
+            function getFilterParams(page = 1) {
+
+                const params = new URLSearchParams();
+
+                const search = searchInput
+                    ? searchInput.value.trim()
+                    : "";
+
+                const year = yearSelect
+                    ? yearSelect.value
+                    : "";
+
+                const status = statusSelect
+                    ? statusSelect.value
+                    : "";
+
+                const program = programSelect
+                    ? programSelect.value
+                    : "";
+
+                if (search) {
+                    params.set("q", search);
+                }
+
+                if (year) {
+                    params.set("year", year);
+                }
+
+                if (status) {
+                    params.set("status", status);
+                }
+
+                if (program) {
+                    params.set("program", program);
+                }
+
+                params.set(
+                    "page",
+                    page
+                );
+
+                params.set(
+                    "ajax",
+                    "1"
+                );
+
+                return params;
+            }
+
+            function showLoading() {
+
+                if (initialEmptyState) {
+                    initialEmptyState.hidden = true;
+                }
+
+                if (loading) {
+                    loading.classList.add(
+                        "aprv-review-loading-active"
+                    );
+                }
+
+                if (searchLoader) {
+                    searchLoader.classList.add(
+                        "aprv-search-loader-active"
+                    );
+                }
+
+                if (reviewGrid) {
+                    reviewGrid.classList.add(
+                        "aprv-grid-loading"
+                    );
+                }
+            }
+
+            function hideLoading() {
+
+                if (loading) {
+                    loading.classList.remove(
+                        "aprv-review-loading-active"
+                    );
+                }
+
+                if (searchLoader) {
+                    searchLoader.classList.remove(
+                        "aprv-search-loader-active"
+                    );
+                }
+
+                if (reviewGrid) {
+                    reviewGrid.classList.remove(
+                        "aprv-grid-loading"
+                    );
+                }
+            }
+
+            function renderPagination(data) {
+
+                if (!pagination) {
+                    return;
+                }
+
+                if (
+                    !data.num_pages ||
+                    data.num_pages <= 1
+                ) {
+                    pagination.innerHTML = "";
+                    pagination.hidden = true;
+                    return;
+                }
+
+                pagination.hidden = false;
+
+                let html = `
+                    <div class="aprv-pagination-info">
+                        Showing
+                        <strong>${data.start_index}</strong>
+                        –
+                        <strong>${data.end_index}</strong>
+                        of
+                        <strong>${data.total}</strong>
+                        reviews
+                    </div>
+
+                    <div class="aprv-pagination-controls">
+                `;
+
+                if (data.has_previous) {
+
+                    html += `
+                        <button
+                            type="button"
+                            class="aprv-page-btn"
+                            data-page="${data.previous_page}"
+                        >
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    `;
+
+                } else {
+
+                    html += `
+                        <span class="aprv-page-btn disabled">
+                            <i class="bi bi-chevron-left"></i>
+                        </span>
+                    `;
+                }
+
+                data.page_range.forEach(
+                    function (number) {
+
+                        if (number === "…") {
+
+                            html += `
+                                <span class="aprv-page-dots">
+                                    …
+                                </span>
+                            `;
+
+                            return;
+                        }
+
+                        if (
+                            Number(number) ===
+                            Number(data.page)
+                        ) {
+
+                            html += `
+                                <span class="aprv-page-btn active">
+                                    ${number}
+                                </span>
+                            `;
+
+                            return;
+                        }
+
+                        html += `
+                            <button
+                                type="button"
+                                class="aprv-page-btn"
+                                data-page="${number}"
+                            >
+                                ${number}
+                            </button>
+                        `;
+                    }
+                );
+
+                if (data.has_next) {
+
+                    html += `
+                        <button
+                            type="button"
+                            class="aprv-page-btn"
+                            data-page="${data.next_page}"
+                        >
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    `;
+
+                } else {
+
+                    html += `
+                        <span class="aprv-page-btn disabled">
+                            <i class="bi bi-chevron-right"></i>
+                        </span>
+                    `;
+                }
+
+                html += `
+                    </div>
+                `;
+
+                pagination.innerHTML = html;
+            }
+
+            async function fetchReviews(page = 1) {
+
+                currentPage = page;
+
+                if (activeRequest) {
+                    activeRequest.abort();
+                }
+
+                activeRequest =
+                    new AbortController();
+
+                const params =
+                    getFilterParams(page);
+
+                const url =
+                    new URL(
+                        window.location.href
+                    );
+
+                url.search =
+                    params.toString();
+
+                showLoading();
+
+                try {
+
+                    const response =
+                        await fetch(
+                            url.toString(),
+                            {
+                                method: "GET",
+                                headers: {
+                                    "X-Requested-With":
+                                        "XMLHttpRequest",
+                                    "Accept":
+                                        "application/json"
+                                },
+                                signal:
+                                    activeRequest.signal
+                            }
+                        );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            "Unable to load reviews."
+                        );
+                    }
+
+                    const data =
+                        await response.json();
+
+                    if (reviewGrid) {
+
+                        if (data.reviews.length) {
+
+                            reviewGrid.innerHTML =
+                                data.reviews
+                                    .map(
+                                        createReviewCard
+                                    )
+                                    .join("");
+
+                            if (emptyState) {
+                                emptyState.hidden =
+                                    true;
+                            }
+
+                            if (initialEmptyState) {
+                                initialEmptyState.hidden =
+                                    true;
+                            }
+
+                        } else {
+
+                            reviewGrid.innerHTML =
+                                "";
+
+                            if (emptyState) {
+                                emptyState.hidden =
+                                    false;
+                            }
+
+                            if (initialEmptyState) {
+                                initialEmptyState.hidden =
+                                    true;
+                            }
+                        }
+                    }
+
+                    if (visibleCount) {
+                        visibleCount.textContent =
+                            data.total;
+                    }
+
+                    if (recordLabel) {
+                        recordLabel.innerHTML = `
+                            <i class="bi bi-database-check"></i>
+                            ${data.total} Matching Reviews
+                        `;
+                    }
+
+                    renderPagination(data);
+
+                    const cleanUrl =
+                        new URL(
+                            window.location.href
+                        );
+
+                    cleanUrl.search = "";
+
+                    if (
+                        searchInput &&
+                        searchInput.value.trim()
+                    ) {
+                        cleanUrl.searchParams.set(
+                            "q",
+                            searchInput.value.trim()
+                        );
+                    }
+
+                    if (
+                        yearSelect &&
+                        yearSelect.value
+                    ) {
+                        cleanUrl.searchParams.set(
+                            "year",
+                            yearSelect.value
+                        );
+                    }
+
+                    if (
+                        statusSelect &&
+                        statusSelect.value
+                    ) {
+                        cleanUrl.searchParams.set(
+                            "status",
+                            statusSelect.value
+                        );
+                    }
+
+                    if (
+                        programSelect &&
+                        programSelect.value
+                    ) {
+                        cleanUrl.searchParams.set(
+                            "program",
+                            programSelect.value
+                        );
+                    }
+
+                    if (page > 1) {
+                        cleanUrl.searchParams.set(
+                            "page",
+                            page
+                        );
+                    }
+
+                    window.history.replaceState(
+                        {},
+                        "",
+                        cleanUrl.toString()
+                    );
+
+                } catch (error) {
+
+                    if (
+                        error.name !==
+                        "AbortError"
+                    ) {
+
+                        Swal.fire({
+                            icon: "error",
+                            title:
+                                "Unable to Load Reviews",
+                            text:
+                                "Something went wrong while loading the review records.",
+                            timer: 5000,
+                            timerProgressBar: true,
+                            showConfirmButton: false
+                        });
+                    }
+
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            function resetFilters() {
+
+                if (searchInput) {
+                    searchInput.value = "";
+                }
+
+                if (yearChoice) {
+                    yearChoice.setChoiceByValue("");
+                }
+
+                if (statusChoice) {
+                    statusChoice.setChoiceByValue("");
+                }
+
+                if (programChoice) {
+                    programChoice.setChoiceByValue("");
+                }
+
+                fetchReviews(1);
+            }
+
+            function liveSearch() {
+
+                clearTimeout(
+                    searchTimer
+                );
+
+                searchTimer =
+                    setTimeout(
+                        function () {
+                            fetchReviews(1);
+                        },
+                        350
+                    );
+            }
+
+            if (searchInput) {
+
+                searchInput.addEventListener(
+                    "input",
+                    liveSearch
+                );
+            }
+
+            if (searchClear) {
+
+                searchClear.addEventListener(
+                    "click",
+                    function () {
+
+                        if (searchInput) {
+                            searchInput.value =
+                                "";
+
+                            searchInput.focus();
+                        }
+
+                        fetchReviews(1);
+                    }
+                );
+            }
+
+            if (yearSelect) {
+
+                yearSelect.addEventListener(
+                    "change",
+                    function () {
+                        fetchReviews(1);
+                    }
+                );
+            }
+
+            if (statusSelect) {
+
+                statusSelect.addEventListener(
+                    "change",
+                    function () {
+                        fetchReviews(1);
+                    }
+                );
+            }
+
+            if (programSelect) {
+
+                programSelect.addEventListener(
+                    "change",
+                    function () {
+                        fetchReviews(1);
+                    }
+                );
+            }
+
+            if (applyButton) {
+
+                applyButton.addEventListener(
+                    "click",
+                    function () {
+                        fetchReviews(1);
+                    }
+                );
+            }
+
+            if (resetButton) {
+
+                resetButton.addEventListener(
+                    "click",
+                    resetFilters
+                );
+            }
+
+            if (clearButton) {
+
+                clearButton.addEventListener(
+                    "click",
+                    resetFilters
+                );
+            }
+
+            if (pagination) {
+
+                pagination.addEventListener(
+                    "click",
+                    function (event) {
+
+                        const button =
+                            event.target.closest(
+                                "[data-page]"
+                            );
+
+                        if (!button) {
+                            return;
+                        }
+
+                        const page =
+                            Number(
+                                button.dataset.page
+                            );
+
+                        if (
+                            !page ||
+                            page === currentPage
+                        ) {
+                            return;
+                        }
+
+                        fetchReviews(page);
+
+                        const reviewsSection =
+                            document.querySelector(
+                                ".aprv-reviews"
+                            );
+
+                        if (reviewsSection) {
+
+                            reviewsSection.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start"
+                            });
+                        }
+                    }
+                );
+            }
+
+            {% if messages %}
+
+                {% for message in messages %}
+
+                    Swal.fire({
+                        icon:
+                            "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+
+                        title:
+                            "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Cannot Create Review{% elif message.tags == 'warning' %}Warning{% else %}Information{% endif %}",
+
+                        text:
+                            "{{ message|escapejs }}",
+
+                        timer: 5000,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        allowOutsideClick: true,
+                        allowEscapeKey: true
+                    });
+
+                {% endfor %}
+
+            {% endif %}
+
+        })();
+    </script>
+
+{% endblock extra_js %}

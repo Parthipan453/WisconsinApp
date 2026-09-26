@@ -1,0 +1,1243 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}
+Leave Dashboard — Faculty Portal
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" />
+<link rel="stylesheet" href="{% static 'css/Faculty_Leave/leave_request.css' %}">
+
+<style>
+
+    .modal-date-input::-webkit-calendar-picker-indicator {
+        display: none !important;
+        -webkit-appearance: none !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Hide default calendar icon in Firefox */
+    .modal-date-input::-moz-calendar-picker-indicator {
+        display: none !important;
+        -moz-appearance: none !important;
+        opacity: 0 !important;
+    }
+
+    /* Hide default calendar icon in IE/Edge */
+    .modal-date-input::-ms-clear {
+        display: none !important;
+    }
+
+    /* Hide default calendar icon in all browsers */
+    .modal-date-input[type="date"]::-webkit-inner-spin-button,
+    .modal-date-input[type="date"]::-webkit-calendar-picker-indicator {
+        display: none !important;
+        -webkit-appearance: none !important;
+    }
+
+    /* Make input look like normal text input */
+    .modal-date-input {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        cursor: pointer !important;
+    }
+
+    /* Optional: Add custom icon if needed */
+    .modal-date-input-wrapper {
+        position: relative;
+    }
+
+    .modal-date-input-wrapper .custom-calendar-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+        font-size: 18px;
+    }
+    
+    .calendar-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.25s ease;
+    }
+    
+    .calendar-modal-overlay.active {
+        display: flex;
+    }
+    
+    .calendar-modal {
+        background: #ffffff;
+        border-radius: 16px;
+        max-width: 420px;
+        width: 100%;
+        max-height: 90vh;
+        padding: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s ease;
+        overflow-y: auto;
+    }
+    
+    .calendar-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .calendar-modal-header h4 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .calendar-modal-header h4 i {
+        color: #c5050c;
+    }
+    
+    .calendar-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .calendar-modal-close:hover {
+        background: #f3f4f6;
+        color: #c5050c;
+    }
+    
+    /* ============================================
+       MODAL DATE INPUT
+       ============================================ */
+    
+    .modal-date-input {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        margin: 8px 0 16px 0;
+        font-family: "Encode Sans", sans-serif;
+        background: #ffffff;
+        color: #1f2937;
+        transition: all 0.2s ease;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    
+    .modal-date-input:focus {
+        outline: none;
+        border-color: #c5050c;
+        box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.1);
+    }
+    
+    .modal-date-input::-webkit-calendar-picker-indicator {
+        padding: 4px;
+        cursor: pointer;
+        filter: invert(0.3);
+    }
+    
+    .modal-date-input::-webkit-calendar-picker-indicator:hover {
+        filter: invert(0.1);
+    }
+    
+    /* ============================================
+       DATE INPUT WRAPPER (Main Form)
+       ============================================ */
+    
+    .date-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .date-input-wrapper .datepicker {
+        width: 100% !important;
+        padding: 8px 36px 8px 12px !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        font-family: "Encode Sans", sans-serif !important;
+        background: #ffffff !important;
+        color: #1f2937 !important;
+        transition: all 0.2s ease !important;
+        height: 40px !important;
+        cursor: pointer !important;
+    }
+    
+    .date-input-wrapper .datepicker:focus {
+        outline: none !important;
+        border-color: #c5050c !important;
+        box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.1) !important;
+    }
+    
+    .date-input-wrapper .datepicker:read-only {
+        background: #ffffff !important;
+        cursor: pointer !important;
+    }
+    
+    .date-input-wrapper .calendar-icon {
+        position: absolute;
+        right: 10px;
+        color: #9ca3af;
+        font-size: 18px;
+        pointer-events: none;
+    }
+    
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    /* ============================================
+       MODAL BUTTONS
+       ============================================ */
+    
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 4px;
+    }
+    
+    .btn {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: "Encode Sans", sans-serif;
+    }
+    
+    .btn-primary {
+        background: #c5050c;
+        color: #ffffff;
+    }
+    .btn-primary:hover {
+        background: #a0040a;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(197, 5, 12, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    .btn-secondary:hover {
+        background: #e5e7eb;
+    }
+    
+
+    
+    @media (max-width: 170px) {
+        .calendar-modal {
+            max-width: 98% !important;
+            padding: 12px !important;
+            border-radius: 10px !important;
+        }
+        
+        .calendar-modal-header h4 {
+            font-size: 11px !important;
+        }
+        
+        .calendar-modal-close {
+            font-size: 16px !important;
+            padding: 2px 4px !important;
+        }
+        
+        .modal-date-input {
+            font-size: 11px !important;
+            padding: 6px 10px !important;
+        }
+        
+        .btn {
+            font-size: 9px !important;
+            padding: 4px 10px !important;
+        }
+        
+        .date-input-wrapper .datepicker {
+            font-size: 9px !important;
+            padding: 2px 20px 2px 4px !important;
+            height: 22px !important;
+            min-height: 22px !important;
+        }
+        
+        .date-input-wrapper .calendar-icon {
+            font-size: 10px !important;
+            right: 4px !important;
+        }
+    }
+    
+    @media (min-width: 150px) and (max-width: 220px) {
+        .calendar-modal {
+            max-width: 98% !important;
+            padding: 14px !important;
+        }
+        
+        .calendar-modal-header h4 {
+            font-size: 13px !important;
+        }
+        
+        .modal-date-input {
+            font-size: 13px !important;
+            padding: 8px 12px !important;
+        }
+        
+        .btn {
+            font-size: 10px !important;
+            padding: 5px 12px !important;
+        }
+    }
+</style>
+
+{% endblock %}
+
+{% block nav_Personal_open %}open{% endblock %}
+{% block nav_Personal_submenu %}open{% endblock %}
+{% block nav_leave_request %}active{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">
+            <i class="ti ti-calendar-time"></i> Leave Dashboard
+        </div>
+        <div class="page-sub">
+            Manage your leave requests, view balance and analytics
+        </div>
+    </div>
+    <div class="date-chip">
+        <i class="ti ti-calendar"></i>
+        {{ today|date:"d M Y" }}
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon si-blue"><i class="ti ti-calendar"></i></div>
+        <div>
+            <div class="stat-label">Total Leaves</div>
+            <div class="stat-value">{{ total_leaves }}</div>
+            <div class="stat-trend neutral">All requests</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-orange"><i class="ti ti-clock"></i></div>
+        <div>
+            <div class="stat-label">Pending</div>
+            <div class="stat-value">{{ pending_leaves }}</div>
+            <div class="stat-trend danger">Awaiting approval</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-green"><i class="ti ti-check"></i></div>
+        <div>
+            <div class="stat-label">Approved</div>
+            <div class="stat-value">{{ approved_leaves }}</div>
+            <div class="stat-trend">Approved</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-red"><i class="ti ti-x"></i></div>
+        <div>
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value">{{ rejected_leaves }}</div>
+            <div class="stat-trend danger">Rejected</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-gray"><i class="ti ti-ban"></i></div>
+        <div>
+            <div class="stat-label">Cancelled</div>
+            <div class="stat-value">{{ cancelled_leaves }}</div>
+            <div class="stat-trend neutral">Cancelled</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon si-purple"><i class="ti ti-chart-bar"></i></div>
+        <div>
+            <div class="stat-label">Days Used ({{ current_year }})</div>
+            <div class="stat-value sm">{{ year_days_used|floatformat:1 }}</div>
+            <div class="stat-trend neutral">This year</div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-row">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="ti ti-file-plus"></i> New Leave Request</div>
+            <span style="font-size:11px;color:#888;">Required *</span>
+        </div>
+
+        <form id="leaveForm" onsubmit="submitLeave(event)">
+            {% csrf_token %}
+
+            <div class="leave-form-group">
+                <label>Leave Type <span class="required">*</span></label>
+                <select id="leaveType" class="leave-select" required>
+                    <option value="">Select leave type</option>
+                    {% for type in leave_types %}
+                        <option value="{{ type.id }}" data-color="{{ type.color }}">{{ type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="leave-form-row">
+                <div class="leave-form-group">
+                    <label>Start Date <span class="required">*</span></label>
+                    <div class="date-input-wrapper">
+                        <input type="text" id="startDate" class="datepicker" placeholder="DD-MM-YYYY" readonly required onclick="openCalendarModal('start')">
+                        <!-- <i class="ti ti-calendar calendar-icon"></i> -->
+                    </div>
+                </div>
+                <div class="leave-form-group">
+                    <label>End Date <span class="required">*</span></label>
+                    <div class="date-input-wrapper">
+                        <input type="text" id="endDate" class="datepicker" placeholder="DD-MM-YYYY" readonly required onclick="openCalendarModal('end')">
+                        <!-- <i class="ti ti-calendar calendar-icon"></i> -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="leave-form-group">
+                <label>Half Day Type</label>
+                <select id="halfDayType" class="leave-select">
+                    <option value="full">Full Day</option>
+                    <option value="first_half">First Half (Morning)</option>
+                    <option value="second_half">Second Half (Afternoon)</option>
+                </select>
+            </div>
+
+            <div class="leave-form-group">
+                <label>Reason <span class="required">*</span></label>
+                <textarea id="leaveReason" placeholder="Explain the reason for your leave..." required></textarea>
+            </div>
+
+            <div class="leave-form-group">
+                <label>Attachment</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="file" id="fileAttachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('fileAttachment').click()">
+                        <i class="ti ti-paperclip"></i> Choose File
+                    </button>
+                    <span id="fileName" style="font-size:12px;color:#6b7280;">No file chosen</span>
+                </div>
+            </div>
+
+            <div class="leave-form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="ti ti-send"></i> Submit Request
+                </button>
+                <button type="reset" class="btn btn-secondary">
+                    <i class="ti ti-rotate"></i> Clear
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="ti ti-history"></i> Leave History</div>
+            <button class="btn btn-sm btn-outline" onclick="exportReport()" title="Export CSV">
+                <i class="ti ti-download"></i> Export
+            </button>
+        </div>
+
+        <div class="leave-list" id="leaveList">
+            {% if leave_requests %}
+                {% for leave in leave_requests %}
+                    <div class="leave-item {{ leave.status }}" id="leave-{{ leave.id }}">
+                        <div class="leave-item-left">
+                            <div class="leave-type-wrapper">
+                                <span class="leave-type">{{ leave.leave_type.name }}</span>
+                                {% if leave.half_day_type != 'full' %}
+                                    <span class="half-day-badge {{ leave.half_day_type }}">
+                                        {{ leave.get_half_day_type_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="leave-dates">
+                                {{ leave.start_date|date:"M d, Y" }} - {{ leave.end_date|date:"M d, Y" }}
+                                <span class="leave-days">({{ leave.days_count }} day{{ leave.days_count|pluralize }})</span>
+                            </div>
+                            <div class="leave-reason">{{ leave.reason|truncatechars:40 }}</div>
+                        </div>
+                        <div class="leave-item-right">
+                            <span class="leave-status-badge {{ leave.status }}">{{ leave.display_status }}</span>
+                            {% if leave.status == 'pending' %}
+                                <div class="leave-item-actions">
+                                    <button class="btn btn-sm btn-outline" onclick="editLeave({{ leave.id }})" title="Edit">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="cancelLeave({{ leave.id }})" title="Cancel">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="leave-empty">
+                    <i class="ti ti-calendar-off"></i>
+                    <p>No leave requests found</p>
+                    <span style="font-size:12px;color:#9ca3af;">Submit your first leave request above</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="analytics-grid">
+    <div class="chart-scroll-wrapper">
+        <div class="chart-scroll-inner">
+            <div class="chart-card">
+                <div class="card-title"><i class="ti ti-chart-bar"></i> Monthly Leave Usage ({{ current_year }})</div>
+                <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="chart-scroll-wrapper">
+        <div class="chart-scroll-inner">
+            <div class="chart-card">
+                <div class="card-title"><i class="ti ti-pie-chart"></i> Leave Type Distribution</div>
+                <div class="chart-container"><canvas id="typeChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="calendar-modal-overlay" id="calendarModal">
+    <div class="calendar-modal">
+        <div class="calendar-modal-header">
+            <h4><span id="modalCalendarTitle">Select Date</span></h4>
+            <button class="calendar-modal-close" onclick="closeCalendarModal()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        
+        <div class="modal-date-input-wrapper">
+            <input type="date" id="modalDatePicker" class="modal-date-input">
+          
+            <small style="display:block;font-size:12px;color:#9ca3af;margin-top:6px;">
+                Format: <strong>DD-MM-YYYY</strong> (e.g., 08-12-2026)
+            </small>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeCalendarModal()">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button class="btn btn-primary" onclick="confirmModalDate()">
+                <i class="ti ti-check"></i> Select Date
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Leave Modal -->
+<div class="leave-modal-overlay" id="leaveModal">
+    <div class="leave-modal">
+        <div class="leave-modal-header">
+            <h3><i class="ti ti-edit"></i> <span id="modalTitle">Edit Leave Request</span></h3>
+            <button class="leave-modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+        </div>
+        <form id="editLeaveForm" onsubmit="updateLeave(event)">
+            {% csrf_token %}
+            <input type="hidden" id="editLeaveId">
+            <div class="leave-form-group">
+                <label>Leave Type <span class="required">*</span></label>
+                <select id="editLeaveType" class="leave-select" required>
+                    <option value="">Select leave type</option>
+                    {% for type in leave_types %}
+                        <option value="{{ type.id }}">{{ type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="leave-form-row">
+                <div class="leave-form-group">
+                    <label>Start Date <span class="required">*</span></label>
+                    <div class="date-input-wrapper">
+                        <input type="text" id="editStartDate" class="datepicker" placeholder="YYYY-MM-DD" readonly onclick="openCalendarModal('edit_start')">
+                        <i class="ti ti-calendar calendar-icon"></i>
+                    </div>
+                </div>
+                <div class="leave-form-group">
+                    <label>End Date <span class="required">*</span></label>
+                    <div class="date-input-wrapper">
+                        <input type="text" id="editEndDate" class="datepicker" placeholder="YYYY-MM-DD" readonly onclick="openCalendarModal('edit_end')">
+                        <i class="ti ti-calendar calendar-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="leave-form-group">
+                <label>Half Day Type</label>
+                <select id="editHalfDayType" class="leave-select">
+                    <option value="full">Full Day</option>
+                    <option value="first_half">First Half (Morning)</option>
+                    <option value="second_half">Second Half (Afternoon)</option>
+                </select>
+            </div>
+            <div class="leave-form-group">
+                <label>Reason <span class="required">*</span></label>
+                <textarea id="editLeaveReason" placeholder="Explain the reason..." required></textarea>
+            </div>
+            <div class="leave-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()"><i class="ti ti-x"></i> Cancel</button>
+                <button type="submit" class="btn btn-primary" id="editSubmitBtn"><i class="ti ti-device-floppy"></i> Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+
+
+const UUID = '{{ uuid }}';
+let monthlyChart = null;
+let typeChart = null;
+let selectedFile = null;
+let activeInputId = null;
+
+
+
+function openCalendarModal(inputId) {
+    activeInputId = inputId;
+    
+    const titleMap = {
+        'start': 'Select Start Date',
+        'end': 'Select End Date',
+        'edit_start': 'Edit Start Date',
+        'edit_end': 'Edit End Date'
+    };
+    document.getElementById('modalCalendarTitle').textContent = titleMap[inputId] || 'Select Date';
+    
+    // Set default to today
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    document.getElementById('modalDatePicker').value = `${year}-${month}-${day}`;
+    
+    document.getElementById('calendarModal').classList.add('active');
+}
+
+
+
+function closeCalendarModal() {
+    document.getElementById('calendarModal').classList.remove('active');
+    activeInputId = null;
+}
+
+
+
+function confirmModalDate() {
+    const datePicker = document.getElementById('modalDatePicker');
+    const dateStr = datePicker.value;
+    
+    if (!dateStr) {
+        if (typeof toastError === 'function') {
+            toastError('Please select a date');
+        }
+        return;
+    }
+    
+
+    
+    let targetInput = null;
+    if (activeInputId === 'start') targetInput = document.getElementById('startDate');
+    else if (activeInputId === 'end') targetInput = document.getElementById('endDate');
+    else if (activeInputId === 'edit_start') targetInput = document.getElementById('editStartDate');
+    else if (activeInputId === 'edit_end') targetInput = document.getElementById('editEndDate');
+    
+    if (targetInput) {
+        targetInput.value = dateStr;
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    closeCalendarModal();
+}
+
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
+document.getElementById('fileAttachment').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        selectedFile = file;
+        document.getElementById('fileName').textContent = file.name;
+    } else {
+        selectedFile = null;
+        document.getElementById('fileName').textContent = 'No file chosen';
+    }
+});
+
+
+
+function initChoices() {
+    document.querySelectorAll('.leave-select').forEach(el => {
+        if (typeof Choices !== 'undefined') {
+            new Choices(el, {
+                searchEnabled: el.options.length > 8,
+                shouldSort: false,
+                itemSelectText: '',
+                placeholder: true,
+                placeholderValue: el.options[0]?.text || '',
+                noChoicesText: 'No options available',
+                noResultsText: 'No results found',
+                removeItemButton: false,
+                silent: true,
+                position: 'bottom',
+            });
+        }
+    });
+}
+
+function resetChoice(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+   
+    try {
+        if (typeof Choices !== 'undefined') {
+          
+            const instance = select.choices || select._choices;
+            if (instance) {
+                instance.setChoiceByValue('');
+                return;
+            }
+            
+            
+            if (select._choicesInstance) {
+                select._choicesInstance.destroy();
+                select._choicesInstance = null;
+            }
+            
+         
+            select.value = '';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+            select.value = '';
+        }
+    } catch (e) {
+        console.warn('⚠️ resetChoice error:', e);
+        // Fallback: just reset the value
+        select.value = '';
+    }
+}
+
+
+
+function loadLeaveBalance() {
+    fetch(`/faculty/leave-balance/${UUID}/`)
+        .then(response => response.json())
+        .then(data => { if (data.success) {} })
+        .catch(() => {});
+}
+
+
+
+function initCharts() {
+    const monthlyData = {{ monthly_data|safe }};
+    const months = {{ months|safe }};
+    const typeLabels = {{ type_labels|safe }};
+    const typeCounts = {{ type_counts|safe }};
+    const typeColors = {{ type_colors|safe }};
+
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    monthlyChart = new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Leave Days Used',
+                data: monthlyData,
+                backgroundColor: 'rgba(197, 5, 12, 0.7)',
+                borderColor: '#c5050c',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } },
+                x: { ticks: { font: { size: 9 } } }
+            }
+        }
+    });
+
+    const typeCtx = document.getElementById('typeChart').getContext('2d');
+    typeChart = new Chart(typeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: typeLabels,
+            datasets: [{
+                data: typeCounts,
+                backgroundColor: typeColors.length ? typeColors : ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { size: 10 }, padding: 10 }
+                }
+            }
+        }
+    });
+}
+
+
+
+window.submitLeave = function(event) {
+    event.preventDefault();
+
+    const btn = document.getElementById('submitBtn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Submitting...';
+    btn.disabled = true;
+
+    function sendRequest(attachment, name) {
+        const data = {
+            leave_type: document.getElementById('leaveType').value,
+            start_date: document.getElementById('startDate').value,
+            end_date: document.getElementById('endDate').value,
+            half_day: document.getElementById('halfDayType').value,
+            reason: document.getElementById('leaveReason').value,
+            attachment: attachment,
+            attachment_name: name,
+        };
+
+        
+
+        fetch(`/faculty/leave-request/submit/${UUID}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('Status:', response.status); // ✅ Debug
+            return response.json();
+        })
+        .then(result => {
+            console.log(' Response:', result); 
+            
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+
+            if (result.success) {
+                if (typeof toastSuccess === 'function') {
+                    toastSuccess(result.message || 'Leave request submitted successfully!');
+                } else {
+                    alert(result.message || 'Success!');
+                }
+                
+                if (result.leave) addLeaveToList(result.leave);
+                document.getElementById('leaveForm').reset();
+                document.getElementById('fileName').textContent = 'No file chosen';
+                selectedFile = null;
+                document.querySelectorAll('.datepicker').forEach(el => el.value = '');
+                resetChoice('leaveType');
+                resetChoice('halfDayType');
+                loadLeaveBalance();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                if (typeof toastError === 'function') {
+                    toastError(result.message || 'Something went wrong!');
+                } else {
+                    alert(result.message || 'Error!');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error); // ✅ Debug
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            
+            if (typeof toastError === 'function') {
+                toastError('Network error - please try again');
+            } else {
+                alert('Network error - please try again');
+            }
+        });
+    }
+
+
+    if (selectedFile) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            sendRequest(e.target.result, selectedFile.name);
+        };
+        reader.onerror = function() {
+            // If file reading fails, send without attachment
+            console.warn('File read failed, sending without attachment');
+            sendRequest(null, '');
+        };
+        reader.readAsDataURL(selectedFile);
+    } else {
+        sendRequest(null, '');
+    }
+};
+
+
+function addLeaveToList(leave) {
+    const list = document.getElementById('leaveList');
+    const empty = list.querySelector('.leave-empty');
+    if (empty) empty.remove();
+
+    const halfDayText = leave.half_day === 'full' ? '' :
+        leave.half_day === 'first_half' ? '<span class="half-day-badge first-half">First Half</span>' :
+        '<span class="half-day-badge second-half">Second Half</span>';
+
+    const item = document.createElement('div');
+    item.className = `leave-item ${leave.status}`;
+    item.id = `leave-${leave.id}`;
+    item.innerHTML = `
+        <div class="leave-item-left">
+            <div class="leave-type-wrapper">
+                <span class="leave-type">${leave.type}</span>
+                ${halfDayText}
+            </div>
+            <div class="leave-dates">
+                <i class="ti ti-calendar"></i>
+                ${leave.start_date} - ${leave.end_date}
+                <span class="leave-days">(${leave.days} day${leave.days > 1 ? 's' : ''})</span>
+            </div>
+            <div class="leave-reason">${document.getElementById('leaveReason').value.substring(0, 60)}</div>
+        </div>
+        <div class="leave-item-right">
+            <span class="leave-status-badge ${leave.status}">${leave.status}</span>
+            <div class="leave-item-actions">
+                <button class="btn btn-sm btn-outline" onclick="editLeave(${leave.id})" title="Edit">
+                    <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="cancelLeave(${leave.id})" title="Cancel">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    list.prepend(item);
+}
+
+
+
+window.cancelLeave = function(leaveId) {
+    if (!confirm('Are you sure you want to cancel this leave request?')) return;
+
+    const item = document.getElementById(`leave-${leaveId}`);
+    if (item) item.style.opacity = '0.5';
+
+    fetch(`/faculty/leave-request/cancel/${UUID}/${leaveId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            if (typeof toastSuccess === 'function') toastSuccess(result.message);
+            toastSuccess(result.message || 'Leave cancelled successfully!');
+            if (item) {
+                item.remove();
+                const list = document.getElementById('leaveList');
+                if (list.children.length === 0) {
+                    list.innerHTML = `
+                        <div class="leave-empty">
+                            <i class="ti ti-calendar-off"></i>
+                            <p>No leave requests found</p>
+                            <span style="font-size:12px;color:#9ca3af;">Submit your first leave request above</span>
+                        </div>
+                    `;
+                }
+            }
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            if (typeof toastError === 'function') toastError(result.message);
+            if (item) item.style.opacity = '1';
+            toastError(result.message || 'Failed to cancel leave');
+        }
+    })
+    .catch(() => {
+        if (typeof toastError === 'function') toastError('Network error - please try again');
+        if (item) item.style.opacity = '1';
+    });
+};
+
+
+
+window.editLeave = function(leaveId) {
+    console.log(' Loading leave data for edit:', leaveId);
+    
+    // Show loading state on button
+    const btn = document.querySelector(`#leave-${leaveId} .btn-outline`);
+    if (btn) {
+        btn.innerHTML = '<i class="ti ti-loader spin"></i>';
+        btn.disabled = true;
+    }
+
+    fetch(`/faculty/leave-request/details/${UUID}/${leaveId}/`)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
+        .then(result => {
+            console.log('📥 Edit data loaded:', result);
+            
+            if (result.success) {
+                //  NO TOAST HERE - just load data
+                const data = result.data;
+                document.getElementById('editLeaveId').value = data.id;
+                document.getElementById('editLeaveType').value = data.leave_type;
+                document.getElementById('editStartDate').value = data.start_date;
+                document.getElementById('editEndDate').value = data.end_date;
+                document.getElementById('editHalfDayType').value = data.half_day || 'full';
+                document.getElementById('editLeaveReason').value = data.reason;
+                document.getElementById('modalTitle').textContent = 'Edit Leave Request';
+                
+                // Show modal
+                document.getElementById('leaveModal').classList.add('active');
+
+                // Safely update Choices
+                try {
+                    const select = document.getElementById('editLeaveType');
+                    if (select) {
+                        select.value = data.leave_type;
+                        if (select._choicesInstance) {
+                            select._choicesInstance.setChoiceByValue(data.leave_type);
+                        }
+                    }
+                } catch(e) {
+                    console.warn(' Choices update error:', e);
+                }
+            } else {
+                if (typeof toastError === 'function') {
+                    toastError(result.message || 'Failed to load leave details');
+                }
+            }
+        })
+        .catch(error => {
+            console.error(' Edit fetch error:', error);
+            if (typeof toastError === 'function') {
+                toastError('Network error - please try again');
+            }
+        })
+        .finally(() => {
+            // Reset button
+            if (btn) {
+                btn.innerHTML = '<i class="ti ti-edit"></i>';
+                btn.disabled = false;
+            }
+        });
+};
+
+
+
+window.updateLeave = function(event) {
+    event.preventDefault();
+
+    const btn = document.getElementById('editSubmitBtn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Updating...';
+    btn.disabled = true;
+
+    const leaveId = document.getElementById('editLeaveId').value;
+    const data = {
+        leave_type: document.getElementById('editLeaveType').value,
+        start_date: document.getElementById('editStartDate').value,
+        end_date: document.getElementById('editEndDate').value,
+        half_day: document.getElementById('editHalfDayType').value,
+        reason: document.getElementById('editLeaveReason').value,
+    };
+
+    console.log(' Updating leave:', data);
+
+    fetch(`/faculty/leave-request/update/${UUID}/${leaveId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log(' Update status:', response.status);
+        return response.json();
+    })
+    .then(result => {
+        console.log(' Update response:', result);
+        
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+
+        if (result.success) {
+            if (typeof toastSuccess === 'function') {
+                toastSuccess(result.message || 'Leave updated successfully!');
+            } else {
+                alert(result.message);
+            }
+            
+            closeModal();
+            
+            if (result.leave) {
+                const item = document.getElementById(`leave-${leaveId}`);
+                if (item) {
+                    const left = item.querySelector('.leave-item-left');
+                    if (left) {
+                        const halfDayText = data.half_day === 'full' ? '' :
+                            data.half_day === 'first_half' ? '<span class="half-day-badge first-half">First Half</span>' :
+                            '<span class="half-day-badge second-half">Second Half</span>';
+                        left.innerHTML = `
+                            <div class="leave-type-wrapper">
+                                <span class="leave-type">${result.leave.type}</span>
+                                ${halfDayText}
+                            </div>
+                            <div class="leave-dates">
+                                <i class="ti ti-calendar"></i>
+                                ${result.leave.start_date} - ${result.leave.end_date}
+                                <span class="leave-days">(${result.leave.days} day${result.leave.days > 1 ? 's' : ''})</span>
+                            </div>
+                            <div class="leave-reason">${document.getElementById('editLeaveReason').value.substring(0, 60)}</div>
+                        `;
+                    }
+                }
+            }
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            if (typeof toastError === 'function') {
+                toastError(result.message || 'Failed to update leave');
+            } else {
+                alert(result.message);
+            }
+        }
+    })
+    .catch(error => {
+        console.error(' Update fetch error:', error);
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        
+        if (typeof toastError === 'function') {
+            toastError('Network error - please try again');
+        } else {
+            alert('Network error - please try again');
+        }
+    });
+};
+
+
+
+window.exportReport = function() {
+    window.location.href = `/faculty/leave-export/${UUID}/`;
+};
+
+
+
+window.closeModal = function() {
+    document.getElementById('leaveModal').classList.remove('active');
+};
+
+document.getElementById('leaveModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+document.getElementById('calendarModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCalendarModal();
+});
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    initChoices();
+    initCharts();
+    loadLeaveBalance();
+
+});
+
+window.addEventListener('resize', function() {
+    if (monthlyChart) monthlyChart.resize();
+    if (typeChart) typeChart.resize();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,560 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/FinalDissertation/committee_final_dissertation_list.css' %}">
+    <div class="fcd-page">
+        <section class="fcd-hero">
+            <div class="fcd-hero-shape fcd-hero-shape-one"></div>
+            <div class="fcd-hero-shape fcd-hero-shape-two"></div>
+            <div class="fcd-hero-inner">
+                {% comment %} <div class="fcd-breadcrumb">
+                    <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}">Phd Management</a>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Research Publications</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Final Dissertation</span>
+                </div> {% endcomment %}
+                <div class="fcd-heading-row">
+                    <div class="fcd-heading-icon">
+                        <i class="ti ti-book-2"></i>
+                    </div>
+                    <div class="fcd-heading-copy">
+                        <span class="fcd-eyebrow">PHD MANAGEMENT</span>
+                        <h1>Final Dissertation Workspace</h1>
+                        <p>
+                            Review dissertation submissions, complete committee evaluations,
+                            and track the Chair finalization workflow.
+                        </p>
+                    </div>
+                </div>
+                <div class="fcd-summary-strip">
+                    <div class="fcd-summary-item">
+                        <div class="fcd-summary-icon">
+                            <i class="ti ti-files"></i>
+                        </div>
+                        <div class="fcd-summary-copy">
+                            <strong>{{ total_submissions }}</strong>
+                            <span>Total Submissions</span>
+                        </div>
+                    </div>
+                    <div class="fcd-summary-item">
+                        <div class="fcd-summary-icon">
+                            <i class="ti ti-clipboard-check"></i>
+                        </div>
+                        <div class="fcd-summary-copy">
+                            <strong>{{ evaluation_required_count }}</strong>
+                            <span>Evaluations Required</span>
+                        </div>
+                    </div>
+                    <div class="fcd-summary-item">
+                        <div class="fcd-summary-icon">
+                            <i class="ti ti-hourglass"></i>
+                        </div>
+                        <div class="fcd-summary-copy">
+                            <strong>{{ waiting_committee_count }}</strong>
+                            <span>Waiting Committee</span>
+                        </div>
+                    </div>
+                    <div class="fcd-summary-item">
+                        <div class="fcd-summary-icon">
+                            <i class="ti ti-crown"></i>
+                        </div>
+                        <div class="fcd-summary-copy">
+                            <strong>{{ ready_for_chair_count }}</strong>
+                            <span>Ready for Chair</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <main class="fcd-content">
+            <section class="fcd-filter-card">
+                <div class="fcd-filter-head">
+                    <div class="fcd-filter-title">
+                        <span class="fcd-section-label">WORKSPACE FILTERS</span>
+                        <h2>Find Dissertation Submissions</h2>
+                        <p>Search by student, program, title, status, or submission date.</p>
+                    </div>
+                    <div class="fcd-filter-count">
+                        <strong>{{ total_submissions }}</strong>
+                        <span>matching submissions</span>
+                    </div>
+                </div>
+                <form method="get" class="fcd-filters" id="fcdFilterForm">
+                    <div class="fcd-filter-field fcd-search-field">
+                        <label for="fcdSearch">Search</label>
+                        <div class="fcd-input-wrap">
+                            <i class="ti ti-search"></i>
+                            <input type="text"
+                                   id="fcdSearch"
+                                   name="search"
+                                   value="{{ search }}"
+                                   placeholder="Student name, ID, program or title"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="fcd-filter-field">
+                        <label for="fcdStatus">Workflow Status</label>
+                        <select id="fcdStatus" name="status" class="fcd-choice-select">
+                            <option value="">All Workflow Statuses</option>
+                            {% for value, label in status_choices %}
+                                <option value="{{ value }}"
+                                        {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="fcd-filter-field">
+                        <label for="fcdDate">Submission Date</label>
+                        <div class="fcd-input-wrap fcd-date-wrap">
+                            <i class="ti ti-calendar"></i>
+                            <input type="text"
+                                   id="fcdDate"
+                                   name="date"
+                                   value="{{ selected_date }}"
+                                   placeholder="Select date"
+                                   autocomplete="off"
+                                   readonly>
+                        </div>
+                    </div>
+                    <div class="fcd-filter-actions">
+                        <button type="submit" class="fcd-filter-submit" id="fcdFilterSubmit">
+                            <i class="ti ti-filter"></i>
+                            <span>Apply Filters</span>
+                        </button>
+                        <a href="{% url 'faculty_committee_final_dissertation_list' uuid=faculty.user.uuid %}"
+                           class="fcd-filter-reset">
+                            <i class="ti ti-refresh"></i>
+                            <span>Reset</span>
+                        </a>
+                    </div>
+                </form>
+            </section>
+            <section class="fcd-stats-grid">
+                <div class="fcd-stat-card fcd-stat-blue">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-clipboard-check"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ evaluation_required_count }}</strong>
+                        <span>Evaluation Required</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-amber">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-user-search"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ waiting_advisor_count }}</strong>
+                        <span>Waiting Advisor</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-orange">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-users"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ waiting_committee_count }}</strong>
+                        <span>Waiting Committee</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-purple">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-crown"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ waiting_chair_count }}</strong>
+                        <span>Waiting Chair</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-red">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-shield-check"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ ready_for_chair_count }}</strong>
+                        <span>Ready for Review</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-green">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-circle-check"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ approved_count }}</strong>
+                        <span>Approved</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-gray">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-alert-circle"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ revision_count }}</strong>
+                        <span>Revision Required</span>
+                    </div>
+                </div>
+                <div class="fcd-stat-card fcd-stat-darkred">
+                    <div class="fcd-stat-icon">
+                        <i class="ti ti-circle-x"></i>
+                    </div>
+                    <div class="fcd-stat-copy">
+                        <strong>{{ rejected_count }}</strong>
+                        <span>Rejected</span>
+                    </div>
+                </div>
+            </section>
+            <section class="fcd-list-section">
+                <div class="fcd-list-head">
+                    <div>
+                        <span class="fcd-section-label">DISSERTATION WORKSPACE</span>
+                        <h2>Current Student Submissions</h2>
+                    </div>
+                    <div class="fcd-list-meta">
+                        <i class="ti ti-info-circle"></i>
+                        <span>Showing the latest submission for each student</span>
+                    </div>
+                </div>
+                {% if submissions %}
+                    <div class="fcd-submission-list">
+                        {% for submission in submissions %}
+                            <article class="fcd-submission-card">
+                                <div class="fcd-card-accent"></div>
+                                <div class="fcd-card-main">
+                                    <div class="fcd-student-block">
+                                        <div class="fcd-avatar">
+                                            {% if submission.phd_student.student.user.first_name %}
+                                                {{ submission.phd_student.student.user.first_name|first|upper }}
+                                            {% else %}
+                                                S
+                                            {% endif %}
+                                        </div>
+                                        <div class="fcd-student-copy">
+                                            <span class="fcd-card-eyebrow">PHD STUDENT</span>
+                                            <h3>{{ submission.phd_student.student.user.get_full_name|default:submission.phd_student.student }}</h3>
+                                            <div class="fcd-student-meta">
+                                                <span>
+                                                    <i class="ti ti-id"></i>
+                                                    {{ submission.phd_student.student.student_number|default:"—" }}
+                                                </span>
+                                                <span>
+                                                    <i class="ti ti-school"></i>
+                                                    {{ submission.phd_student.phd_program|default:"—" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="fcd-submission-info">
+                                        <div class="fcd-info-item">
+                                            <span>SUBMISSION</span>
+                                            <strong>#{{ submission.submission_number }}</strong>
+                                        </div>
+                                        <div class="fcd-info-item">
+                                            <span>VERSION</span>
+                                            <strong>{{ submission.version|default:"—" }}</strong>
+                                        </div>
+                                        <div class="fcd-info-item">
+                                            <span>DATE</span>
+                                            <strong>{{ submission.submission_date_display|date:"d M Y"|default:"—" }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="fcd-status-column">
+                                        {% if submission.workflow_status_code == "WAITING_ADVISOR" %}
+                                            <span class="fcd-status fcd-status-pending">
+                                                <i class="ti ti-clock"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "EVALUATION_REQUIRED" %}
+                                            <span class="fcd-status fcd-status-info">
+                                                <i class="ti ti-clipboard-check"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "EVALUATION_SUBMITTED" %}
+                                            <span class="fcd-status fcd-status-success">
+                                                <i class="ti ti-check"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "WAITING_COMMITTEE" %}
+                                            <span class="fcd-status fcd-status-warning">
+                                                <i class="ti ti-users"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "WAITING_CHAIR" %}
+                                            <span class="fcd-status fcd-status-purple">
+                                                <i class="ti ti-crown"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "READY_FOR_CHAIR" %}
+                                            <span class="fcd-status fcd-status-success">
+                                                <i class="ti ti-shield-check"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "REVISION_REQUIRED" %}
+                                            <span class="fcd-status fcd-status-warning">
+                                                <i class="ti ti-alert-circle"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "APPROVED" %}
+                                            <span class="fcd-status fcd-status-success">
+                                                <i class="ti ti-circle-check"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% elif submission.workflow_status_code == "REJECTED" %}
+                                            <span class="fcd-status fcd-status-danger">
+                                                <i class="ti ti-circle-x"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% else %}
+                                            <span class="fcd-status fcd-status-neutral">
+                                                <i class="ti ti-info-circle"></i>
+                                                {{ submission.workflow_status }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="fcd-card-progress">
+                                    <div class="fcd-progress-head">
+                                        <div class="fcd-progress-title">
+                                            <i class="ti ti-users-group"></i>
+                                            <span>Committee Evaluation Progress</span>
+                                        </div>
+                                        <strong>{{ submission.committee_completed_count }}/{{ submission.committee_required_count }}</strong>
+                                    </div>
+                                    <div class="fcd-progress-track">
+                                        <span class="fcd-progress-fill"
+                                              style="width: {{ submission.committee_progress }}%"></span>
+                                    </div>
+                                    <div class="fcd-progress-meta">
+                                        <span>{{ submission.committee_progress }}% complete</span>
+                                        {% if submission.committee_pending_count > 0 %}
+                                            <span>
+                                                {{ submission.committee_pending_count }}
+                                                pending
+                                            </span>
+                                        {% else %}
+                                            <span>All required evaluations complete</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="fcd-card-footer">
+                                    <div class="fcd-file-area">
+                                        <div class="fcd-file-icon">
+                                            <i class="ti ti-file-type-pdf"></i>
+                                        </div>
+                                        <div class="fcd-file-copy">
+                                            <strong>Final Dissertation PDF</strong>
+                                            <span>{{ submission.dissertation_title|default:"Dissertation document" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="fcd-card-actions">
+                                        {% if submission.dissertation_file %}
+                                            <a href="{{ submission.dissertation_file.url }}"
+                                               target="_blank"
+                                               rel="noopener"
+                                               class="fcd-action-secondary">
+                                                <i class="ti ti-external-link"></i>
+                                                <span>Open PDF</span>
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'faculty_committee_final_dissertation_detail' uuid=faculty.user.uuid submission_id=submission.submission_id %}"
+                                           class="fcd-action-secondary">
+                                            <i class="ti ti-eye"></i>
+                                            <span>View Details</span>
+                                        </a>
+                                        {% if submission.action_type == "EVALUATE" and submission.can_evaluate %}
+                                            <a href="{% url 'faculty_committee_final_dissertation_evaluate' uuid=faculty.user.uuid submission_id=submission.submission_id %}"
+                                               class="fcd-action-primary">
+                                                <i class="ti ti-clipboard-check"></i>
+                                                <span>Evaluate</span>
+                                            </a>
+                                        {% elif submission.action_type == "EVALUATION_DETAIL" %}
+                                            {% if submission.current_evaluation %}
+                                                <a href="{% url 'faculty_committee_final_dissertation_evaluation_detail' uuid=faculty.user.uuid submission_id=submission.submission_id evaluation_id=submission.current_evaluation.evaluation_id %}"
+                                                   class="fcd-action-primary">
+                                                    <i class="ti ti-file-description"></i>
+                                                    <span>View Evaluation</span>
+                                                </a>
+                                            {% endif %}
+                                        {% elif submission.action_type == "CHAIR_REVIEW" and submission.can_finalize %}
+                                            <a href="{% url 'faculty_chair_final_dissertation_review' uuid=faculty.user.uuid submission_id=submission.submission_id %}"
+                                               class="fcd-action-primary">
+                                                <i class="ti ti-crown"></i>
+                                                <span>Review &amp; Finalize</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="fcd-workflow-message">
+                                    <div class="fcd-workflow-icon">
+                                        {% if submission.workflow_status_code == "APPROVED" %}
+                                            <i class="ti ti-circle-check"></i>
+                                        {% elif submission.workflow_status_code == "REJECTED" %}
+                                            <i class="ti ti-circle-x"></i>
+                                        {% elif submission.workflow_status_code == "READY_FOR_CHAIR" %}
+                                            <i class="ti ti-crown"></i>
+                                        {% else %}
+                                            <i class="ti ti-info-circle"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="fcd-workflow-copy">
+                                        <strong>{{ submission.current_role_display|default:"Committee" }}</strong>
+                                        <span>{{ submission.workflow_message }}</span>
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="fcd-empty-state">
+                        <div class="fcd-empty-icon">
+                            <i class="ti ti-file-off"></i>
+                        </div>
+                        <span class="fcd-empty-label">NO SUBMISSIONS FOUND</span>
+                        <h2>No dissertation submissions match your filters</h2>
+                        <p>Try changing the search term, workflow status, or submission date.</p>
+                        <a href="{% url 'faculty_committee_final_dissertation_list' uuid=faculty.user.uuid %}"
+                           class="fcd-empty-action">
+                            <i class="ti ti-refresh"></i>
+                            Clear Filters
+                        </a>
+                    </div>
+                {% endif %}
+            </section>
+            <section class="fcd-help-grid">
+                <article class="fcd-help-card">
+                    <div class="fcd-help-head">
+                        <div class="fcd-help-icon">
+                            <i class="ti ti-bulb"></i>
+                        </div>
+                        <div>
+                            <span class="fcd-section-label">QUICK TIPS</span>
+                            <h2>Committee Workspace Tips</h2>
+                        </div>
+                    </div>
+                    <div class="fcd-tip-list">
+                        <div class="fcd-tip-item">
+                            <span>01</span>
+                            <p>Use the Evaluate button only when your committee evaluation is pending.</p>
+                        </div>
+                        <div class="fcd-tip-item">
+                            <span>02</span>
+                            <p>Completed evaluations remain available through View Evaluation.</p>
+                        </div>
+                        <div class="fcd-tip-item">
+                            <span>03</span>
+                            <p>The Chair can finalize only after every required committee evaluation is submitted.</p>
+                        </div>
+                        <div class="fcd-tip-item">
+                            <span>04</span>
+                            <p>A committee member recommendation does not make the final dissertation decision.</p>
+                        </div>
+                    </div>
+                </article>
+                <article class="fcd-help-card fcd-faq-card">
+                    <div class="fcd-help-head">
+                        <div class="fcd-help-icon">
+                            <i class="ti ti-help-circle"></i>
+                        </div>
+                        <div>
+                            <span class="fcd-section-label">FAQ</span>
+                            <h2>Workflow Questions</h2>
+                        </div>
+                    </div>
+                    <div class="fcd-faq-list">
+                        <details class="fcd-faq-item">
+                            <summary>
+                                Why is my evaluation not available?
+                                <i class="ti ti-chevron-down"></i>
+                            </summary>
+                            <p>Committee evaluation becomes available only after the Advisor approves the current dissertation submission.</p>
+                        </details>
+                        <details class="fcd-faq-item">
+                            <summary>
+                                Why is the Chair still waiting?
+                                <i class="ti ti-chevron-down"></i>
+                            </summary>
+                            <p>
+                                The Chair can finalize only after all required Co-Chair, Internal, and External committee evaluations are submitted.
+                            </p>
+                        </details>
+                        <details class="fcd-faq-item">
+                            <summary>
+                                What happens if a member rejects?
+                                <i class="ti ti-chevron-down"></i>
+                            </summary>
+                            <p>A committee member rejection is recorded as part of the evaluation. The Chair remains the final decision maker.</p>
+                        </details>
+                        <details class="fcd-faq-item">
+                            <summary>
+                                What happens after Chair revision?
+                                <i class="ti ti-chevron-down"></i>
+                            </summary>
+                            <p>
+                                The student can submit a new dissertation version, after which the Advisor, Committee, and Chair workflow starts again for the new version.
+                            </p>
+                        </details>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const statusElement = document.getElementById("fcdStatus");
+    const dateElement = document.getElementById("fcdDate");
+    const filterForm = document.getElementById("fcdFilterForm");
+    const filterSubmit = document.getElementById("fcdFilterSubmit");
+
+    if (statusElement && typeof Choices !== "undefined") {
+        new Choices(statusElement, {
+            searchEnabled: true,
+            shouldSort: false,
+            itemSelectText: "",
+            allowHTML: false,
+            noResultsText: "No status found",
+            noChoicesText: "No statuses available",
+            searchPlaceholderValue: "Search status"
+        });
+    }
+
+    if (dateElement && typeof flatpickr !== "undefined") {
+        flatpickr(dateElement, {
+            dateFormat: "Y-m-d",
+            maxDate: "today",
+            allowInput: false,
+            disableMobile: true,
+            appendTo: dateElement.closest(".fcd-date-wrap"),
+            positionElement: dateElement,
+            position: "below left",
+            monthSelectorType: "dropdown",
+            animate: true
+        });
+    }
+
+    if (filterForm && filterSubmit) {
+        filterForm.addEventListener("submit", function () {
+            filterSubmit.classList.add("is-loading");
+            filterSubmit.querySelector("span").textContent = "Filtering...";
+        });
+    }
+
+    document.querySelectorAll(".fcd-faq-item").forEach(function (item) {
+        item.addEventListener("toggle", function () {
+            if (item.open) {
+                document.querySelectorAll(".fcd-faq-item").forEach(function (other) {
+                    if (other !== item) {
+                        other.removeAttribute("open");
+                    }
+                });
+            }
+        });
+    });
+});
+    </script>
+{% endblock %}

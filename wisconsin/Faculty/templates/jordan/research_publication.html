@@ -1,0 +1,317 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Publications{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_publication %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Jordan/research_publication.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+{% endblock %}
+
+{% block content %}
+<input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="header-left">
+        <div class="header-content">
+            <h1>Research Publications</h1>
+            <p>Manage publications for your research projects</p>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button class="btn-refresh" onclick="refreshData()">
+            <i class="ti ti-refresh"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="ti ti-folder-open"></i>
+        </div>
+        <div class="stat-info"> 
+            <span class="stat-number" id="totalProjects">0</span>
+            <span class="stat-label">Total Projects</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="ti ti-file-text"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="totalPublications">0</span>
+            <span class="stat-label">Total Publications</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal">
+            <i class="ti ti-circle-check"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="publishedCount">0</span>
+            <span class="stat-label">Published</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow">
+            <i class="ti ti-edit"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="draftCount">0</span>
+            <span class="stat-label">In Draft</span>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="loadingState" class="loading-state">
+    <div class="spinner"></div>
+    <h3>Loading projects...</h3>
+    <p style="color: var(--gray-400); font-size: 14px; margin: 0;">Please wait while we load your research projects</p>
+</div>
+
+<!-- Projects Grid -->
+<div class="projects-grid" id="projectsGrid" style="display: none;">
+    <!-- Projects will be rendered by JavaScript -->
+</div>
+
+<!-- Create/Edit Publication Modal -->
+<div class="modal-overlay" id="publicationModal" style="display: none;">
+    <div class="modal-container create-modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">
+                <i class="ti ti-file-plus"></i>
+                Create Publication
+            </h3>
+            <button class="modal-close-btn" onclick="closeModal('publicationModal')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="publicationForm" novalidate>
+                <input type="hidden" id="formProjectId" value="">
+                <input type="hidden" id="formPublicationId" value="">
+
+                <!-- Research Project Info -->
+                <div class="form-section">
+                    <h4><i class="ti ti-flask"></i> Research Project</h4>
+                    <div class="info-box">
+                        <div class="info-row">
+                            <span class="label">Title</span>
+                            <span class="value" id="formProjectTitle">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Category</span>
+                            <span class="value" id="formProjectCategory">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Department</span>
+                            <span class="value" id="formProjectDepartment">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Publication Details -->
+                <div class="form-section">
+                    <h4><i class="ti ti-file-text"></i> Publication Details</h4>
+                    
+                    <div class="form-group">
+                        <label for="pubTitle">
+                            <i class="ti ti-file-text"></i> Title <span class="required">*</span>
+                        </label>
+                        <input type="text" id="pubTitle" class="form-control" placeholder="Enter publication title" required>
+                        <div class="error-message" id="titleError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pubAbstract">
+                            <i class="ti ti-file-description"></i> Abstract <span class="required">*</span>
+                        </label>
+                        <textarea id="pubAbstract" class="form-control" rows="4" placeholder="Enter abstract" required></textarea>
+                        <div class="error-message" id="abstractError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pubKeywords">
+                            <i class="ti ti-tags"></i> Keywords
+                        </label>
+                        <input type="text" id="pubKeywords" class="form-control" placeholder="e.g., Machine Learning, Data Science, AI">
+                        <span class="form-text">Separate keywords with commas</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pubType">
+                            <i class="ti ti-book"></i> Publication Type <span class="required">*</span>
+                        </label>
+                        <select id="pubType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="JOURNAL">Journal</option>
+                            <option value="CONFERENCE">Conference</option>
+                            <option value="BOOK_CHAPTER">Book Chapter</option>
+                            <option value="TECHNICAL_REPORT">Technical Report</option>
+                        </select>
+                        <div class="error-message" id="typeError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pubStatus">
+                            <i class="ti ti-status-change"></i> Status <span class="required">*</span>
+                        </label>
+                        <select id="pubStatus" class="form-control">
+                            <option value="DRAFT">Draft</option>
+                            <option value="UNDER_REVIEW">Under Internal Review</option>
+                            <option value="COMMITTEE_REVIEW">Committee Review</option>
+                            <option value="READY">Ready for Submission</option>
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="REVISION">Revision Required</option>
+                            <option value="ACCEPTED">Accepted</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="PUBLISHED">Published</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Authors Section -->
+                <div class="form-section">
+                    <h4><i class="ti ti-users"></i> Authors <span class="required">*</span></h4>
+                    <p class="form-text">Assign authors from the research team members</p>
+                    
+                    <div class="authors-container" id="authorsContainer">
+                        <!-- Author rows will be added here dynamically -->
+                    </div>
+                    <button type="button" class="btn-add-author" onclick="addAuthorRow()">
+                        <i class="ti ti-user-plus"></i> Add Author
+                    </button>
+                    <div class="error-message" id="authorsError"></div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal('publicationModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <i class="ti ti-check"></i> Create Publication
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Publication Details Modal -->
+<div class="modal-overlay" id="publicationDetailModal" style="display: none;">
+    <div class="modal-container detail-modal">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="ti ti-file-text"></i>
+                Publication Details
+            </h3>
+            <button class="modal-close-btn" onclick="closeModal('publicationDetailModal')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="detailContent">
+                <div class="detail-section">
+                    <div class="detail-header">
+                        <h4 id="detailTitle">Publication Title</h4>
+                        <span class="project-badge" id="detailStatus">Draft</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-book"></i> Publication Type</h5>
+                    <p id="detailType">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-file-description"></i> Abstract</h5>
+                    <p id="detailAbstract">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-tags"></i> Keywords</h5>
+                    <div id="detailKeywords" class="keywords-container"></div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-users"></i> Authors</h5>
+                    <div id="detailAuthors" class="authors-list"></div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-info-circle"></i> Metadata</h5>
+                    <div class="metadata-grid">
+                        <span><strong>Created</strong> <span id="detailCreated">-</span></span>
+                        <span><strong>Updated</strong> <span id="detailUpdated">-</span></span>
+                        <span><strong>Created By</strong> <span id="detailCreatedBy">-</span></span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-edit"></i> Update Status</h5>
+                    <div class="status-update-wrapper">
+                        <select id="detailStatusSelect" class="form-control" style="flex: 1; max-width: 300px;">
+                            <option value="DRAFT">Draft</option>
+                            <option value="UNDER_REVIEW">Under Internal Review</option>
+                            <option value="COMMITTEE_REVIEW">Committee Review</option>
+                            <option value="READY">Ready for Submission</option>
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="REVISION">Revision Required</option>
+                            <option value="ACCEPTED">Accepted</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="PUBLISHED">Published</option>
+                        </select>
+                        <button class="btn-update-status" onclick="updatePublicationStatus()">
+                            <i class="ti ti-check"></i> Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close-detail" onclick="closeModal('publicationDetailModal')">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications -->
+<div class="notification" id="successNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-check-circle notification-icon success"></i>
+        <span id="notificationMessage">Success!</span>
+        <button class="notification-close-btn" onclick="closeNotification()"><i class="ti ti-x"></i></button>
+    </div>
+</div>
+
+<div class="notification error" id="errorNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-exclamation-circle notification-icon error"></i>
+        <span id="errorMessage">Error!</span>
+        <button class="notification-close-btn" onclick="closeErrorNotification()"><i class="ti ti-x"></i></button>
+    </div>
+</div>
+
+<div class="notification warning" id="warningNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-alert-circle notification-icon warning"></i>
+        <span id="warningMessage">Warning!</span>
+        <button class="notification-close-btn" onclick="closeWarningNotification()"><i class="ti ti-x"></i></button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/jordan/research_publication.js' %}"></script>
+{% endblock %}

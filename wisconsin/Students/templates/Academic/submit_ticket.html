@@ -1,0 +1,171 @@
+
+<!-- ************************************************ Arun code ********************************************************* -->
+
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}Submit Support Ticket — University of Wisconsin{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tickets/tickets.css' %}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+{% endblock %}
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_support_tickets %}active{% endblock %}
+
+{% block content %}
+<div class="ticket-page-header">
+  <div>
+    <h1>Submit a Support Ticket</h1>
+    <p>Report a course-related issue and staff will get back to you.</p>
+  </div>
+  <a href="{% url 'Student:my_support_tickets' uuid=request.user.uuid %}" class="ticket-btn ticket-btn-ghost">
+    <i class="ti ti-list"></i><span>My Tickets</span>
+  </a>
+</div>
+
+<div class="ticket-toast-container" id="ticketToastContainer"></div>
+
+<div class="ticket-page-grid">
+
+<form method="post" class="ticket-form">
+  {% csrf_token %}
+
+  <label>Course (optional)</label>
+  <select name="course_section" id="courseSectionSelect">
+    <option value=""></option>
+    {% for s in sections %}
+      <option value="{{ s.section_id }}">{{ s.course.course_code }} — {{ s.course.course_name }} (Sec {{ s.section_number }})</option>
+    {% endfor %}
+  </select>
+
+  <label>Subject</label>
+  <input type="text" name="subject" required maxlength="255" placeholder="Briefly describe the issue" />
+
+  <label>Priority</label>
+  <select name="priority" id="prioritySelect">
+    {% for value, label in priority_choices %}
+      <option value="{{ value }}" {% if value == "MEDIUM" %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Description</label>
+  <textarea name="description" rows="6" placeholder="Give as much detail as you can..."></textarea>
+
+  <button type="submit" class="ticket-btn ticket-btn-primary">
+    <i class="ti ti-send"></i><span>Submit Ticket</span>
+  </button>
+</form>
+
+<!-- <aside class="ticket-help-panel">
+  <div class="red-line"></div>
+
+  <h2>Before you submit</h2>
+
+  <div class="ticket-help-item">
+    <i class="ti ti-clock"></i>
+    <div>
+      <b>Response times</b>
+      <span>Most tickets get a first reply within 1–2 business days.</span>
+    </div>
+  </div>
+
+  <div class="ticket-help-item">
+    <i class="ti ti-list-check"></i>
+    <div>
+      <b>Pick the right course</b>
+      <span>Link a ticket to the relevant course section so it reaches the right staff faster.</span>
+    </div>
+  </div>
+
+  <div class="ticket-help-item">
+    <i class="ti ti-message-circle"></i>
+    <div>
+      <b>Be specific</b>
+      <span>Include dates, error messages, or screenshots where relevant — it speeds up resolution.</span>
+    </div>
+  </div>
+
+  <div class="ticket-help-divider"></div>
+
+  <h3>Choosing a priority</h3>
+
+  <div class="ticket-help-priority">
+    <span class="ticket-badge ticket-low">Low</span>
+    <p>General questions, no immediate deadline.</p>
+  </div>
+  <div class="ticket-help-priority">
+    <span class="ticket-badge ticket-medium">Medium</span>
+    <p>Affects your work but isn't blocking you right now.</p>
+  </div>
+  <div class="ticket-help-priority">
+    <span class="ticket-badge ticket-urgent">Urgent</span>
+    <p>You're blocked — e.g. can't submit an assignment or access a required resource.</p>
+  </div>
+</aside> -->
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  new Choices('#courseSectionSelect', {
+    searchEnabled: true,
+    shouldSort: false,
+    placeholder: true,
+    placeholderValue: 'General / Not course-specific',
+    itemSelectText: '',
+  });
+
+  new Choices('#prioritySelect', {
+    searchEnabled: false,
+    shouldSort: false,
+    itemSelectText: '',
+  });
+});
+
+function ticketRemoveToast(toast) {
+  toast.style.animation = 'ticketToastOut 0.3s ease forwards';
+  setTimeout(() => toast.remove(), 300);
+}
+
+function ticketShowToast(title, msg, type = 'error') {
+  const iconMap = {
+    success: '<i class="ti ti-circle-check"></i>',
+    info: '<i class="ti ti-info-circle"></i>',
+    warning: '<i class="ti ti-alert-triangle"></i>',
+    error: '<i class="ti ti-circle-x"></i>',
+  };
+  const container = document.getElementById('ticketToastContainer');
+  const toast = document.createElement('div');
+  toast.className = `ticket-toast ${type}`;
+  toast.innerHTML = `
+    <div class="ticket-toast-icon">${iconMap[type] || iconMap.error}</div>
+    <div class="ticket-toast-txt">
+      <b>${title}</b>
+      <small>${msg}</small>
+    </div>
+    <span class="ticket-toast-close"><i class="ti ti-x"></i></span>
+  `;
+  toast.querySelector('.ticket-toast-close').addEventListener('click', () => ticketRemoveToast(toast));
+  container.appendChild(toast);
+  setTimeout(() => ticketRemoveToast(toast), 4000);
+}
+
+{% if messages %}
+document.addEventListener('DOMContentLoaded', function () {
+  {% for message in messages %}
+    ticketShowToast(
+      "{% if 'success' in message.tags %}Success{% elif 'info' in message.tags %}Info{% elif 'warning' in message.tags %}Warning{% else %}Error{% endif %}",
+      "{{ message|escapejs }}",
+      "{% if 'success' in message.tags %}success{% elif 'info' in message.tags %}info{% elif 'warning' in message.tags %}warning{% else %}error{% endif %}"
+    );
+  {% endfor %}
+});
+{% endif %}
+</script>
+{% endblock %}
+
+<!-- ************************************************ Arun code ********************************************************* -->

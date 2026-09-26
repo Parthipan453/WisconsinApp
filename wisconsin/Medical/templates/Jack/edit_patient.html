@@ -1,0 +1,462 @@
+{% extends "medical_base.html" %} 
+
+{% load static %} 
+
+{% block title %}Edit Patient{% endblock %} 
+
+{% block page_title %}Edit Patient{% endblock %} 
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'css/swetha/add_patient.css' %}" />
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css"
+/>
+{% endblock %} 
+
+{% block content %}
+
+<div class="ap-wrapper">
+  <div class="ap-hero">
+    <div class="ap-hero-left">
+      <div class="ap-icon">
+        <i class="bi bi-pencil-square"></i>
+      </div>
+
+      <div>
+        <h2>Edit Patient</h2>
+        <p>Update medical records and patient information.</p>
+      </div>
+    </div>
+
+    <div class="ap-hero-right">
+      <a href="{% url 'Medical:patients' %}" class="ap-btn-secondary">
+        <i class="bi bi-arrow-left"></i>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <form
+    method="POST"
+    id="patientForm"
+    action="{% url 'Medical:update_patient' patient.uuid %}"
+    data-search-url="{% url 'Medical:search_patient_members' %}"
+    novalidate
+  >
+    {% csrf_token %}
+
+    <input
+      type="hidden"
+      id="selectedProfileId"
+      name="selected_profile_id"
+      value="{{ linked_profile_id }}"
+    />
+
+    <div class="ap-grid">
+      <div class="ap-left-column patient-info">
+        <div class="ap-card">
+          <div class="ap-card-header">
+            <div>
+              <h4><i class="bi bi-person-fill"></i> Patient Information</h4>
+              <p>Review and update patient details</p>
+            </div>
+          </div>
+
+          <div class="ap-card-body">
+            <div class="ap-row">
+              <div class="ap-group">
+                <label>Patient Type <span class="ap-req">*</span></label>
+                <select
+                  id="patientType"
+                  name="patient_type"
+                  class="ap-select"
+                  required
+                  disabled
+                >
+                  <option value="">Select</option>
+                  <option value="STUDENT" {% if patient.patient_type == "STUDENT" %}selected{% endif %}>Student</option>
+                  <option value="FACULTY" {% if patient.patient_type == "FACULTY" %}selected{% endif %}>Faculty</option>
+                  <option value="STAFF" {% if patient.patient_type == "STAFF" %}selected{% endif %}>Staff</option>
+                  <option value="ADMIN" {% if patient.patient_type == "ADMIN" %}selected{% endif %}>Admin</option>
+                  <option value="VISITOR" {% if patient.patient_type == "VISITOR" %}selected{% endif %}>Visitor</option>
+                </select>
+                <small>Patient type cannot be changed after creation.</small>
+              </div>
+            </div>
+
+            <div class="ap-row" id="searchRow" {% if patient.patient_type == "VISITOR" %}style="display:none;"{% endif %}>
+              <div class="ap-group">
+                <label>University Member <span class="ap-req">*</span></label>
+                <div class="ap-search-inline">
+                  <input
+                    type="text"
+                    id="searchKeyword"
+                    placeholder="Search member..."
+                    value="{{ linked_full_name }}"
+                    disabled
+                  />
+                  <button
+                    type="button"
+                    id="searchBtn"
+                    class="ap-btn-secondary"
+                    disabled
+                  >
+                    <i class="bi bi-search"></i>
+                  </button>
+                </div>
+                <small>Member linked to this patient record.</small>
+
+                <div id="searchResultsList" class="ap-search-results"></div>
+              </div>
+            </div>
+
+            <div id="visitorBlock" {% if patient.patient_type != "VISITOR" %}style="display:none;"{% endif %}>
+
+              <div class="ap-row two">
+                  <div class="ap-group">
+                      <label>Visitor Name <span class="ap-req">*</span></label>
+                      <input
+                          type="text"
+                          id="visitorName"
+                          name="visitor_name"
+                          placeholder="Enter Visitor Name"
+                          value="{{ patient.visitor_name|default:'' }}"
+                      >
+                  </div>
+
+                  <div class="ap-group">
+                      <label>Mobile Number <span class="ap-req">*</span></label>
+                      <input
+                          type="text"
+                          id="visitorMobile"
+                          name="visitor_mobile"
+                          placeholder="+91 XXXXX XXXXX"
+                          value="{{ patient.visitor_phone|default:'' }}"
+                      >
+                  </div>
+              </div>
+
+              <div class="ap-row two">
+                  <div class="ap-group">
+                      <label>Email</label>
+                      <input
+                          type="email"
+                          id="visitorEmail"
+                          name="visitor_email"
+                          placeholder="Enter Email"
+                          value="{{ patient.visitor_email|default:'' }}"
+                      >
+                  </div>
+
+                  <div class="ap-group">
+                      <label>Gender</label>
+                      <select id="visitorGender" name="visitor_gender">
+                          <option value="">Select</option>
+                          <option value="MALE" {% if patient.visitor_gender == "MALE" %}selected{% endif %}>Male</option>
+                          <option value="FEMALE" {% if patient.visitor_gender == "FEMALE" %}selected{% endif %}>Female</option>
+                          <option value="OTHER" {% if patient.visitor_gender == "OTHER" %}selected{% endif %}>Other</option>
+                      </select>
+                  </div>
+              </div>
+
+              <div class="ap-row">
+                  <div class="ap-group">
+                      <label>Address</label>
+                      <textarea
+                          id="visitorAddress"
+                          name="visitor_address"
+                          placeholder="Enter Address"
+                      >{{ patient.visitor_address|default:'' }}</textarea>
+                  </div>
+              </div>
+
+            </div>
+
+            <div
+              id="selectedPersonBlock"
+              class="ap-selected-person"
+              {% if patient.patient_type == "VISITOR" %}style="display: none;"{% endif %}
+            >
+              <div class="ap-selected-header">
+                <span
+                  ><i class="bi bi-check-circle-fill"></i> Person Selected</span
+                >
+              </div>
+
+              <div class="ap-row three">
+                <div class="ap-group">
+                  <label>University ID</label>
+                  <input type="text" id="universityId" value="{{ linked_university_id|default:'' }}" readonly />
+                </div>
+                <div class="ap-group">
+                  <label>Full Name</label>
+                  <input type="text" id="fullName" value="{{ linked_full_name|default:'' }}" readonly />
+                </div>
+                <div class="ap-group">
+                  <label>Gender</label>
+                  <input type="text" id="gender" value="{{ linked_gender|default:'' }}" readonly />
+                </div>
+              </div>
+
+              <div class="ap-row three">
+                <div class="ap-group">
+                  <label>Date of Birth</label>
+                  <input type="text" id="dob" value="{{ linked_dob|default:'' }}" readonly />
+                </div>
+                <div class="ap-group">
+                  <label>Mobile Number</label>
+                  <input type="text" id="mobile" value="{{ linked_mobile|default:'' }}" readonly />
+                </div>
+                <div class="ap-group">
+                  <label>Email</label>
+                  <input type="text" id="email" value="{{ linked_email|default:'' }}" readonly />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ap-card">
+          <div class="ap-card-header">
+            <div>
+              <h4>
+                <i class="bi bi-clipboard2-pulse-fill"></i> Medical Information
+              </h4>
+              <p>Health details for the Medical record</p>
+            </div>
+          </div>
+
+          <div class="ap-card-body">
+            <div class="ap-row">
+              <div class="ap-group">
+                <label>Blood Group</label>
+                <div class="ap-blood-grid" id="bloodGroupGrid">
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="A+"
+                      id="bloodAPos"
+                      {% if patient.blood_group == "A+" %}checked{% endif %}
+                    />
+                    <label for="bloodAPos">A+</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="A-"
+                      id="bloodANeg"
+                      {% if patient.blood_group == "A-" %}checked{% endif %}
+                    />
+                    <label for="bloodANeg">A-</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="B+"
+                      id="bloodBPos"
+                      {% if patient.blood_group == "B+" %}checked{% endif %}
+                    />
+                    <label for="bloodBPos">B+</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="B-"
+                      id="bloodBNeg"
+                      {% if patient.blood_group == "B-" %}checked{% endif %}
+                    />
+                    <label for="bloodBNeg">B-</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="AB+"
+                      id="bloodABPos"
+                      {% if patient.blood_group == "AB+" %}checked{% endif %}
+                    />
+                    <label for="bloodABPos">AB+</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="AB-"
+                      id="bloodABNeg"
+                      {% if patient.blood_group == "AB-" %}checked{% endif %}
+                    />
+                    <label for="bloodABNeg">AB-</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="O+"
+                      id="bloodOPos"
+                      {% if patient.blood_group == "O+" %}checked{% endif %}
+                    />
+                    <label for="bloodOPos">O+</label>
+                  </div>
+                  <div class="ap-blood-option">
+                    <input
+                      type="radio"
+                      name="blood_group"
+                      value="O-"
+                      id="bloodONeg"
+                      {% if patient.blood_group == "O-" %}checked{% endif %}
+                    />
+                    <label for="bloodONeg">O-</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ap-row two">
+              <div class="ap-group">
+                <label>Allergies</label>
+                <textarea
+                  id="allergies"
+                  name="allergies"
+                  placeholder="e.g. Penicillin, Peanuts"
+                >{{ patient.allergies|default:'' }}</textarea>
+              </div>
+
+              <div class="ap-group">
+                <label>Chronic Conditions</label>
+                <textarea
+                  id="chronicConditions"
+                  name="chronic_conditions"
+                  placeholder="e.g. Asthma, Diabetes"
+                >{{ patient.chronic_conditions|default:'' }}</textarea>
+              </div>
+            </div>
+
+            <div class="ap-row">
+              <div class="ap-group">
+                <label>Remarks</label>
+                <textarea
+                  id="remarks"
+                  name="remarks"
+                  placeholder="Any other remarks"
+                >{{ patient.remarks|default:'' }}</textarea>
+              </div>
+            </div>
+          </div>
+          <div class="ap-card-footer">
+            <button type="submit" id="submitBtn" class="ap-btn-save">
+              <i class="bi bi-check-circle-fill"></i>
+              Update Patient
+            </button>
+
+            <button type="button" id="resetBtn" class="ap-btn-reset">
+              <i class="bi bi-arrow-counterclockwise"></i>
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ap-right-column">
+        <div class="ap-summary-card">
+          <div class="ap-summary-top">
+            <div class="ap-avatar" id="previewAvatar">
+                {% if linked_photo %}
+                    <img id="previewAvatarImg" src="{{ linked_photo }}" data-photo="{{ linked_photo }}" alt="Patient Photo" style="display: block;" />
+                    <i class="bi bi-person-fill" id="previewAvatarIcon" style="display: none;"></i>
+                {% else %}
+                    <img id="previewAvatarImg" alt="Patient Photo" style="display: none;" />
+                    <i class="bi bi-person-fill" id="previewAvatarIcon"></i>
+                {% endif %}
+            </div>
+
+            <h4 id="previewName">{{ patient.get_display_name }}</h4>
+            <span id="previewType" class="ap-type-badge">{{ patient.get_patient_type_display }}</span>
+          </div>
+
+          <div class="ap-summary-body">
+            <div class="ap-summary-row">
+              <span>University ID</span>
+              <strong id="summaryUniversity">{{ linked_university_id|default:'—' }}</strong>
+            </div>
+            <div class="ap-summary-row">
+              <span>Blood Group</span>
+              <strong id="summaryBlood">{{ patient.blood_group|default:'—' }}</strong>
+            </div>
+            <div class="ap-summary-row">
+              <span>Phone</span>
+              <strong id="summaryPhone">{{ linked_mobile|default:patient.visitor_phone|default:'—' }}</strong>
+            </div>
+            <div class="ap-summary-row">
+              <span>Email</span>
+              <strong id="summaryEmail">{{ linked_email|default:patient.visitor_email|default:'—' }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="ap-card">
+          <div class="ap-card-header">
+            <div>
+              <h4><i class="bi bi-telephone-fill"></i> Emergency Contact</h4>
+              <p>Used during medical emergencies.</p>
+            </div>
+          </div>
+
+          <div class="ap-card-body">
+            <div class="ap-group">
+              <label>Contact Name <span class="ap-req">*</span></label>
+              <input
+                type="text"
+                id="emergencyName"
+                name="emergency_contact_name"
+                placeholder="Enter contact name"
+                value="{{ patient.emergency_contact_name|default:'' }}"
+                required
+              />
+            </div>
+
+            <div class="ap-group mt-3">
+              <label>Contact Number <span class="ap-req">*</span></label>
+              <input
+                type="text"
+                id="emergencyPhone"
+                name="emergency_contact_phone"
+                placeholder="+91 XXXXX XXXXX"
+                value="{{ patient.emergency_contact_phone|default:'' }}"
+                required
+              />
+            </div>
+          </div>
+        </div>
+        <div class="ap-info-card">
+          <div class="ap-info-title">
+            <i class="bi bi-lightbulb-fill"></i>
+            Edit Checklist
+          </div>
+          <ul>
+            <li>Review patient information.</li>
+            <li>Update medical details if needed.</li>
+            <li>Verify emergency contact.</li>
+            <li>Save changes to update record.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% endblock %} 
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+<script src="{% static 'js/Jack/edit_patient.js' %}"></script>
+{% endblock %}

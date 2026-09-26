@@ -1,0 +1,730 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}
+    Research Submission Details | Student Portal
+{% endblock %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_student_research_milestones %}active{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/Research/research_milestone_submission_detail.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="rsd-page">
+        <div class="rsd-breadcrumb">
+            <a href="{% url 'Student:student_research_milestone_list' uuid=request.user.uuid %}">
+                <i class="ti ti-arrow-left"></i>
+                <span>Research Milestones</span>
+            </a>
+            <i class="ti ti-chevron-right"></i>
+            <span>Submission Details</span>
+        </div>
+        <section class="rsd-hero">
+            <div class="rsd-hero-left">
+                <div class="rsd-hero-icon">
+                    <i class="ti ti-file-check"></i>
+                </div>
+                <div class="rsd-hero-content">
+                    <span class="rsd-eyebrow">Research Milestone Submission</span>
+                    <h1>Submission #{{ submission.submission_number }}</h1>
+                    <p>{{ milestone.milestone_title|default:"Research Milestone" }}</p>
+                </div>
+            </div>
+            <div class="rsd-status-box">
+                <span>Current Status</span>
+                {% if submission.status == "SUBMITTED" %}
+                    <strong class="rsd-status submitted">
+                        <i class="ti ti-send"></i>
+                        Submitted
+                    </strong>
+                {% elif submission.status == "UNDER_REVIEW" %}
+                    <strong class="rsd-status review">
+                        <i class="ti ti-eye"></i>
+                        Under Review
+                    </strong>
+                {% elif submission.status == "REVISION_REQUIRED" %}
+                    <strong class="rsd-status revision">
+                        <i class="ti ti-refresh-alert"></i>
+                        Revision Required
+                    </strong>
+                {% elif submission.status == "EVALUATED" %}
+                    <strong class="rsd-status evaluated">
+                        <i class="ti ti-circle-check"></i>
+                        Evaluated
+                    </strong>
+                {% else %}
+                    <strong class="rsd-status">{{ submission.get_status_display }}</strong>
+                {% endif %}
+            </div>
+        </section>
+        {% if submission.status == "REVISION_REQUIRED" and can_resubmit %}
+            <section class="rsd-revision-alert">
+                <div class="rsd-revision-icon">
+                    <i class="ti ti-alert-triangle"></i>
+                </div>
+                <div class="rsd-revision-content">
+                    <span>Action Required</span>
+                    <h3>Revision is required for this submission</h3>
+                    <p>
+                        Faculty evaluation indicates that your research work
+                        requires revision. Review the feedback below and submit
+                        an updated version.
+                    </p>
+                </div>
+                <a href="{% url 'Student:student_research_milestone_resubmit' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                   class="rsd-revision-button">
+                    <i class="ti ti-refresh"></i>
+                    <span>Resubmit Work</span>
+                </a>
+            </section>
+        {% endif %}
+        <div class="rsd-layout">
+            <main class="rsd-main">
+                <section class="rsd-card rsd-submission-card">
+                    <div class="rsd-card-header">
+                        <div>
+                            <span class="rsd-card-kicker">Submission Information</span>
+                            <h2>Research Work</h2>
+                        </div>
+                        <div class="rsd-card-icon">
+                            <i class="ti ti-file-description"></i>
+                        </div>
+                    </div>
+                    <div class="rsd-info-grid">
+                        <div class="rsd-info-item">
+                            <span>
+                                <i class="ti ti-hash"></i>
+                                Submission Number
+                            </span>
+                            <strong>#{{ submission.submission_number }}</strong>
+                        </div>
+                        <div class="rsd-info-item">
+                            <span>
+                                <i class="ti ti-calendar-event"></i>
+                                Submitted On
+                            </span>
+                            <strong>{{ submission.submitted_at|date:"d M Y, h:i A" }}</strong>
+                        </div>
+                        <div class="rsd-info-item">
+                            <span>
+                                <i class="ti ti-refresh"></i>
+                                Last Updated
+                            </span>
+                            <strong>{{ submission.updated_at|date:"d M Y, h:i A" }}</strong>
+                        </div>
+                        <div class="rsd-info-item">
+                            <span>
+                                <i class="ti ti-activity"></i>
+                                Submission Status
+                            </span>
+                            <strong>{{ submission.get_status_display }}</strong>
+                        </div>
+                    </div>
+                    <div class="rsd-document-section">
+                        <div class="rsd-section-heading">
+                            <div>
+                                <span>Primary Document</span>
+                                <h3>Research Document</h3>
+                            </div>
+                            <span class="rsd-required-label">Primary</span>
+                        </div>
+                        {% if submission.main_document %}
+                            <div class="rsd-document-row">
+                                <div class="rsd-document-icon pdf">
+                                    <i class="ti ti-file-text"></i>
+                                </div>
+                                <div class="rsd-document-details">
+                                    <strong>{{ submission.main_document.name|cut:"phd/research/milestones/" }}</strong>
+                                    <span>Main research submission</span>
+                                </div>
+                                <a href="{{ submission.main_document.url }}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="rsd-document-button">
+                                    <i class="ti ti-external-link"></i>
+                                    <span>Open</span>
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="rsd-empty-document">
+                                <i class="ti ti-file-off"></i>
+                                <span>No primary document is available.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if submission.additional_file_1 or submission.additional_file_2 or submission.additional_file_3 %}
+                        <div class="rsd-document-section">
+                            <div class="rsd-section-heading">
+                                <div>
+                                    <span>Supporting Materials</span>
+                                    <h3>Additional Documents</h3>
+                                </div>
+                                <span class="rsd-optional-label">Optional</span>
+                            </div>
+                            <div class="rsd-additional-list">
+                                {% if submission.additional_file_1 %}
+                                    <div class="rsd-document-row compact">
+                                        <div class="rsd-document-icon">
+                                            <i class="ti ti-file"></i>
+                                        </div>
+                                        <div class="rsd-document-details">
+                                            <strong>{{ submission.additional_file_1.name|cut:"phd/research/milestones/additional/" }}</strong>
+                                            <span>Additional Document 1</span>
+                                        </div>
+                                        <a href="{{ submission.additional_file_1.url }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="rsd-document-button">
+                                            <i class="ti ti-external-link"></i>
+                                            <span>Open</span>
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if submission.additional_file_2 %}
+                                    <div class="rsd-document-row compact">
+                                        <div class="rsd-document-icon">
+                                            <i class="ti ti-file"></i>
+                                        </div>
+                                        <div class="rsd-document-details">
+                                            <strong>{{ submission.additional_file_2.name|cut:"phd/research/milestones/additional/" }}</strong>
+                                            <span>Additional Document 2</span>
+                                        </div>
+                                        <a href="{{ submission.additional_file_2.url }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="rsd-document-button">
+                                            <i class="ti ti-external-link"></i>
+                                            <span>Open</span>
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if submission.additional_file_3 %}
+                                    <div class="rsd-document-row compact">
+                                        <div class="rsd-document-icon">
+                                            <i class="ti ti-file"></i>
+                                        </div>
+                                        <div class="rsd-document-details">
+                                            <strong>{{ submission.additional_file_3.name|cut:"phd/research/milestones/additional/" }}</strong>
+                                            <span>Additional Document 3</span>
+                                        </div>
+                                        <a href="{{ submission.additional_file_3.url }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="rsd-document-button">
+                                            <i class="ti ti-external-link"></i>
+                                            <span>Open</span>
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="rsd-remarks-section">
+                        <div class="rsd-section-heading">
+                            <div>
+                                <span>Student Remarks</span>
+                                <h3>Submission Notes</h3>
+                            </div>
+                            <div class="rsd-remarks-icon">
+                                <i class="ti ti-message"></i>
+                            </div>
+                        </div>
+                        {% if submission.student_remarks %}
+                            <div class="rsd-remarks-box">
+                                <i class="ti ti-quote"></i>
+                                <p>{{ submission.student_remarks|linebreaksbr }}</p>
+                            </div>
+                        {% else %}
+                            <div class="rsd-empty-box">
+                                <i class="ti ti-message-off"></i>
+                                <span>No remarks were added with this submission.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+                <section class="rsd-card rsd-evaluation-card">
+                    <div class="rsd-card-header">
+                        <div>
+                            <span class="rsd-card-kicker">Academic Review</span>
+                            <h2>Faculty Evaluation</h2>
+                        </div>
+                        <div class="rsd-card-icon">
+                            <i class="ti ti-clipboard-check"></i>
+                        </div>
+                    </div>
+                    {% if evaluations %}
+                        {% if chair_evaluation %}
+                            <div class="rsd-evaluation-block chair">
+                                <div class="rsd-evaluation-heading">
+                                    <div class="rsd-evaluator">
+                                        <div class="rsd-evaluator-avatar">
+                                            <i class="ti ti-award"></i>
+                                        </div>
+                                        <div>
+                                            <span>Chair Faculty</span>
+                                            <strong>{{ chair_evaluation.evaluator }}</strong>
+                                        </div>
+                                    </div>
+                                    <span class="rsd-decision-badge {% if chair_evaluation.decision == 'COMPLETED' %} completed {% else %} revision {% endif %}">
+                                        {% if chair_evaluation.decision == "COMPLETED" %}
+                                            <i class="ti ti-circle-check"></i>
+                                            Completed
+                                        {% else %}
+                                            <i class="ti ti-refresh-alert"></i>
+                                            Revision Required
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="rsd-progress-row">
+                                    <div>
+                                        <span>Evaluated Progress</span>
+                                        <strong>{{ chair_evaluation.progress_percentage|default:"0" }}%</strong>
+                                    </div>
+                                    <div class="rsd-progress-track">
+                                        <div style="width: {{ chair_evaluation.progress_percentage|default:'0' }}%"></div>
+                                    </div>
+                                </div>
+                                {% if chair_evaluation.feedback %}
+                                    <div class="rsd-feedback-box">
+                                        <span>Faculty Feedback</span>
+                                        <p>{{ chair_evaluation.feedback|linebreaksbr }}</p>
+                                    </div>
+                                {% endif %}
+                                <div class="rsd-evaluated-date">
+                                    <i class="ti ti-calendar-check"></i>
+                                    Evaluated on
+                                    {{ chair_evaluation.evaluated_at|date:"d M Y, h:i A" }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if committee_evaluations %}
+                            <div class="rsd-committee-section">
+                                <div class="rsd-subsection-title">
+                                    <span>Committee Review</span>
+                                    <strong>
+                                        {{ committee_evaluations|length }}
+                                        Evaluation{{ committee_evaluations|length|pluralize }}
+                                    </strong>
+                                </div>
+                                {% for evaluation in committee_evaluations %}
+                                    <div class="rsd-evaluation-block committee">
+                                        <div class="rsd-evaluation-heading">
+                                            <div class="rsd-evaluator">
+                                                <div class="rsd-evaluator-avatar committee">
+                                                    <i class="ti ti-users"></i>
+                                                </div>
+                                                <div>
+                                                    <span>Committee Member</span>
+                                                    <strong>{{ evaluation.evaluator }}</strong>
+                                                </div>
+                                            </div>
+                                            <span class="rsd-decision-badge {% if evaluation.decision == 'COMPLETED' %} completed {% else %} revision {% endif %}">
+                                                {% if evaluation.decision == "COMPLETED" %}
+                                                    <i class="ti ti-circle-check"></i>
+                                                    Completed
+                                                {% else %}
+                                                    <i class="ti ti-refresh-alert"></i>
+                                                    Revision Required
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="rsd-progress-row">
+                                            <div>
+                                                <span>Evaluated Progress</span>
+                                                <strong>{{ evaluation.progress_percentage|default:"0" }}%</strong>
+                                            </div>
+                                            <div class="rsd-progress-track">
+                                                <div style="width: {{ evaluation.progress_percentage|default:'0' }}%;"></div>
+                                            </div>
+                                        </div>
+                                        {% if evaluation.feedback %}
+                                            <div class="rsd-feedback-box">
+                                                <span>Feedback</span>
+                                                <p>{{ evaluation.feedback|linebreaksbr }}</p>
+                                            </div>
+                                        {% endif %}
+                                        <div class="rsd-evaluated-date">
+                                            <i class="ti ti-calendar-check"></i>
+                                            Evaluated on
+                                            {{ evaluation.evaluated_at|date:"d M Y, h:i A" }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="rsd-no-evaluation">
+                            <div class="rsd-no-evaluation-icon">
+                                <i class="ti ti-hourglass-empty"></i>
+                            </div>
+                            <h3>Evaluation Pending</h3>
+                            <p>
+                                Your submission has been received and is waiting
+                                for faculty evaluation.
+                            </p>
+                            <span>
+                                You will be able to view the evaluation here once
+                                faculty review is completed.
+                            </span>
+                        </div>
+                    {% endif %}
+                </section>
+                <section class="rsd-card rsd-advisor-card">
+                    <div class="rsd-card-header">
+                        <div>
+                            <span class="rsd-card-kicker">Advisor Review</span>
+                            <h2>Advisor Advice</h2>
+                        </div>
+                        <div class="rsd-card-icon advisor">
+                            <i class="ti ti-message-user"></i>
+                        </div>
+                    </div>
+                    {% if advisor_advices %}
+                        <div class="rsd-advice-list">
+                            {% for advice in advisor_advices %}
+                                <article class="rsd-advice-item">
+                                    <div class="rsd-advice-header">
+                                        <div class="rsd-advisor-person">
+                                            <div class="rsd-advisor-avatar">
+                                                <i class="ti ti-user-star"></i>
+                                            </div>
+                                            <div>
+                                                <span>Research Advisor</span>
+                                                <strong>{{ advice.advisor }}</strong>
+                                            </div>
+                                        </div>
+                                        {% if advice.status == "SUBMITTED" %}
+                                            <span class="rsd-advice-status submitted">
+                                                <i class="ti ti-check"></i>
+                                                Submitted
+                                            </span>
+                                        {% else %}
+                                            <span class="rsd-advice-status">{{ advice.get_status_display }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="rsd-advice-content">
+                                        <i class="ti ti-message-2"></i>
+                                        <p>{{ advice.advice|linebreaksbr }}</p>
+                                    </div>
+                                    <div class="rsd-advice-date">
+                                        <i class="ti ti-calendar"></i>
+                                        {% if advice.submitted_at %}
+                                            {{ advice.submitted_at|date:"d M Y, h:i A" }}
+                                        {% else %}
+                                            Not submitted yet
+                                        {% endif %}
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="rsd-no-advice">
+                            <div>
+                                <i class="ti ti-message-off"></i>
+                            </div>
+                            <h3>No Advisor Advice Yet</h3>
+                            <p>Your advisor has not added advice for this submission yet.</p>
+                        </div>
+                    {% endif %}
+                </section>
+            </main>
+            <aside class="rsd-sidebar">
+                <section class="rsd-sidebar-card">
+                    <div class="rsd-sidebar-heading">
+                        <div>
+                            <span>Milestone</span>
+                            <h3>Research Stage</h3>
+                        </div>
+                        <div class="rsd-sidebar-icon">
+                            <i class="ti ti-flask"></i>
+                        </div>
+                    </div>
+                    <div class="rsd-milestone-summary">
+                        <div class="rsd-milestone-number">M{{ milestone.sequence_number|default:"1" }}</div>
+                        <div>
+                            <strong>{{ milestone.milestone_title }}</strong>
+                            <span>Research Milestone</span>
+                        </div>
+                    </div>
+                    <div class="rsd-side-progress">
+                        <div>
+                            <span>Milestone Progress</span>
+                            <strong>{{ milestone.current_progress_percentage|default:"0" }}%</strong>
+                        </div>
+                        <div class="rsd-side-progress-track">
+                            <div style="width: {{ milestone.current_progress_percentage|default:'0' }}%"></div>
+                        </div>
+                    </div>
+                </section>
+                <section class="rsd-sidebar-card">
+                    <div class="rsd-sidebar-heading">
+                        <div>
+                            <span>Submission Timeline</span>
+                            <h3>Progress</h3>
+                        </div>
+                        <div class="rsd-sidebar-icon">
+                            <i class="ti ti-timeline"></i>
+                        </div>
+                    </div>
+                    <div class="rsd-timeline">
+                        <div class="rsd-timeline-item completed">
+                            <div class="rsd-timeline-dot">
+                                <i class="ti ti-check"></i>
+                            </div>
+                            <div>
+                                <strong>Research Submitted</strong>
+                                <span>{{ submission.submitted_at|date:"d M Y, h:i A" }}</span>
+                            </div>
+                        </div>
+                        <div class="rsd-timeline-line"></div>
+                        <div class="rsd-timeline-item {% if submission.status == 'UNDER_REVIEW' or submission.status == 'EVALUATED' or submission.status == 'REVISION_REQUIRED' %} completed {% else %} active {% endif %}">
+                            <div class="rsd-timeline-dot">
+                                {% if submission.status == "UNDER_REVIEW" or submission.status == "EVALUATED" or submission.status == "REVISION_REQUIRED" %}
+                                    <i class="ti ti-check"></i>
+                                {% else %}
+                                    <i class="ti ti-eye"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>Faculty Review</strong>
+                                <span>
+                                    {% if submission.status == "SUBMITTED" %}
+                                        Waiting for review
+                                    {% else %}
+                                        Review in progress or completed
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="rsd-timeline-line"></div>
+                        <div class="rsd-timeline-item {% if submission.status == 'EVALUATED' or submission.status == 'REVISION_REQUIRED' %} completed {% else %} pending {% endif %}">
+                            <div class="rsd-timeline-dot">
+                                {% if submission.status == "EVALUATED" or submission.status == "REVISION_REQUIRED" %}
+                                    <i class="ti ti-check"></i>
+                                {% else %}
+                                    <i class="ti ti-clock"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>Evaluation</strong>
+                                <span>
+                                    {% if submission.status == "REVISION_REQUIRED" %}
+                                        Revision requested
+                                    {% elif submission.status == "EVALUATED" %}
+                                        Evaluation completed
+                                    {% else %}
+                                        Pending evaluation
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="rsd-sidebar-card rsd-action-card">
+                    <div class="rsd-sidebar-heading">
+                        <div>
+                            <span>Available Action</span>
+                            <h3>Submission Actions</h3>
+                        </div>
+                        <div class="rsd-sidebar-icon">
+                            <i class="ti ti-settings"></i>
+                        </div>
+                    </div>
+                    {% if can_resubmit %}
+                        <button type="button" class="rsd-side-action revision" id="resubmitAction">
+                            <div>
+                                <i class="ti ti-refresh"></i>
+                            </div>
+                            <span>
+                                <strong>Resubmit Research Work</strong>
+                                <small>Submit a revised version</small>
+                            </span>
+                            <i class="ti ti-chevron-right"></i>
+                        </button>
+                    {% else %}
+                        <div class="rsd-side-action disabled">
+                            <div>
+                                {% if submission.status == "SUBMITTED" %}
+                                    <i class="ti ti-hourglass"></i>
+                                {% elif submission.status == "UNDER_REVIEW" %}
+                                    <i class="ti ti-eye"></i>
+                                {% elif submission.status == "EVALUATED" %}
+                                    <i class="ti ti-circle-check"></i>
+                                {% else %}
+                                    <i class="ti ti-lock"></i>
+                                {% endif %}
+                            </div>
+                            <span>
+                                <strong>
+                                    {% if submission.status == "SUBMITTED" %}
+                                        Awaiting Faculty Review
+                                    {% elif submission.status == "UNDER_REVIEW" %}
+                                        Under Faculty Review
+                                    {% elif submission.status == "EVALUATED" %}
+                                        Evaluation Completed
+                                    {% else %}
+                                        No Action Available
+                                    {% endif %}
+                                </strong>
+                                <small>Current submission is in view mode</small>
+                            </span>
+                        </div>
+                    {% endif %}
+                    <a href="{% url 'Student:student_research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                       class="rsd-back-action">
+                        <i class="ti ti-arrow-left"></i>
+                        <span>Back to Milestone</span>
+                    </a>
+                </section>
+                <section class="rsd-sidebar-card rsd-help-card">
+                    <div class="rsd-help-icon">
+                        <i class="ti ti-info-circle"></i>
+                    </div>
+                    <div>
+                        <strong>Submission is in View Mode</strong>
+                        <p>
+                            Submitted research documents and faculty feedback
+                            cannot be edited from this page.
+                        </p>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const resubmitAction =
+            document.getElementById(
+                "resubmitAction"
+            );
+
+        if (resubmitAction) {
+
+            resubmitAction.addEventListener(
+                "click",
+                function () {
+
+                    Swal.fire({
+
+                        title:
+                            "Resubmit Research Work?",
+
+                        text:
+                            "You will be taken to the resubmission page to upload a revised version.",
+
+                        icon:
+                            "question",
+
+                        showCancelButton:
+                            true,
+
+                        confirmButtonColor:
+                            "#C5050C",
+
+                        cancelButtonColor:
+                            "#6B7280",
+
+                        confirmButtonText:
+                            "Continue",
+
+                        cancelButtonText:
+                            "Cancel",
+
+                        reverseButtons:
+                            true,
+
+                        allowOutsideClick:
+                            false
+
+                    }).then(
+                        function (result) {
+
+                            if (
+                                result.isConfirmed
+                            ) {
+
+                                window.location.href =
+                                    "{% url 'Student:student_research_milestone_resubmit' uuid=request.user.uuid milestone_id=milestone.milestone_id %}";
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+
+        document
+            .querySelectorAll(
+                ".rsd-document-button"
+            )
+            .forEach(
+                function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            button.classList.add(
+                                "opening"
+                            );
+
+                            setTimeout(
+                                function () {
+
+                                    button.classList.remove(
+                                        "opening"
+                                    );
+
+                                },
+                                500
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+        {% if messages %}
+
+        {% for message in messages %}
+
+        Swal.fire({
+
+            icon:
+                "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+
+            title:
+                "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Attention{% else %}Information{% endif %}",
+
+            text:
+                "{{ message|escapejs }}",
+
+            confirmButtonColor:
+                "#C5050C",
+
+            confirmButtonText:
+                "Continue"
+
+        });
+
+        {% endfor %}
+
+        {% endif %}
+
+    }
+);
+
+    </script>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Set Permissions — {{ role_label }}{% endblock %}
+{% block page_title %}Roles & Permissions{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_role_list.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="permission-header" data-aos="fade-down">
+    <div class="permission-header__text">
+      <h1>Set Permissions — {{ role_label }}</h1>
+      <p>
+        {% if role_type != "admin" %}
+          Only {{ role_type_label }}-tagged permissions are shown here.
+        {% endif %}
+        {% if can_edit %}
+          Click any C / R / U / D badge to grant or revoke that action for this role.
+        {% else %}
+          View-only — only the Administrator can change permissions.
+        {% endif %}
+      </p>
+    </div>
+    <a href="{% url 'Permission:permission_role_list' %}" class="permission-btn-back">
+      <i data-lucide="arrow-left"></i> Back to Roles & Permissions
+    </a>
+  </div>
+
+  <form method="post" id="permission-form">
+    {% csrf_token %}
+    <div class="permission-card">
+      <div class="permission-card__body">
+        <div class="permission-edit-layout">
+
+          <aside class="permission-role-info">
+            <div class="permission-role-info__avatar">{{ role_label|first|upper }}</div>
+            <div class="permission-role-info__name">{{ role_label }}</div>
+            <p class="permission-role-info__desc">
+              {{ role.description|default:"No description provided." }}
+            </p>
+
+            <div class="permission-role-stat">
+              <span>Permissions</span>
+              <span id="permission-count">{{ total_assigned }} / {{ total_available }}</span>
+            </div>
+            <div class="permission-role-stat">
+              <span>Users</span>
+              <span>{{ user_count }}</span>
+            </div>
+          </aside>
+
+          <div class="permission-modules-col">
+            <div class="permission-modules-columns-header">
+              <span>C</span><span>R</span><span>U</span><span>D</span>
+            </div>
+
+            <div class="permission-modules-scroll">
+              {% for app_label, models in grouped.items %}
+                <div class="permission-app-group">
+                  <div class="permission-app-group__head">
+                    <div class="permission-app-group__label">
+                      <i data-lucide="layers"></i>
+                      <span>{{ app_label }}</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="permission-app-group__toggle{% if forloop.first %} open{% endif %}"></i>
+                  </div>
+
+                  <div class="permission-app-group__body"{% if not forloop.first %} hidden{% endif %}>
+                    {% for model_name, actions in models.items %}
+                      {% with any_action=actions.create|default:actions.read|default:actions.update|default:actions.delete %}
+                      <div class="permission-model-row">
+                        <div class="permission-model-name">
+                          <i data-lucide="database"></i>
+                          <span>{{ model_name }}</span>
+                          {% if any_action %}
+                            <span class="pm-path-chip" data-tooltip="{{ any_action.perm.breadcrumb_path }}">
+                              <i data-lucide="git-branch"></i> path
+                            </span>
+                          {% endif %}
+                        </div>
+
+                        <div class="permission-crud-checks">
+                          {% with c=actions.create r=actions.read u=actions.update d=actions.delete %}
+
+                            <label class="permission-check-item" {% if c %}data-tooltip="{{ c.perm.display_path }} — {{ c.perm.description }}"{% endif %}>
+                              {% if c %}
+                                <input type="checkbox" name="permissions" value="{{ c.perm.id }}"
+                                       {% if c.checked %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                <span class="permission-check-label permission-check-label--create">C</span>
+                              {% else %}
+                                <span class="permission-check-label permission-check-label--create is-disabled" data-tooltip="Not available for this module">C</span>
+                              {% endif %}
+                            </label>
+
+                            <label class="permission-check-item" {% if r %}data-tooltip="{{ r.perm.display_path }} — {{ r.perm.description }} (Always granted — cannot be revoked)"{% endif %}>
+                              {% if r %}
+                                <input type="checkbox" name="permissions" value="{{ r.perm.id }}" checked disabled>
+                                <span class="permission-check-label permission-check-label--read">R</span>
+                              {% else %}
+                                <span class="permission-check-label permission-check-label--read is-disabled" data-tooltip="Not available for this module">R</span>
+                              {% endif %}
+                            </label>
+
+                            <label class="permission-check-item" {% if u %}data-tooltip="{{ u.perm.display_path }} — {{ u.perm.description }}"{% endif %}>
+                              {% if u %}
+                                <input type="checkbox" name="permissions" value="{{ u.perm.id }}"
+                                       {% if u.checked %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                <span class="permission-check-label permission-check-label--update">U</span>
+                              {% else %}
+                                <span class="permission-check-label permission-check-label--update is-disabled" data-tooltip="Not available for this module">U</span>
+                              {% endif %}
+                            </label>
+
+                            <label class="permission-check-item" {% if d %}data-tooltip="{{ d.perm.display_path }} — {{ d.perm.description }}"{% endif %}>
+                              {% if d %}
+                                <input type="checkbox" name="permissions" value="{{ d.perm.id }}"
+                                       {% if d.checked %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                <span class="permission-check-label permission-check-label--delete">D</span>
+                              {% else %}
+                                <span class="permission-check-label permission-check-label--delete is-disabled" data-tooltip="Not available for this module">D</span>
+                              {% endif %}
+                            </label>
+
+                          {% endwith %}
+                        </div>
+                      </div>
+                      {% endwith %}
+                    {% endfor %}
+
+                    {% if can_edit %}
+                      <div class="permission-select-all-row">
+                        <span>{{ app_label }}</span>
+                        <button type="button" class="permission-select-all-btn" data-select-all>Select All</button>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {% if can_edit %}
+        <div class="permission-save-bar">
+          <span class="permission-save-bar__hint">
+            Changes take effect immediately for all users holding the <strong>{{ role_label }}</strong> role.
+          </span>
+          <div class="permission-save-bar__actions">
+            <a href="{% url 'Permission:permission_role_list' %}" class="permission-btn-cancel">Cancel</a>
+            <button type="submit" class="permission-btn-save">
+              <i data-lucide="save"></i> Save Permissions
+            </button>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </form>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'script/permission_role_permissions.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,881 @@
+{% extends "medical_base.html" %} {% load static %} 
+{% block title %}Patient Registration{% endblock %} 
+{% block page_title %}Patient Registration
+<small>Front desk</small>{% endblock %} 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+<link
+  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="{% static 'css/swetha/patient_registration.css' %}"
+/>
+{% endblock %} {% block content %}
+<div
+  class="reg-page"
+  id="regPage"
+  data-search-url="{% url 'Medical:patient_search' %}"
+  data-add-patient-url="{% url 'Medical:add_patient' %}"
+  data-schedule-url="{% url 'Medical:schedule_search' %}"
+  data-register-url="{% url 'Medical:register_patient' %}"
+  data-queue-url="{% url 'Medical:queue_list' %}"
+  data-appointment-url="{% url 'Medical:appointment_list_frontdesk' %}"
+  data-appointment-status-url="{% url 'Medical:appointment_status_frontdesk' %}"
+  data-calendar-url="{% url 'Medical:doctor_schedule_calendar' %}"
+  data-ambulance-url="{% url 'Medical:available_ambulances' %}"
+
+  data-ambulance-status-url="{% url 'Medical:update_ambulance_status' %}"
+
+  data-ambulance-availability-url="{% url 'Medical:ambulance_availability' %}"
+  data-ambulance-availability-url="{% url 'Medical:patient_registration_ambulances' %}"
+>
+  <!-- ===== Page Header ===== -->
+  <section class="reg-header" data-aos="fade-down">
+    <div class="reg-header__left">
+      <div class="reg-header__icon">
+        <i class="fas fa-user-plus"></i>
+      </div>
+
+      <div>
+        <h2 class="reg-header__title">Patient Registration</h2>
+        <p class="reg-header__subtitle">
+          Register patients, assign doctors, and manage today's consultation
+          queue.
+        </p>
+      </div> 
+    </div>
+
+    <div class="reg-header__right">
+      <div class="reg-date-card">
+        <i class="fas fa-calendar-day"></i>
+        <div>
+          <span>Today</span>
+          <strong id="currentDate"></strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Today stats ===== -->
+  <section class="reg-stats">
+    <div class="reg-stat-card" data-aos="fade-up" data-aos-delay="0">
+      <div class="reg-stat-icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <div>
+        <span class="reg-stat-label">Total</span>
+        <span class="reg-stat-value">{{ stats.total }}</span>
+      </div>
+    </div>
+    <div class="reg-stat-card" data-aos="fade-up" data-aos-delay="100">
+      <div class="reg-stat-icon">
+        <i class="fas fa-walking"></i>
+      </div>
+      <div>
+        <span class="reg-stat-label">Walk-in</span>
+        <span class="reg-stat-value">{{ stats.walk_in }}</span>
+      </div>
+    </div>
+    <div class="reg-stat-card" data-aos="fade-up" data-aos-delay="200">
+      <div class="reg-stat-icon">
+        <i class="fas fa-calendar-check"></i>
+      </div>
+      <div>
+        <span class="reg-stat-label">Appointment</span>
+        <span class="reg-stat-value">{{ stats.appointment }}</span>
+      </div>
+    </div>
+    <div
+      class="reg-stat-card reg-stat-card--accent"
+      data-aos="fade-up"
+      data-aos-delay="300"
+    >
+      <div class="reg-stat-icon">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div>
+        <span class="reg-stat-label">Waiting</span>
+        <span class="reg-stat-value">{{ stats.waiting }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Patient selection ===== -->
+  <section class="reg-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="reg-card__head">
+      <span>Patient selection</span>
+    </div>
+
+    <div class="reg-search-row">
+      <div class="reg-search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          id="patientSearchInput"
+          placeholder="Patient no / name / phone"
+          autocomplete="off"
+        />
+      </div>
+      <a
+        href="{% url 'Medical:add_patient' %}"
+        class="reg-btn reg-btn--outline"
+      >
+        <i class="fas fa-user-plus"></i> Add new patient
+      </a>
+    </div>
+
+    <div id="patientSearchResults" class="reg-search-results"></div>
+
+    <div
+      id="selectedPatientBox"
+      class="reg-selected-box reg-selected-box--empty"
+    >
+      <i class="fas fa-user"></i>
+      <span>No patient selected yet. Search above to select one.</span>
+    </div>
+  </section>
+
+  <!-- ===== Doctor schedule ===== -->
+  <section class="reg-card">
+    <div class="reg-card__head">
+      <span>Available doctor schedule</span>
+      <span class="reg-card__meta" id="scheduleCount"></span>
+    </div>
+
+    <div class="reg-toolbar">
+      <div class="reg-search-box reg-search-box--full">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          id="scheduleSearchInput"
+          placeholder="Search doctor / department"
+          autocomplete="off"
+        />
+      </div>
+      <!-- Availability Filter -->
+      <div class="reg-filter-box">
+        <select id="scheduleFilter" class="reg-filter-select">
+          <option value="ALL">All Shifts</option>
+          <option value="MORNING">Morning</option>
+          <option value="AFTERNOON">Afternoon</option>
+          <option value="EVENING">Evening</option>
+          <option value="night">Night</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="scheduleGrid" class="reg-schedule-grid"></div>
+
+    <div class="reg-pagination">
+      <button
+        type="button"
+        class="reg-btn reg-btn--ghost"
+        id="schedulePrev"
+        disabled
+      >
+        <i class="fas fa-chevron-left"></i> Previous
+      </button>
+      <button type="button" class="reg-btn reg-btn--ghost" id="scheduleNext">
+        View next 5 <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== Registration details ===== -->
+  <section class="reg-card">
+    <div class="reg-card__head">
+      <span>Registration details</span>
+    </div>
+
+    <div class="reg-details-grid">
+      <div class="reg-detail-box">
+        <span class="reg-detail-label">Selected patient</span>
+        <div id="detailPatient" class="reg-detail-empty">None selected</div>
+      </div>
+      <div class="reg-detail-box">
+        <span class="reg-detail-label">Selected schedule</span>
+        <div id="detailSchedule" class="reg-detail-empty">None selected</div>
+      </div>
+    </div>
+    <div class="reg-registration-row">
+      <div class="reg-field-block">
+        <span class="reg-detail-label">Registration type</span>
+        <div class="reg-type-group" id="regTypeGroup">
+          <button
+            type="button"
+            class="reg-type-pill reg-type-pill--active"
+            data-type="WALK_IN"
+          >
+            Walk-in
+          </button>
+          <!-- <button type="button" class="reg-type-pill" data-type="APPOINTMENT">
+            Appointment
+          </button>
+
+          <button type="button" class="reg-type-pill" data-type="EMERGENCY">
+            Emergency
+          </button> -->
+        </div>
+      </div>
+
+      <div class="reg-field-block">
+        <span class="reg-detail-label">Chief complaint</span>
+        <textarea
+          id="chiefComplaint"
+          class="reg-textarea"
+          rows="2"
+          placeholder="Briefly describe the reason for visit"
+        ></textarea>
+      </div>
+    </div>
+
+<!-- ===== Ambulance Arrival & Selection ===== -->
+<div class="reg-ambulance-section" id="ambulanceSection">
+
+  <!-- Header -->
+  <div class="reg-ambulance-header">
+
+    <div>
+      <span class="reg-detail-label">Ambulance service</span>
+
+      <p class="reg-ambulance-subtitle">
+        Record ambulance arrival details if applicable.
+      </p>
+    </div>
+
+    <!-- <div class="reg-ambulance-availability">
+      <i class="fas fa-truck-medical"></i>
+
+      <span id="availableAmbulanceCount">0</span>
+
+      <small>Available</small>
+    </div> -->
+
+  </div>
+
+
+  <!-- CHECKBOX -->
+  <div class="reg-arrival-row">
+
+    <label class="reg-ambulance-checkbox-label">
+
+      <input
+        type="checkbox"
+        id="arrivedByAmbulance"
+      />
+
+      <span class="reg-ambulance-custom-checkbox">
+      </span>
+
+      <div class="reg-arrival-info">
+
+        <div class="reg-arrival-icon">
+          <i class="fas fa-ambulance"></i>
+        </div>
+
+        <div>
+          <strong>Arrived by ambulance</strong>
+
+          <span>
+            Check this if the patient arrived using an ambulance.
+          </span>
+        </div>
+
+      </div>
+
+    </label>
+
+  </div>
+
+  <!-- Ambulance Selection -->
+  <div
+    class="reg-ambulance-selection"
+    id="ambulanceSelectionBox"
+    hidden
+  >
+
+    <div class="reg-ambulance-selection-head">
+
+      <div>
+        <strong>Select ambulance</strong>
+        <span id="ambulanceSelectionInfo">
+          Select the ambulance that transported the patient.
+        </span>
+      </div>
+      
+      <span
+        class="reg-ambulance-count-badge"
+        id="ambulanceAvailableBadge"
+      >
+        0 available
+      </span>
+      
+    </div>
+
+    <!-- Ambulance List -->
+    <div
+      class="reg-ambulance-list"
+      id="ambulanceList"
+    >
+    </div>
+
+    <!-- Selected Ambulance -->
+    <div
+      class="reg-selected-ambulance"
+      id="selectedAmbulanceBox"
+      hidden
+    >
+      <div class="reg-selected-ambulance-head">
+
+        <div class="reg-selected-ambulance-icon">
+          <i class="fas fa-truck-medical"></i>
+        </div>
+
+        <div>
+          <span>Selected ambulance</span>
+
+          <strong id="selectedAmbulanceUnit">—</strong>
+        </div>
+
+        <span class="reg-ambulance-status">
+          Used for arrival
+        </span>
+
+      </div>
+      <div class="reg-selected-ambulance-details">
+
+        <div class="reg-ambulance-detail">
+          <span>Registration plate</span>
+          <strong id="selectedAmbulancePlate">—</strong>
+        </div>
+
+        <div class="reg-ambulance-detail">
+          <span>Vehicle</span>
+          <strong id="selectedAmbulanceVehicle">—</strong>
+        </div>
+
+        <div class="reg-ambulance-detail">
+          <span>Service type</span>
+          <strong id="selectedAmbulanceService">—</strong>
+        </div>
+
+        <div class="reg-ambulance-detail">
+          <span>Dispatch contact</span>
+          <strong id="selectedAmbulancePhone">—</strong>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- No Ambulance State -->
+    <div
+      class="reg-no-ambulance"
+      id="noAmbulanceState"
+      hidden
+    >
+      <i class="fas fa-truck-medical"></i>
+
+      <div>
+        <strong>No ambulance currently available</strong>
+
+        <span>
+          No ambulance is currently marked as available.
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+    <div class="reg-submit-row">
+      <div class="reg-token" id="tokenPreview">
+        <i class="fas fa-ticket"></i>
+        <span>Token will be generated on save</span>
+      </div>
+      <button
+        type="button"
+        id="registerBtn"
+        class="reg-btn reg-btn--primary"
+        disabled
+      >
+        <i class="fas fa-check"></i> Register patient
+      </button>
+    </div>
+    <div id="regMessage" class="reg-message"></div>
+    <div id="toastContainer" class="toast-container"></div>
+  </section>
+
+<section
+  class="reg-card ambulance-availability-card"
+  id="ambulanceAvailabilitySection"
+>
+  <!-- Header -->
+  <div class="ambulance-availability-header">
+    <div>
+      <div class="reg-card__head ambulance-availability-title">
+        <span>Ambulance availability</span>
+      </div>
+
+      <p class="ambulance-availability-subtitle">
+        View all ambulances and update their current status.
+      </p>
+    </div>
+    <!-- <button
+      type="button"
+      class="ambulance-refresh-btn"
+      id="refreshAmbulancesBtn"
+    >
+      <i class="fas fa-rotate"></i>
+      Refresh
+    </button> -->
+  </div>
+
+  <div class="ambulance-summary-grid">
+    <!-- Total -->
+    <div class="ambulance-summary-card ambulance-summary-total">
+
+      <div class="ambulance-summary-icon">
+        <i class="fas fa-ambulance"></i>
+      </div>
+
+      <div>
+        <span>Total ambulances</span>
+
+        <strong id="ambulanceTotalCount">
+          0
+        </strong>
+      </div>
+
+    </div>
+
+    <!-- Available -->
+    <div class="ambulance-summary-card ambulance-summary-available">
+      <div class="ambulance-summary-icon">
+        <i class="fas fa-circle-check"></i>
+      </div>
+      <div>
+        <span>Available</span>
+        <strong id="ambulanceAvailableCount">
+          0
+        </strong>
+      </div>
+    </div>
+
+    <!-- Dispatched -->
+    <div class="ambulance-summary-card ambulance-summary-dispatched">
+      <div class="ambulance-summary-icon">
+        <i class="fas fa-truck-medical"></i>
+      </div>
+      <div>
+        <span>Dispatched</span>
+        <strong id="ambulanceDispatchedCount">
+          0
+        </strong>
+      </div>
+    </div>
+    <!-- Reserved -->
+    <div class="ambulance-summary-card ambulance-summary-reserved">
+        <div class="ambulance-summary-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div>
+            <span>Reserved</span>
+            <strong id="ambulanceReservedCount">0</strong>
+        </div>
+    </div>
+    <!-- Out of Service -->
+    <div class="ambulance-summary-card ambulance-summary-outofservice">
+        <div class="ambulance-summary-icon">
+            <i class="fas fa-ban"></i>
+        </div>
+        <div>
+            <span>Out of service</span>
+            <strong id="ambulanceOutOfServiceCount">0</strong>
+        </div>
+    </div>
+    <!-- Maintenance -->
+    <div class="ambulance-summary-card ambulance-summary-maintenance">
+      <div class="ambulance-summary-icon">
+        <i class="fas fa-screwdriver-wrench"></i>
+      </div>
+      <div>
+        <span>Maintenance</span>
+        <strong id="ambulanceMaintenanceCount">
+          0
+        </strong>
+      </div>
+    </div>
+  </div>
+  <!-- Ambulance Search -->
+<div class="ambulance-availability-toolbar">
+  <div class="ambulance-search-box">
+    <i class="fas fa-search"></i>
+    <input
+      type="text"
+      id="ambulanceAvailabilitySearch"
+      placeholder="Search by unit number, plate, vehicle or service type"
+      autocomplete="off"
+    />
+  </div>
+</div>
+  <div class="ambulance-availability-table-wrap">
+    <table class="ambulance-availability-table">
+      <thead>
+        <tr>
+          <th>Unit no.</th>
+          <th>Vehicle details</th>
+          <th>Status</th>
+          <th>Last updated</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody
+        id="ambulanceAvailabilityTableBody"
+      >
+        <!-- JavaScript renders ambulances -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty State -->
+  <div
+    class="ambulance-availability-empty"
+    id="ambulanceAvailabilityEmpty"
+    hidden
+  >
+    <div class="ambulance-empty-icon">
+      <i class="fas fa-ambulance"></i>
+    </div>
+    <div>
+      <strong>No ambulances found</strong>
+      <span>
+        No ambulance services have been added for this hospital.
+      </span>
+    </div>
+  </div>
+    <!-- Ambulance Pagination -->
+<div class="ambulance-pagination" id="ambulancePagination">
+
+  <div class="ambulance-pagination-info">
+    <span id="ambulancePaginationInfo">
+      Showing 0-0 of 0
+    </span>
+  </div>
+
+  <div class="ambulance-pagination-buttons">
+
+    <button
+      type="button"
+      class="ambulance-page-btn"
+      id="ambulancePrevPage"
+      disabled
+    >
+      <i class="fas fa-chevron-left"></i>
+      
+    </button>
+
+    <span
+      class="ambulance-page-number"
+      id="ambulancePageNumber"
+    >
+      Page 1
+    </span>
+
+    <button
+      type="button"
+      class="ambulance-page-btn"
+      id="ambulanceNextPage"
+      disabled
+    >
+      <i class="fas fa-chevron-right"></i>
+    </button>
+
+  </div>
+
+</div>
+  <!-- Footer -->
+  <!-- <div class="ambulance-availability-footer"> -->
+
+    <!-- <span id="ambulanceLastUpdated">
+      <i class="fas fa-clock"></i>
+      Last updated: —
+    </span> -->
+
+  <!-- </div> -->
+
+</section>
+
+
+  <!-- schedule -->
+<section class="doctors-calendar-section">
+  <div class="calendar-card">
+
+    <!-- Calendar Header -->
+    <div class="calendar-header">
+
+      <button
+        type="button"
+        class="calendar-nav-btn"
+        id="prevMonthBtn"
+        aria-label="Previous month"
+      >
+        <i data-lucide="chevron-left"></i>
+      </button>
+
+      <div class="calendar-title">
+        <h3>Staff Schedule</h3>
+        <p id="calendarMonthYear"></p>
+      </div>
+
+      <button
+        type="button"
+        class="calendar-nav-btn"
+        id="nextMonthBtn"
+        aria-label="Next month"
+      >
+        <i data-lucide="chevron-right"></i>
+      </button>
+
+    </div>
+
+    <!-- Week Days -->
+    <div class="calendar-weekdays">
+      <div>Sun</div>
+      <div>Mon</div>
+      <div>Tue</div>
+      <div>Wed</div>
+      <div>Thu</div>
+      <div>Fri</div>
+      <div>Sat</div>
+    </div>
+
+    <!-- Calendar Days -->
+    <div
+      class="calendar-days"
+      id="calendarDays"
+    ></div>
+
+  </div>
+</section>
+<div
+  class="schedule-modal-overlay"
+  id="scheduleModalOverlay"
+  aria-hidden="true"
+>
+
+  <div
+    class="schedule-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalDate"
+  >
+
+    <!-- Modal Header -->
+    <div class="schedule-modal-header">
+
+      <div class="schedule-modal-heading">
+
+        <h3 id="modalDate">-</h3>
+
+        <p id="modalSummary">
+          Loading...
+        </p>
+
+        <p class="schedule-modal-subtitle">
+          Staff Schedule and Appointments
+        </p>
+
+      </div>
+
+      <button
+        type="button"
+        class="schedule-modal-close"
+        id="scheduleModalClose"
+        aria-label="Close"
+      >
+        <i data-lucide="x"></i>
+      </button>
+
+    </div>
+
+    <!-- Doctor List -->
+    <div
+      class="schedule-doctor-list"
+      id="scheduleDoctorList"
+    ></div>
+
+  </div>
+
+</div>
+  <!-- ===== Today's Appointments ===== -->
+  <section class="reg-card" data-aos="fade-up">
+    <div class="reg-card__head">
+      <span>Today's Appointments</span>
+
+      <span class="reg-card__meta" id="appointmentCount"> 0 appointments </span>
+    </div>
+
+    <!-- Appointment Tabs -->
+
+    <div class="appointment-tabs">
+      <button
+        type="button"
+        class="appointment-tab appointment-tab--active"
+        data-status="PENDING"
+      >
+        <i class="fas fa-clock"></i>
+
+        Pending
+
+        <span id="pendingCount">0</span>
+      </button>
+
+      <button type="button" class="appointment-tab" data-status="CONFIRMED">
+        <i class="fas fa-calendar-check"></i>
+
+        Confirmed
+
+        <span id="confirmedCount">0</span>
+      </button>
+
+      <button type="button" class="appointment-tab" data-status="ARRIVED">
+        <i class="fas fa-user-check"></i>
+
+        Arrived
+
+        <span id="arrivedCount">0</span>
+      </button>
+
+      <button type="button" class="appointment-tab" data-status="NOT_ARRIVED">
+        <i class="fas fa-user-clock"></i>
+
+        Not Arrived
+
+        <span id="notArrivedCount">0</span>
+      </button>
+    </div>
+
+    <!-- Search -->
+
+    <div class="reg-toolbar">
+      <div class="reg-search-box reg-search-box--full">
+        <i class="fas fa-search"></i>
+
+        <input
+          type="text"
+          id="appointmentSearchInput"
+          placeholder="Search appointment / patient / doctor"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <!-- Appointment List -->
+
+    <div id="appointmentList" class="appointment-list">
+      <div class="reg-table-empty">Loading appointments...</div>
+    </div>
+    <!-- Appointment Pagination -->
+    <div class="appointment-pagination">
+      <button
+        type="button"
+        id="appointmentPrev"
+        class="appointment-page-btn"
+        disabled
+      >
+        <i class="fas fa-chevron-left"></i>
+        Previous
+      </button>
+
+      <span id="appointmentPageInfo" class="appointment-page-info"> </span>
+
+      <button
+        type="button"
+        id="appointmentNext"
+        class="appointment-page-btn"
+        disabled
+      >
+        Next
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== Today's queue ===== -->
+  <section class="reg-card" data-aos="fade-up" data-aos-delay="250">
+    <div class="reg-card__head">
+      <span>Today's queue</span>
+    </div>
+    <div class="reg-toolbar">
+      <div class="reg-search-box reg-search-box--full">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          id="queueSearchInput"
+          placeholder="Search by Token, Patient / Doctor"
+          autocomplete="off"
+        />
+      </div>
+      <!-- Date Filter -->
+      <div class="reg-date-filter">
+        <input type="text" id="queueDateFilter" placeholder="Select Date" />
+      </div>
+    </div>
+
+    <div class="reg-table-wrap">
+      <table class="reg-table">
+        <thead>
+          <tr>
+            <th style="width: 15%">Token / Appointment</th>
+            <th>Patient</th>
+            <th>Type</th>
+            <th>Doctor</th>
+            <th>Room</th>
+            <th>Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="queueBody">
+          <tr>
+            <td colspan="7" class="reg-table-empty">Loading queue…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="reg-pagination">
+      <span id="queueCount"> Showing 0-0 of 0 </span>
+
+      <div class="reg-pagination-buttons">
+        <button id="queuePrev" class="reg-btn reg-btn--ghost">Previous</button>
+
+        <button id="queueNext" class="reg-btn reg-btn--ghost">Next</button>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+<script>
+  AOS.init({
+    duration: 700,
+    easing: "ease-out",
+    once: true,
+    offset: 40,
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{% static 'js/swetha/patient_registration.js' %}"></script>
+{% endblock %}

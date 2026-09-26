@@ -1,0 +1,111 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Assign Roles — {{ target_user.get_full_name|default:target_user.email }}{% endblock %}
+{% block page_title %}Users & Roles{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="pm-page-header" data-aos="fade-down">
+    <div class="pm-page-header__text">
+      <a href="{% url 'Permission:permission_user_list' %}" class="pm-back-link">
+        <i data-lucide="arrow-left"></i> Users & Roles
+      </a>
+      <h1 class="pm-page-heading">{{ target_user.get_full_name|default:target_user.email }}</h1>
+      <p>{{ target_user.email }}</p>
+    </div>
+  </div>
+
+  <div class="pm-grid-2">
+
+    <div class="pm-card">
+      <div class="pm-card__head">
+        <h2 class="pm-card__title"><i data-lucide="shield-plus"></i> Assign Roles</h2>
+      </div>
+      <div class="pm-card__body">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="pm-form-group">
+            <label>Select Roles</label>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+              {% for role in all_roles %}
+                <label class="pm-checklist-row" style="cursor:pointer;">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" name="roles" value="{{ role.pk }}"
+                           {% if role.pk in assigned_role_ids %}checked{% endif %} />
+                    <div>
+                      <div class="pm-checklist-row__name">{{ role.name }}</div>
+                      {% if role.description %}
+                        <div class="pm-checklist-row__desc">{{ role.description }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <span class="pm-pill pm-pill--gray">{{ role.permissions.count }} perms</span>
+                </label>
+              {% empty %}
+                <p class="pm-hint">No active roles available. Create a role first.</p>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="pm-form-group">
+            <label for="expires_at">
+              Access Expiry <span class="pm-hint" style="display:inline;">(optional — leave blank for permanent)</span>
+            </label>
+            <input type="datetime-local" id="expires_at" name="expires_at" />
+          </div>
+
+          <div class="flex gap-2" style="justify-content:flex-end;">
+            <a href="{% url 'Permission:permission_user_list' %}" class="permission-btn-cancel">Cancel</a>
+            <button type="submit" class="permission-btn-save"><i data-lucide="save"></i> Save Roles</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="pm-card" style="align-self:start;">
+      <div class="pm-card__head">
+        <h2 class="pm-card__title"><i data-lucide="history"></i> Current Assignments</h2>
+      </div>
+      <div class="pm-table-wrap">
+        <table class="pm-table">
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Assigned By</th>
+              <th>Expires</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ua in current_assignments %}
+              <tr>
+                <td style="font-weight:600;">{{ ua.role.name }}</td>
+                <td style="color:var(--pm-text-dim);">{{ ua.assigned_by|default:"—" }}</td>
+                <td style="color:var(--pm-text-dim); font-family: monospace; font-size:.78rem;">
+                  {{ ua.expires_at|date:"M d, Y H:i"|default:"Never" }}
+                </td>
+                <td>
+                  {% if ua.is_active %}
+                    <span class="pm-pill pm-pill--green">Active</span>
+                  {% else %}
+                    <span class="pm-pill pm-pill--red">Expired</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="pm-table-empty">No roles assigned yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+{% endblock %}

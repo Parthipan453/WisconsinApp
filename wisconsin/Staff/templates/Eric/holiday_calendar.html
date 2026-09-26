@@ -1,0 +1,126 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Holiday Calendar{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/attendance_base.css' %}">
+<link rel="stylesheet" href="{% static 'css/Eric/holiday_calendar.css' %}">
+
+{% endblock %}
+
+{% block nav_attenance_open %}open{% endblock %}
+{% block nav_attenance_submenu %}open{% endblock %}
+{% block nav_holiday_calendar %}active{% endblock %}
+
+{% block content %}
+{% include "Eric/partials/messages.html" %}
+<div class="za-root">
+  <!-- Breadcrumb -->
+  <div class="za-flex-between-mb">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0 small">
+        <li class="breadcrumb-item active">Holiday Calendar</li>
+      </ol>
+    </nav>
+    <a href="{% url 'faculty_attendance' request.user.uuid %}" class="za-btn za-btn-outline za-shrink-0"><i class="ti ti-arrow-left"></i> Attendance</a>
+  </div>
+
+  <div class="za-hc-card">
+    <div class="za-hc-top">
+      <div class="za-hc-nav">
+        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}" class="za-hc-arrow">&lsaquo;</a>
+        <span class="za-hc-title">{{ month_name }}</span>
+        <a href="?year={{ next_month.year }}&month={{ next_month.month }}" class="za-hc-arrow">&rsaquo;</a>
+      </div>
+      <button class="za-btn za-btn-primary" data-bs-toggle="modal" data-bs-target="#zaHcModal"><i class="ti ti-plus"></i> Add Holiday</button>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="za-hc-grid">
+      <div class="za-hc-hd">Sun</div>
+      <div class="za-hc-hd">Mon</div>
+      <div class="za-hc-hd">Tue</div>
+      <div class="za-hc-hd">Wed</div>
+      <div class="za-hc-hd">Thu</div>
+      <div class="za-hc-hd">Fri</div>
+      <div class="za-hc-hd">Sat</div>
+
+      {% for week in month_cal %}
+        {% for day_num in week %}
+          {% if day_num == 0 %}
+            <div class="za-hc-cell za-hc-empty"></div>
+          {% else %}
+            {% for cd in cal_days %}
+              {% if cd.day == day_num %}
+            <div class="za-hc-cell
+              {% if cd.is_holiday %}za-hc-holiday{% endif %}
+              {% if cd.is_custom %}za-hc-custom{% endif %}
+              {% if cd.is_weekend and not cd.is_holiday and not cd.is_working_day_override %}za-hc-weekend{% endif %}
+              {% if cd.is_today %}za-hc-today{% endif %}
+              {% if cd.is_working_day_override %}za-hc-working{% endif %}"
+              data-date="{{ cd.date|date:'Y-m-d' }}"
+              data-name="{{ cd.holiday_name }}"
+              data-custom="{{ cd.is_custom|lower }}"
+              data-working="{{ cd.is_working_day_override|lower }}">
+              <span class="za-hc-num">{{ day_num }}</span>
+              {% if cd.is_holiday %}
+              <span class="za-hc-label">{{ cd.holiday_name }}</span>
+              {% elif cd.is_working_day_override %}
+              <span class="za-hc-label za-hc-working-label">Working Day</span>
+              {% endif %}
+            </div>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block global_modal %}
+<div class="modal fade" id="zaHcModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="zaHcModalTitle">Add Holiday</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" id="zaHcAction" value="add">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label"><i class="ti ti-calendar"></i> Date</label>
+            <input type="date" name="holiday_date" id="zaHcDate" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><i class="ti ti-star"></i> Holiday / Reason</label>
+            <input type="text" name="holiday_name" id="zaHcName" class="form-control"
+                   placeholder="e.g. Christmas, Company Event" required>
+          </div>
+          <p class="small text-muted mb-0 d-flex align-items-start gap-1" id="zaHcNote">
+            <i class="ti ti-info-circle mt-1"></i>
+            <span>This holiday will be visible for <strong>all faculty</strong> on the selected date.</span>
+          </p>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-danger" id="zaHcDelete" style="display:none"><i class="ti ti-trash"></i> Delete</button>
+          <button type="button" class="btn btn-outline-warning" id="zaHcWorkingToggle" style="display:none"><i class="ti ti-briefcase"></i> <span id="zaHcWorkingToggleText">Mark as Working Day</span></button>
+          <div class="d-flex gap-2 ms-auto">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger"><i class="ti ti-device-floppy"></i> Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/Eric/attendance_base.js' %}"></script>
+<script src="{% static 'js/Eric/holiday_calendar.js' %}"></script>
+{% endblock %}

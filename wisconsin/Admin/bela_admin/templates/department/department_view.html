@@ -1,0 +1,498 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}{{ department.department_name }}{% endblock %}
+{% block page_title %}Department Detail{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department/department_view.css' %}">
+
+{% endblock %}
+
+
+{% block content %}
+<div class="view-page">
+
+    <!-- Page Header -->
+    <div class="view-page-header-card">
+
+        <div class="view-page-header-left">
+
+            <div class="view-header-content">
+
+         
+
+
+                <h2 class="view-heading">
+                    {{ department.department_name|truncatechars:20 }}
+                </h2>
+
+
+                <p class="view-sub">
+                    {{ department.school.school_name }}
+                    ·
+                    {{ department.school.university.university_name }}
+                </p>
+
+                       <nav class="dept-breadcrumb" aria-label="breadcrumb">
+
+                    <i data-lucide="home"></i>
+
+                    <a href="{% url 'admin_dashboard' request.user.uuid %}">
+                        Dashboard
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <a href="{% url 'department_dashboard' %}">
+                        Departments
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <span class="cur">
+                        {{ department.department_name|truncatechars:20 }}
+                    </span>
+
+                </nav>
+
+            </div>
+
+        </div>
+
+
+        <div class="view-page-header-right">
+
+            <div class="topbar-actions">
+
+                <a href="{% url 'department_dashboard' %}"
+                   class="btn-outline">
+
+                    <i data-lucide="arrow-left"></i>
+                    Back
+
+                </a>
+
+
+                <a href="{% url 'department_edit' department.department_uuid %}"
+                   class="btn-outline">
+
+                    <i data-lucide="pencil"></i>
+                    Edit
+
+                </a>
+
+
+                {% if department.status == 'ACTIVE' %}
+
+                    <button
+                        class="btn-red"
+                        onclick="showInactiveModal()">
+
+                        <i data-lucide="ban"></i>
+                        Mark Inactive
+
+                    </button>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+  {# ── Hero banner ── #}
+  <div class="dept-hero">
+    <div class="dept-hero__icon">
+      <i data-lucide="building-2"></i>
+    </div>
+    <div class="dept-hero__info">
+      <div class="dept-hero__name">{{ department.department_name|truncatechars:20 }}</div>
+      <div class="dept-hero__meta">
+        <span><i data-lucide="building"></i>{{ department.school.school_name }}</span>
+        {% if department.established_year %}
+        <span><i data-lucide="calendar"></i>Est. {{ department.established_year }}</span>
+        {% endif %}
+        {% if department.office_location %}
+        <span><i data-lucide="map-pin"></i>{{ department.office_location }}</span>
+        {% endif %}
+      </div>
+      <div class="dept-hero__badges">
+        <span class="badge-code">{{ department.department_code }}</span>
+        {% if department.short_name %}
+        <span class="badge-code">{{ department.short_name }}</span>
+        {% endif %}
+        {% if department.status == 'ACTIVE' %}
+          <span class="badge-active">Active</span>
+        {% else %}
+          <span class="badge-inactive">Inactive</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Mini stat cards ── #}
+  <div class="mini-stats">
+    <div class="mini-card">
+      <div class="mini-card__icon blue"><i data-lucide="book-open"></i></div>
+      <div>
+        <div class="mini-card__val">{{ course_count }}</div>
+        <div class="mini-card__label">Courses</div>
+      </div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-card__icon amber"><i data-lucide="award"></i></div>
+      <div>
+        <div class="mini-card__val">{{ program_count }}</div>
+        <div class="mini-card__label">Programs</div>
+      </div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-card__icon red"><i data-lucide="calendar"></i></div>
+      <div>
+        <div class="mini-card__val">{{ department.established_year|default:"—" }}</div>
+        <div class="mini-card__label">Established</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Main grid ── #}
+  <div class="view-grid">
+
+    {# ─── Left column ─── #}
+    <div class="view-left">
+
+      {# Department Details #}
+      <div class="v-card">
+        <div class="v-card__hd">
+          <div class="v-card__icon red"><i data-lucide="building-2"></i></div>
+          <span class="v-card__title">Department Details</span>
+        </div>
+        <div class="v-card__body">
+          <div class="field-grid">
+
+            <div class="field-item">
+              <div class="field-label">Department Name</div>
+              <div class="field-value">{{ department.department_name }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Department Code</div>
+              <div class="field-value">
+                <span class="course-code">{{ department.department_code }}</span>
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Short Name</div>
+              <div class="field-value">
+                {% if department.short_name %}
+                  {{ department.short_name }}
+                {% else %}
+                  <span class="empty">Not set</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">School</div>
+              <div class="field-value">{{ department.school.school_name }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">University</div>
+              <div class="field-value">{{ department.school.university.university_name }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Established Year</div>
+              <div class="field-value {% if not department.established_year %}empty{% endif %}">
+                {{ department.established_year|default:"Not set" }}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Status</div>
+              <div class="field-value">
+                {% if department.status == 'ACTIVE' %}
+                  <span class="badge-active">Active</span>
+                {% else %}
+                  <span class="badge-inactive">Inactive</span>
+                {% endif %}
+              </div>
+            </div>
+
+          </div>
+
+          {% if department.description %}
+          <hr style="border-color:#f0f0f0;margin:1.25rem 0;">
+          <div class="field-label" style="margin-bottom:8px;">Description</div>
+          <div class="desc-block">{{ department.description }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Contact Information #}
+      <div class="v-card">
+        <div class="v-card__hd">
+          <div class="v-card__icon blue"><i data-lucide="phone"></i></div>
+          <span class="v-card__title">Contact Information</span>
+        </div>
+        <div class="v-card__body">
+          <div class="field-grid">
+
+            <div class="field-item">
+              <div class="field-label">Email</div>
+              <div class="field-value {% if not department.email %}empty{% endif %}">
+                {% if department.email %}
+                  <a href="mailto:{{ department.email }}">{{ department.email }}</a>
+                {% else %}
+                  Not set
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Phone</div>
+              <div class="field-value {% if not department.phone_number %}empty{% endif %}">
+                {% if department.phone_number %}
+                  <a href="tel:{{ department.phone_number }}">{{ department.phone_number }}</a>
+                {% else %}
+                  Not set
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Website</div>
+              <div class="field-value {% if not department.website %}empty{% endif %}">
+                {% if department.website %}
+                  <a href="{{ department.website }}" target="_blank" rel="noopener">
+                    {{ department.website }}
+                  </a>
+                {% else %}
+                  Not set
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Office Location</div>
+              <div class="field-value {% if not department.office_location %}empty{% endif %}">
+                {{ department.office_location|default:"Not set" }}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {# Courses #}
+      <div class="v-card">
+        <div class="v-card__hd">
+          <div class="v-card__icon blue"><i data-lucide="book-open"></i></div>
+          <span class="v-card__title">Courses</span>
+          <span style="margin-left:auto;font-size:12px;color:#6c757d;">
+            {{ course_count }} total
+          </span>
+        </div>
+        {% if department.courses.all %}
+        <div class="table-responsive">
+          <table class="v-table">
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th>Credits</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for course in department.courses.all %}
+              <tr>
+                <td>
+                  <div style="font-weight:600;font-size:13px;">{{ course.course_name }}</div>
+                  <span class="course-code">{{ course.course_code }}</span>
+                </td>
+                <td style="font-weight:600;">{{ course.credits }}</td>
+                <td>
+                  {% if course.status == 'ACTIVE' %}
+                    <span class="c-active">Active</span>
+                  {% else %}
+                    <span class="c-inactive">Inactive</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="v-empty">
+          <i data-lucide="inbox"></i>
+          <p>No courses added yet.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>{# /view-left #}
+
+    {# ─── Right column ─── #}
+    <div class="view-right">
+
+      {# Programs #}
+      <div class="v-card">
+        <div class="v-card__hd">
+          <div class="v-card__icon amber"><i data-lucide="award"></i></div>
+          <span class="v-card__title">Programs</span>
+          <span style="margin-left:auto;font-size:12px;color:#6c757d;">
+            {{ program_count }} total
+          </span>
+        </div>
+        {% for prog in department.programs.select_related %}
+        <div class="prog-item">
+          <div style="min-width:0;">
+            <div class="prog-name text-truncate">{{ prog.program_name }}</div>
+            <div class="prog-meta">{{ prog.get_program_type_display }} · {{ prog.duration }} yr{{ prog.duration|pluralize }}</div>
+          </div>
+          <div style="flex-shrink:0;text-align:right;">
+            {% if prog.degree.level == 'UG' %}
+              <span class="prog-badge ug">UG</span>
+            {% elif prog.degree.level == 'PG' %}
+              <span class="prog-badge pg">PG</span>
+            {% else %}
+              <span class="prog-badge phd">PhD</span>
+            {% endif %}
+            <div style="font-size:11px;color:#adb5bd;margin-top:3px;">{{ prog.total_credits }} cr</div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="v-empty">
+          <i data-lucide="inbox"></i>
+          <p>No programs yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      {# School Info #}
+      <div class="v-card">
+        <div class="v-card__hd">
+          <div class="v-card__icon green"><i data-lucide="building"></i></div>
+          <span class="v-card__title">School Info</span>
+        </div>
+        <div class="v-card__body" style="display:flex;flex-direction:column;gap:.85rem;">
+          <div>
+            <div class="field-label">School</div>
+            <div class="field-value">{{ department.school.school_name }}</div>
+          </div>
+          <div>
+            <div class="field-label">Dean</div>
+            <div class="field-value {% if not department.school.dean_name %}empty{% endif %}">
+              {{ department.school.dean_name|default:"Not set" }}
+            </div>
+          </div>
+          <div>
+            <div class="field-label">University</div>
+            <div class="field-value">{{ department.school.university.university_name }}</div>
+          </div>
+        </div>
+      </div>
+
+      {# Timestamps #}
+      <div class="v-card">
+        <div class="v-card__hd">
+          <div class="v-card__icon amber"><i data-lucide="clock"></i></div>
+          <span class="v-card__title">Record Info</span>
+        </div>
+        <div class="ts-row">
+          <div class="ts-item">
+            <span class="ts-label"><i data-lucide="hash"></i>Department ID</span>
+            <span class="ts-val" style="font-family:monospace;font-size:12px;">
+              {{ department.department_id }}
+            </span>
+          </div>
+          <div class="ts-item">
+            <span class="ts-label"><i data-lucide="calendar-plus"></i>Created</span>
+            <span class="ts-val">{{ department.created_at|date:"M d, Y" }}</span>
+          </div>
+          <div class="ts-item">
+            <span class="ts-label"><i data-lucide="calendar-check"></i>Last Updated</span>
+            <span class="ts-val">{{ department.updated_at|date:"M d, Y" }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>{# /view-right #}
+
+  </div>{# /view-grid #}
+
+</div>
+{% endblock %}
+
+
+{# ── Mark Inactive modal ── #}
+{% block global_modal %}
+{% if department.status == 'ACTIVE' %}
+<div class="modal fade" id="inactiveModal" tabindex="-1"
+     aria-labelledby="inactiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content shadow" style="border-radius:14px;border:none;">
+      <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:38px;height:38px;background:#fff0f0;border-radius:9px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="shield-alert" style="width:18px;height:18px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0" id="inactiveModalLabel">
+            Mark as Inactive?
+          </h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="font-size:13px;color:#495057;padding-top:.85rem;">
+        <p style="margin-bottom:.5rem;">
+          You are about to mark
+          <strong>{{ department.department_name }}</strong>
+          as <strong style="color:#c5050c;">Inactive</strong>.
+        </p>
+        <ul style="margin:0;padding-left:1.1rem;font-size:12.5px;color:#6c757d;line-height:1.8;">
+          <li>The department will be hidden from active listings.</li>
+          <li>Linked courses will remain but won't be visible.</li>
+          <li>You can reactivate it from the edit page at any time.</li>
+        </ul>
+      </div>
+      <div class="modal-footer" style="border-top:none;padding-top:0;gap:.5rem;">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-dismiss="modal"
+                style="font-size:13px;border-radius:8px;padding:6px 16px;">
+          Cancel
+        </button>
+        <form method="POST"
+              action="{% url 'department_inactivate' department.department_uuid %}"
+              style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;
+                         background:#c5050c;color:#fff;border:none;font-weight:600;">
+            <i data-lucide="ban" style="width:13px;height:13px;"></i>
+            Yes, Mark Inactive
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+  function showInactiveModal() {
+    new bootstrap.Modal(document.getElementById('inactiveModal')).show();
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+</script>
+{% endblock %}

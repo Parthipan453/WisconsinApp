@@ -1,0 +1,344 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Presentations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/faculty_research/research_presentation.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="rp-page">
+
+    <!-- Header -->
+    <div class="rp-header">
+        <div>
+            <h1><i data-lucide="presentation"></i> Research Presentations</h1>
+            <p>Track conferences, symposiums, and awards for your research</p>
+        </div>
+        {% if research %}  
+        <div class="rp-selector-group">
+            <label>Research Opportunity</label>
+            <select class="rp-choice" id="progressResearchSelect" onchange="window.location='?research='+this.value">
+                {% for item in researches %}
+                <option value="{{ item.research_id }}" {% if research and item.research_id == research.research_id %}selected{% endif %}>
+                    {{ item.title }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}  
+    </div>
+    {% if research %}
+    <!-- Stats -->
+    <div class="rp-stats-grid">
+        <div class="rp-stat-card">
+            <span>Research Title</span>
+            <b>{{ research.title|default:"--" }}</b>
+        </div>
+        <div class="rp-stat-card">
+            <span>Total Presentations</span>
+            <b>{{ total_presentations }}</b>
+        </div>
+        <div class="rp-stat-card">
+            <span>Awards Won</span>
+            <b>{{ total_awards }}</b>
+        </div>
+        <div class="rp-stat-card">
+            <span>Certificates Uploaded</span>
+            <b>{{ total_certificates }}</b>
+        </div>
+    </div>
+
+    <!-- Presentations -->
+    <div class="rp-card">
+        <div class="rp-card-header">
+            <h2>Presentations</h2>
+            {% if research %}
+            <button class="rp-btn rp-btn-primary" onclick="openPresentationModal()">
+                <i data-lucide="plus"></i> Add Presentation
+            </button>
+            {% endif %}
+        </div>
+
+        <div class="rp-presentation-grid">
+            {% for p in presentations %}
+            <div class="rp-presentation-card"
+                 onclick="openPresentationDetailModal({
+                    event: '{{ p.event_name|escapejs }}',
+                    date: '{{ p.presentation_date|date:"d M Y" }}',
+                    award: '{{ p.award|default:""|escapejs }}',
+                    certificateUrl: '{% if p.certificate_file %}{{ p.certificate_file.url }}{% endif %}',
+                    documents: [{% for doc in p.documents.all %}{name: '{{ doc.file.name|slice:"-30:"|escapejs }}', url: '{{ doc.file.url }}'}{% if not forloop.last %},{% endif %}{% endfor %}]
+                 })">
+                <div class="rp-presentation-top">
+                    <i data-lucide="presentation"></i>
+                    {% if p.award %}<span class="rp-award-badge">{{ p.award }}</span>{% endif %}
+                </div>
+                <p class="rp-presentation-name">{{ p.event_name }}</p>
+                <p class="rp-presentation-date">{{ p.presentation_date|date:"d M Y" }}</p>
+
+                {% if p.certificate_file %}
+                <a href="{{ p.certificate_file.url }}" target="_blank" class="rp-file-link" onclick="event.stopPropagation();">
+                    <i data-lucide="file-text"></i> View Certificate
+                </a>
+                {% endif %}
+
+                {% if p.documents.count %}
+                <p class="rp-presentation-sub"><i data-lucide="paperclip"></i> {{ p.documents.count }} additional file{{ p.documents.count|pluralize }}</p>
+                {% endif %}
+
+                <div class="rp-presentation-actions">
+                    <button class="rp-btn rp-btn-edit"
+                            data-id="{{ p.presentation_id }}"
+                            data-event="{{ p.event_name }}"
+                            data-date="{{ p.presentation_date|date:'Y-m-d' }}"
+                            data-award="{{ p.award }}"
+                            onclick="event.stopPropagation(); editPresentation(this);">
+                        <i data-lucide="edit"></i> Edit
+                    </button>
+                    <form method="POST" action="{% url 'Elsa_research:delete_presentation' uuid=uuid presentation_id=p.presentation_id %}"
+                          onsubmit="return confirm('Delete this presentation?');" onclick="event.stopPropagation();">
+                        {% csrf_token %}
+                        <button type="submit" class="rp-btn rp-btn-revision">
+                            <i data-lucide="trash-2"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="rp-empty-message">
+                <i data-lucide="presentation"></i> No presentations added yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% else %}
+<div class="rp-no-opportunity">
+    <div class="rp-empty-icon">
+        <i data-lucide="flask-conical"></i>
+    </div>
+
+    <div class="rp-empty-content">
+        <span class="rp-empty-label">RESEARCH MANAGEMENT</span>
+
+        <h2>No Research Presentation Found</h2>
+
+        <p>
+            No research presentation are currently available.
+            Create a research opportunity to manage presentations,
+            awards, certificates, and supporting documents.
+        </p>
+    </div>
+
+    <div class="rp-empty-line"></div>
+
+    <div class="rp-empty-status">
+        <span class="rp-status-dot"></span>
+        No active research records
+    </div>
+</div>
+{% endif %}  
+</div>
+<div class="pagination-wrapper">
+
+    <div class="pagination-info">
+        {% if presentation_page.paginator.count %}
+            Showing {{ presentation_page.start_index }}–{{ presentation_page.end_index }}
+            of {{ presentation_page.paginator.count }} Presentations
+        {% else %}
+            Showing 0–0 of 0 Presentations
+        {% endif %}
+    </div>
+
+    <div class="pagination-controls">
+
+        <!-- Previous -->
+        {% if presentation_page.has_previous %}
+            <a href="?research={{ research.research_id }}&page={{ presentation_page.previous_page_number }}"
+               class="pagination-btn pagination-arrow"
+               aria-label="Previous page">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        {% else %}
+            <span class="pagination-btn pagination-arrow disabled">
+                <i class="ti ti-chevron-left"></i>
+            </span>
+        {% endif %}
+
+
+        <!-- First page -->
+        {% if presentation_page.number > 3 %}
+
+            <a href="?research={{ research.research_id }}&page=1"
+               class="pagination-btn">
+                1
+            </a>
+
+            <span class="pagination-dots">...</span>
+
+        {% endif %}
+
+
+        <!-- Page numbers -->
+        {% for num in presentation_page.paginator.page_range %}
+
+            {% if num >= presentation_page.number|add:"-2" and num <= presentation_page.number|add:"2" %}
+
+                {% if num == presentation_page.number %}
+
+                    <span class="pagination-btn active">
+                        {{ num }}
+                    </span>
+
+                {% else %}
+
+                    <a href="?research={{ research.research_id }}&page={{ num }}"
+                       class="pagination-btn">
+                        {{ num }}
+                    </a>
+
+                {% endif %}
+
+            {% endif %}
+
+        {% endfor %}
+
+
+        <!-- Last page -->
+        {% if presentation_page.number < presentation_page.paginator.num_pages|add:"-2" %}
+
+            <span class="pagination-dots">...</span>
+
+            <a href="?research={{ research.research_id }}&page={{ presentation_page.paginator.num_pages }}"
+               class="pagination-btn">
+                {{ presentation_page.paginator.num_pages }}
+            </a>
+
+        {% endif %}
+
+
+        <!-- Next -->
+        {% if presentation_page.has_next %}
+
+            <a href="?research={{ research.research_id }}&page={{ presentation_page.next_page_number }}"
+               class="pagination-btn pagination-arrow"
+               aria-label="Next page">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+
+        {% else %}
+
+            <span class="pagination-btn pagination-arrow disabled">
+                <i class="ti ti-chevron-right"></i>
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+<!-- Add / Edit Presentation Modal -->
+{% if research %}
+<div class="rp-modal-overlay" id="presentationModal">
+    <div class="rp-modal">
+        <div class="rp-modal-header">
+            <h3 id="presentationModalTitle"><i data-lucide="presentation"></i> Add Presentation</h3>
+            <button class="rp-close" onclick="closePresentationModal()">&times;</button>
+        </div>
+        <form method="POST" id="presentationForm" enctype="multipart/form-data"
+              action="{% url 'Elsa_research:create_presentation' uuid=uuid research_id=research.research_id %}">
+            {% csrf_token %}
+            <input type="hidden" id="presentationId" name="presentation_id">
+            <div class="rp-modal-body">
+                <div class="rp-form-group">
+                    <label>Event Name <span>*</span></label>
+                    <input type="text" id="presentationEvent" name="event_name" class="rp-input" required>
+                    <div class="rp-error" id="err-event_name"></div>
+                </div>
+                <div class="rp-form-group">
+                    <label>Date <span>*</span></label>
+                    <input type="date" id="presentationDate" name="presentation_date" class="rp-input" required
+                    onkeydown="return false;"
+                    onpaste="return false;"
+                    ondrop="return false;">
+                    <div class="rp-error" id="err-presentation_date"></div>
+                </div>
+                <div class="rp-form-group">
+                    <label>Award (optional)</label>
+                    <input type="text" id="presentationAward" name="award" class="rp-input" placeholder="e.g. Best Paper Award">
+                    <div class="rp-error" id="err-award"></div>
+                </div>
+                <div class="rp-form-group">
+                    <label>Certificate (optional)</label>
+                    <input type="file" name="certificate_file" class="rp-input" accept=".pdf,.jpg,.jpeg,.png,.ppt,.pptx,.doc,.docx">
+                    <small class="rp-hint">Allowed: PDF, JPG, PNG, PPT/PPTX, DOC/DOCX (max 20MB)</small>
+                    <div class="rp-error" id="err-certificate_file"></div>
+                </div>
+                <div class="rp-form-group">
+                    <label>Additional Files (optional)</label>
+                    <input type="file" name="documents" class="rp-input" multiple accept=".pdf,.jpg,.jpeg,.png,.ppt,.pptx,.doc,.docx">
+                    <small class="rp-hint">You can select multiple files at once</small>
+                    <div class="rp-error" id="err-documents"></div>
+                </div>
+            </div>
+            <div class="rp-modal-footer">
+                <button type="button" class="rp-btn rp-btn-reset" onclick="closePresentationModal()">Cancel</button>
+                <button type="submit" class="rp-btn rp-btn-primary" id="savePresentationBtn">
+                    <i data-lucide="save"></i> Save Presentation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% if research %}
+<!-- Presentation Detail Modal -->
+<div class="rp-modal-overlay" id="presentationDetailModal">
+    <div class="rp-modal">
+        <div class="rp-modal-header">
+            <h3><i data-lucide="presentation"></i> Presentation Details</h3>
+            <button class="rp-close" type="button" onclick="closePresentationDetailModal()">&times;</button>
+        </div>
+        <div class="rp-modal-body">
+            <div class="rp-info-box" style="margin-bottom:12px;">
+                <span>Event Name</span>
+                <b id="detailEventName"></b>
+            </div>
+            <div class="rp-meta-grid" style="margin-bottom:12px;">
+                <div class="rp-info-box">
+                    <span>Date</span>
+                    <b id="detailDate"></b>
+                </div>
+                <div class="rp-info-box" id="detailAwardBox" style="display:none;">
+                    <span>Award</span>
+                    <b id="detailAward"></b>
+                </div>
+            </div>
+            <div id="detailCertBlock" style="display:none;margin-bottom:12px;">
+                <a href="#" target="_blank" id="detailCertLink" class="rp-file-link">
+                    <i data-lucide="file-text"></i> View Certificate
+                </a>
+            </div>
+            <div id="detailDocsBlock" style="display:none;">
+                <div class="rp-overview-block">
+                    <h3><i data-lucide="paperclip"></i> Additional Files</h3>
+                    <div id="detailDocsList"></div>
+                </div>
+            </div>
+        </div>
+        <div class="rp-modal-footer">
+            <button type="button" class="rp-btn rp-btn-reset" onclick="closePresentationDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/faculty_research/research_presentation.js' %}"></script>
+{% endblock %}

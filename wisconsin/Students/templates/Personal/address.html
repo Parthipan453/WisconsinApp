@@ -1,0 +1,240 @@
+<!-- *********************************************** Arun code *************************************************** -->
+
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}My Addresses{% endblock %}
+
+{% block nav_personal_open %}open{% endblock %}
+{% block nav_personal_submenu %}open{% endblock %}
+{% block nav_addresses %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Personal/address.css' %}">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Addresses</div>
+    <div class="page-sub">Manage your permanent, mailing, and campus housing addresses.</div>
+  </div>
+  <button class="btn-primary" onclick="openAddModal()">
+    <i class="ti ti-plus"></i> Add Address
+  </button>
+</div>
+
+<div class="address-grid">
+
+  {% for address in addresses %}
+
+  <div class="address-card" data-address-id="{{ address.id }}">
+    <div class="addr-card-header">
+      <div class="addr-type-badge
+            {% if address.address_type == 'PERMANENT' %}
+                at-permanent
+            {% elif address.address_type == 'MAILING' %}
+                at-mailing
+            {% else %}
+                at-campus
+            {% endif %}">
+
+        {% if address.address_type == "PERMANENT" %}
+        <i class="ti ti-home"></i>
+        {% elif address.address_type == "MAILING" %}
+        <i class="ti ti-mail"></i>
+        {% else %}
+        <i class="ti ti-building"></i>
+        {% endif %}
+
+        {{ address.get_address_type_display }}
+
+      </div>
+      <div class="addr-actions">
+        <button class="icon-btn" title="Edit" onclick="openEditModal(
+                  '{{ address.id }}',
+                  '{{ address.address_type }}',
+                  '{{ address.address_line_1|escapejs }}',
+                  '{{ address.address_line_2|default_if_none:''|escapejs }}',
+                  '{{ address.city|escapejs }}',
+                  '{{ address.state|escapejs }}',
+                  '{{ address.postal_code|escapejs }}',
+                  '{{ address.country|escapejs }}'
+                  )">
+          <i class="ti ti-edit"></i>
+        </button>
+        
+        
+        <button class="icon-btn danger" title="Delete" 
+                onclick="deleteAddress('{{ address.id }}', '{{ address.get_address_type_display }}')">
+            <i class="ti ti-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="addr-body">
+      <div>{{ address.address_line_1 }}</div>
+      {% if address.address_line_2 %}
+      <div>{{ address.address_line_2 }}</div>
+      {% endif %}
+      <div>
+        {{ address.city }},
+        {{ address.state }}
+        {{ address.postal_code }}
+      </div>
+      <div>{{ address.country }}</div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-address-wrapper">
+      <div class="empty-address">
+          <div class="empty-address-icon">
+              <i class="ti ti-map-pin"></i>
+          </div>
+          <h3>No Addresses Found</h3>
+          <p>
+              You haven't added any addresses yet.
+              Click <strong>"Add Address"</strong> to create your first address.
+          </p>
+          <button class="btn-primary" onclick="openAddModal()">
+              <i class="ti ti-plus"></i>
+              Add Address
+          </button>
+      </div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<div class="modal-overlay" id="addrModal" style="display:none" onclick="closeAddrModal(event)">
+  <div class="modal-box" data-aos="zoom-in" data-aos-duration="300">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Address</div>
+      <button class="modal-close" onclick="closeAddrModal()"><i class="ti ti-x"></i></button>
+    </div>
+    
+    
+    <form method="POST" id="addressForm">
+      {% csrf_token %}
+      <input type="hidden" name="address_id" id="address_id">
+      
+      <div class="modal-body">
+        <div class="mfield-group">
+          <label>Address Type</label>
+          <select class="mfield-input" name="address_type" id="addrType">
+            <option value="PERMANENT">Permanent</option>
+            <option value="MAILING">Mailing</option>
+            <option value="CAMPUS_HOUSING">Campus Housing</option>
+          </select>
+        </div>
+        
+        <div class="mfield-group">
+          <label>Address Line 1</label>
+          <input class="mfield-input" type="text" name="address_line_1" id="addrLine1" placeholder="Street address" />
+        </div>
+        
+        <div class="mfield-group">
+          <label>Address Line 2 <span class="opt">Optional</span></label>
+          <input class="mfield-input" type="text" name="address_line_2" id="addrLine2" placeholder="Apt, Suite, PO Box..." />
+        </div>
+        
+        <div class="mfield-row">
+          <div class="mfield-group">
+            <label>City</label>
+            <input class="mfield-input" type="text" name="city" id="addrCity" placeholder="City" />
+          </div>
+          <div class="mfield-group">
+            <label>State</label>
+            <input class="mfield-input" type="text" name="state" id="addrState" placeholder="State" />
+          </div>
+        </div>
+        
+        <div class="mfield-row">
+          <div class="mfield-group">
+            <label>Postal Code</label>
+            <input class="mfield-input" type="text" name="postal_code" id="addrZip" placeholder="00000" />
+          </div>
+          <div class="mfield-group">
+            <label>Country</label>
+            <input class="mfield-input" type="text" name="country" id="addrCountry" value="United States" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeAddrModal()">
+          Cancel
+        </button>
+        <button type="submit" class="btn-save">
+          <i class="ti ti-device-floppy"></i>
+          Save Address
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- ✅ Check if toast system is available -->
+<!-- <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("🔍 Checking toast system...");
+        
+        // Wait for toast system to load
+        setTimeout(function() {
+            if (typeof toastSuccess === 'function') {
+                console.log("✅ Toast system available!");
+            } else {
+                console.log("❌ Toast system NOT available - Using fallback");
+                
+                // Fallback toast functions
+                window.toastSuccess = function(msg) { 
+                    console.log("✅ Success:", msg);
+                    showSimpleToast("✅ " + msg, "#22c55e");
+                };
+                window.toastError = function(msg) { 
+                    console.log("❌ Error:", msg);
+                    showSimpleToast("❌ " + msg, "#ef4444");
+                };
+                window.toastWarning = function(msg) { 
+                    console.log("⚠️ Warning:", msg);
+                    showSimpleToast("⚠️ " + msg, "#f59e0b");
+                };
+                window.toastInfo = function(msg) { 
+                    console.log("ℹ️ Info:", msg);
+                    showSimpleToast("ℹ️ " + msg, "#3b82f6");
+                };
+                
+                function showSimpleToast(msg, color) {
+                    var toast = document.getElementById("simpleToast");
+                    if (!toast) {
+                        toast = document.createElement("div");
+                        toast.id = "simpleToast";
+                        toast.style.cssText = 
+                            "position:fixed;bottom:20px;right:20px;background:" + color + 
+                            ";color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;" +
+                            "z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.15);" +
+                            "transition:opacity 0.3s;max-width:400px;";
+                        document.body.appendChild(toast);
+                    }
+                    toast.textContent = msg;
+                    toast.style.background = color;
+                    toast.style.opacity = "1";
+                    clearTimeout(toast._timeout);
+                    toast._timeout = setTimeout(function() {
+                        toast.style.opacity = "0";
+                    }, 4000);
+                }
+            }
+        }, 500);
+    });
+</script> -->
+
+<script src="{% static 'script/Personal/address.js' %}"></script>
+{% endblock %}
+
+<!-- *********************************************** Arun code *************************************************** -->

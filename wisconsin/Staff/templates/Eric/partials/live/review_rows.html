@@ -1,0 +1,83 @@
+  <div class="apx-countline">
+    <span>
+      Showing <strong>{{ assignments|length }}</strong> review{{ assignments|length|pluralize }}
+      {% if filter_key != 'active' %}({{ filter_key|title|cut:"_" }}){% endif %}
+    </span>
+  </div>
+
+  {% if assignments %}
+  <div class="apx-grid">
+    {% for assignment in assignments %}
+    <article class="apx-card apx-card--{{ assignment.application.status }}">
+      <div class="apx-card__head">
+        <span class="apx-avatar" data-name="{{ assignment.application.applicant.first_name }} {{ assignment.application.applicant.last_name }}" aria-hidden="true">
+          {{ assignment.application.applicant.first_name|slice:":1" }}{{ assignment.application.applicant.last_name|slice:":1" }}
+        </span>
+        <div class="apx-card__who">
+          <a class="apx-card__name" href="{% url 'review_detail' request.user.uuid assignment.application.application_id %}">{{ assignment.application.applicant.first_name }} {{ assignment.application.applicant.last_name }}</a>
+          <span class="apx-card__email">{{ assignment.application.applicant.email }}</span>
+        </div>
+        <a class="apx-card__go" href="{% url 'review_detail' request.user.uuid assignment.application.application_id %}" aria-label="Open review"><i class="ti ti-arrow-right"></i></a>
+      </div>
+
+      <div class="apx-card__chips">
+        <span class="apx-chip apx-chip--ref">{{ assignment.application.Reference_id }}</span>
+        <span class="apx-chip apx-chip--{{ assignment.status }}">{{ assignment.get_status_display }}</span>
+      </div>
+
+      <div class="apx-card__program">
+        <strong>{{ assignment.application.program|default:"—" }}</strong>
+        <small>{{ assignment.application.get_admission_level_display|default:"Program level" }}{% if assignment.application.admission_cycle %} · {{ assignment.application.admission_cycle }}{% endif %}</small>
+      </div>
+
+      <div class="apx-card__facts">
+        <div class="apx-card__fact">
+          <i class="ti ti-user-plus"></i>
+          <div>
+            <span>Assigned</span>
+            <strong>{{ assignment.assigned_at|date:"M d, Y" }}</strong>
+          </div>
+        </div>
+        <div class="apx-card__fact">
+          <i class="ti ti-calendar"></i>
+          <div>
+            <span>Submitted</span>
+            <strong>{{ assignment.application.submitted_date|date:"M d, Y"|default:"—" }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="apx-card__reviewed">
+        <div style="flex:1;min-width:0;">
+          <div class="apx-card__prog-label">
+            <span>Documents</span>
+            <strong>{{ assignment.docs_verified }}/{{ assignment.docs_total }} verified</strong>
+          </div>
+          <div class="apx-progress" aria-hidden="true">
+            <div class="apx-progress__bar {% if assignment.docs_total and assignment.docs_verified == assignment.docs_total %}is-done{% elif not assignment.docs_total %}is-empty{% endif %}" style="width:{% if assignment.docs_total %}{% widthratio assignment.docs_verified assignment.docs_total 100 %}{% else %}0{% endif %}%"></div>
+          </div>
+        </div>
+        {% if assignment.status == 'ready_for_decision' %}
+        <span class="apx-card__tag apx-card__tag--attention"><i class="ti ti-alert-triangle"></i> Needs decision</span>
+        {% elif assignment.docs_unverified %}
+        <span class="apx-card__tag apx-card__tag--attention"><i class="ti ti-alert-circle"></i> {{ assignment.docs_unverified }} unverified</span>
+        {% elif assignment.status == 'decided' %}
+        <span class="apx-card__tag apx-card__tag--clear"><i class="ti ti-circle-check"></i> Decided</span>
+        {% endif %}
+      </div>
+
+      <div class="apx-card__foot">
+        <a class="apx-card__view" href="{% url 'review_detail' request.user.uuid assignment.application.application_id %}">
+          Open review <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="apx-empty">
+    <div class="apx-empty__icon apx-empty__icon--sm"><i class="ti ti-clipboard-check"></i></div>
+    <h5>No reviews in this view</h5>
+    <p>Try adjusting the status or program filter, or clear the search.</p>
+  </div>
+  {% endif %}

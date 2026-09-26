@@ -1,0 +1,263 @@
+{% extends "dashboard_base.html" %}
+
+{% load static %}
+
+{% block title %}Injury Records{% endblock %}
+{% block page_title %}Injury Records{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Jack/athlete_injury_record.css' %}">
+<link rel="stylesheet" href="{% static 'css/Jack/team_view.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+
+{% endblock %}
+
+{% block content %}
+
+<div class="ir-wrap overflow-hidden">
+
+    <div class="tv-header-glass row g-0">
+      <div class="col-12">
+        <div class="tv-header-content">
+          <div class="tv-header-left">
+            <div class="tv-logo d-flex align-items-center gap-2">
+              <i class="ti ti-play-basketball"></i>
+              <span>Medical<span class="tv-highlight">Hub</span></span>
+            </div>
+            <div class="tv-breadcrumb d-flex align-items-center gap-1">
+              <i class="ti ti-home"></i>
+              <i class="ti ti-chevron-right"></i>
+              <a href="{% url 'Medical:athlete_medical_profile' %}">Athlete Medical Profile</a>
+              <i class="ti ti-chevron-right"></i>
+              <span>Injury Records</span>
+            </div>
+          </div>
+          <div class="tv-header-right ms-md-auto">
+            <a href="{% url 'Medical:athlete_medical_profile' %}" class="tv-btn tv-btn-glass">
+              <i class="ti ti-arrow-left"></i> Back
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <div class="ir-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="ir-card-header">
+      <i class="ti ti-clipboard-list ir-card-header-icon"></i>
+      <span class="ir-section-title">All injuries</span>
+      <span class="ir-badge-count">
+        <i class="ti ti-list"></i> {{ injury|length }} records
+      </span>
+    </div>
+    <div class="ir-card-body p-0">
+
+      {% if injury %}
+        {% for record in injury %}
+        <div class="ir-list-item">
+          <div class="row g-2 align-items-stretch">
+            
+            <div class="col-12 col-sm-12 col-md-4 col-lg-4">
+              <div class="ir-left-section">
+                <div class="ir-icon-wrapper">
+                  <i class="ti ti-bandage"></i>
+                </div>
+                <div>
+                  <div class="ir-title-text">{{ record.injury_title|default:"Untitled" }}</div>
+                  <div class="ir-badges">
+                    <span class="ir-badge ir-badge-{% if record.severity == 'CRITICAL' %}danger{% elif record.severity == 'SEVERE' %}danger{% elif record.severity == 'MODERATE' %}warning{% else %}secondary{% endif %}">
+                      <i class="ti ti-alert-triangle"></i> {{ record.get_severity_display|default:record.severity }}
+                    </span>
+                    <span class="ir-badge ir-badge-{% if record.injury_status == 'ACTIVE' %}danger{% elif record.injury_status == 'RECOVERING' %}warning{% elif record.injury_status == 'REHABILITATION' %}info{% elif record.injury_status == 'RECOVERED' %}success{% elif record.injury_status == 'RETURNED' %}secondary{% else %}secondary{% endif %}">
+                      <span class="ir-status-dot ir-status-dot-{% if record.injury_status == 'ACTIVE' %}active{% elif record.injury_status == 'RECOVERING' %}recovering{% elif record.injury_status == 'REHABILITATION' %}rehab{% elif record.injury_status == 'RECOVERED' %}recovered{% elif record.injury_status == 'RETURNED' %}returned{% endif %}"></span>
+                      {{ record.get_injury_status_display|default:record.injury_status }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4 mt-4 mt-sm-4 mt-md-0 mt-lg-0">
+              <div class="row g-1">
+                <div class="col-6">
+                  <div class="ir-meta-label"><i class="ti ti-calendar me-1"></i>Date</div>
+                  <div class="ir-meta-value">{{ record.injury_date|date:"d M Y"|default:"—" }}</div>
+                </div>
+                <div class="col-6">
+                  <div class="ir-meta-label"><i class="ti ti-body-scan me-1"></i>Body</div>
+                  <div class="ir-meta-value">{{ record.body_part|default:"—" }} {% if record.side %}<span class="text-muted small">({{ record.get_side_display }})</span>{% endif %}</div>
+                </div>
+                <div class="col-6 mt-1">
+                  <div class="ir-meta-label"><i class="ti ti-user-minus me-1"></i>Treated</div>
+                  <div class="ir-meta-value">{{ record.treated_by|default:"—" }}</div>
+                </div>
+                <div class="col-6 mt-1">
+                  <div class="ir-meta-label"><i class="ti ti-clock-search me-1"></i>Recovery</div>
+                  <div class="ir-meta-value">{% if record.estimated_recovery_days %}{{ record.estimated_recovery_days }} days{% else %}—{% endif %}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4 mt-4 mt-sm-4 mt-md-0 mt-lg-0">
+              <div class="ir-right-section">
+                <div class="ir-top-row">
+                  <span class="ir-stat-chip">
+                    <i class="ti ti-calendar-check me-1"></i> 
+                    {% if record.expected_return_date %}{{ record.expected_return_date|date:"d M Y"|default:"—" }}{% else %}—{% endif %}
+                  </span>
+                  <button class="ir-expand-btn" data-bs-toggle="collapse" data-bs-target="#detail-{{ forloop.counter }}" aria-expanded="false">
+                    <i class="ti ti-chevron-down"></i>
+                  </button>
+                </div>
+                <div class="ir-bottom-row">
+                  {% if record.surgery_required %}
+                    <span class="ir-stat-chip ir-chip-danger it-txt">
+                      <i class="ti ti-scissors me-1"></i>Surgery
+                    </span>
+                  {% endif %}
+                  {% if record.hospitalization_required %}
+                    <span class="ir-stat-chip ir-chip-warning it-txt">
+                      <i class="ti ti-hospital me-1"></i>Hospital
+                    </span>
+                  {% endif %}
+                  {% if not record.surgery_required and not record.hospitalization_required %}
+                    <span class="ir-stat-chip ir-chip-success it-txt">
+                      <i class="ti ti-check me-1"></i>No intervention
+                    </span>
+                  {% endif %}
+                </div>
+                {% if record.injury_status == 'RECOVERED' and record.actual_return_date %}
+                  <div class="ir-return-date">
+                    <i class="ti ti-calendar-check me-1"></i> Returned {{ record.actual_return_date|date:"d M Y" }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="collapse mt-2 mt-sm-3" id="detail-{{ forloop.counter }}">
+            <div class="ir-detail-wrapper">
+              <div class="row g-2 g-sm-3">
+                <div class="col-12 col-md-6">
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-tag me-1"></i>Injury type</span>
+                    <span class="ir-detail-value">{{ record.injury_type|default:"—" }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-map-pin me-1"></i>Location</span>
+                    <span class="ir-detail-value">{{ record.location|default:"—" }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-clock me-1"></i>Injury time</span>
+                    <span class="ir-detail-value">{{ record.injury_time|time:"H:i"|default:"—" }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-flag me-1"></i>Cause</span>
+                    <span class="ir-detail-value">{{ record.cause|default:"—" }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-notes me-1"></i>Symptoms</span>
+                    <span class="ir-detail-value">{{ record.symptoms|default:"—"|linebreaksbr }}</span>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-body-scan me-1"></i>Diagnosis</span>
+                    <span class="ir-detail-value">{{ record.diagnosis|default:"—"|linebreaksbr }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-prescription me-1"></i>Treatment</span>
+                    <span class="ir-detail-value">{{ record.treatment|default:"—"|linebreaksbr }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-calendar-due me-1"></i>Expected return</span>
+                    <span class="ir-detail-value">{{ record.expected_return_date|date:"d M Y"|default:"—" }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-calendar-check me-1"></i>Actual return</span>
+                    <span class="ir-detail-value">{{ record.actual_return_date|date:"d M Y"|default:"—" }}</span>
+                  </div>
+                  <div class="ir-detail-row">
+                    <span class="ir-detail-label"><i class="ti ti-file-text me-1"></i>Notes</span>
+                    <span class="ir-detail-value">{{ record.notes|default:"—"|linebreaksbr }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 d-flex flex-wrap gap-2">
+                <span class="ir-stat-chip"><i class="ti ti-hospital"></i> Hospitalization: {% if record.hospitalization_required %}Yes{% else %}No{% endif %}</span>
+                <span class="ir-stat-chip"><i class="ti ti-scissors"></i> Surgery: {% if record.surgery_required %}Yes{% else %}No{% endif %}</span>
+                <span class="ir-stat-chip"><i class="ti ti-clock-reload"></i> Recovery days: {{ record.estimated_recovery_days|default:"0" }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="ir-empty-state">
+          <i class="ti ti-inbox"></i>
+          <p class="ir-empty-title">No injury records</p>
+          <p class="text-muted">This athlete has no reported injuries.</p>
+        </div>
+      {% endif %}
+
+      <div class="ir-card-footer">
+        <span class="ir-footer-text">
+          <i class="ti ti-database"></i> {{ injury|length }} record{% if injury|length != 1 %}s{% endif %}
+        </span>
+        <a href="{% url 'Medical:athlete_medical_profile' %}" class="ir-btn-add">
+          <i class="ti ti-arrow-left-dashed"></i> Back
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'script/jack/athlete_medical_profile_view.js' %}"></script>
+<script>
+  AOS.init({
+    duration: 600,
+    once: true,
+    offset: 10
+  });
+
+  document.querySelectorAll('.ir-expand-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const isExpanded = this.getAttribute('aria-expanded') === 'true';
+      const icon = this.querySelector('.ti');
+      if (isExpanded) {
+        icon.style.transform = 'rotate(0deg)';
+      } else {
+        icon.style.transform = 'rotate(180deg)';
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const target = this.getAttribute('data-bs-target');
+      const isExpanded = this.getAttribute('aria-expanded') === 'true';
+      
+      if (isExpanded) {
+        document.querySelectorAll('.collapse.show').forEach(el => {
+          if (el.id !== target.replace('#', '')) {
+            const otherBtn = document.querySelector(`[data-bs-target="#${el.id}"]`);
+            if (otherBtn) {
+              otherBtn.click();
+            }
+          }
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,1365 @@
+<!-- ******************************************** Arun Code ************************************************************ -->
+ 
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Exams &amp; Rooms — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/exams.css' %}" />
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_exams %}active{% endblock %}
+
+{% block content %}
+
+<div class="ex-page-header">
+  <div>
+    <h1>Exams &amp; Rooms</h1>
+    <p>Schedule exams, assign invigilation staff, and manage room allocations for assessments.</p>
+  </div>
+  <div class="ex-header-actions">
+    <button class="fd-btn fd-btn-ghost" onclick="expOpenModal()">
+      <i class="ti ti-download"></i><span>Export</span>
+    </button>
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-printer"></i><span>Print</span></button>
+    <a href="{% url 'new_exam' request.user.uuid %}" class="fd-btn fd-btn-primary text-decoration-none">
+      <i class="ti ti-plus"></i>
+      <span>New Exam</span>
+    </a>
+  </div>
+</div>
+
+<div class="ex-kpi-strip">
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon red"><i class="ti ti-writing"></i></div>
+      <span class="fd-kpi-label">Total Exams</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ total_exams|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="neutral">{{ scheduled }} scheduled</span></div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon blue"><i class="ti ti-calendar-event"></i></div>
+      <span class="fd-kpi-label">Scheduled</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ scheduled|default:'0' }}">0</div>
+    <div class="fd-kpi-sub">
+      <span class="up">
+        {% if total_exams %}{% widthratio scheduled total_exams 100 %}%{% else %}0%{% endif %}
+      </span> of total
+    </div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon orange"><i class="ti ti-clock"></i></div>
+      <span class="fd-kpi-label">Unscheduled (Draft)</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ draft|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="down">{{ cancelled }} cancelled</span></div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon green"><i class="ti ti-building"></i></div>
+      <span class="fd-kpi-label">Rooms Allocated</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ room_allocated|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="neutral">{{ rooms_available }} of {{ total_rooms }} rooms free</span></div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon purple"><i class="ti ti-user-check"></i></div>
+      <span class="fd-kpi-label">Invigilators Assigned</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ invigilator_assigned|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">{{ completed }}</span> exams completed</div>
+  </div>
+</div>
+
+<div class="ex-quick-grid">
+  <div class="fd-quick-card" onclick="qaOpenModal('schedule')">
+    <div class="fd-quick-icon blue"><i class="ti ti-writing"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Schedule Exam</div>
+      <div class="fd-quick-count">{{ draft }} exams need a slot</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </div>
+  <div class="fd-quick-card" onclick="qaOpenModal('room')">
+    <div class="fd-quick-icon purple"><i class="ti ti-map-pin"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Assign Room</div>
+      <div class="fd-quick-count">{{ rooms_available }} rooms available</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </div>
+  <div class="fd-quick-card" onclick="qaOpenModal('invigilator')">
+    <div class="fd-quick-icon green"><i class="ti ti-user-plus"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Assign Invigilator</div>
+      <div class="fd-quick-count">{{ pending_invigilator|length }} exams unassigned</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </div>
+  <div class="fd-quick-card" style="opacity:.6; cursor:not-allowed;" title="Coming soon">
+    <div class="fd-quick-icon orange"><i class="ti ti-accessible"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Special Arrangements</div>
+      <div class="fd-quick-count">Not built yet</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </div>
+</div>
+
+<div class="fd-toolbar">
+  <div class="fd-tabs">
+    <button class="fd-tab active" onclick="exFilterTab(this,'all')">
+      All <span class="fd-tab-badge">{{ total_exams }}</span>
+    </button>
+    <button class="fd-tab" onclick="exFilterTab(this,'scheduled')">
+      Scheduled <span class="fd-tab-badge green">{{ scheduled }}</span>
+    </button>
+    <button class="fd-tab" onclick="exFilterTab(this,'draft')">
+      Unscheduled <span class="fd-tab-badge orange">{{ draft }}</span>
+    </button>
+    <button class="fd-tab" onclick="exFilterTab(this,'completed')">
+      Completed <span class="fd-tab-badge blue">{{ completed }}</span>
+    </button>
+    <button class="fd-tab" onclick="exFilterTab(this,'cancelled')">
+      Cancelled <span class="fd-tab-badge">{{ cancelled }}</span>
+    </button>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div class="fd-search">
+        <i class="ti ti-search"></i>
+
+        <input
+            type="text"
+            name="search"
+            value="{{ request.GET.search }}"
+            placeholder="Search exam, course, room…"
+            oninput="exLiveSearch(this.value)">
+    </div>
+
+    <select class="ex-filter-select" onchange="exTypeFilter(this.value)">
+        <option value="">All Types</option>
+        <option value="midterm">Midterm</option>
+        <option value="final">Final</option>
+        <option value="quiz">Quiz</option>
+        <option value="practical">Practical</option>
+    </select>
+  </div>
+</div>
+
+<div id="examTableContainer">
+
+  <div class="fd-table-wrap">
+  <table class="fd-table" id="exTable">
+    <thead>
+      <tr>
+        <th>Exam</th>
+        <th>Type</th>
+        <th>Course</th>
+        <th>Date &amp; Time</th>
+        <th>Room</th>
+        <th>Capacity</th>
+        <th>Invigilator</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="exTableBody">
+
+      {% for exam in exams %}
+      <tr class="ex-row" id="ex-row-{{ exam.id }}" data-name="{{ exam.exam_name|lower }}" data-status="{{ exam.status|lower }}" data-type="{{ exam.exam_type|lower }}">
+        <td>
+          <div class="fd-form-title">{{ exam.exam_name }}</div>
+          <div class="fd-form-id">{{ exam.display_section_label }}</div>
+        </td>
+        <td>
+          <span class="ex-type-badge ex-{{ exam.exam_type|lower }}">{{ exam.get_exam_type_display }}</span>
+        </td>
+        <td>
+          <div class="fd-form-title">{{ exam.display_course_code }}</div>
+          <div class="fd-form-id">{{ exam.display_department }}</div>
+        </td>
+        <td>
+          <div class="ex-datetime">
+            <span class="ex-date"><i class="ti ti-calendar"></i> {{ exam.display_date }}</span>
+            <span class="ex-time"><i class="ti ti-clock"></i> {{ exam.display_time }}</span>
+          </div>
+        </td>
+        <td>
+          <div class="sc-room {% if not exam.display_room %}sc-room-conflict{% endif %}">
+            <i class="ti ti-map-pin"></i>
+            <span>{{ exam.display_room|default:"TBD" }}</span>
+          </div>
+        </td>
+        <td><span class="fd-dept">{{ exam.display_capacity|default:"—" }}</span></td>
+        <td>
+          <div class="sc-instructor">
+            <div class="sc-avatar">{{ exam.display_invigilator_initials|default:"?" }}</div>
+            <span>{{ exam.display_invigilator|default:"Unassigned" }}</span>
+          </div>
+        </td>
+        <td>
+          <span class="fd-status {% if exam.status == 'SCHEDULED' %}active{% elif exam.status == 'DRAFT' %}pending{% elif exam.status == 'COMPLETED' %}archived{% else %}expiring{% endif %}">
+            {{ exam.get_status_display }}
+          </span>
+        </td>
+        <td>
+          <div class="fd-actions">
+            <button class="fd-action-btn view" title="View" onclick="exOpenModal({{ exam.id }}, 'view')"><i class="ti ti-eye"></i></button>
+            <button class="fd-action-btn edit" title="Edit" onclick="exOpenModal({{ exam.id }}, 'edit')"><i class="ti ti-pencil"></i></button>
+            <button class="fd-action-btn delete" title="Delete"
+            {% if exam.status == 'COMPLETED' %}disabled{% endif %}
+            onclick="openDeleteModal({{ exam.id }}, '{{ exam.exam_name|escapejs }}')">
+            <i class="ti ti-trash"></i>
+          </button>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr class="ex-row">
+        <td colspan="9" style="text-align:center; padding:32px 12px; color:#888;">
+          No exams found yet. Click <strong>New Exam</strong> to create one.
+        </td>
+      </tr>
+      {% endfor %}
+
+    </tbody>
+  </table>
+</div>
+
+</div>
+
+
+
+<div class="fd-pagination">
+
+    <span class="fd-page-info">
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+        of {{ paginator.count }} exams
+    </span>
+
+    <div class="fd-page-controls">
+
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&search={{ request.GET.search }}"
+               class="fd-page-btn">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        {% else %}
+            <button class="fd-page-btn" disabled>
+                <i class="ti ti-chevron-left"></i>
+            </button>
+        {% endif %}
+
+        {% for page in page_range %}
+            {% if page == "..." %}
+                <span class="fd-page-ellipsis">...</span>
+
+            {% elif page == page_obj.number %}
+                <button class="fd-page-btn active">
+                    {{ page }}
+                </button>
+
+            {% else %}
+                <a href="?page={{ page }}&search={{ request.GET.search }}"
+                   class="fd-page-btn">
+                    {{ page }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}"
+               class="fd-page-btn">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+        {% else %}
+            <button class="fd-page-btn" disabled>
+                <i class="ti ti-chevron-right"></i>
+            </button>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<div class="fd-bottom-grid">
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-chart-pie"></i> Exams by Type</div>
+      <a href="#" class="fd-widget-link">View all</a>
+    </div>
+    <div class="fd-type-list">
+      {% for row in exams_by_type %}
+      <div class="fd-type-row">
+        <span class="fd-type-label">{{ row.type|title }}</span>
+        <div class="fd-type-track">
+          <div class="fd-type-fill {% cycle 'hr' 'academic' 'finance' 'compliance' %}" style="width:{{ row.pct }}%"></div>
+        </div>
+        <span class="fd-type-pct">{{ row.pct }}%</span>
+      </div>
+      {% empty %}
+      <p style="color:#888; font-size:13px;">No exam data yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-calendar-event"></i> Upcoming Exams</div>
+      <a href="#" class="fd-widget-link">View all</a>
+    </div>
+    <div class="fd-recent-list">
+      {% for exam in upcoming_exams %}
+      <div class="fd-recent-item">
+        <div class="fd-recent-icon {% cycle 'red' 'purple' 'green' 'blue' %}"><i class="ti ti-writing"></i></div>
+        <div class="fd-recent-body">
+          <div class="fd-recent-title">{{ exam.display_course_code }} — {{ exam.exam_name }}</div>
+          <div class="fd-recent-meta">{{ exam.display_date }} · {{ exam.display_room|default:"TBD" }} · {{ exam.display_capacity|default:"—" }} seats</div>
+        </div>
+      </div>
+      {% empty %}
+      <p style="color:#888; font-size:13px;">No upcoming scheduled exams.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-alert-circle"></i> Pending Actions</div>
+      <a href="#" class="fd-widget-link">Manage</a>
+    </div>
+    <div class="fd-pending-list">
+      {% for exam in pending_room %}
+      <div class="fd-pending-item">
+        <div class="fd-pending-dot red"></div>
+        <div class="fd-pending-body">
+          <div class="fd-pending-title">{{ exam.display_course_code }} {{ exam.exam_name }} — no room assigned</div>
+          <div class="fd-pending-meta">{{ exam.get_status_display }} · {{ exam.display_date }}</div>
+        </div>
+        <button class="fd-sign-btn red" onclick="qaOpenModal('room')">Assign</button>
+      </div>
+      {% endfor %}
+      {% for exam in pending_invigilator %}
+      <div class="fd-pending-item">
+        <div class="fd-pending-dot orange"></div>
+        <div class="fd-pending-body">
+          <div class="fd-pending-title">{{ exam.display_course_code }} {{ exam.exam_name }} — no invigilator</div>
+          <div class="fd-pending-meta">{{ exam.get_status_display }} · {{ exam.display_date }}</div>
+        </div>
+        <button class="fd-sign-btn" onclick="qaOpenModal('invigilator')">Assign</button>
+      </div>
+      {% endfor %}
+      {% if not pending_room and not pending_invigilator %}
+      <p style="color:#888; font-size:13px;">Nothing pending — all exams have rooms and invigilators.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<div class="exm-overlay" id="exmOverlay">
+  <div class="exm-modal">
+    <div class="exm-modal-header">
+      <div class="exm-modal-title"><i class="ti ti-writing" id="exmTitleIcon"></i> <span id="exmTitle">Exam</span></div>
+      <button class="exm-close-btn" onclick="exCloseModal()">&times;</button>
+    </div>
+
+    <div id="exmAlertSuccess" class="exm-alert success"></div>
+    <div id="exmAlertError" class="exm-alert error"></div>
+
+    <div id="exmLoading" class="exm-loading">Loading exam details…</div>
+
+    <form id="exmForm" style="display:none;">
+      {% csrf_token %}
+      <input type="hidden" id="exm_exam_id" name="exam_id">
+      <input type="hidden" id="exm_course_section_id" name="course_section_id">
+      <input type="hidden" id="exm_semester_id" name="semester_id">
+
+      <div class="exm-grid">
+        <div class="exm-field full">
+          <label for="exm_exam_name">Exam Name</label>
+          <input type="text" id="exm_exam_name" name="exam_name" required>
+        </div>
+
+        <div class="exm-field">
+          <label>Course Section</label>
+          <input type="text" id="exm_course_display" disabled>
+        </div>
+        <div class="exm-field">
+          <label>Semester</label>
+          <input type="text" id="exm_semester_display" disabled>
+        </div>
+        <span class="exm-locked-note">Course section and semester can't be changed here — delete and recreate the exam if these were wrong.</span>
+
+        <div class="exm-field">
+          <label for="exm_exam_type">Exam Type</label>
+          <select id="exm_exam_type" name="exam_type" required>
+            <option value="MIDTERM">Midterm</option>
+            <option value="FINAL">Final</option>
+            <option value="QUIZ">Quiz</option>
+            <option value="PRACTICAL">Practical</option>
+          </select>
+        </div>
+        <div class="exm-field">
+          <label for="exm_status">Status</label>
+          <select id="exm_status" name="status" required>
+            <option value="DRAFT">Draft</option>
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+
+        <div class="exm-field">
+          <label for="exm_exam_date">Exam Date</label>
+          <input type="date" id="exm_exam_date" name="exam_date" required>
+        </div>
+        <div class="exm-field">
+          <label for="exm_duration_minutes">Duration (minutes)</label>
+          <input type="number" id="exm_duration_minutes" name="duration_minutes" min="10" step="5" required oninput="exAutoCalcEnd()">
+        </div>
+        <div class="exm-field">
+          <label for="exm_start_time">Start Time</label>
+          <input type="time" id="exm_start_time" name="start_time" required oninput="exAutoCalcEnd()">
+        </div>
+        <div class="exm-field">
+          <label for="exm_end_time">End Time</label>
+          <input type="time" id="exm_end_time" name="end_time" required>
+        </div>
+
+        <div class="exm-field">
+          <label for="exm_total_marks">Total Marks</label>
+          <input type="number" id="exm_total_marks" name="total_marks" min="1" required>
+        </div>
+        <div class="exm-field">
+          <label for="exm_pass_marks">Pass Marks</label>
+          <input type="number" id="exm_pass_marks" name="pass_marks" min="0" required>
+        </div>
+
+      <div class="exm-field full" style="border-top:1px solid #eee; padding-top:14px; margin-top:4px;">
+        <label>Invigilator</label>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <span id="exm_current_invigilator" style="font-size:13px; color:#555;">Unassigned</span>
+          <select id="exm_reassign_faculty"></select>
+          <button type="button" class="fd-btn fd-btn-ghost" id="exmReassignBtn" onclick="exReassignInvigilator()">
+            <i class="ti ti-user-check"></i><span>Reassign</span>
+          </button>
+        </div>
+      </div>
+
+        <div class="exm-field full">
+          <label for="exm_instructions">Instructions for Students</label>
+          <textarea id="exm_instructions" name="instructions"></textarea>
+        </div>
+      </div>
+
+      <div class="exm-actions">
+        <button type="button" class="fd-btn fd-btn-ghost" onclick="exCloseModal()">Close</button>
+        <button type="submit" class="fd-btn fd-btn-primary" id="exmSaveBtn">
+          <i class="ti ti-check"></i><span>Save Changes</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="qa-overlay" id="qaOverlay">
+  <div class="qa-modal">
+    <div class="qa-modal-header">
+      <div>
+        <div class="qa-modal-title"><i class="ti ti-bolt" id="qaTitleIcon"></i> <span id="qaTitle">Quick Action</span></div>
+        <div class="qa-modal-sub" id="qaSubtitle"></div>
+      </div>
+      <button class="qa-close-btn" onclick="qaCloseModal()">&times;</button>
+    </div>
+
+    <div id="qaAlertSuccess" class="qa-alert success"></div>
+    <div id="qaAlertError" class="qa-alert error"></div>
+
+    <div class="qa-list" id="qaList"></div>
+  </div>
+</div>
+
+<div class="exp-overlay" id="expOverlay">
+  <div class="exp-modal">
+
+    <!-- STEP 1: Choose format -->
+    <div class="exp-step exp-step-choose" id="expStepChoose">
+      <div class="exp-modal-header">
+        <div class="exp-modal-title"><i class="ti ti-download"></i> Export Exams &amp; Rooms</div>
+        <button class="exp-close-btn" onclick="expCloseModal()">&times;</button>
+      </div>
+      <p class="exp-sub">Choose a format to export the exam schedule and room allocations.</p>
+
+      <div class="exp-format-grid">
+        <div class="exp-format-card" onclick="expStartExport('excel')">
+          <div class="exp-format-icon excel"><i class="ti ti-file-spreadsheet"></i></div>
+          <div class="exp-format-name">Excel</div>
+          <div class="exp-format-desc">.xlsx spreadsheet</div>
+        </div>
+        <div class="exp-format-card" onclick="expStartExport('pdf')">
+          <div class="exp-format-icon pdf"><i class="ti ti-file-type-pdf"></i></div>
+          <div class="exp-format-name">PDF</div>
+          <div class="exp-format-desc">Printable report</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Progress -->
+    <div class="exp-step exp-step-progress" id="expStepProgress" style="display:none;">
+      <div class="exp-progress-ring-wrap">
+        <svg class="exp-progress-ring" viewBox="0 0 120 120">
+          <circle class="exp-ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="exp-ring-fill" id="expRingFill" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="exp-progress-icon" id="expProgressIcon"><i class="ti ti-file-spreadsheet"></i></div>
+      </div>
+      <div class="exp-progress-title" id="expProgressTitle">Preparing your file…</div>
+      <div class="exp-progress-sub" id="expProgressSub">Gathering exam records</div>
+      <div class="exp-progress-pct" id="expProgressPct">0%</div>
+    </div>
+
+    <!-- STEP 3: Done -->
+    <div class="exp-step exp-step-done" id="expStepDone" style="display:none;">
+      <div class="exp-done-check">
+        <svg viewBox="0 0 52 52">
+          <circle class="exp-check-circle" cx="26" cy="26" r="23"></circle>
+          <path class="exp-check-mark" fill="none" d="M14 27l7 7 16-16"/>
+        </svg>
+      </div>
+      <div class="exp-done-title">Download ready!</div>
+      <div class="exp-done-sub" id="expDoneSub">Your file has been downloaded.</div>
+      <button class="fd-btn fd-btn-ghost" onclick="expCloseModal()">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     DELETE EXAM MODAL (fixed)
+     ============================================================ -->
+<div id="deleteModal" class="modal-overlay">
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <div class="modal-icon">⚠️</div>
+      <h2>Delete Exam</h2>
+    </div>
+
+    <p id="deleteMessage" class="modal-text"></p>
+
+    <div class="modal-warning">
+      This action is permanent. All room allocations, invigilators, and records will be removed.
+    </div>
+
+    <input
+      type="text"
+      id="deleteConfirmInput"
+      placeholder="Type DELETE to confirm"
+      class="modal-input"
+      oninput="validateDeleteInput()"
+      autocomplete="off"
+    />
+
+    <div class="modal-actions">
+      <button onclick="closeDeleteModal()" class="btn-cancel">Cancel</button>
+      <button id="deleteConfirmBtn" onclick="confirmDelete()" class="btn-delete" disabled>Delete</button>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+let currentExamId = null;
+
+function examToast(title, msg, type = 'error') {
+  document.querySelectorAll('.ex-toast').forEach(t => t.remove());
+
+  const iconMap = {
+    success: '<i class="ti ti-circle-check" style="color:#22c55e;"></i>',
+    info:    '<i class="ti ti-info-circle" style="color:#3b82f6;"></i>',
+    warning: '<i class="ti ti-alert-triangle" style="color:#f59e0b;"></i>',
+    error:   '<i class="ti ti-circle-x" style="color:#ef4444;"></i>',
+  };
+
+  const toast = document.createElement('div');
+  toast.className = 'ex-toast';
+  toast.innerHTML = `
+    <div class="ex-toast-icon">${iconMap[type] || iconMap.error}</div>
+    <div class="ex-toast-txt">
+      <b>${title}</b>
+      <small>${msg}</small>
+    </div>
+    <span class="ex-toast-close" onclick="this.closest('.ex-toast').remove()">
+      <i class="ti ti-x"></i>
+    </span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'exToastFadeOut 0.35s ease forwards';
+    setTimeout(() => toast.remove(), 350);
+  }, 4000);
+}
+
+  /* Computes an HH:MM end time from a start time + duration in minutes.
+     Wraps past midnight safely instead of producing an invalid value. */
+  function calcEndTime(startTime, durationMinutes) {
+    if (!startTime || !durationMinutes) return '';
+    const parts = startTime.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m)) return '';
+    const dur = parseInt(durationMinutes, 10);
+    if (isNaN(dur) || dur <= 0) return '';
+
+    let total = (h * 60 + m + dur) % (24 * 60);
+    const eh = String(Math.floor(total / 60)).padStart(2, '0');
+    const em = String(total % 60).padStart(2, '0');
+    return `${eh}:${em}`;
+  }
+
+  function exFilterTab(el, filter) {
+    document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#exTableBody .ex-row').forEach(row => {
+      const s = row.dataset.status;
+      let show = true;
+      if (filter === 'scheduled')   show = s === 'scheduled';
+      else if (filter === 'draft')  show = s === 'draft';
+      else if (filter === 'completed')   show = s === 'completed';
+      else if (filter === 'cancelled')   show = s === 'cancelled';
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  let exSearchTimeout;
+
+  let searchTimer;
+
+  function exLiveSearch(value){
+
+      clearTimeout(searchTimer);
+
+      searchTimer = setTimeout(function(){
+
+          const url = new URL(window.location.href);
+
+          if(value.trim()){
+              url.searchParams.set("search",value);
+          }else{
+              url.searchParams.delete("search");
+          }
+
+          url.searchParams.set("page",1);
+          fetch(url,{
+              headers:{
+                  "X-Requested-With":"XMLHttpRequest"
+              }
+          })
+          .then(res=>res.json())
+          .then(data=>{
+              const parser=new DOMParser();
+              const doc=parser.parseFromString(data.table,"text/html");
+              const newTable=doc.querySelector("#examTableContainer");
+              document.querySelector("#examTableContainer").innerHTML=newTable.innerHTML;
+              const input = document.querySelector("input[name='search']");
+              input.focus();
+              input.selectionStart = input.selectionEnd = input.value.length;
+          });
+      },500);
+  }
+
+  function exTypeFilter(val) {
+    const q = val.toLowerCase();
+    document.querySelectorAll('#exTableBody .ex-row').forEach(row => {
+      if (!row.dataset.type) return;
+      row.style.display = (!q || row.dataset.type === q) ? '' : 'none';
+    });
+  }
+
+
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const counters = document.querySelectorAll(".counter");
+
+    counters.forEach(counter => {
+        const target = parseInt(counter.dataset.target, 10);
+
+        if (isNaN(target)) return;
+
+        let current = 0;
+        const duration = 1500;
+        const increment = target / (duration / 16) || target;
+
+        const updateCounter = () => {
+            current += increment;
+
+            if (current < target) {
+                counter.textContent = Math.floor(current).toLocaleString();
+                requestAnimationFrame(updateCounter);
+            } else {
+                counter.textContent = target.toLocaleString();
+            }
+        };
+
+        updateCounter();
+    });
+});
+</script>
+
+<script>
+  const EXM_DETAIL_URL_TPL = "{% url 'exam_detail' 0 %}";
+  const EXM_DELETE_URL_TPL = "{% url 'delete_exam' 0 %}";
+  const EXM_UPDATE_URL = "{% url 'update_exam' %}";
+
+  const exmOverlay   = document.getElementById('exmOverlay');
+  const exmForm      = document.getElementById('exmForm');
+  const exmLoading   = document.getElementById('exmLoading');
+  const exmTitle     = document.getElementById('exmTitle');
+  const exmTitleIcon = document.getElementById('exmTitleIcon');
+  const exmSaveBtn   = document.getElementById('exmSaveBtn');
+  const exmSuccess   = document.getElementById('exmAlertSuccess');
+  const exmError     = document.getElementById('exmAlertError');
+
+  function exHideAlerts() {
+    exmSuccess.style.display = 'none';
+    exmError.style.display = 'none';
+  }
+  function exShowAlert(el, msg) {
+    const isSuccess = el === exmSuccess;
+    examToast(isSuccess ? 'Success' : 'Error', msg, isSuccess ? 'success' : 'error');
+  }
+  function exGetCsrf() {
+    return exmForm.querySelector('[name=csrfmiddlewaretoken]').value;
+  }
+  const EXM_ALWAYS_LOCKED_IDS = ['exm_course_display', 'exm_semester_display'];
+
+  function exSetFormDisabled(disabled) {
+    exmForm.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'hidden' || el.name === 'csrfmiddlewaretoken') return;
+      if (EXM_ALWAYS_LOCKED_IDS.includes(el.id)) {
+        el.disabled = true;
+        return;
+      }
+      el.disabled = disabled;
+    });
+    exmSaveBtn.style.display = disabled ? 'none' : 'inline-flex';
+  }
+
+  function exOpenModal(examId, mode) {
+    exHideAlerts();
+    exmForm.style.display = 'none';
+    exmLoading.style.display = 'block';
+    exmLoading.textContent = 'Loading exam details…';
+    exmOverlay.classList.add('open');
+
+    if (mode === 'view') {
+      exmTitle.textContent = 'View Exam';
+      exmTitleIcon.className = 'ti ti-eye';
+    } else {
+      exmTitle.textContent = 'Edit Exam';
+      exmTitleIcon.className = 'ti ti-pencil';
+    }
+
+    const url = EXM_DETAIL_URL_TPL.replace('/0/', '/' + examId + '/');
+
+    fetch(url)
+      .then(res => res.json())
+      .then(res => {
+        if (!res.success) {
+          exmLoading.textContent = res.error || 'Could not load exam details.';
+          return;
+        }
+        const d = res.data;
+        document.getElementById('exm_exam_id').value = d.id;
+        document.getElementById('exm_course_section_id').value = d.course_section_id;
+        document.getElementById('exm_semester_id').value = d.semester_id;
+        document.getElementById('exm_course_display').value =
+          document.querySelector('#ex-row-' + d.id + ' .fd-form-title')
+            ? document.querySelector('#ex-row-' + d.id + ' td:nth-child(3) .fd-form-title').textContent.trim()
+            : '';
+        document.getElementById('exm_semester_display').value = 'Semester ID: ' + d.semester_id;
+        document.getElementById('exm_exam_name').value = d.exam_name;
+        document.getElementById('exm_exam_type').value = d.exam_type;
+        document.getElementById('exm_status').value = d.status;
+        document.getElementById('exm_exam_date').value = d.exam_date;
+        document.getElementById('exm_start_time').value = d.start_time;
+        document.getElementById('exm_end_time').value = d.end_time;
+        document.getElementById('exm_duration_minutes').value = d.duration_minutes;
+        document.getElementById('exm_total_marks').value = d.total_marks;
+        document.getElementById('exm_pass_marks').value = d.pass_marks;
+        document.getElementById('exm_instructions').value = d.instructions || '';
+        document.getElementById('exm_current_invigilator').textContent =
+          d.current_invigilator_name ? `Currently: ${d.current_invigilator_name}` : 'Unassigned';
+        document.getElementById('exm_reassign_faculty').value = d.current_invigilator_id || '';
+
+
+        exSetFormDisabled(mode === 'view');
+
+        exmLoading.style.display = 'none';
+        exmForm.style.display = 'block';
+      })
+      .catch(() => {
+        exmLoading.textContent = 'Something went wrong while loading this exam.';
+      });
+  }
+
+  const EXM_REASSIGN_URL = "{% url 'reassign_invigilator' %}";
+
+  function exReassignInvigilator() {
+    exHideAlerts();
+    const examId = document.getElementById('exm_exam_id').value;
+    const facultyId = document.getElementById('exm_reassign_faculty').value;
+
+    if (!facultyId) {
+      exShowAlert(exmError, 'Please select a faculty member.');
+      return;
+    }
+
+    fetch(EXM_REASSIGN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': exGetCsrf() },
+      body: JSON.stringify({ exam_id: examId, faculty_id: facultyId }),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          exShowAlert(exmSuccess, res.message || 'Invigilator reassigned successfully.');
+          setTimeout(() => window.location.reload(), 900);
+        } else {
+          exShowAlert(exmError, res.error || 'Could not reassign invigilator.');
+        }
+      })
+      .catch(() => exShowAlert(exmError, 'Something went wrong.'));
+  }
+
+  function exAutoCalcEnd() {
+    const start = document.getElementById('exm_start_time').value;
+    const dur = document.getElementById('exm_duration_minutes').value;
+    const end = calcEndTime(start, dur);
+    if (end) document.getElementById('exm_end_time').value = end;
+  }
+
+  function exCloseModal() {
+    exmOverlay.classList.remove('open');
+  }
+
+  exmOverlay.addEventListener('click', (e) => {
+    if (e.target === exmOverlay) exCloseModal();
+  });
+
+  exmForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    exHideAlerts();
+
+    if (Number(document.getElementById('exm_pass_marks').value) >
+        Number(document.getElementById('exm_total_marks').value)) {
+      exShowAlert(exmError, 'Pass marks cannot be greater than total marks.');
+      return;
+    }
+    if (document.getElementById('exm_end_time').value <= document.getElementById('exm_start_time').value) {
+      exShowAlert(exmError, 'End time must be after start time.');
+      return;
+    }
+
+    const payload = {
+      exam_id: document.getElementById('exm_exam_id').value,
+      course_section_id: document.getElementById('exm_course_section_id').value,
+      semester_id: document.getElementById('exm_semester_id').value,
+      exam_name: document.getElementById('exm_exam_name').value.trim(),
+      exam_type: document.getElementById('exm_exam_type').value,
+      exam_date: document.getElementById('exm_exam_date').value,
+      start_time: document.getElementById('exm_start_time').value,
+      end_time: document.getElementById('exm_end_time').value,
+      duration_minutes: document.getElementById('exm_duration_minutes').value,
+      total_marks: document.getElementById('exm_total_marks').value,
+      pass_marks: document.getElementById('exm_pass_marks').value,
+      instructions: document.getElementById('exm_instructions').value.trim(),
+      status: document.getElementById('exm_status').value,
+    };
+
+    exmSaveBtn.disabled = true;
+    exmSaveBtn.querySelector('span').textContent = 'Saving…';
+
+    fetch(EXM_UPDATE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': exGetCsrf(),
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          exShowAlert(exmSuccess, res.message || 'Exam updated successfully.');
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          exShowAlert(exmError, res.error || 'Could not update the exam.');
+          exmSaveBtn.disabled = false;
+          exmSaveBtn.querySelector('span').textContent = 'Save Changes';
+        }
+      })
+      .catch(() => {
+        exShowAlert(exmError, 'Something went wrong. Please try again.');
+        exmSaveBtn.disabled = false;
+        exmSaveBtn.querySelector('span').textContent = 'Save Changes';
+      });
+  });
+
+  /* ============================================================
+     DELETE EXAM — single clean implementation
+     ============================================================ */
+
+  function openDeleteModal(examId, examName) {
+    currentExamId = examId;
+
+    document.getElementById("deleteMessage").innerText =
+        `Are you sure you want to delete "${examName}"?`;
+
+    const input = document.getElementById("deleteConfirmInput");
+    const btn = document.getElementById("deleteConfirmBtn");
+    input.value = "";
+    btn.disabled = true;
+    btn.textContent = "Delete";
+
+    document.getElementById("deleteModal").classList.add("show");
+
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function closeDeleteModal() {
+    document.getElementById("deleteModal").classList.remove("show");
+    document.getElementById("deleteConfirmInput").value = "";
+    document.getElementById("deleteConfirmBtn").disabled = true;
+    document.getElementById("deleteConfirmBtn").textContent = "Delete";
+    currentExamId = null;
+  }
+
+  function validateDeleteInput() {
+    const input = document.getElementById("deleteConfirmInput").value.trim();
+    document.getElementById("deleteConfirmBtn").disabled = (input !== "DELETE");
+  }
+
+  function confirmDelete() {
+    if (!currentExamId) return;
+
+    const input = document.getElementById("deleteConfirmInput").value.trim();
+    if (input !== "DELETE") {
+      examToast('Error', 'Please type DELETE to confirm.', 'error');
+      return;
+    }
+
+    const url = EXM_DELETE_URL_TPL.replace('/0/', '/' + currentExamId + '/');
+    const btn = document.getElementById("deleteConfirmBtn");
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": exGetCsrf(),
+        "Content-Type": "application/json",
+      },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const row = document.getElementById(`ex-row-${currentExamId}`);
+          if (row) row.remove();
+          examToast('Success', data.message || 'Exam deleted successfully.', 'success');
+          closeDeleteModal();
+        } else {
+          examToast('Error', data.error || 'Could not delete exam.', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Delete';
+        }
+      })
+      .catch(() => {
+        examToast('Error', 'Server error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+      });
+  }
+
+  document.getElementById('deleteModal').addEventListener('click', (e) => {
+    if (e.target.id === 'deleteModal') closeDeleteModal();
+  });
+
+</script>
+
+<script>
+  const QA_DRAFT_EXAMS = [
+    {% for exam in draft_exams %}
+    {
+      id: {{ exam.id }},
+      name: "{{ exam.exam_name|escapejs }}",
+      course: "{{ exam.display_course_code|escapejs }}",
+      section: "{{ exam.display_section_label|escapejs }}",
+      date: "{{ exam.exam_date|date:'Y-m-d' }}",
+      start: "{{ exam.start_time|time:'H:i' }}",
+      end: "{{ exam.end_time|time:'H:i' }}",
+      duration: {{ exam.duration_minutes|default:"0" }}
+    },
+    {% endfor %}
+  ];
+
+  const QA_PENDING_ROOM = [
+    {% for exam in pending_room %}
+    {
+      id: {{ exam.id }},
+      name: "{{ exam.exam_name|escapejs }}",
+      course: "{{ exam.display_course_code|escapejs }}",
+      section: "{{ exam.display_section_label|escapejs }}",
+      date: "{{ exam.display_date }}"
+    },
+    {% endfor %}
+  ];
+
+  const QA_PENDING_INVIG = [
+    {% for exam in pending_invigilator %}
+    {
+      id: {{ exam.id }},
+      name: "{{ exam.exam_name|escapejs }}",
+      course: "{{ exam.display_course_code|escapejs }}",
+      section: "{{ exam.display_section_label|escapejs }}",
+      date: "{{ exam.display_date }}"
+    },
+    {% endfor %}
+  ];
+
+  const QA_ROOM_OPTIONS =
+    '<option value="">Select room…</option>' +
+    '{% for room in rooms_for_modal %}<option value="{{ room.id }}">{{ room.room_number }} (cap {{ room.capacity }})</option>{% endfor %}';
+
+  const QA_FACULTY_OPTIONS =
+    '<option value="">Select faculty…</option>' +
+    '{% for f in faculty_for_modal %}<option value="{{ f.id }}">{{ f.user.get_full_name }}</option>{% endfor %}';
+
+  // Moved here from the earlier script block: QA_FACULTY_OPTIONS must exist
+  // before we can use it to populate the reassign dropdown.
+  document.getElementById('exm_reassign_faculty').innerHTML = QA_FACULTY_OPTIONS;
+
+  const QA_SCHEDULE_URL = "{% url 'schedule_exam' %}";
+  const QA_ROOM_URL      = "{% url 'allocate_exam_room' %}";
+  const QA_INVIG_URL     = "{% url 'assign_invigilator' %}";
+
+  const qaOverlay  = document.getElementById('qaOverlay');
+  const qaTitle    = document.getElementById('qaTitle');
+  const qaTitleIcon= document.getElementById('qaTitleIcon');
+  const qaSubtitle = document.getElementById('qaSubtitle');
+  const qaList     = document.getElementById('qaList');
+  const qaSuccess  = document.getElementById('qaAlertSuccess');
+  const qaError    = document.getElementById('qaAlertError');
+  const qaCsrf     = exGetCsrf();
+
+  function qaHideAlerts() {
+    qaSuccess.style.display = 'none';
+    qaError.style.display = 'none';
+  }
+  function qaShowAlert(el, msg) {
+    const isSuccess = el === qaSuccess;
+    examToast(isSuccess ? 'Success' : 'Error', msg, isSuccess ? 'success' : 'error');
+  }
+  function qaEmptyMsg(msg) {
+    qaList.innerHTML = '<div class="qa-empty">' + msg + '</div>';
+  }
+
+  function qaOpenModal(kind) {
+    qaHideAlerts();
+    qaOverlay.classList.add('open');
+
+    if (kind === 'schedule') {
+      qaTitle.textContent = 'Schedule Exam';
+      qaTitleIcon.className = 'ti ti-writing';
+      qaSubtitle.textContent = 'Set a date and time to move a draft exam to Scheduled.';
+      qaRenderSchedule(QA_DRAFT_EXAMS);
+    } else if (kind === 'room') {
+      qaTitle.textContent = 'Assign Room';
+      qaTitleIcon.className = 'ti ti-map-pin';
+      qaSubtitle.textContent = 'Allocate a room and capacity to exams missing one.';
+      qaRenderRoom(QA_PENDING_ROOM);
+    } else if (kind === 'invigilator') {
+      qaTitle.textContent = 'Assign Invigilator';
+      qaTitleIcon.className = 'ti ti-user-plus';
+      qaSubtitle.textContent = 'Assign a faculty member to invigilate exams missing one.';
+      qaRenderInvig(QA_PENDING_INVIG);
+    }
+  }
+
+  function qaCloseModal() {
+    qaOverlay.classList.remove('open');
+  }
+  qaOverlay.addEventListener('click', (e) => {
+    if (e.target === qaOverlay) qaCloseModal();
+  });
+
+  function qaRenderSchedule(items) {
+    if (!items.length) return qaEmptyMsg('No draft exams waiting to be scheduled.');
+    qaList.innerHTML = items.map(ex => `
+      <div class="qa-card" id="qa-item-${ex.id}">
+        <div class="qa-info">
+          <div class="qa-title">${ex.name}</div>
+          <div class="qa-sub">${ex.course} · ${ex.section}</div>
+        </div>
+        <div class="qa-form">
+          <input type="date" id="qa-date-${ex.id}" value="${ex.date && ex.date !== 'None' ? ex.date : ''}" required>
+          <input type="time" id="qa-start-${ex.id}" value="${ex.start && ex.start !== 'None' ? ex.start : ''}" required oninput="qaAutoCalcEnd(${ex.id})">
+          <input type="time" id="qa-end-${ex.id}" value="${ex.end && ex.end !== 'None' ? ex.end : ''}" required>
+          <input type="number" id="qa-dur-${ex.id}" placeholder="mins" min="10" step="5" value="${ex.duration || ''}" required oninput="qaAutoCalcEnd(${ex.id})">
+          <button type="button" class="fd-btn fd-btn-primary" onclick="qaSubmitSchedule(${ex.id})">
+            <i class="ti ti-check"></i><span>Schedule</span>
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  function qaAutoCalcEnd(examId) {
+    const start = document.getElementById('qa-start-' + examId).value;
+    const dur = document.getElementById('qa-dur-' + examId).value;
+    const end = calcEndTime(start, dur);
+    if (end) document.getElementById('qa-end-' + examId).value = end;
+  }
+
+  function qaSubmitSchedule(examId) {
+    qaHideAlerts();
+    const date  = document.getElementById('qa-date-' + examId).value;
+    const start = document.getElementById('qa-start-' + examId).value;
+    const end   = document.getElementById('qa-end-' + examId).value;
+    const dur   = document.getElementById('qa-dur-' + examId).value;
+
+    if (!date || !start || !end || !dur) {
+      return qaShowAlert(qaError, 'Please fill in all fields.');
+    }
+    if (end <= start) {
+      return qaShowAlert(qaError, 'End time must be after start time.');
+    }
+
+    fetch(QA_SCHEDULE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': qaCsrf },
+      body: JSON.stringify({
+        exam_id: examId, exam_date: date, start_time: start, end_time: end, duration_minutes: dur,
+      }),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          document.getElementById('qa-item-' + examId).remove();
+          qaShowAlert(qaSuccess, res.message || 'Exam scheduled successfully.');
+          if (!qaList.querySelector('.qa-card')) qaEmptyMsg('No draft exams waiting to be scheduled.');
+          setTimeout(() => window.location.reload(), 900);
+        } else {
+          qaShowAlert(qaError, res.error || 'Could not schedule this exam.');
+        }
+      })
+      .catch(() => qaShowAlert(qaError, 'Something went wrong.'));
+  }
+
+  function qaRenderRoom(items) {
+    if (!items.length) return qaEmptyMsg('No exams currently waiting on a room.');
+    qaList.innerHTML = items.map(ex => `
+      <div class="qa-card" id="qa-item-${ex.id}">
+        <div class="qa-info">
+          <div class="qa-title">${ex.name}</div>
+          <div class="qa-sub">${ex.course} · ${ex.section} · ${ex.date}</div>
+        </div>
+        <div class="qa-form">
+          <select id="qa-room-${ex.id}">${QA_ROOM_OPTIONS}</select>
+          <input type="number" id="qa-cap-${ex.id}" placeholder="capacity" min="1" required>
+          <button type="button" class="fd-btn fd-btn-primary" onclick="qaSubmitRoom(${ex.id})">
+            <i class="ti ti-map-pin"></i><span>Assign</span>
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  function qaSubmitRoom(examId) {
+    qaHideAlerts();
+    const roomId = document.getElementById('qa-room-' + examId).value;
+    const cap    = document.getElementById('qa-cap-' + examId).value;
+
+    if (!roomId) return qaShowAlert(qaError, 'Please select a room.');
+    if (!cap)    return qaShowAlert(qaError, 'Please enter a capacity.');
+
+    fetch(QA_ROOM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': qaCsrf },
+      body: JSON.stringify({ exam_id: examId, room_id: roomId, allocated_capacity: cap }),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          document.getElementById('qa-item-' + examId).remove();
+          qaShowAlert(qaSuccess, res.message || 'Room assigned successfully.');
+          if (!qaList.querySelector('.qa-card')) qaEmptyMsg('No exams currently waiting on a room.');
+          setTimeout(() => window.location.reload(), 900);
+        } else {
+          qaShowAlert(qaError, res.error || 'Could not assign room.');
+        }
+      })
+      .catch(() => qaShowAlert(qaError, 'Something went wrong.'));
+  }
+
+  function qaRenderInvig(items) {
+    if (!items.length) return qaEmptyMsg('No exams currently waiting on an invigilator.');
+    qaList.innerHTML = items.map(ex => `
+      <div class="qa-card" id="qa-item-${ex.id}">
+        <div class="qa-info">
+          <div class="qa-title">${ex.name}</div>
+          <div class="qa-sub">${ex.course} · ${ex.section} · ${ex.date}</div>
+        </div>
+        <div class="qa-form">
+          <select id="qa-fac-${ex.id}">${QA_FACULTY_OPTIONS}</select>
+          <button type="button" class="fd-btn fd-btn-primary" onclick="qaSubmitInvig(${ex.id})">
+            <i class="ti ti-user-check"></i><span>Assign</span>
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  function qaSubmitInvig(examId) {
+    qaHideAlerts();
+    const facId = document.getElementById('qa-fac-' + examId).value;
+    if (!facId) return qaShowAlert(qaError, 'Please select a faculty member.');
+
+    fetch(QA_INVIG_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': qaCsrf },
+      body: JSON.stringify({ exam_id: examId, faculty_id: facId }),
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          document.getElementById('qa-item-' + examId).remove();
+          qaShowAlert(qaSuccess, res.message || 'Invigilator assigned successfully.');
+          if (!qaList.querySelector('.qa-card')) qaEmptyMsg('No exams currently waiting on an invigilator.');
+          setTimeout(() => window.location.reload(), 900);
+        } else {
+          qaShowAlert(qaError, res.error || 'Could not assign invigilator.');
+        }
+      })
+      .catch(() => qaShowAlert(qaError, 'Something went wrong.'));
+  }
+</script>
+
+<script>
+  const EXP_EXCEL_URL = "{% url 'export_exams_excel' request.user.uuid %}";
+  const EXP_PDF_URL   = "{% url 'export_exams_pdf' request.user.uuid %}?template=modern";
+
+  const expOverlay      = document.getElementById('expOverlay');
+  const expStepChoose   = document.getElementById('expStepChoose');
+  const expStepProgress = document.getElementById('expStepProgress');
+  const expStepDone     = document.getElementById('expStepDone');
+  const expRingFill     = document.getElementById('expRingFill');
+  const expProgressIcon = document.getElementById('expProgressIcon');
+  const expProgressTitle= document.getElementById('expProgressTitle');
+  const expProgressSub  = document.getElementById('expProgressSub');
+  const expProgressPct  = document.getElementById('expProgressPct');
+  const expDoneSub      = document.getElementById('expDoneSub');
+
+  const RING_CIRCUMFERENCE = 326.7;
+
+  function expOpenModal() {
+    expShowStep('choose');
+    expOverlay.classList.add('open');
+  }
+
+  function expCloseModal() {
+    expOverlay.classList.remove('open');
+  }
+  expOverlay.addEventListener('click', (e) => {
+    if (e.target === expOverlay) expCloseModal();
+  });
+
+  function expShowStep(step) {
+    expStepChoose.style.display   = step === 'choose'   ? 'block' : 'none';
+    expStepProgress.style.display = step === 'progress' ? 'flex'  : 'none';
+    expStepDone.style.display     = step === 'done'      ? 'flex'  : 'none';
+  }
+
+  function expSetRing(pct) {
+    const offset = RING_CIRCUMFERENCE - (RING_CIRCUMFERENCE * pct / 100);
+    expRingFill.style.strokeDashoffset = offset;
+    expProgressPct.textContent = Math.round(pct) + '%';
+  }
+
+  const EXP_STAGES = [
+    { pct: 20, label: 'Gathering exam records' },
+    { pct: 45, label: 'Compiling rooms & invigilators' },
+    { pct: 70, label: 'Formatting document' },
+    { pct: 90, label: 'Finalizing file' },
+  ];
+
+  function expStartExport(format) {
+    const isExcel = format === 'excel';
+    const url = isExcel ? EXP_EXCEL_URL : EXP_PDF_URL;
+    const filename = isExcel ? 'Exams_Report.xlsx' : 'Exams_Report.pdf';
+
+    expProgressIcon.innerHTML = isExcel
+      ? '<i class="ti ti-file-spreadsheet"></i>'
+      : '<i class="ti ti-file-type-pdf"></i>';
+    expProgressTitle.textContent = isExcel ? 'Building your Excel file…' : 'Building your PDF report…';
+    expSetRing(0);
+    expShowStep('progress');
+
+    let stageIndex = 0;
+    const stageTimer = setInterval(() => {
+      if (stageIndex < EXP_STAGES.length) {
+        const stage = EXP_STAGES[stageIndex];
+        expSetRing(stage.pct);
+        expProgressSub.textContent = stage.label;
+        stageIndex++;
+      }
+    }, 450);
+
+    fetch(url, { credentials: 'same-origin' })
+      .then(res => {
+        if (!res.ok) throw new Error('Export failed');
+        return res.blob();
+      })
+      .then(blob => {
+        clearInterval(stageTimer);
+        expSetRing(100);
+        expProgressSub.textContent = 'Almost done…';
+
+        setTimeout(() => {
+          const blobUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(blobUrl);
+
+          expDoneSub.textContent = `${filename} has been downloaded to your device.`;
+          expShowStep('done');
+        }, 350);
+      })
+      .catch(() => {
+        clearInterval(stageTimer);
+        expCloseModal();
+        examToast('Error', 'Could not generate the export. Please try again.', 'error');
+      });
+  }
+</script>
+{% endblock %}
+
+
+<!-- ******************************************** Arun Code ************************************************************ -->

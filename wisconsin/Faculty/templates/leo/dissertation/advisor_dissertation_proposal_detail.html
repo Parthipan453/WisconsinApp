@@ -1,0 +1,905 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Proposal Details | Advisor{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/dissertation/advisor_dissertation_proposal_detail.css' %}">
+{% endblock extra_css %}
+{% block content %}
+{% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+        <i class="ti ti-layout-dashboard"></i>
+        <span>Dashboard</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+        <i class="ti ti-school"></i>
+        <span>PhD Management</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    {% comment %} <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">
+        <i class="ti ti-file-description"></i>
+        <span>Dissertation Proposals</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <span class="common-breadcrumb-current">
+        <i class="ti ti-file-text"></i>
+        <span>Current Page</span>
+    </span> 
+</nav> {% endcomment %}
+    <div class="adv-pd-page">
+        <nav class="adv-pd-breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">Dashboard</a>
+            <i class="ti ti-chevron-right"></i>
+            <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">PhD Management</a>
+            <i class="ti ti-chevron-right"></i>
+            <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">Dissertation Proposals</a>
+            <i class="ti ti-chevron-right"></i>
+            <span>Proposal Details</span>
+        </nav>
+        <section class="adv-pd-header-card">
+            <div class="adv-pd-header-main">
+                <div class="adv-pd-header-icon">
+                    <i class="ti ti-file-description"></i>
+                </div>
+                <div class="adv-pd-header-content">
+                    <span class="adv-pd-eyebrow">Dissertation Proposal</span>
+                    <h1>{{ proposal.proposal_title }}</h1>
+                    <div class="adv-pd-header-meta">
+                        <span>
+                            <i class="ti ti-hash"></i>
+                            Proposal #{{ proposal.proposal_id }}
+                        </span>
+                        {% if proposal.submission_date %}
+                            <span>
+                                <i class="ti ti-calendar"></i>
+                                Submitted {{ proposal.submission_date|date:"M d, Y" }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="adv-pd-header-actions">
+                {% if proposal.status == "COMMITTEE_EVALUATION" %}
+                    <span class="adv-pd-status adv-pd-status-committee">
+                        <i class="ti ti-users-group"></i>
+                        Committee Evaluation
+                    </span>
+                {% elif proposal.status == "ADVISOR_REVIEW" %}
+                    <span class="adv-pd-status adv-pd-status-pending">
+                        <i class="ti ti-clock"></i>
+                        Advisor Review
+                    </span>
+                {% elif proposal.status == "REVISION_REQUIRED" %}
+                    <span class="adv-pd-status adv-pd-status-revision">
+                        <i class="ti ti-edit"></i>
+                        Revision Required
+                    </span>
+                {% elif proposal.status == "REJECTED" %}
+                    <span class="adv-pd-status adv-pd-status-rejected">
+                        <i class="ti ti-circle-x"></i>
+                        Rejected
+                    </span>
+                {% elif proposal.status == "APPROVED" %}
+                    <span class="adv-pd-status adv-pd-status-approved">
+                        <i class="ti ti-circle-check"></i>
+                        Approved
+                    </span>
+                {% else %}
+                    <span class="adv-pd-status adv-pd-status-reviewed">
+                        <i class="ti ti-info-circle"></i>
+                        {{ proposal.get_status_display|default:proposal.status }}
+                    </span>
+                {% endif %}
+                <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}"
+                   class="adv-pd-back-btn">
+                    <i class="ti ti-arrow-left"></i>
+                    <span>Back</span>
+                </a>
+            </div>
+        </section>
+        <div class="adv-pd-layout">
+            <main class="adv-pd-main-column">
+                <section class="adv-pd-card adv-pd-student-card">
+                    <div class="adv-pd-card-heading">
+                        <div class="adv-pd-card-heading-main">
+                            <div class="adv-pd-card-heading-icon">
+                                <i class="ti ti-user"></i>
+                            </div>
+                            <div>
+                                <span>Student Information</span>
+                                <h2>PhD Student</h2>
+                            </div>
+                        </div>
+                        <span class="adv-pd-role-badge">Advisee</span>
+                    </div>
+                    <div class="adv-pd-student-profile">
+                        <div class="adv-pd-student-avatar">
+                            {% if proposal.phd_student.student.user.first_name %}
+                                {{ proposal.phd_student.student.user.first_name|first|upper }}
+                            {% else %}
+                                S
+                            {% endif %}
+                        </div>
+                        <div class="adv-pd-student-name">
+                            <h3>{{ proposal.phd_student.student.user.get_full_name|default:"Student" }}</h3>
+                            {% if proposal.phd_student.student.student_number %}
+                                <span>{{ proposal.phd_student.student.student_number }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="adv-pd-info-grid">
+                        <div class="adv-pd-info-item">
+                            <span>Student ID</span>
+                            <strong>{{ proposal.phd_student.student.student_number|default:"Not available" }}</strong>
+                        </div>
+                        <div class="adv-pd-info-item">
+                            <span>Program</span>
+                            <strong>{{ proposal.phd_student.phd_program.program_name|default:"PhD Program" }}</strong>
+                        </div>
+                        <div class="adv-pd-info-item">
+                            <span>Advisor</span>
+                            <strong>{{ proposal.phd_student.advisor.user.get_full_name|default:"Advisor" }}</strong>
+                        </div>
+                        <div class="adv-pd-info-item">
+                            <span>Submission Date</span>
+                            <strong>
+                                {% if proposal.submission_date %}
+                                    {{ proposal.submission_date|date:"M d, Y" }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="adv-pd-card adv-pd-proposal-card">
+                    <div class="adv-pd-card-heading">
+                        <div class="adv-pd-card-heading-main">
+                            <div class="adv-pd-card-heading-icon">
+                                <i class="ti ti-file-text"></i>
+                            </div>
+                            <div>
+                                <span>Research Proposal</span>
+                                <h2>Proposal Information</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="adv-pd-proposal-body">
+                        <div class="adv-pd-proposal-title-block">
+                            <span>Title</span>
+                            <h3>{{ proposal.proposal_title }}</h3>
+                        </div>
+                        <div class="adv-pd-abstract-block">
+                            <div class="adv-pd-section-mini-heading">
+                                <i class="ti ti-align-left"></i>
+                                <span>Abstract</span>
+                            </div>
+                            <div class="adv-pd-abstract-content">
+                                {% if proposal.abstract %}
+                                    {{ proposal.abstract|linebreaksbr }}
+                                {% else %}
+                                    <span class="adv-pd-muted">No abstract has been provided.</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="adv-pd-card adv-pd-document-card">
+                    <div class="adv-pd-card-heading">
+                        <div class="adv-pd-card-heading-main">
+                            <div class="adv-pd-card-heading-icon">
+                                <i class="ti ti-file-download"></i>
+                            </div>
+                            <div>
+                                <span>Supporting Document</span>
+                                <h2>Proposal File</h2>
+                            </div>
+                        </div>
+                    </div>
+                    {% if proposal.proposal_file %}
+                        <div class="adv-pd-document-box">
+                            <div class="adv-pd-document-icon">
+                                <i class="ti ti-file-type-pdf"></i>
+                            </div>
+                            <div class="adv-pd-document-info">
+                                <span>Uploaded Proposal</span>
+                                <strong>{{ proposal.proposal_file.name|default:"Dissertation Proposal" }}</strong>
+                            </div>
+                            <a href="{{ proposal.proposal_file.url }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="adv-pd-document-btn">
+                                <i class="ti ti-external-link"></i>
+                                <span>Open</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="adv-pd-document-empty">
+                            <div>
+                                <i class="ti ti-file-off"></i>
+                            </div>
+                            <span>No proposal document has been uploaded.</span>
+                        </div>
+                    {% endif %}
+                </section>
+                <section class="adv-pd-card adv-pd-video-card">
+    <div class="adv-pd-card-heading">
+        <div class="adv-pd-card-heading-main">
+            <div class="adv-pd-card-heading-icon">
+                <i class="ti ti-video"></i>
+            </div>
+            <div>
+                <span>Video Evidence</span>
+                <h2>Proposal Presentation</h2>
+            </div>
+        </div>
+    </div>
+
+    {% if video_evidence and video_evidence.video %}
+        <div class="adv-pd-video-body">
+            <div class="adv-pd-video-wrapper">
+                <video
+                    class="adv-pd-video-player"
+                    controls
+                    preload="metadata">
+                    <source src="{{ video_evidence.video.url }}" type="video/mp4">
+                    Your browser does not support the video element.
+                </video>
+            </div>
+
+            <div class="adv-pd-video-meta">
+                <div class="adv-pd-video-info">
+                    <i class="ti ti-video"></i>
+                    <div>
+                        <span>Uploaded Video Evidence</span>
+                        <strong>{{ video_evidence.video.name|default:"Dissertation Proposal Presentation" }}</strong>
+                    </div>
+                </div>
+
+                {% if video_evidence.uploaded_at %}
+                    <div class="adv-pd-video-date">
+                        <i class="ti ti-calendar"></i>
+                        <span>{{ video_evidence.uploaded_at|date:"M d, Y · h:i A" }}</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <a href="{{ video_evidence.video.url }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="adv-pd-video-open-btn">
+                <i class="ti ti-external-link"></i>
+                <span>Open Video</span>
+            </a>
+        </div>
+    {% else %}
+        <div class="adv-pd-video-empty">
+            <div class="adv-pd-video-empty-icon">
+                <i class="ti ti-video-off"></i>
+            </div>
+            <strong>No video evidence uploaded</strong>
+            <span>No dissertation proposal presentation video is available for this submission.</span>
+        </div>
+    {% endif %}
+</section>
+                <section class="adv-pd-card adv-pd-committee-card">
+                    <div class="adv-pd-card-heading">
+                        <div class="adv-pd-card-heading-main">
+                            <div class="adv-pd-card-heading-icon">
+                                <i class="ti ti-users-group"></i>
+                            </div>
+                            <div>
+                                <span>Doctoral Committee</span>
+                                <h2>Committee Members</h2>
+                            </div>
+                        </div>
+                        {% if committee %}
+                            <span class="adv-pd-committee-id">Committee #{{ committee.committee_id }}</span>
+                        {% endif %}
+                    </div>
+                    {% if committee %}
+                        <div class="adv-pd-chair-box">
+                            <div class="adv-pd-member-avatar adv-pd-chair-avatar">
+                                {% if committee.chair_faculty.user.first_name %}
+                                    {{ committee.chair_faculty.user.first_name|first|upper }}
+                                {% else %}
+                                    C
+                                {% endif %}
+                            </div>
+                            <div class="adv-pd-member-content">
+                                <span>Chair Faculty</span>
+                                <strong>{{ committee.chair_faculty.user.get_full_name|default:"Chair Faculty" }}</strong>
+                                <small>{{ committee.chair_faculty.faculty_rank|default:"Faculty" }}</small>
+                            </div>
+                            <span class="adv-pd-chair-badge">Chair</span>
+                        </div>
+                        {% if committee_members %}
+                            <div class="adv-pd-members-list">
+                                {% for member in committee_members %}
+                                    <div class="adv-pd-member-row">
+                                        <div class="adv-pd-member-avatar">
+                                            {% if member.faculty.user.first_name %}
+                                                {{ member.faculty.user.first_name|first|upper }}
+                                            {% else %}
+                                                F
+                                            {% endif %}
+                                        </div>
+                                        <div class="adv-pd-member-content">
+                                            <span>Committee Member</span>
+                                            <strong>{{ member.faculty.user.get_full_name|default:"Faculty Member" }}</strong>
+                                            <small>{{ member.role|default:"Committee Member" }}</small>
+                                        </div>
+                                        <span class="adv-pd-member-department">
+                                            {{ member.department|default:member.faculty.department|default:"Faculty" }}
+                                        </span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="adv-pd-no-members">
+                                <i class="ti ti-users-off"></i>
+                                <span>No additional committee members assigned.</span>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="adv-pd-no-committee">
+                            <i class="ti ti-users-off"></i>
+                            <h3>No Doctoral Committee</h3>
+                            <p>A doctoral committee has not been assigned to this student.</p>
+                        </div>
+                    {% endif %}
+                </section>
+            </main>
+            <aside class="adv-pd-side-column">
+                <section class="adv-pd-card adv-pd-review-card">
+                    <div class="adv-pd-review-heading">
+                        <div class="adv-pd-review-icon">
+                            <i class="ti ti-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <span>Advisor Decision</span>
+                            <h2>Proposal Review</h2>
+                        </div>
+                    </div>
+                    {% if can_review %}
+                        <div class="adv-pd-review-intro">
+                            <i class="ti ti-info-circle"></i>
+                            <p>Review the proposal carefully and provide your decision with clear academic remarks.</p>
+                        </div>
+                        <form method="post"
+                              action="{% url 'faculty_advisor_dissertation_proposal_review' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                              id="advPdReviewForm"
+                              novalidate>
+                            {% csrf_token %}
+                            <div class="adv-pd-form-field">
+                                <label for="advPdReviewStatus">
+                                    Review Decision
+                                    <span>*</span>
+                                </label>
+                                <select name="advisor_review_status" id="advPdReviewStatus" required>
+                                    <option value="">Select decision</option>
+                                    <option value="APPROVED">Approve Proposal</option>
+                                    <option value="REVISION_REQUIRED">Request Revision</option>
+                                    <option value="REJECTED">Reject Proposal</option>
+                                </select>
+                            </div>
+                            <div class="adv-pd-form-field">
+                                <label for="advPdReviewRemarks">
+                                    Advisor Remarks
+                                    <span>*</span>
+                                </label>
+                                <textarea name="advisor_review_remarks"
+                                          id="advPdReviewRemarks"
+                                          rows="7"
+                                          minlength="20"
+                                          maxlength="2000"
+                                          placeholder="Enter detailed academic feedback, observations, recommendations, or required changes..."
+                                          required></textarea>
+                                <div class="adv-pd-field-footer">
+                                    <span>Minimum 20 characters</span>
+                                    <strong id="advPdCharacterCount">0 / 2000</strong>
+                                </div>
+                            </div>
+                            <div class="adv-pd-review-warning">
+                                <i class="ti ti-alert-triangle"></i>
+                                <span>Once submitted, the advisor review cannot be changed from this page.</span>
+                            </div>
+                            <button type="submit" class="adv-pd-submit-review-btn" id="advPdSubmitReview">
+                                <i class="ti ti-send"></i>
+                                <span>Submit Review</span>
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="adv-pd-reviewed-panel">
+                            {% if advisor_review_status == "APPROVED" %}
+                                <div class="adv-pd-decision-icon adv-pd-decision-approved">
+                                    <i class="ti ti-circle-check"></i>
+                                </div>
+                                <span class="adv-pd-decision-label">Advisor Decision</span>
+                                <h3>Proposal Approved</h3>
+                            {% elif advisor_review_status == "REJECTED" %}
+                                <div class="adv-pd-decision-icon adv-pd-decision-rejected">
+                                    <i class="ti ti-circle-x"></i>
+                                </div>
+                                <span class="adv-pd-decision-label">Advisor Decision</span>
+                                <h3>Proposal Rejected</h3>
+                            {% elif advisor_review_status == "REVISION_REQUIRED" %}
+                                <div class="adv-pd-decision-icon adv-pd-decision-revision">
+                                    <i class="ti ti-edit"></i>
+                                </div>
+                                <span class="adv-pd-decision-label">Advisor Decision</span>
+                                <h3>Revision Required</h3>
+                            {% else %}
+                                <div class="adv-pd-decision-icon adv-pd-decision-pending">
+                                    <i class="ti ti-clock"></i>
+                                </div>
+                                <span class="adv-pd-decision-label">Review Status</span>
+                                <h3>Review Pending</h3>
+                            {% endif %}
+                            {% if proposal.advisor_reviewed_at %}
+                                <div class="adv-pd-reviewed-date">
+                                    <i class="ti ti-calendar-check"></i>
+                                    Reviewed on
+                                    {{ proposal.advisor_reviewed_at|date:"M d, Y · h:i A" }}
+                                </div>
+                            {% endif %}
+                            {% if advisor_review_remarks %}
+                                <div class="adv-pd-submitted-remarks">
+                                    <div class="adv-pd-submitted-remarks-heading">
+                                        <i class="ti ti-message-circle"></i>
+                                        <span>Advisor Remarks</span>
+                                    </div>
+                                    <div class="adv-pd-submitted-remarks-content">{{ advisor_review_remarks|linebreaksbr }}</div>
+                                </div>
+                            {% endif %}
+                            <div class="adv-pd-locked-notice">
+                                <i class="ti ti-lock"></i>
+                                <span>This review has been submitted and is currently locked.</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </section>
+                <section class="adv-pd-card adv-pd-status-card">
+                    <div class="adv-pd-side-heading">
+                        <div class="adv-pd-side-heading-icon">
+                            <i class="ti ti-route"></i>
+                        </div>
+                        <div>
+                            <span>Workflow</span>
+                            <h2>Proposal Status</h2>
+                        </div>
+                    </div>
+                    <div class="adv-pd-timeline">
+                        <div class="adv-pd-timeline-item adv-pd-timeline-complete">
+                            <div class="adv-pd-timeline-marker">
+                                <i class="ti ti-check"></i>
+                            </div>
+                            <div class="adv-pd-timeline-content">
+                                <strong>Proposal Submitted</strong>
+                                <span>Student submitted the proposal.</span>
+                            </div>
+                        </div>
+                        <div class="adv-pd-timeline-item {% if advisor_review_status != 'PENDING' %}adv-pd-timeline-complete{% else %}adv-pd-timeline-active{% endif %}">
+                            <div class="adv-pd-timeline-marker">
+                                {% if advisor_review_status != "PENDING" %}
+                                    <i class="ti ti-check"></i>
+                                {% else %}
+                                    <i class="ti ti-clock"></i>
+                                {% endif %}
+                            </div>
+                            <div class="adv-pd-timeline-content">
+                                <strong>Advisor Review</strong>
+                                <span>
+                                    {% if advisor_review_status == "PENDING" %}
+                                        Awaiting your decision.
+                                    {% else %}
+                                        Advisor review completed.
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="adv-pd-timeline-item {% if committee_evaluation_completed %} adv-pd-timeline-complete {% elif committee_evaluation_started %} adv-pd-timeline-active {% elif advisor_review_status == 'APPROVED' %} adv-pd-timeline-active {% elif advisor_review_status == 'REJECTED' or advisor_review_status == 'REVISION_REQUIRED' %} adv-pd-timeline-terminal {% endif %}">
+                            <div class="adv-pd-timeline-marker">
+                                {% if committee_evaluation_completed %}
+                                    <i class="ti ti-check"></i>
+                                {% elif committee_evaluation_started %}
+                                    <i class="ti ti-users"></i>
+                                {% elif advisor_review_status == "APPROVED" %}
+                                    <i class="ti ti-clock"></i>
+                                {% elif advisor_review_status == "REJECTED" %}
+                                    <i class="ti ti-x"></i>
+                                {% elif advisor_review_status == "REVISION_REQUIRED" %}
+                                    <i class="ti ti-edit"></i>
+                                {% else %}
+                                    <i class="ti ti-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="adv-pd-timeline-content">
+                                <strong>Committee Evaluation</strong>
+                                <span>
+                                    {% if committee_evaluation_completed %}
+                                        All committee evaluations have been submitted.
+                                        Ready for Chair final review.
+                                    {% elif committee_evaluation_started %}
+                                        {{ evaluations_completed }}
+                                        of
+                                        {{ evaluations_required }}
+                                        committee evaluations completed.
+                                    {% elif advisor_review_status == "APPROVED" %}
+                                        Waiting for committee evaluation to begin.
+                                    {% elif advisor_review_status == "REJECTED" %}
+                                        Committee evaluation is not available because the proposal was rejected.
+                                    {% elif advisor_review_status == "REVISION_REQUIRED" %}
+                                        Committee evaluation is paused until the proposal is revised.
+                                    {% else %}
+                                        Awaiting advisor review.
+                                    {% endif %}
+                                </span>
+                                {% if committee_evaluation_started %}
+                                    <div class="adv-pd-evaluation-progress">
+                                        <div class="adv-pd-evaluation-progress-top">
+                                            <span>Evaluation Progress</span>
+                                            <strong>{{ evaluation_percentage }}%</strong>
+                                        </div>
+                                        <div class="adv-pd-progress-track">
+                                            <div class="adv-pd-progress-fill"
+                                                 style="width: {{ evaluation_percentage }}%"></div>
+                                        </div>
+                                        <div class="adv-pd-evaluation-progress-meta">
+                                            <span>{{ evaluations_completed }} completed</span>
+                                            <span>{{ evaluations_pending }} pending</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="adv-pd-card adv-pd-evaluation-summary-card">
+                    <div class="adv-pd-side-heading">
+                        <div class="adv-pd-side-heading-icon {% if proposal.result == 'REJECTED' %} adv-pd-heading-icon-rejected {% endif %} ">
+                            {% if proposal.result == "REJECTED" %}
+                                <i class="ti ti-circle-x"></i>
+                            {% else %}
+                                <i class="ti ti-chart-dots"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span>Committee Progress</span>
+                            <h2>Evaluation Summary</h2>
+                        </div>
+                    </div>
+                    <div class="adv-pd-evaluation-summary">
+                        <div class="adv-pd-summary-stat">
+                            <span>Required</span>
+                            <strong>{{ evaluations_required }}</strong>
+                        </div>
+                        <div class="adv-pd-summary-stat adv-pd-summary-complete {% if proposal.result == 'REJECTED' %} adv-pd-summary-complete-rejected {% endif %} ">
+                            <span>Completed</span>
+                            <strong>{{ evaluations_completed }}</strong>
+                        </div>
+                        <div class="adv-pd-summary-stat adv-pd-summary-pending">
+                            <span>Pending</span>
+                            <strong>{{ evaluations_pending }}</strong>
+                        </div>
+                    </div>
+                    <div class="adv-pd-summary-progress">
+                        <div class="adv-pd-summary-progress-head">
+                            <span>Evaluation Progress</span>
+                            <strong class="{% if proposal.result == 'REJECTED' %}adv-pd-progress-rejected{% endif %}">
+                                {{ evaluation_percentage }}%
+                            </strong>
+                        </div>
+                        <div class="adv-pd-summary-track {% if proposal.result == 'REJECTED' %} adv-pd-summary-track-rejected {% endif %} ">
+                            <div class="adv-pd-summary-fill {% if evaluation_ready_for_chair %} adv-pd-summary-fill-ready {% endif %} {% if proposal.result == 'REJECTED' %} adv-pd-summary-fill-rejected {% endif %} "
+                                 style="width: {{ evaluation_percentage }}%"></div>
+                        </div>
+                    </div>
+                    {% if proposal.result == "REJECTED" %}
+                        <div class="adv-pd-ready-state adv-pd-rejected-state">
+                            <div class="adv-pd-rejected-state-icon">
+                                <i class="ti ti-circle-x"></i>
+                            </div>
+                            <div>
+                                <strong>Proposal Rejected</strong>
+                                <span>The dissertation proposal has been rejected after final review.</span>
+                            </div>
+                        </div>
+                    {% elif proposal.result == "APPROVED" %}
+                        <div class="adv-pd-ready-state adv-pd-approved-state">
+                            <div class="adv-pd-approved-state-icon">
+                                <i class="ti ti-circle-check"></i>
+                            </div>
+                            <div>
+                                <strong>Proposal Approved</strong>
+                                <span>The dissertation proposal has been approved after final review.</span>
+                            </div>
+                        </div>
+                    {% elif proposal.result == "REVISION_REQUIRED" %}
+                        <div class="adv-pd-ready-state adv-pd-revision-state">
+                            <div class="adv-pd-revision-state-icon">
+                                <i class="ti ti-refresh"></i>
+                            </div>
+                            <div>
+                                <strong>Revision Required</strong>
+                                <span>Revisions are required before the dissertation proposal can proceed.</span>
+                            </div>
+                        </div>
+                    {% elif evaluation_ready_for_chair %}
+                        <div class="adv-pd-ready-state">
+                            <div>
+                                <i class="ti ti-award"></i>
+                            </div>
+                            <div>
+                                <strong>Ready for Chair Review</strong>
+                                <span>All required committee evaluations have been submitted.</span>
+                            </div>
+                        </div>
+                    {% elif committee_evaluation_started %}
+                        <div class="adv-pd-waiting-state">
+                            <i class="ti ti-clock"></i>
+                            <span>
+                                Waiting for {{ evaluations_pending }}
+                                pending committee evaluation{{ evaluations_pending|pluralize }}.
+                            </span>
+                        </div>
+                    {% elif advisor_review_status == "APPROVED" %}
+                        <div class="adv-pd-waiting-state">
+                            <i class="ti ti-users"></i>
+                            <span>
+                                Advisor approved the proposal.
+                                Committee evaluation is the next workflow stage.
+                            </span>
+                        </div>
+                    {% else %}
+                        <div class="adv-pd-waiting-state">
+                            <i class="ti ti-info-circle"></i>
+                            <span>Committee evaluation will become available after advisor approval.</span>
+                        </div>
+                    {% endif %}
+                </section>
+                <section class="adv-pd-card adv-pd-faculty-feedback-card">
+                    <div class="adv-pd-card-heading">
+                        <div class="adv-pd-card-heading-main">
+                            <div class="adv-pd-feedback-icon">
+                                <i class="ti ti-message-2"></i>
+                            </div>
+                            <div>
+                                <span>Committee Evaluations</span>
+                                <h2>Faculty Feedback</h2>
+                            </div>
+                        </div>
+                        <span class="adv-pd-feedback-count">{{ faculty_feedback_count }}</span>
+                    </div>
+                    <div class="adv-pd-feedback-body">
+                        {% if faculty_feedback %}
+                            <div class="adv-pd-feedback-list">
+                                {% for evaluation in faculty_feedback %}
+                                    <div class="adv-pd-feedback-item">
+                                        <div class="adv-pd-feedback-member">
+                                            <div class="adv-pd-feedback-avatar">
+                                                {% if evaluation.committee_member.faculty.user.first_name %}
+                                                    {{ evaluation.committee_member.faculty.user.first_name|first|upper }}
+                                                {% else %}
+                                                    F
+                                                {% endif %}
+                                            </div>
+                                            <div class="adv-pd-feedback-member-info">
+                                                <strong>{{ evaluation.committee_member.faculty.user.get_full_name|default:"Faculty Member" }}</strong>
+                                                <span>{{ evaluation.committee_member.role|default:"Committee Member" }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="adv-pd-feedback-status">
+                                            {% if evaluation.recommendation == "APPROVED" %}
+                                                <span class="adv-pd-feedback-badge adv-pd-feedback-approved">
+                                                    <i class="ti ti-circle-check"></i>
+                                                    Approved
+                                                </span>
+                                            {% elif evaluation.recommendation == "REJECTED" %}
+                                                <span class="adv-pd-feedback-badge adv-pd-feedback-rejected">
+                                                    <i class="ti ti-circle-x"></i>
+                                                    Rejected
+                                                </span>
+                                            {% elif evaluation.recommendation == "REVISION_REQUIRED" %}
+                                                <span class="adv-pd-feedback-badge adv-pd-feedback-revision">
+                                                    <i class="ti ti-edit"></i>
+                                                    Revision Required
+                                                </span>
+                                            {% else %}
+                                                <span class="adv-pd-feedback-badge adv-pd-feedback-pending">
+                                                    <i class="ti ti-clock"></i>
+                                                    {{ evaluation.recommendation|default:"Reviewed" }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        {% if evaluation.comments %}
+                                            <div class="adv-pd-feedback-comment">
+                                                <i class="ti ti-quote"></i>
+                                                <p>{{ evaluation.comments|linebreaksbr }}</p>
+                                            </div>
+                                        {% else %}
+                                            <div class="adv-pd-feedback-comment adv-pd-feedback-no-comment">
+                                                <i class="ti ti-message-off"></i>
+                                                <p>No comments provided by this faculty member.</p>
+                                            </div>
+                                        {% endif %}
+                                        {% if evaluation.submitted_at %}
+                                            <div class="adv-pd-feedback-date">
+                                                <i class="ti ti-clock"></i>
+                                                Submitted
+                                                {{ evaluation.submitted_at|date:"M d, Y · h:i A" }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="adv-pd-feedback-empty">
+                                <div class="adv-pd-feedback-empty-icon">
+                                    <i class="ti ti-message-off"></i>
+                                </div>
+                                <strong>No evaluations yet</strong>
+                                <span>Faculty feedback will appear here after committee members submit their evaluations.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const reviewStatus = document.getElementById("advPdReviewStatus");
+    const reviewForm = document.getElementById("advPdReviewForm");
+    const remarks = document.getElementById("advPdReviewRemarks");
+    const characterCount = document.getElementById("advPdCharacterCount");
+    const submitButton = document.getElementById("advPdSubmitReview");
+
+    if (reviewStatus) {
+        new Choices(reviewStatus, {
+            searchEnabled: false,
+            itemSelectText: "",
+            shouldSort: false,
+            allowHTML: false,
+            placeholder: true,
+            placeholderValue: "Select decision",
+            classNames: {
+                containerOuter: "choices adv-pd-choices"
+            }
+        });
+    }
+
+    function updateCharacterCount() {
+
+        if (!remarks || !characterCount) {
+            return;
+        }
+
+        const count = remarks.value.length;
+        characterCount.textContent = count + " / 2000";
+
+        if (count >= 20) {
+            characterCount.classList.add("adv-pd-count-valid");
+        } else {
+            characterCount.classList.remove("adv-pd-count-valid");
+        }
+    }
+
+    if (remarks) {
+        remarks.addEventListener("input", updateCharacterCount);
+        updateCharacterCount();
+    }
+
+    if (reviewForm) {
+
+        reviewForm.addEventListener("submit", function (event) {
+
+            event.preventDefault();
+
+            const status = reviewStatus ? reviewStatus.value : "";
+            const remarksValue = remarks ? remarks.value.trim() : "";
+
+            if (!status) {
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Decision Required",
+                    text: "Please select an advisor review decision.",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#C5050C"
+                });
+
+                return;
+            }
+
+            if (remarksValue.length < 20) {
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Remarks Too Short",
+                    text: "Advisor remarks must contain at least 20 characters.",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#C5050C"
+                });
+
+                return;
+            }
+
+            let title = "Submit Advisor Review?";
+            let text = "Once submitted, your review cannot be changed.";
+
+            if (status === "APPROVED") {
+                title = "Approve Proposal?";
+                text = "This will approve the proposal and move it to committee evaluation.";
+            }
+
+            if (status === "REVISION_REQUIRED") {
+                title = "Request Revision?";
+                text = "The student will need to revise the dissertation proposal.";
+            }
+
+            if (status === "REJECTED") {
+                title = "Reject Proposal?";
+                text = "This will reject the dissertation proposal.";
+            }
+
+            Swal.fire({
+                icon: "question",
+                title: title,
+                text: text,
+                showCancelButton: true,
+                confirmButtonText: "Yes, Submit Review",
+                cancelButtonText: "Cancel",
+                confirmButtonColor: "#C5050C",
+                cancelButtonColor: "#6c757d",
+                reverseButtons: true
+            }).then(function (result) {
+
+                if (result.isConfirmed) {
+
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML =
+                            '<i class="ti ti-loader-2 adv-pd-spin"></i><span>Submitting...</span>';
+                    }
+
+                    reviewForm.submit();
+                }
+
+            });
+
+        });
+
+    }
+
+    {% if messages %}
+        {% for message in messages %}
+            Swal.fire({
+                icon: "{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %}",
+                title: "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Attention{% else %}Notice{% endif %}",
+                text: "{{ message|escapejs }}",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#C5050C"
+            });
+        {% endfor %}
+    {% endif %}
+
+});
+    </script>
+{% endblock extra_js %}

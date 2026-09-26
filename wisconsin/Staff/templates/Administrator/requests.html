@@ -1,0 +1,1335 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Requests &amp; Approvals — Staff Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Administrator/requests.css' %}">
+<style>
+.rq-type-badge.student_leave {
+    background: #fef2f2;
+    color: #c5050c;
+    border: 1px solid #fecaca;
+}
+
+.rq-type-badge.student_leave::before {
+    content: "👨‍🎓";
+    margin-right: 4px;
+}
+
+.rq-status.student_pending {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.rq-status.student_approved {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.rq-status.student_rejected {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.rq-status.student_cancelled {
+    background: #f5f5f5;
+    color: #888;
+}
+
+.rq-type-badge.faculty_leave {
+    background: #f5f0ff;
+    color: #7c3aed;
+    border: 1px solid #e9d5ff;
+}
+
+.rq-type-badge.faculty_leave::before {
+    content: "🎓";
+    margin-right: 4px;
+}
+
+.rq-status.faculty_pending {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.rq-status.faculty_approved {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.rq-status.faculty_rejected {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.rq-status.faculty_cancelled {
+    background: #f5f5f5;
+    color: #888;
+}
+
+.rq-type-badge.staff_leave {
+    background: #eef2ff;
+    color: #4f46e5;
+    border: 1px solid #c7d2fe;
+}
+
+.rq-type-badge.staff_leave::before {
+    content: "👤";
+    margin-right: 4px;
+}
+
+.rq-type-badge.financial_aid {
+    background: #fef3f2;
+    color: #c5050c;
+    border: 1px solid #fecaca;
+}
+
+.rq-type-badge.financial_aid::before {
+    content: "💰";
+    margin-right: 4px;
+}
+
+.aid-type-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    margin-left: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.aid-type-badge.scholarship {
+    background: #f5f0ff;
+    color: #7c3aed;
+}
+
+.aid-type-badge.grant {
+    background: #e6f4ea;
+    color: #1a7a1a;
+}
+
+.aid-type-badge.fellowship {
+    background: #fff8e6;
+    color: #c5850c;
+}
+
+.aid-type-badge.assistantship {
+    background: #eef3fb;
+    color: #185fa5;
+}
+
+.aid-type-badge.loan {
+    background: #fef3f2;
+    color: #c5050c;
+}
+
+.rq-aid-amount {
+    font-weight: 700;
+    color: #1a7a1a;
+    font-size: 14px;
+}
+
+.rq-aid-amount.pending {
+    color: #c5850c;
+}
+
+.rq-aid-amount.rejected {
+    color: #c5050c;
+    text-decoration: line-through;
+}
+
+.rq-req-reason {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rq-req-reason strong {
+    color: #374151;
+    font-weight: 600;
+}
+
+.rq-kpi-icon.finance {
+    background: #fef3f2;
+    color: #c5050c;
+}
+
+.rq-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.rq-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid #ebebeb;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all .15s;
+}
+
+.rq-action-btn.approve {
+    color: #16a34a;
+}
+
+.rq-action-btn.approve:hover {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+.rq-action-btn.reject {
+    color: #dc2626;
+}
+
+.rq-action-btn.reject:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+
+.rq-action-btn.view {
+    color: #888;
+}
+
+.rq-action-btn.view:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+.rq-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    animation: slideUp 0.3s ease;
+    min-width: 280px;
+    max-width: 420px;
+}
+
+.rq-toast-success {
+    background: #1a7a1a;
+}
+
+.rq-toast-error {
+    background: #c5050c;
+}
+
+.rq-toast-info {
+    background: #185fa5;
+}
+
+.rq-toast button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0.7;
+}
+
+.rq-toast button:hover {
+    opacity: 1;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.rq-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.rq-pagination-info {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.rq-pagination-info strong {
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.rq-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.rq-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rq-page-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.rq-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.rq-page-btn i {
+    font-size: 14px;
+}
+
+.rq-page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rq-page-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rq-page-num:hover:not(.active) {
+    background: #f3f4f6;
+    color: #1a1a1a;
+}
+
+.rq-page-num.active {
+    background: #c5050c;
+    border-color: #c5050c;
+    color: #fff;
+}
+
+.rq-page-num.active:hover {
+    background: #a0040a;
+}
+
+.rq-page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.rq-pagination-perpage select {
+    padding: 6px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+}
+
+.rq-pagination-perpage select:focus {
+    border-color: #c5050c;
+}
+
+@media (max-width: 768px) {
+    .rq-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+    .rq-pagination-info {
+        text-align: center;
+    }
+    .rq-pagination-controls {
+        justify-content: center;
+    }
+    .rq-pagination-perpage {
+        text-align: center;
+    }
+    .rq-page-btn {
+        min-width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    .rq-page-num {
+        min-width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rq-pagination {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    .rq-pagination-info {
+        font-size: 11px;
+    }
+    .rq-page-btn {
+        min-width: 28px;
+        height: 28px;
+        font-size: 11px;
+        padding: 0 6px;
+    }
+    .rq-page-num {
+        min-width: 26px;
+        height: 26px;
+        font-size: 11px;
+        padding: 0 6px;
+    }
+    .rq-page-ellipsis {
+        min-width: 26px;
+        height: 26px;
+        font-size: 11px;
+    }
+    .rq-pagination-perpage select {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}
+
+@media (max-width: 360px) {
+    .rq-pagination-controls {
+        gap: 3px;
+    }
+    .rq-page-btn {
+        min-width: 24px;
+        height: 24px;
+        font-size: 10px;
+        padding: 0 4px;
+    }
+    .rq-page-num {
+        min-width: 22px;
+        height: 22px;
+        font-size: 10px;
+        padding: 0 4px;
+    }
+    .rq-page-ellipsis {
+        min-width: 22px;
+        height: 22px;
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 170px) {
+    .rq-page-btn {
+        min-width: 18px !important;
+        height: 18px !important;
+        font-size: 7px !important;
+        padding: 0 2px !important;
+    }
+    .rq-page-num {
+        min-width: 16px !important;
+        height: 16px !important;
+        font-size: 7px !important;
+        padding: 0 2px !important;
+    }
+    .rq-page-ellipsis {
+        min-width: 16px !important;
+        height: 16px !important;
+        font-size: 7px !important;
+    }
+    .rq-pagination-info {
+        font-size: 7px !important;
+    }
+    .rq-pagination-perpage select {
+        font-size: 7px !important;
+        padding: 2px 4px !important;
+    }
+    .rq-pagination {
+        padding: 4px 6px !important;
+        gap: 4px !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block nav_admin_open %}open{% endblock %}
+{% block nav_admin_submenu %}open{% endblock %}
+{% block nav_requests %}active{% endblock %}
+
+{% block content %}
+
+<div class="rq-page-header" data-aos="fade-down">
+    <div>
+        <h1>Requests &amp; Approvals</h1>
+        <p>Review, action, and track all incoming requests across departments.</p>
+    </div>
+    <div class="rq-header-actions">
+        <button class="rq-btn rq-btn-ghost" onclick="toggleFilters()">
+            <i class="ti ti-filter"></i>
+            <span>Filter</span>
+        </button>
+        <button class="rq-btn rq-btn-ghost" onclick="exportRequests()">
+            <i class="ti ti-download"></i>
+            <span>Export</span>
+        </button>
+    </div>
+</div>
+
+<div class="rq-kpi-strip">
+    <div class="rq-kpi-card">
+        <div class="rq-kpi-top">
+            <span class="rq-kpi-icon orange"><i class="ti ti-clock"></i></span>
+            <span class="rq-kpi-label">Pending Review</span>
+        </div>
+        <div class="rq-kpi-value counter" data-target="{{ pending_leave|add:pending_faculty_leave|add:pending_student_leave|add:pending_financial_aid|default:0 }}">
+            {{ pending_leave|add:pending_faculty_leave|add:pending_student_leave|add:pending_financial_aid|default:0 }}
+        </div>
+        <div class="rq-kpi-sub">
+            <span>{{ pending_student_leave|default:0 }}</span> Student · 
+            <span>{{ pending_faculty_leave|default:0 }}</span> Faculty · 
+            <span>{{ pending_leave|default:0 }}</span> Staff · 
+            <span>{{ pending_financial_aid|default:0 }}</span> Aid
+        </div>
+    </div>
+
+    <div class="rq-kpi-card">
+        <div class="rq-kpi-top">
+            <span class="rq-kpi-icon green"><i class="ti ti-circle-check"></i></span>
+            <span class="rq-kpi-label">Approved Total</span>
+        </div>
+        <div class="rq-kpi-value counter" data-target="{{ approved_leave|add:approved_faculty_leave|add:approved_student_leave|add:awarded_financial_aid|default:0 }}">
+            {{ approved_leave|add:approved_faculty_leave|add:approved_student_leave|add:awarded_financial_aid|default:0 }}
+        </div>
+        <div class="rq-kpi-sub">
+            <span class="green">{{ approved_student_leave|default:0 }}</span> Student · 
+            <span class="green">{{ approved_faculty_leave|default:0 }}</span> Faculty · 
+            <span class="green">{{ approved_leave|default:0 }}</span> Staff · 
+            <span class="green">{{ awarded_financial_aid|default:0 }}</span> Aid
+        </div>
+    </div>
+
+    <div class="rq-kpi-card">
+        <div class="rq-kpi-top">
+            <span class="rq-kpi-icon red"><i class="ti ti-x"></i></span>
+            <span class="rq-kpi-label">Rejected</span>
+        </div>
+        <div class="rq-kpi-value counter" data-target="{{ rejected_leave|add:rejected_faculty_leave|add:rejected_student_leave|add:rejected_financial_aid|default:0 }}">
+            {{ rejected_leave|add:rejected_faculty_leave|add:rejected_student_leave|add:rejected_financial_aid|default:0 }}
+        </div>
+        <div class="rq-kpi-sub">
+            <span class="red">{{ rejected_student_leave|default:0 }}</span> Student · 
+            <span class="red">{{ rejected_faculty_leave|default:0 }}</span> Faculty · 
+            <span class="red">{{ rejected_leave|default:0 }}</span> Staff · 
+            <span class="red">{{ rejected_financial_aid|default:0 }}</span> Aid
+        </div>
+    </div>
+
+    <div class="rq-kpi-card">
+        <div class="rq-kpi-top">
+            <span class="rq-kpi-icon blue"><i class="ti ti-loader"></i></span>
+            <span class="rq-kpi-label">Under Review</span>
+        </div>
+        <div class="rq-kpi-value counter" data-target="{{ under_review_financial_aid|default:0 }}">
+            {{ under_review_financial_aid|default:0 }}
+        </div>
+        <div class="rq-kpi-sub">
+            <span class="blue">{{ under_review_financial_aid|default:0 }}</span> Financial Aid
+        </div>
+    </div>
+
+    <div class="rq-kpi-card">
+        <div class="rq-kpi-top">
+            <span class="rq-kpi-icon finance"><i class="ti ti-wallet"></i></span>
+            <span class="rq-kpi-label">Total Awarded</span>
+        </div>
+        <div class="rq-kpi-value counter finance" data-target="{{ total_awarded_amount|default:0|floatformat:0 }}">
+            ${{ total_awarded_amount|default:"0.00"|floatformat:0 }}
+        </div>
+        <div class="rq-kpi-sub">
+            <span class="up">↑ 12%</span> from last month
+        </div>
+    </div>
+</div>
+
+<div class="rq-toolbar">
+    <div class="rq-tabs">
+        <button class="rq-tab active" onclick="switchTab(this,'all')">
+            All <span class="rq-tab-badge">{{ total_requests|default:0 }}</span>
+        </button>
+        <button class="rq-tab" onclick="switchTab(this,'pending')">
+            Pending <span class="rq-tab-badge orange">{{ pending_leave|add:pending_faculty_leave|add:pending_student_leave|add:pending_financial_aid|default:0 }}</span>
+        </button>
+        <button class="rq-tab" onclick="switchTab(this,'inprogress')">
+            Under Review <span class="rq-tab-badge blue">{{ under_review_financial_aid|default:0 }}</span>
+        </button>
+        <button class="rq-tab" onclick="switchTab(this,'approved')">
+            Approved <span class="rq-tab-badge green">{{ approved_leave|add:approved_faculty_leave|add:approved_student_leave|add:awarded_financial_aid|default:0 }}</span>
+        </button>
+        <button class="rq-tab" onclick="switchTab(this,'rejected')">
+            Rejected <span class="rq-tab-badge red">{{ rejected_leave|add:rejected_faculty_leave|add:rejected_student_leave|add:rejected_financial_aid|default:0 }}</span>
+        </button>
+    </div>
+    <div class="rq-search">
+        <i class="ti ti-search"></i>
+        <input type="text" id="searchInput" placeholder="Search requests…" oninput="searchRequests(this.value)" />
+    </div>
+</div>
+
+<div class="rq-table-wrap">
+    <table class="rq-table">
+        <thead>
+            <tr>
+                <th>Request</th>
+                <th>Type</th>
+                <th>Requester</th>
+                <th>Department</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="requestsTableBody">
+            {% if requests %}
+                {% for request in requests %}
+                <tr class="request-row" 
+                    data-type="{{ request.type }}" 
+                    data-status="{{ request.status|lower }}"
+                    data-search="{{ request.title }} {{ request.student_name }} {{ request.student_id }}">
+                    
+                    <td>
+                        <div class="rq-req-title">
+                            {{ request.title }}
+                            {% if request.award_amount %}
+                            <span class="rq-aid-amount {% if request.status == 'AWARDED' %}awarded{% elif request.status == 'PENDING' %}pending{% else %}rejected{% endif %}">
+                                ${{ request.award_amount }}
+                            </span>
+                            {% endif %}
+                            {% if request.type == 'financial_aid' %}
+                            <span class="aid-type-badge {{ request.type_display|lower }}">
+                                {{ request.type_display }}
+                            </span>
+                            {% endif %}
+                            {% if request.days_count %}
+                            <span style="font-size:10px;background:#f3f4f6;padding:1px 6px;border-radius:4px;margin-left:4px;">
+                                {{ request.days_count }} day{{ request.days_count|pluralize }}
+                            </span>
+                            {% endif %}
+                            {% if request.half_day and request.half_day != 'Full Day' %}
+                            <span style="font-size:9px;background:#e5e7eb;padding:1px 6px;border-radius:4px;margin-left:2px;">
+                                {{ request.half_day }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="rq-req-id">#{{ request.id }}</div>
+                        {% if request.reason %}
+                        <div class="rq-req-reason">
+                            <strong>Reason:</strong> {{ request.reason|truncatechars:30 }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        <span class="rq-type-badge {{ request.type|lower }}">
+                            {% if request.type == 'student_leave' %}
+                                <i class="ti ti-users"></i> Student
+                            {% elif request.type == 'faculty_leave' %}
+                                <i class="ti ti-school"></i> Faculty
+                            {% elif request.type == 'staff_leave' %}
+                                <i class="ti ti-user"></i> Staff
+                            {% elif request.type == 'financial_aid' %}
+                                <i class="ti ti-wallet"></i> Aid
+                            {% else %}
+                                {{ request.type|title }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    
+                    <td>
+                        <div class="rq-requester">
+                            <div class="rq-req-avatar" style="background:{% if request.type == 'student_leave' %}#c5050c{% elif request.type == 'faculty_leave' %}#7c3aed{% elif request.type == 'financial_aid' %}#c5050c{% elif request.type == 'staff_leave' %}#4f46e5{% else %}#2563eb{% endif %}">
+                                {{ request.student_name|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <div class="rq-req-name">{{ request.student_name }}</div>
+                                <div class="rq-req-role">{{ request.student_id }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <td>
+                        <span class="rq-dept">
+                            {% if request.type == 'student_leave' %}
+                                Student
+                            {% elif request.type == 'faculty_leave' %}
+                                Faculty
+                            {% elif request.type == 'financial_aid' %}
+                                Financial Aid
+                            {% elif request.type == 'staff_leave' %}
+                                Staff
+                            {% else %}
+                                {{ request.department|default:"Human Resources" }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    
+                    <td>
+                        <span class="rq-date">{{ request.created_date|date:"M d, Y" }}</span>
+                    </td>
+                    
+                    <td>
+                        <span class="rq-status {% if request.type == 'student_leave' %}student_{{ request.status|lower }}{% elif request.type == 'faculty_leave' %}faculty_{{ request.status|lower }}{% else %}{{ request.status|lower }}{% endif %}">
+                            {{ request.status_display }}
+                        </span>
+                    </td>
+                    
+                    <td>
+                        <div class="rq-actions">
+                            {% if request.status == 'PENDING' or request.status == 'UNDER_REVIEW' or request.status == 'pending' %}
+                                <button class="rq-action-btn approve" title="Approve" onclick="handleAction({{ request.id }}, '{{ request.type }}', 'approve')">
+                                    <i class="ti ti-check"></i>
+                                </button>
+                                <button class="rq-action-btn reject" title="Reject" onclick="handleAction({{ request.id }}, '{{ request.type }}', 'reject')">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            {% endif %}
+                            <button class="rq-action-btn view" title="View" onclick="viewRequest({{ request.id }}, '{{ request.type }}')">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center; padding:60px 20px; color:#999;">
+                        <i class="ti ti-inbox" style="font-size:48px; display:block; margin-bottom:12px;"></i>
+                        <h3 style="margin:0; color:#666;">No Requests Found</h3>
+                        <p style="margin:4px 0 0;">No requests match your current filters.</p>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="rq-pagination">
+    <div class="rq-pagination-info">
+        Showing <strong id="pageStart">1</strong> – <strong id="pageEnd">10</strong> of <strong id="pageTotal">{{ requests|length|default:0 }}</strong> requests
+    </div>
+    <div class="rq-pagination-controls">
+        <button class="rq-page-btn" id="firstPage" title="First Page" onclick="goToPage(1)">
+            <i class="ti ti-chevrons-left"></i>
+        </button>
+        <button class="rq-page-btn" id="prevPage" title="Previous Page" onclick="goToPage(currentPage - 1)">
+            <i class="ti ti-chevron-left"></i>
+        </button>
+        <div class="rq-page-numbers" id="pageNumbers"></div>
+        <button class="rq-page-btn" id="nextPage" title="Next Page" onclick="goToPage(currentPage + 1)">
+            <i class="ti ti-chevron-right"></i>
+        </button>
+        <button class="rq-page-btn" id="lastPage" title="Last Page" onclick="goToPage(Math.ceil(totalItems / perPage))">
+            <i class="ti ti-chevrons-right"></i>
+        </button>
+    </div>
+    <div class="rq-pagination-perpage">
+        <select id="perPageSelect" onchange="changePerPage(this.value)">
+            <option value="5">5 per page</option>
+            <option value="10" selected>10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+        </select>
+    </div>
+</div>
+
+<div class="rq-bottom-grid">
+    <div class="rq-widget">
+        <div class="rq-widget-header">
+            <span class="rq-widget-title"><i class="ti ti-chart-donut"></i> By Request Type</span>
+        </div>
+        <div class="rq-type-list">
+            {% if request_types %}
+                {% for type in request_types %}
+                <div class="rq-type-row">
+                    <span class="rq-type-label">{{ type.display }}</span>
+                    <div class="rq-type-track">
+                        <div class="rq-type-fill {{ type.type }}" style="width:{% widthratio type.count total_requests 100 %}%"></div>
+                    </div>
+                    <span class="rq-type-pct">{% widthratio type.count total_requests 100 %}%</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="rq-type-row">
+                    <span class="rq-type-label">No data available</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="rq-widget">
+        <div class="rq-widget-header">
+            <span class="rq-widget-title"><i class="ti ti-circle-check"></i> Recent Approvals</span>
+            <a class="rq-widget-link" href="#">View all</a>
+        </div>
+        <div class="rq-recent-list">
+            {% if recent_approvals %}
+                {% for approval in recent_approvals %}
+                <div class="rq-recent-item">
+                    <div class="rq-recent-icon approved"><i class="ti ti-check"></i></div>
+                    <div class="rq-recent-body">
+                        <div class="rq-recent-title">
+                            {% if approval.type == 'Financial Aid' %}
+                                💰 {{ approval.title }}
+                            {% elif approval.type == 'Faculty Leave' %}
+                                🎓 {{ approval.title }}
+                            {% elif approval.type == 'Student Leave' %}
+                                👨‍🎓 {{ approval.title }}
+                            {% else %}
+                                {{ approval.title }}
+                            {% endif %}
+                        </div>
+                        <div class="rq-recent-meta">
+                            {{ approval.student }} · {{ approval.date|date:"M d" }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="rq-recent-item" style="justify-content:center; color:#999; padding:20px;">
+                    No recent approvals
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="rq-widget">
+        <div class="rq-widget-header">
+            <span class="rq-widget-title"><i class="ti ti-clock"></i> Avg Processing Time</span>
+        </div>
+        <div class="rq-time-list">
+            {% if request_types %}
+                {% for type in request_types %}
+                <div class="rq-time-row">
+                    <div class="rq-time-label">{{ type.display }}</div>
+                    <div class="rq-time-value">
+                        {% if type.type == 'financial_aid' %}
+                            2.4 days
+                        {% elif type.type == 'faculty_leave' %}
+                            1.2 days
+                        {% elif type.type == 'staff_leave' %}
+                            1.2 days
+                        {% elif type.type == 'student_leave' %}
+                            1.5 days
+                        {% else %}
+                            1.9 days
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="rq-time-row">
+                    <div class="rq-time-label">No data</div>
+                    <div class="rq-time-value">--</div>
+                </div>
+            {% endif %}
+            <div class="rq-time-divider"></div>
+            <div class="rq-time-row total">
+                <div class="rq-time-label">Overall Average</div>
+                <div class="rq-time-value red">1.9 days</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="rq-modal-overlay" id="actionModal">
+    <div class="rq-modal rq-modal-small">
+        <div class="rq-modal-header">
+            <h2 id="actionModalTitle">Confirm Action</h2>
+            <button class="rq-modal-close" onclick="closeActionModal()"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="rq-modal-body" id="actionModalBody"></div>
+        <div class="rq-modal-footer" id="actionModalFooter"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+let perPage = 10;
+let totalItems = 0;
+let allRows = [];
+
+function getUUID() {
+    const path = window.location.pathname;
+    const match = path.match(/\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\//);
+    return match ? match[1] : '';
+}
+
+const UUID = getUUID();
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+}
+
+function showToast(message, type) {
+    type = type || 'info';
+    const existing = document.querySelector('.rq-toast');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'rq-toast rq-toast-' + type;
+    toast.innerHTML = `
+        <i class="ti ti-${type === 'success' ? 'check-circle' : type === 'error' ? 'alert-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(function() {
+        if (toast.parentElement) {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            toast.style.transition = 'opacity 0.3s, transform 0.3s';
+            setTimeout(function() { toast.remove(); }, 300);
+        }
+    }, 5000);
+}
+
+function switchTab(el, tab) {
+    document.querySelectorAll('.rq-tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    
+    const rows = document.querySelectorAll('.request-row');
+    const tabMap = {
+        'all': ['all'],
+        'pending': ['pending'],
+        'inprogress': ['under_review', 'inprogress'],
+        'approved': ['approved', 'awarded'],
+        'rejected': ['rejected', 'cancelled']
+    };
+    
+    const validStatuses = tabMap[tab] || ['all'];
+    
+    rows.forEach(function(row) {
+        const status = row.dataset.status;
+        const match = tab === 'all' || validStatuses.includes(status);
+        row.style.display = match ? '' : 'none';
+    });
+    
+    setTimeout(updatePaginationOnFilter, 50);
+}
+
+function searchRequests(query) {
+    query = query.toLowerCase().trim();
+    const rows = document.querySelectorAll('.request-row');
+    
+    rows.forEach(function(row) {
+        const searchData = row.dataset.search || '';
+        const match = searchData.toLowerCase().includes(query);
+        row.style.display = match ? '' : 'none';
+    });
+    
+    setTimeout(updatePaginationOnFilter, 50);
+}
+
+function initPagination() {
+    allRows = Array.from(document.querySelectorAll('.request-row:not([style*="display: none"])'));
+    totalItems = allRows.length;
+    
+    if (totalItems === 0) {
+        document.querySelector('.rq-pagination').style.display = 'none';
+        return;
+    }
+    document.querySelector('.rq-pagination').style.display = 'flex';
+    renderPagination();
+}
+
+function renderPagination() {
+    const totalPages = Math.ceil(totalItems / perPage);
+    const start = (currentPage - 1) * perPage;
+    const end = Math.min(start + perPage, totalItems);
+    
+    document.getElementById('pageStart').textContent = totalItems > 0 ? start + 1 : 0;
+    document.getElementById('pageEnd').textContent = end;
+    document.getElementById('pageTotal').textContent = totalItems;
+    
+    allRows.forEach(function(row, index) {
+        row.style.display = (index >= start && index < end) ? '' : 'none';
+    });
+    
+    const container = document.getElementById('pageNumbers');
+    container.innerHTML = '';
+    
+    if (currentPage > 3) {
+        container.innerHTML += '<button class="rq-page-num" onclick="goToPage(1)">1</button>';
+        if (currentPage > 4) {
+            container.innerHTML += '<span class="rq-page-ellipsis">…</span>';
+        }
+    }
+    
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (currentPage <= 3) endPage = Math.min(5, totalPages);
+    if (currentPage > totalPages - 3) startPage = Math.max(1, totalPages - 4);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'rq-page-num' + (i === currentPage ? ' active' : '');
+        btn.textContent = i;
+        btn.onclick = function() { goToPage(i); };
+        container.appendChild(btn);
+    }
+    
+    if (currentPage < totalPages - 2) {
+        if (currentPage < totalPages - 3) {
+            container.innerHTML += '<span class="rq-page-ellipsis">…</span>';
+        }
+        container.innerHTML += '<button class="rq-page-num" onclick="goToPage(' + totalPages + ')">' + totalPages + '</button>';
+    }
+    
+    document.getElementById('firstPage').disabled = currentPage === 1;
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+    document.getElementById('lastPage').disabled = currentPage === totalPages;
+}
+
+function goToPage(page) {
+    const totalPages = Math.ceil(totalItems / perPage);
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderPagination();
+}
+
+function changePerPage(value) {
+    perPage = parseInt(value);
+    currentPage = 1;
+    renderPagination();
+}
+
+function updatePaginationOnFilter() {
+    allRows = Array.from(document.querySelectorAll('.request-row:not([style*="display: none"])'));
+    totalItems = allRows.length;
+    currentPage = 1;
+    if (totalItems === 0) {
+        document.querySelector('.rq-pagination').style.display = 'none';
+        return;
+    }
+    document.querySelector('.rq-pagination').style.display = 'flex';
+    renderPagination();
+}
+
+function handleAction(id, type, action) {
+    const title = action === 'approve' ? 'Approve Request' : 'Reject Request';
+    const body = action === 'approve' ? 'Are you sure you want to approve this request?' : 'Are you sure you want to reject this request?';
+    
+    let extraFields = '';
+    
+    if (type === 'financial_aid' && action === 'approve') {
+        extraFields = `
+        <div style="margin-top:8px;">
+            <label style="font-weight:600; display:block; margin-bottom:4px; font-size:13px; color:#dc2626;">Award Amount Required:</label>
+            <input type="number" id="actionAmount" step="0.01" min="0.01" style="width:100%; padding:6px 10px; border:2px solid #16a34a; border-radius:6px; font-size:13px;" placeholder="Enter amount e.g. 500.00">
+        </div>
+        `;
+    } else {
+        extraFields = `
+        <div style="margin-top:8px; background:#f0fdf4; padding:8px 12px; border-radius:6px; border-left:3px solid #22c55e;">
+            <p style="margin:0; font-size:13px; color:#065f46;"><i class="ti ti-info-circle"></i> No amount required</p>
+        </div>
+        `;
+    }
+    
+    document.getElementById('actionModalTitle').textContent = title;
+    document.getElementById('actionModalBody').innerHTML = `
+        <p style="margin-bottom:8px; color:#4b5563; font-size:14px;">${body}</p>
+        <div style="background:#f9fafb; padding:8px 12px; border-radius:6px; font-size:13px;">
+            <strong>Request ID:</strong> #${id}<br>
+            <strong>Type:</strong> ${type.replace('_', ' ').toUpperCase()}
+        </div>
+        ${extraFields}
+        <div style="margin-top:8px;">
+            <label style="font-weight:600; display:block; margin-bottom:4px; font-size:13px;">Remarks:</label>
+            <textarea id="actionRemarks" rows="2" style="width:100%; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; resize:vertical; min-height:30px;"></textarea>
+        </div>
+    `;
+    
+    document.getElementById('actionModalFooter').innerHTML = `
+        <button class="rq-btn rq-btn-ghost" onclick="closeActionModal()">Cancel</button>
+        <button class="rq-btn ${action === 'approve' ? 'rq-btn-primary' : 'rq-btn-danger'}" onclick="confirmAction(${id}, '${type}', '${action}')">
+            ${action === 'approve' ? '<i class="ti ti-check"></i> Approve' : '<i class="ti ti-x"></i> Reject'}
+        </button>
+    `;
+    
+    document.getElementById('actionModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function confirmAction(id, type, action) {
+    const remarks = document.getElementById('actionRemarks')?.value || '';
+    const amountInput = document.getElementById('actionAmount');
+    let amount = 0;
+    
+    if (type === 'financial_aid' && action === 'approve') {
+        if (!amountInput) {
+            showToast('Error: Amount field not found.', 'error');
+            return;
+        }
+        
+        const amountValue = amountInput.value.trim();
+        
+        if (!amountValue) {
+            showToast('Award amount is required for approval.', 'error');
+            amountInput.style.borderColor = '#dc2626';
+            amountInput.style.backgroundColor = '#fef2f2';
+            amountInput.focus();
+            return;
+        }
+        
+        const numAmount = parseFloat(amountValue);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            showToast('Please enter a valid amount greater than zero.', 'error');
+            amountInput.style.borderColor = '#dc2626';
+            amountInput.style.backgroundColor = '#fef2f2';
+            amountInput.focus();
+            return;
+        }
+        
+        if (numAmount > 999999.99) {
+            showToast('Amount cannot exceed $999,999.99.', 'error');
+            amountInput.style.borderColor = '#dc2626';
+            amountInput.style.backgroundColor = '#fef2f2';
+            amountInput.focus();
+            return;
+        }
+        
+        amount = numAmount;
+        amountInput.style.borderColor = '#16a34a';
+        amountInput.style.backgroundColor = '#f0fdf4';
+    }
+    
+    let confirmMsg;
+    if (action === 'approve') {
+        if (type === 'financial_aid') {
+            confirmMsg = 'Approve ' + type.replace('_', ' ') + ' request for $' + amount.toFixed(2) + '?';
+        } else {
+            confirmMsg = 'Approve this ' + type.replace('_', ' ') + ' request?';
+        }
+    } else {
+        confirmMsg = 'Are you sure you want to REJECT this ' + type.replace('_', ' ') + ' request?';
+    }
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
+    closeActionModal();
+    
+    let url = '';
+    let formData = new URLSearchParams();
+    formData.append('action', action);
+    formData.append('remarks', remarks);
+    
+    if (type === 'financial_aid') {
+
+    if (action === 'approve') {
+        url = '/staff/' + UUID + '/financial-aid/approve/' + id + '/';
+
+        formData.append('award_amount', amount);
+
+    } else if (action === 'reject') {
+        url = '/staff/' + UUID + '/financial-aid/reject/' + id + '/';
+
+    } else if (action === 'under_review') {
+        url = '/staff/' + UUID + '/financial-aid/under-review/' + id + '/';
+
+    } else {
+        showToast('Invalid financial aid action.', 'error');
+        return;
+    }
+
+    } else if (type === 'faculty_leave') {
+        url = '/staff/' + UUID + '/faculty-leave/' + id + '/';
+    } else if (type === 'staff_leave') {
+        url = '/staff/' + UUID + '/staff-leave/' + id + '/';
+    } else if (type === 'student_leave') {
+        url = '/staff/' + UUID + '/student-leave-detail/' + id + '/';
+    } else {
+        showToast('Unknown request type: ' + type, 'error');
+        return;
+    }
+    
+    // Show loading toast
+    showToast('⏳ Processing request...', 'info');
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
+    })
+    .then(function(response) {
+        // Remove loading toast
+        const loadingToast = document.querySelector('.rq-toast');
+        if (loadingToast) loadingToast.remove();
+        
+        if (!response.ok) {
+            throw new Error('Server error: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message || 'Request ' + action + 'ed successfully!', 'success');
+            setTimeout(function() { 
+                location.reload(); 
+            }, 1500);
+        } else {
+            showToast(data.message || 'Failed to process action.', 'error');
+        }
+    })
+    .catch(function(error) {
+    
+        const loadingToast = document.querySelector('.rq-toast');
+        if (loadingToast) loadingToast.remove();
+        
+        showToast('Error: ' + error.message, 'error');
+        console.error('Error:', error);
+    });
+}
+
+function closeActionModal() {
+    document.getElementById('actionModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function viewRequest(id, type) {
+    const path = window.location.pathname;
+    const uuidMatch = path.match(/\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\//);
+    const uuid = uuidMatch ? uuidMatch[1] : '';
+    
+    if (type === 'financial_aid') {
+        window.location.href = '/staff/' + uuid + '/financial-aid/' + id + '/';
+    } else if (type === 'faculty_leave') {
+        window.location.href = '/staff/' + uuid + '/faculty-leave/' + id + '/';
+    } else if (type === 'staff_leave') {
+        window.location.href = '/staff/' + uuid + '/staff-leave/' + id + '/';
+    } else if (type === 'student_leave') {
+        window.location.href = '/staff/' + uuid + '/student-leave-detail/' + id + '/';
+    } else {
+        showToast('Viewing request #' + id, 'info');
+    }
+}
+
+function toggleFilters() { showToast('Filter panel coming soon!', 'info'); }
+function exportRequests() { showToast('Exporting requests...', 'info'); }
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll(".counter").forEach(function(counter) {
+        const target = parseInt(counter.getAttribute('data-target')) || 0;
+        let count = 0;
+        const steps = 60;
+        const increment = target / steps;
+        
+        function animate() {
+            count += increment;
+            if (count < target) {
+                counter.textContent = Math.ceil(count);
+                requestAnimationFrame(animate);
+            } else {
+                counter.textContent = target;
+            }
+        }
+        counter.textContent = '0';
+        animate();
+    });
+    
+    setTimeout(initPagination, 200);
+    
+    document.getElementById('firstPage')?.addEventListener('click', function() { goToPage(1); });
+    document.getElementById('prevPage')?.addEventListener('click', function() { goToPage(currentPage - 1); });
+    document.getElementById('nextPage')?.addEventListener('click', function() { goToPage(currentPage + 1); });
+    document.getElementById('lastPage')?.addEventListener('click', function() {
+        const totalPages = Math.ceil(totalItems / perPage);
+        goToPage(totalPages);
+    });
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeActionModal();
+    }
+    if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('searchInput')?.focus();
+    }
+});
+
+document.querySelectorAll('.rq-modal-overlay').forEach(function(modal) {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,306 @@
+<!-- kali's code  -->
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Olympic Athletes{% endblock %}
+{% block page_title %}Olympic Athletes{% endblock %}
+
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+    <link rel="stylesheet" href="{% static 'css/olympicathlete.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="oly-page">
+
+    <nav class="oly-breadcrumb" aria-label="breadcrumb" data-aos="fade-down">
+        <ol>
+            <li><a href="{% url 'admin_dashboard' request.user.uuid %}">Dashboard</a></li>
+            <li>SportHub</li>
+            <li>Olympics</li>
+            <li class="active">Olympic Athletes</li>
+        </ol>
+    </nav>
+
+    <section class="oly-hero" data-aos="fade-up"> 
+        <div class="oly-hero__rings" aria-hidden="true">
+            <svg viewBox="0 0 400 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="90" cy="70" r="46" stroke="#0081C8" stroke-width="12"/>
+                <circle cx="180" cy="70" r="46" stroke="#1c1c1e" stroke-width="12"/>
+                <circle cx="270" cy="70" r="46" stroke="#ff0000" stroke-width="12"/>
+                <circle cx="135" cy="120" r="46" stroke="#F4C744" stroke-width="12"/>
+                <circle cx="225" cy="120" r="46" stroke="#0bd46d" stroke-width="12"/>
+            </svg>
+        </div>
+        <div class="oly-hero__content">
+            <span class="oly-hero__badge"><i data-lucide="flame"></i> SportHub · Olympics</span>
+            <h1 class="oly-hero__title">Olympic Athlete <span>Command Center</span></h1>
+            <p class="oly-hero__subtitle">
+                Track qualification journeys, world rankings and Olympic-bound athletes representing
+                the University across every sport — from first qualifier to podium.
+            </p>
+            <!-- <div class="oly-hero__actions">
+                <button type="button" class="oly-btn oly-btn--primary" id="olyAddAthleteBtn">
+                    <i data-lucide="user-plus"></i> Add Athlete
+                </button>
+                <button type="button" class="oly-btn oly-btn--ghost" id="olyExportBtn">
+                    <i data-lucide="download"></i> Export
+                </button>
+                <button type="button" class="oly-btn oly-btn--ghost" id="olyRefreshBtn">
+                    <i data-lucide="refresh-cw"></i> Refresh
+                </button>
+            </div> -->
+            {% has_permission "olympicathlete_create" as create_olympic_athlete %}
+             {% if create_olympic_athlete %}
+            <div class="oly-hero__actions">
+               
+                <a href="{% url 'olympic_athlete_add_page' %}" class="oly-btn oly-btn--primary" id="olyAddAthleteBtn">
+                    <i data-lucide="user-plus"></i> Add Athlete
+                </a>
+              
+            </div>
+              {% endif %}
+            
+        </div> 
+    </section>
+
+    <section class="oly-stats" aria-label="Olympic athlete statistics">
+        <div class="oly-stat-card oly-stat-card--total" data-aos="fade-up" data-aos-delay="0">
+            <span class="oly-stat-card__icon"><i data-lucide="users"></i></span>
+            <div class="oly-stat-card__value" id="olyStatTotal">0</div>
+            <div class="oly-stat-card__label">Total Athletes</div>
+        </div>
+        <div class="oly-stat-card oly-stat-card--qualified" data-aos="fade-up" data-aos-delay="50">
+            <span class="oly-stat-card__icon"><i data-lucide="check-circle-2"></i></span>
+            <div class="oly-stat-card__value" id="olyStatQualified">0</div>
+            <div class="oly-stat-card__label">Qualified</div>
+        </div>
+        <div class="oly-stat-card oly-stat-card--selected" data-aos="fade-up" data-aos-delay="100">
+            <span class="oly-stat-card__icon"><i data-lucide="user-check"></i></span>
+            <div class="oly-stat-card__value" id="olyStatSelected">0</div>
+            <div class="oly-stat-card__label">Selected</div>
+        </div>
+        <div class="oly-stat-card oly-stat-card--participated" data-aos="fade-up" data-aos-delay="150">
+            <span class="oly-stat-card__icon"><i data-lucide="medal"></i></span>
+            <div class="oly-stat-card__value" id="olyStatParticipated">0</div>
+            <div class="oly-stat-card__label">Participated</div>
+        </div>
+        <div class="oly-stat-card oly-stat-card--retired" data-aos="fade-up" data-aos-delay="200">
+            <span class="oly-stat-card__icon"><i data-lucide="flag"></i></span>
+            <div class="oly-stat-card__value" id="olyStatRetired">0</div>
+            <div class="oly-stat-card__label">Retired</div>
+        </div>
+        <div class="oly-stat-card oly-stat-card--active" data-aos="fade-up" data-aos-delay="250">
+            <span class="oly-stat-card__icon"><i data-lucide="activity"></i></span>
+            <div class="oly-stat-card__value" id="olyStatActive">0</div>
+            <div class="oly-stat-card__label">Active Athletes</div>
+        </div>
+        <div class="oly-stat-card oly-stat-card--ranking" data-aos="fade-up" data-aos-delay="300">
+            <span class="oly-stat-card__icon"><i data-lucide="trophy"></i></span>
+            <div class="oly-stat-card__value" id="olyStatRanking">—</div>
+            <div class="oly-stat-card__label">Avg. World Ranking</div>
+        </div>
+    </section>
+
+    <div class="row g-4 oly-main-row">
+
+     
+        <div class="col-lg-8 oly-main-col">
+
+            <!-- Toolbar -->
+            <div class="oly-card oly-toolbar" data-aos="fade-up">
+                <div class="oly-toolbar__row">
+                    <div class="oly-search">
+                        <i data-lucide="search"></i>
+                        <input type="search" id="olySearchInput" placeholder="Search by name, athlete #, nationality, event...">
+                    </div>
+
+                    <select class="oly-select" id="olyStatusFilter" aria-label="Olympic status filter">
+                        <option value="">All Olympic Status</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="QUALIFIED">Qualified</option>
+                        <option value="SELECTED">Selected</option>
+                        <option value="PARTICIPATED">Participated</option>
+                        <option value="RETIRED">Retired</option>
+                    </select>
+
+                    <select class="oly-select" id="olySportFilter" aria-label="Sport filter">
+                        <option value="">All Sports</option>
+                        <!-- populated dynamically from dataset -->
+                    </select>
+
+                    <select class="oly-select" id="olyCategoryFilter" aria-label="Event category filter">
+                        <option value="">All Categories</option>
+                        <option value="INDIVIDUAL">Individual</option>
+                        <option value="TEAM">Team</option>
+                    </select>
+
+                    <select class="oly-select" id="olyQualificationFilter" aria-label="Qualification status filter">
+                        <option value="">All Qualification Status</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="QUALIFIED">Qualified</option>
+                        <option value="NOT_QUALIFIED">Not Qualified</option>
+                    </select>
+
+                    <div class="oly-toolbar__actions">
+                        <button type="button" class="oly-btn oly-btn--light" id="olyFilterBtn">
+                            <i data-lucide="sliders-horizontal"></i> Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="oly-card oly-table-card" data-aos="fade-up">
+                <div class="oly-table-card__head">
+                    <h3><i data-lucide="table"></i> Olympic Athletes</h3>
+                    <span class="oly-table-count" id="olyTableCount">0 athletes</span>
+                </div>
+                <div class="oly-table-wrap">
+                    <table class="oly-table" id="olyAthleteTable">
+                        <thead>
+                            <tr>
+                                <th>Athlete</th>
+                                <th>Athlete #</th>
+                                <th>Sport</th>
+                                <th>Team</th>
+                                <th>Coach</th>
+                                <th>Nationality</th>
+                                <th>Target Olympics</th>
+                                <th>Event</th>
+                                <th>Category</th>
+                                <th>World Ranking</th>
+                                <th>Qualification</th>
+                                <th>Olympic Status</th>
+                                <th>Personal Best</th>
+                                <th>Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="olyTableBody">
+                           
+                        </tbody>
+                    </table>
+
+                    <div class="oly-empty" id="olyEmptyState">
+                        <i data-lucide="search-x"></i>
+                        <h4>No athletes match your filters</h4>
+                        <p>Try adjusting search terms or clearing filters.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="col-lg-4 oly-side-col">
+
+    
+
+            <div class="oly-card oly-panel" data-aos="fade-left" data-aos-delay="100">
+                <h4 class="oly-panel__title"><i data-lucide="target"></i> Qualification Progress</h4>
+                <div class="oly-scroll-250" id="olyQualificationProgress">
+                    <!-- rendered by olympicathlete.js -->
+                </div>
+            </div>
+
+            
+        
+
+
+            <div class="oly-card oly-panel" data-aos="fade-left" data-aos-delay="200">
+                <h4 class="oly-panel__title"><i data-lucide="bell"></i> Recent Updates</h4>
+                <div class="oly-scroll-250" id="olyRecentUpdates">
+                    
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+   
+
+</div>
+{% endblock %}
+
+{% block global_modal %}
+
+ <!-- ============================ ATHLETE DETAIL MODAL ============================ -->
+    <div class="modal fade oly-modal" id="olyAthleteModal" tabindex="-1" aria-labelledby="olyAthleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <div class="oly-modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="oly-modal-profile">
+                        <img id="olyModalAvatar" class="oly-modal-avatar" src="" alt="Athlete photo">
+                    </div>
+                </div>
+
+                <div class="oly-modal-body">
+                    <div class="mb-3">
+                        <div class="oly-modal-header__name" id="olyModalName" style="color:var(--oly-ink);"></div>
+                        <div class="oly-modal-header__sub" id="olyModalSub" style="color:var(--oly-muted);"></div>
+                    </div>
+
+                    <div class="oly-info-grid">
+                        <div class="oly-info-block">
+                            <h5><i data-lucide="user"></i> Personal Information</h5>
+                            <div class="oly-info-row"><span>Nationality</span><span id="olyModalNationality"></span></div>
+                            <div class="oly-info-row"><span>Team</span><span id="olyModalTeam"></span></div>
+                            <div class="oly-info-row"><span>Coach</span><span id="olyModalCoach"></span></div>
+                            <div class="oly-info-row"><span>Governing Body</span><span id="olyModalGoverning"></span></div>
+                        </div>
+
+                        <div class="oly-info-block">
+                            <h5><i data-lucide="flag"></i> Olympic Information</h5>
+                            <div class="oly-info-row"><span>Target Olympics</span><span id="olyModalTarget"></span></div>
+                            <div class="oly-info-row"><span>Event</span><span id="olyModalEvent"></span></div>
+                            <div class="oly-info-row"><span>Category</span><span id="olyModalCategory"></span></div>
+                            <div class="oly-info-row"><span>World Ranking</span><span id="olyModalRanking"></span></div>
+                        </div>
+
+                        <div class="oly-info-block">
+                            <h5><i data-lucide="target"></i> Qualification Information</h5>
+                            <div class="oly-info-row"><span>Qualification Date</span><span id="olyModalQualDate"></span></div>
+                            <div class="oly-info-row"><span>Score / Time</span><span id="olyModalQualScore"></span></div>
+                            <div class="oly-info-row"><span>Standard</span><span id="olyModalQualStandard"></span></div>
+                            <div class="oly-info-row"><span>Status</span><span id="olyModalQualStatus"></span></div>
+                        </div>
+
+                        <div class="oly-info-block">
+                            <h5><i data-lucide="trophy"></i> Performance Summary</h5>
+                            <div class="oly-info-row"><span>Personal Best</span><span id="olyModalPersonalBest"></span></div>
+                            <div class="oly-info-row"><span>Olympic Status</span><span id="olyModalOlympicStatus"></span></div>
+                            <div class="oly-info-row"><span>Active Status</span><span id="olyModalActiveStatus"></span></div>
+                        </div>
+                    </div>
+
+                    <div class="oly-info-block oly-bio-block-wrap">
+                        <h5><i data-lucide="book-open"></i> Biography</h5>
+                        <p class="oly-bio-block" id="olyModalBio" style="background:transparent;padding:0;"></p>
+                    </div>
+                </div>
+            </div> 
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.AOS) {
+                AOS.init({ duration: 650, once: true, offset: 40 });
+            }
+        });
+
+         window.OLY_EDIT_ATHLETE_URL_TEMPLATE = "{% url 'olympic_athlete_edit_page' uuid='00000000-0000-0000-0000-000000000000' %}"
+         {% has_permission "olympicathlete_update" as update_olympic_athlete %}
+         window.OLY_CAN_UPDATE_ATHLETE = {{ update_olympic_athlete|yesno:"true,false" }};
+    </script>
+    <script src="{% static 'script/olympicathlete.js' %}"></script>
+{% endblock %}

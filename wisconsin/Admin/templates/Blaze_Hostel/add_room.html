@@ -1,0 +1,2508 @@
+{% extends "Blaze_Hostel/hostel_base.html" %}
+{% load static %}
+
+{% block nav_add_room %}active{% endblock %}
+
+{% block title %}➕ Add New Room{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    :root {
+        --primary: #c5050c;
+        --primary-dark: #a0040a;
+        --primary-light: #fef2f2;
+        --success: #22c55e;
+        --success-soft: #f0fdf4;
+        --warning: #f59e0b;
+        --warning-soft: #fffbeb;
+        --danger: #ef4444;
+        --danger-soft: #fef2f2;
+        --info: #3b82f6;
+        --info-soft: #eff6ff;
+        --gray-50: #f8f9fc;
+        --gray-100: #f1f3f6;
+        --gray-200: #e2e5ea;
+        --gray-300: #c8cdd5;
+        --gray-400: #9aa1ad;
+        --gray-500: #6b7280;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+        --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+        --shadow-lg: 0 10px 40px rgba(0,0,0,0.08);
+        --shadow-xl: 0 20px 60px rgba(0,0,0,0.12);
+        --radius: 12px;
+        --radius-sm: 8px;
+        --radius-lg: 16px;
+        --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        --font-display: 'Space Grotesk', 'Inter', sans-serif;
+        --font-body: 'Inter', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    .add-room-container {
+        max-width: 100%;
+        padding: 16px 20px 28px;
+        width: 100%;
+        margin: 0;
+        background: var(--gray-50);
+        min-height: calc(100vh - 60px);
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+        width: 100%;
+        background: #fff;
+        padding: 16px 24px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--gray-200);
+        animation: fadeInDown 0.5s ease forwards;
+    }
+
+    .page-header .header-left h2 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+    }
+
+    .page-header .header-left h2 i {
+        color: var(--primary);
+        font-size: 24px;
+        background: var(--primary-light);
+        padding: 8px;
+        border-radius: var(--radius-sm);
+    }
+
+    .page-header .header-left .subtitle {
+        font-size: 13px;
+        color: var(--gray-500);
+        margin-top: 4px;
+        font-family: var(--font-body);
+    }
+
+    .page-header .header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 9px 20px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        font-family: var(--font-body);
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(197, 5, 12, 0.25);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(197, 5, 12, 0.35);
+        color: #fff;
+    }
+
+    .btn-secondary {
+        background: var(--gray-100);
+        color: var(--gray-700);
+    }
+
+    .btn-secondary:hover {
+        background: var(--gray-200);
+        color: var(--gray-800);
+        transform: translateY(-2px);
+    }
+
+    .btn-success {
+        background: var(--success);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-success:hover {
+        background: #16a34a;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: #fff;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+        color: #fff;
+        transform: translateY(-2px);
+    }
+
+    .btn-sm {
+        padding: 5px 12px;
+        font-size: 12px;
+        min-width: 32px;
+        justify-content: center;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 1.5px solid var(--gray-200);
+        color: var(--gray-700);
+    }
+
+    .btn-outline:hover {
+        background: var(--gray-50);
+        border-color: var(--gray-300);
+        transform: translateY(-2px);
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--gray-600);
+    }
+
+    .btn-ghost:hover {
+        background: var(--gray-100);
+        color: var(--gray-800);
+    }
+
+    .card {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+        transition: var(--transition);
+        width: 100%;
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: 0.1s;
+        opacity: 0;
+    }
+
+    .card:hover {
+        box-shadow: var(--shadow-lg);
+    }
+
+    .card-body {
+        padding: 24px 28px 28px;
+    }
+
+    .card-header-slim {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-50);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .card-header-slim .card-title {
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--gray-800);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-header-slim .card-title i {
+        color: var(--primary);
+    }
+
+    .add-room-form .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .add-room-form .form-group-full {
+        grid-column: 1 / -1;
+    }
+
+    .add-room-form .form-group {
+        margin-bottom: 0;
+    }
+
+    .add-room-form .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 12.5px;
+        margin-bottom: 5px;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .add-room-form .form-group label .required {
+        color: var(--danger);
+        margin-left: 2px;
+    }
+
+    .add-room-form .form-group .form-hint {
+        font-size: 11px;
+        color: var(--gray-400);
+        margin-top: 4px;
+        display: block;
+        font-family: var(--font-body);
+    }
+
+    .add-room-form .form-group input,
+    .add-room-form .form-group select,
+    .add-room-form .form-group textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        transition: var(--transition);
+        background: #fff;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .add-room-form .form-group input:focus,
+    .add-room-form .form-group select:focus,
+    .add-room-form .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(197, 5, 12, 0.08);
+    }
+
+    .add-room-form .form-group input:disabled,
+    .add-room-form .form-group select:disabled {
+        background: var(--gray-50);
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .add-room-form .form-group textarea {
+        resize: vertical;
+        min-height: 60px;
+        font-family: var(--font-body);
+    }
+
+    .add-room-form .form-group select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 40px;
+        cursor: pointer;
+    }
+
+    .add-room-form .form-group .choices {
+        width: 100%;
+    }
+
+    .add-room-form .form-group .choices__inner {
+        border-radius: var(--radius-sm);
+        border-color: var(--gray-200);
+        min-height: 42px;
+        padding: 3px 10px;
+        background: #fff;
+    }
+
+    .add-room-form .form-group .choices__inner .choices__input {
+        font-size: 13px;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .add-room-form .form-group .choices__list--dropdown {
+        border-radius: var(--radius-sm);
+        border-color: var(--gray-200);
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .add-room-form .form-group .choices__list--dropdown .choices__item {
+        font-size: 13px;
+        padding: 8px 14px;
+        font-family: var(--font-body);
+    }
+
+    .add-room-form .form-group .choices__list--dropdown .choices__item.is-highlighted {
+        background: rgba(197, 5, 12, 0.08);
+        color: var(--primary);
+    }
+
+    .amenities-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .amenities-grid label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 400;
+        font-size: 12.5px;
+        color: var(--gray-700);
+        cursor: pointer;
+        padding: 8px 14px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        transition: var(--transition);
+        background: var(--gray-50);
+        margin-bottom: 0;
+        font-family: var(--font-body);
+    }
+
+    .amenities-grid label:hover {
+        background: var(--gray-100);
+        border-color: var(--gray-300);
+        transform: translateY(-1px);
+    }
+
+    .amenities-grid label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .amenities-grid label:has(input:checked) {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(197, 5, 12, 0.08);
+    }
+
+    .amenities-grid label:has(input:checked) span {
+        color: var(--primary);
+        font-weight: 500;
+    }
+
+    .amenities-grid label .amenity-icon {
+        font-size: 16px;
+    }
+
+    .image-gallery-wrapper {
+        border: 2px dashed var(--gray-300);
+        border-radius: var(--radius-sm);
+        padding: 20px;
+        transition: var(--transition);
+        background: var(--gray-50);
+        position: relative;
+    }
+
+    .image-gallery-wrapper.dragover {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        transform: scale(1.01);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area {
+        text-align: center;
+        padding: 20px;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area:hover {
+        transform: scale(1.02);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area i {
+        font-size: 40px;
+        color: var(--gray-400);
+        display: block;
+        margin-bottom: 8px;
+        transition: var(--transition);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area:hover i {
+        color: var(--primary);
+        transform: translateY(-4px);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area p {
+        color: var(--gray-500);
+        font-size: 13px;
+        margin: 0;
+        font-family: var(--font-body);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area small {
+        color: var(--gray-400);
+        font-size: 11px;
+        font-family: var(--font-body);
+    }
+
+    .image-gallery-wrapper .gallery-upload-area .upload-count {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 4px 16px;
+        background: var(--gray-200);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--gray-600);
+        font-family: var(--font-mono);
+    }
+
+    .image-gallery-preview {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .image-gallery-preview .gallery-item {
+        position: relative;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        aspect-ratio: 1;
+        border: 2px solid var(--gray-200);
+        transition: var(--transition);
+        background: var(--gray-100);
+        animation: scaleIn 0.3s ease forwards;
+    }
+
+    .image-gallery-preview .gallery-item:hover {
+        border-color: var(--primary);
+        transform: scale(1.04);
+        box-shadow: var(--shadow-lg);
+        z-index: 2;
+    }
+
+    .image-gallery-preview .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .image-gallery-preview .gallery-item .gallery-item-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--danger);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        transition: var(--transition);
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    .image-gallery-preview .gallery-item:hover .gallery-item-remove {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .image-gallery-preview .gallery-item .gallery-item-remove:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+
+    .image-gallery-preview .gallery-item .gallery-item-index {
+        position: absolute;
+        bottom: 4px;
+        left: 4px;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 9px;
+        font-family: var(--font-mono);
+        font-weight: 600;
+    }
+
+    .empty-hostel-state {
+        text-align: center;
+        padding: 50px 30px;
+        background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+        border-radius: var(--radius);
+        border: 2px dashed var(--primary);
+        animation: fadeInUp 0.6s ease forwards;
+    }
+
+    .empty-hostel-state .empty-icon {
+        font-size: 64px;
+        color: var(--primary);
+        margin-bottom: 16px;
+        display: block;
+        animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    .empty-hostel-state h3 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 8px;
+        font-family: var(--font-display);
+    }
+
+    .empty-hostel-state p {
+        color: var(--gray-500);
+        font-size: 14px;
+        max-width: 450px;
+        margin: 0 auto 20px;
+        line-height: 1.6;
+        font-family: var(--font-body);
+    }
+
+    .empty-hostel-state .empty-steps {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin: 16px 0 24px;
+    }
+
+    .empty-hostel-state .empty-steps .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 16px 20px;
+        background: #fff;
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--gray-200);
+        min-width: 110px;
+        transition: var(--transition);
+    }
+
+    .empty-hostel-state .empty-steps .step:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
+    }
+
+    .empty-hostel-state .empty-steps .step .step-number {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        font-family: var(--font-mono);
+    }
+
+    .empty-hostel-state .empty-steps .step .step-icon {
+        font-size: 26px;
+    }
+
+    .empty-hostel-state .empty-steps .step .step-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .empty-hostel-state .btn {
+        padding: 12px 32px;
+        font-size: 15px;
+        border-radius: var(--radius-sm);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--gray-200);
+        flex-wrap: wrap;
+    }
+
+    .form-actions .btn {
+        padding: 12px 28px;
+        font-size: 14px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        font-family: var(--font-body);
+        flex: 1;
+        justify-content: center;
+    }
+
+    .form-actions .btn-primary {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(197, 5, 12, 0.25);
+    }
+
+    .form-actions .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(197, 5, 12, 0.35);
+        color: #fff;
+    }
+
+    .form-actions .btn-secondary {
+        background: var(--gray-100);
+        color: var(--gray-700);
+    }
+
+    .form-actions .btn-secondary:hover {
+        background: var(--gray-200);
+        color: var(--gray-800);
+        transform: translateY(-2px);
+    }
+
+    .toast-container {
+        position: fixed;
+        top: 80px;
+        right: 24px;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 420px;
+        width: 100%;
+        pointer-events: none;
+    }
+
+    .toast {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        background: #ffffff;
+        color: #1a1a1a;
+        padding: 16px 20px;
+        border-radius: 12px;
+        font-size: 13px;
+        width: 100%;
+        min-width: 280px;
+        max-width: 420px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        border-left: 4px solid var(--info);
+        pointer-events: auto;
+        animation: toastSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        position: relative;
+        overflow: hidden;
+        font-family: var(--font-body);
+    }
+
+    .toast::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 2px;
+        background: rgba(0,0,0,0.1);
+        animation: toastTimer 4s linear forwards;
+    }
+
+    .toast-success {
+        border-left-color: var(--success);
+    }
+
+    .toast-success .toast-icon {
+        background: var(--success-soft);
+        color: var(--success);
+    }
+
+    .toast-error {
+        border-left-color: var(--danger);
+    }
+
+    .toast-error .toast-icon {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+
+    .toast-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .toast-txt {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .toast-txt b {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1a1a1a;
+        line-height: 1.3;
+        display: block;
+        font-family: var(--font-display);
+    }
+
+    .toast-txt small {
+        font-size: 12px;
+        color: #6b7280;
+        line-height: 1.4;
+        display: block;
+        font-family: var(--font-body);
+    }
+
+    .toast-close {
+        margin-left: auto;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 16px;
+        flex-shrink: 0;
+        padding: 4px;
+        transition: color 0.25s ease;
+        background: transparent;
+        border: none;
+        line-height: 1;
+        margin-top: -2px;
+    }
+
+    .toast-close:hover {
+        color: #374151;
+    }
+
+    .toast-removing {
+        animation: toastSlideOut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.25s ease;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        padding: 28px 32px;
+        max-width: 720px;
+        width: 100%;
+        max-height: 92vh;
+        overflow-y: auto;
+        position: relative;
+        animation: modalPop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 16px;
+        right: 20px;
+        font-size: 22px;
+        color: var(--gray-400);
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+
+    .modal-close:hover {
+        background: var(--gray-100);
+        color: var(--gray-900);
+        transform: rotate(90deg);
+    }
+
+    .modal-content h3 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+    }
+
+    .modal-content h3 i {
+        color: var(--primary);
+        background: var(--primary-light);
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        font-size: 18px;
+    }
+
+    .modal-sub {
+        font-size: 13px;
+        color: var(--gray-500);
+        margin-bottom: 20px;
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .modal-content {
+        max-width: 720px;
+        padding: 28px 32px;
+        width: 100%;
+    }
+
+    .hostel-modal .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .hostel-modal .form-group-full {
+        grid-column: 1 / -1;
+    }
+
+    .hostel-modal .form-group {
+        margin-bottom: 0;
+    }
+
+    .hostel-modal .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 12px;
+        margin-bottom: 4px;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .form-group label .required {
+        color: var(--danger);
+        margin-left: 2px;
+    }
+
+    .hostel-modal .form-group .form-hint {
+        font-size: 11px;
+        color: var(--gray-400);
+        margin-top: 3px;
+        display: block;
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .form-group input,
+    .hostel-modal .form-group select,
+    .hostel-modal .form-group textarea {
+        width: 100%;
+        padding: 9px 14px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        transition: var(--transition);
+        background: #fff;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .form-group input:focus,
+    .hostel-modal .form-group select:focus,
+    .hostel-modal .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(197, 5, 12, 0.08);
+    }
+
+    .hostel-modal .form-group textarea {
+        resize: vertical;
+        min-height: 50px;
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .hostel-modal .form-actions .btn {
+        padding: 10px 24px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        border: none;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-body);
+        flex: 1;
+        justify-content: center;
+    }
+
+    .hostel-modal .form-actions .btn-primary {
+        background: var(--primary);
+        color: #fff;
+    }
+
+    .hostel-modal .form-actions .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(197, 5, 12, 0.3);
+        color: #fff;
+    }
+
+    .hostel-modal .form-actions .btn-secondary {
+        background: var(--gray-100);
+        color: var(--gray-700);
+    }
+
+    .hostel-modal .form-actions .btn-secondary:hover {
+        background: var(--gray-200);
+        color: var(--gray-800);
+        transform: translateY(-2px);
+    }
+
+    .hostel-modal .hostel-success {
+        display: none;
+        background: var(--success-soft);
+        border: 1px solid #bbf7d0;
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        color: #166534;
+        margin-bottom: 16px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        animation: fadeInUp 0.3s ease forwards;
+    }
+
+    .hostel-modal .hostel-success.show {
+        display: block;
+    }
+
+    .hostel-modal .hostel-error {
+        display: none;
+        background: var(--danger-soft);
+        border: 1px solid #fecaca;
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        color: #991b1b;
+        margin-bottom: 16px;
+        font-size: 13px;
+        font-family: var(--font-body);
+        animation: fadeInUp 0.3s ease forwards;
+    }
+
+    .hostel-modal .hostel-error.show {
+        display: block;
+    }
+
+    .img-preview-wrap {
+        display: none;
+        position: relative;
+        margin-top: 8px;
+        width: 100%;
+        max-width: 180px;
+    }
+
+    .img-preview-wrap.show {
+        display: block;
+    }
+
+    .img-preview-wrap img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid var(--gray-200);
+        display: block;
+    }
+
+    .img-remove-btn {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--danger);
+        color: #fff;
+        border: 2px solid #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: var(--transition);
+    }
+
+    .img-remove-btn:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }
+
+    .hostel-modal .picker-search {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        position: relative;
+    }
+
+    .hostel-modal .picker-search input {
+        flex: 1;
+    }
+
+    .hostel-modal .picker-search .btn-search {
+        padding: 9px 16px;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: var(--gray-800);
+        color: #fff;
+        cursor: pointer;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        transition: var(--transition);
+        font-family: var(--font-body);
+        font-weight: 600;
+    }
+
+    .hostel-modal .picker-search .btn-search:hover {
+        background: var(--gray-900);
+        transform: translateY(-1px);
+    }
+
+    .hostel-modal .picker-search .btn-search:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .hostel-modal .picker-suggestions {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 80px;
+        background: #fff;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        max-height: 180px;
+        overflow-y: auto;
+        z-index: 10001;
+        display: none;
+    }
+
+    .hostel-modal .picker-suggestions.show {
+        display: block;
+        animation: fadeInUp 0.2s ease forwards;
+    }
+
+    .hostel-modal .picker-suggestions .sugg-item {
+        padding: 8px 14px;
+        font-size: 12px;
+        color: var(--gray-700);
+        cursor: pointer;
+        border-bottom: 1px solid var(--gray-100);
+        font-family: var(--font-body);
+        transition: var(--transition);
+    }
+
+    .hostel-modal .picker-suggestions .sugg-item:last-child {
+        border-bottom: none;
+    }
+
+    .hostel-modal .picker-suggestions .sugg-item:hover {
+        background: var(--gray-50);
+        color: var(--primary);
+    }
+
+    .hostel-modal .picker-map-wrap {
+        position: relative;
+        height: 220px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1.5px solid var(--gray-200);
+        transition: var(--transition);
+    }
+
+    .hostel-modal .picker-map-wrap:hover {
+        border-color: var(--gray-300);
+    }
+
+    .hostel-modal #hostelPickerMap {
+        height: 100%;
+        width: 100%;
+        z-index: 1;
+    }
+
+    .hostel-modal .coords-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 8px;
+        align-items: end;
+        margin-top: 8px;
+    }
+
+    .hostel-modal .coords-row input {
+        width: 100%;
+        padding: 9px 14px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        transition: var(--transition);
+        background: #fff;
+        color: var(--gray-700);
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .coords-row input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(197, 5, 12, 0.08);
+    }
+
+    .hostel-modal .coords-row .btn-locate {
+        padding: 9px 16px;
+        border-radius: var(--radius-sm);
+        border: 1.5px solid var(--gray-200);
+        background: var(--gray-50);
+        color: var(--gray-700);
+        cursor: pointer;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        transition: var(--transition);
+        height: 40px;
+        font-weight: 600;
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .coords-row .btn-locate:hover {
+        background: var(--gray-100);
+        border-color: var(--gray-300);
+        transform: translateY(-1px);
+    }
+
+    .hostel-modal .coords-row .btn-locate:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .hostel-modal .picker-hint {
+        font-size: 11px;
+        color: var(--gray-400);
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-body);
+    }
+
+    .hostel-modal .picker-hint i {
+        color: var(--primary);
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 0.6s linear infinite;
+    }
+
+    .spinner-dark {
+        border-color: var(--gray-300);
+        border-top-color: var(--gray-600);
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes modalPop {
+        from { transform: scale(0.94) translateY(20px); opacity: 0; }
+        to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes floatIcon {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    @keyframes toastSlideIn {
+        from { transform: translateX(calc(100% + 40px)); opacity: 0; }
+        60% { transform: translateX(-6px); }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes toastSlideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(calc(100% + 40px)); opacity: 0; }
+    }
+
+    @keyframes toastTimer {
+        from { width: 100%; }
+        to { width: 0%; }
+    }
+
+    @keyframes rippleAnim {
+        to { transform: scale(2.6); opacity: 0; }
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+    @media (max-width: 1200px) {
+        .add-room-container { padding: 14px 18px; }
+        .card-body { padding: 20px 24px; }
+        .add-room-form .form-grid { gap: 16px; }
+    }
+
+    @media (max-width: 992px) {
+        .add-room-form .form-grid { grid-template-columns: 1fr 1fr; }
+        .add-room-container { padding: 12px 16px; }
+        .page-header { padding: 14px 18px; }
+        .card-body { padding: 18px 20px; }
+        .hostel-modal .form-grid { grid-template-columns: 1fr 1fr; }
+        .hostel-modal .modal-content { padding: 20px 24px; }
+    }
+
+    @media (max-width: 768px) {
+        .add-room-container { padding: 10px 12px; }
+        .page-header { flex-direction: column; align-items: flex-start; }
+        .page-header .header-left h2 { font-size: 19px; }
+        .page-header .header-actions { width: 100%; }
+        .page-header .header-actions .btn { flex: 1; justify-content: center; }
+        .add-room-form .form-grid { grid-template-columns: 1fr; gap: 14px; }
+        .amenities-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+        .card-body { padding: 16px 18px; }
+        .form-actions { flex-direction: column; }
+        .form-actions .btn { width: 100%; justify-content: center; }
+        .toast-container { top: 60px; right: 16px; left: 16px; max-width: none; }
+        .toast { min-width: auto; width: 100%; padding: 14px 16px; font-size: 12px; }
+        .toast-icon { width: 28px; height: 28px; font-size: 14px; }
+        .toast-txt b { font-size: 12px; }
+        .toast-txt small { font-size: 11px; }
+        .toast-close { font-size: 14px; }
+        .modal-content { padding: 18px 20px; max-width: 95%; }
+        .hostel-modal .modal-content { max-width: 95%; padding: 18px 20px; }
+        .hostel-modal .form-grid { grid-template-columns: 1fr; gap: 14px; }
+        .hostel-modal .form-actions { flex-direction: column; }
+        .hostel-modal .form-actions .btn { width: 100%; justify-content: center; }
+        .hostel-modal .coords-row { grid-template-columns: 1fr; }
+        .hostel-modal .coords-row .btn-locate { width: 100%; justify-content: center; }
+        .hostel-modal .picker-map-wrap { height: 200px; }
+        .hostel-modal .picker-search { flex-direction: column; }
+        .hostel-modal .picker-suggestions { right: 0; }
+        .image-gallery-preview { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
+        .empty-hostel-state { padding: 30px 20px; }
+        .empty-hostel-state .empty-steps { gap: 12px; }
+        .empty-hostel-state .empty-steps .step { min-width: 80px; padding: 12px 14px; }
+        .empty-hostel-state .empty-icon { font-size: 48px; }
+        .empty-hostel-state h3 { font-size: 18px; }
+    }
+
+    @media (max-width: 480px) {
+        .add-room-container { padding: 8px 10px; }
+        .page-header .header-left h2 { font-size: 16px; }
+        .page-header .header-left h2 i { font-size: 18px; padding: 6px; }
+        .page-header .header-left .subtitle { font-size: 11px; }
+        .page-header .header-actions .btn { font-size: 11px; padding: 6px 12px; }
+        .card-body { padding: 12px 14px; }
+        .btn { font-size: 11px; padding: 6px 14px; }
+        .add-room-form .form-group label { font-size: 11px; }
+        .add-room-form .form-group input,
+        .add-room-form .form-group select,
+        .add-room-form .form-group textarea { padding: 7px 12px; font-size: 12px; }
+        .amenities-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+        .amenities-grid label { font-size: 11px; padding: 6px 10px; }
+        .toast-container { top: 55px; right: 10px; left: 10px; }
+        .toast { padding: 12px 14px; font-size: 12px; }
+        .modal-content { padding: 14px 16px; max-width: 98%; }
+        .hostel-modal .modal-content { padding: 14px 16px; }
+        .hostel-modal .modal-content h3 { font-size: 16px; }
+        .hostel-modal .modal-sub { font-size: 12px; }
+        .hostel-modal .form-group label { font-size: 11px; }
+        .hostel-modal .form-group input,
+        .hostel-modal .form-group select,
+        .hostel-modal .form-group textarea { padding: 6px 12px; font-size: 12px; }
+        .hostel-modal .picker-map-wrap { height: 180px; }
+        .image-gallery-preview { grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; }
+        .empty-hostel-state .empty-icon { font-size: 40px; }
+        .empty-hostel-state h3 { font-size: 16px; }
+        .empty-hostel-state p { font-size: 12px; }
+        .empty-hostel-state .empty-steps { flex-direction: column; align-items: center; }
+        .empty-hostel-state .empty-steps .step { min-width: 100%; max-width: 280px; }
+        .form-actions .btn { font-size: 13px; padding: 10px 20px; }
+        .image-gallery-wrapper .gallery-upload-area i { font-size: 32px; }
+        .image-gallery-wrapper .gallery-upload-area p { font-size: 12px; }
+    }
+
+    @media (max-width: 360px) {
+        .add-room-container { padding: 6px 8px; }
+        .page-header .header-left h2 { font-size: 14px; }
+        .page-header .header-left h2 i { font-size: 14px; padding: 4px; }
+        .add-room-form .form-group label { font-size: 10px; }
+        .add-room-form .form-group input,
+        .add-room-form .form-group select,
+        .add-room-form .form-group textarea { padding: 5px 10px; font-size: 11px; }
+        .amenities-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+        .amenities-grid label { font-size: 10px; padding: 4px 8px; }
+        .card-body { padding: 8px 10px; }
+        .btn { font-size: 10px; padding: 4px 10px; }
+        .modal-content { padding: 10px 12px; max-width: 98%; }
+        .hostel-modal .modal-content { padding: 10px 12px; }
+        .hostel-modal .modal-content h3 { font-size: 14px; }
+        .hostel-modal .modal-sub { font-size: 11px; }
+        .hostel-modal .form-group label { font-size: 10px; }
+        .hostel-modal .form-group input,
+        .hostel-modal .form-group select,
+        .hostel-modal .form-group textarea { padding: 4px 10px; font-size: 11px; }
+        .hostel-modal .form-actions .btn { font-size: 11px; padding: 6px 12px; }
+        .hostel-modal .picker-map-wrap { height: 160px; }
+        .hostel-modal .coords-row .btn-locate { font-size: 10px; padding: 6px 10px; height: 34px; }
+        .modal-title { font-size: 13px; }
+        .modal-close { font-size: 16px; top: 8px; right: 12px; }
+        .add-room-form .form-actions .btn { font-size: 10px; padding: 6px 10px; }
+        .toast { padding: 10px 12px; font-size: 11px; }
+        .toast-txt b { font-size: 11px; }
+        .toast-txt small { font-size: 10px; }
+        .toast-icon { width: 20px; height: 20px; font-size: 12px; }
+        .image-gallery-preview { grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); }
+        .empty-hostel-state { padding: 16px 12px; }
+        .empty-hostel-state .empty-icon { font-size: 32px; }
+        .empty-hostel-state h3 { font-size: 14px; }
+        .empty-hostel-state p { font-size: 11px; }
+        .image-gallery-wrapper .gallery-upload-area { padding: 12px; }
+        .image-gallery-wrapper .gallery-upload-area i { font-size: 24px; }
+    }
+
+    @media (max-width: 240px) {
+        .add-room-container { padding: 4px 6px; }
+        .page-header { padding: 8px 10px; }
+        .page-header .header-left h2 { font-size: 12px; gap: 6px; }
+        .page-header .header-left h2 i { font-size: 12px; padding: 4px; }
+        .page-header .header-left .subtitle { font-size: 9px; }
+        .card-body { padding: 6px 8px; }
+        .add-room-form .form-grid { gap: 8px; }
+        .add-room-form .form-group label { font-size: 9px; }
+        .add-room-form .form-group input,
+        .add-room-form .form-group select,
+        .add-room-form .form-group textarea { padding: 4px 6px; font-size: 10px; }
+        .amenities-grid { grid-template-columns: 1fr 1fr; gap: 4px; }
+        .amenities-grid label { font-size: 9px; padding: 3px 6px; }
+        .amenities-grid label input[type="checkbox"] { width: 12px; height: 12px; }
+        .btn { font-size: 9px; padding: 3px 8px; }
+        .btn-sm { font-size: 8px; padding: 2px 6px; min-width: 20px; height: 20px; }
+        .form-actions .btn { font-size: 10px; padding: 6px 10px; }
+        .image-gallery-wrapper { padding: 8px; }
+        .image-gallery-wrapper .gallery-upload-area { padding: 8px; }
+        .image-gallery-wrapper .gallery-upload-area i { font-size: 20px; }
+        .image-gallery-wrapper .gallery-upload-area p { font-size: 10px; }
+        .image-gallery-wrapper .gallery-upload-area small { font-size: 8px; }
+        .image-gallery-preview { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 4px; }
+        .image-gallery-preview .gallery-item .gallery-item-remove { width: 16px; height: 16px; font-size: 8px; top: 2px; right: 2px; }
+        .image-gallery-preview .gallery-item .gallery-item-index { font-size: 7px; padding: 1px 4px; bottom: 2px; left: 2px; }
+        .modal-content { padding: 6px 8px; max-width: 98%; }
+        .modal-content h3 { font-size: 12px; gap: 6px; }
+        .modal-content h3 i { padding: 4px; font-size: 12px; }
+        .modal-sub { font-size: 9px; margin-bottom: 10px; }
+        .modal-close { font-size: 12px; top: 4px; right: 8px; padding: 2px 4px; }
+        .hostel-modal .modal-content { padding: 6px 8px; }
+        .hostel-modal .modal-content h3 { font-size: 12px; }
+        .hostel-modal .modal-sub { font-size: 10px; }
+        .hostel-modal .form-grid { gap: 6px; }
+        .hostel-modal .form-group label { font-size: 9px; }
+        .hostel-modal .form-group input,
+        .hostel-modal .form-group select,
+        .hostel-modal .form-group textarea { padding: 3px 6px; font-size: 10px; }
+        .hostel-modal .form-actions .btn { font-size: 10px; padding: 4px 8px; }
+        .hostel-modal .picker-map-wrap { height: 100px; }
+        .hostel-modal .picker-search .btn-search { font-size: 9px; padding: 4px 8px; }
+        .hostel-modal .coords-row .btn-locate { font-size: 9px; padding: 4px 8px; height: 28px; }
+        .toast { padding: 6px 8px; font-size: 10px; min-width: 80px; }
+        .toast-txt b { font-size: 10px; }
+        .toast-txt small { font-size: 9px; }
+        .toast-icon { width: 16px; height: 16px; font-size: 10px; }
+        .empty-hostel-state { padding: 12px 8px; }
+        .empty-hostel-state .empty-icon { font-size: 24px; }
+        .empty-hostel-state h3 { font-size: 12px; }
+        .empty-hostel-state p { font-size: 10px; }
+        .empty-hostel-state .empty-steps .step { min-width: 60px; padding: 8px 10px; }
+        .empty-hostel-state .empty-steps .step .step-number { width: 20px; height: 20px; font-size: 10px; }
+        .empty-hostel-state .empty-steps .step .step-icon { font-size: 16px; }
+        .empty-hostel-state .empty-steps .step .step-text { font-size: 9px; }
+        .empty-hostel-state .btn { font-size: 11px; padding: 6px 14px; }
+    }
+
+    @media (max-width: 170px) {
+        .add-room-container { padding: 2px 4px; }
+        .page-header { padding: 4px 6px; gap: 4px; border-radius: 6px; }
+        .page-header .header-left h2 { font-size: 10px; gap: 4px; }
+        .page-header .header-left h2 i { font-size: 10px; padding: 3px; border-radius: 4px; }
+        .page-header .header-left .subtitle { font-size: 8px; margin-top: 1px; }
+        .page-header .header-actions { gap: 4px; }
+        .page-header .header-actions .btn { font-size: 8px; padding: 3px 6px; gap: 3px; }
+        .page-header .header-actions .btn i { font-size: 8px; }
+        .card { border-radius: 6px; }
+        .card-body { padding: 4px 6px; }
+        .add-room-form .form-grid { gap: 6px; }
+        .add-room-form .form-group { margin-bottom: 0; }
+        .add-room-form .form-group label { font-size: 8px; margin-bottom: 2px; }
+        .add-room-form .form-group .form-hint { font-size: 7px; margin-top: 2px; }
+        .add-room-form .form-group input,
+        .add-room-form .form-group select,
+        .add-room-form .form-group textarea { padding: 2px 4px; font-size: 8px; border-radius: 4px; }
+        .add-room-form .form-group select { padding-right: 24px; background-size: 8px; }
+        .add-room-form .form-group .choices__inner { min-height: 24px; padding: 1px 4px; }
+        .add-room-form .form-group .choices__inner .choices__input { font-size: 8px; }
+        .add-room-form .form-group .choices__list--dropdown .choices__item { font-size: 8px; padding: 4px 6px; }
+        .amenities-grid { grid-template-columns: 1fr 1fr; gap: 3px; }
+        .amenities-grid label { font-size: 8px; padding: 2px 4px; gap: 4px; border-radius: 4px; }
+        .amenities-grid label input[type="checkbox"] { width: 10px; height: 10px; }
+        .amenities-grid label .amenity-icon { font-size: 10px; }
+        .btn { font-size: 8px; padding: 2px 6px; border-radius: 4px; gap: 4px; }
+        .btn-sm { font-size: 7px; padding: 1px 4px; min-width: 16px; height: 16px; border-radius: 3px; }
+        .btn-sm i { font-size: 7px; }
+        .form-actions { gap: 4px; margin-top: 10px; padding-top: 8px; }
+        .form-actions .btn { font-size: 8px; padding: 4px 8px; border-radius: 4px; }
+        .image-gallery-wrapper { padding: 4px; border-radius: 4px; border-width: 1.5px; }
+        .image-gallery-wrapper .gallery-upload-area { padding: 4px; }
+        .image-gallery-wrapper .gallery-upload-area i { font-size: 16px; margin-bottom: 3px; }
+        .image-gallery-wrapper .gallery-upload-area p { font-size: 8px; }
+        .image-gallery-wrapper .gallery-upload-area small { font-size: 7px; }
+        .image-gallery-wrapper .gallery-upload-area .upload-count { font-size: 8px; padding: 2px 8px; margin-top: 4px; }
+        .image-gallery-preview { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 3px; margin-top: 6px; }
+        .image-gallery-preview .gallery-item { border-radius: 4px; border-width: 1px; }
+        .image-gallery-preview .gallery-item .gallery-item-remove { width: 14px; height: 14px; font-size: 6px; top: 1px; right: 1px; }
+        .image-gallery-preview .gallery-item .gallery-item-index { font-size: 6px; padding: 1px 3px; bottom: 1px; left: 1px; }
+        .empty-hostel-state { padding: 8px 4px; border-radius: 6px; }
+        .empty-hostel-state .empty-icon { font-size: 20px; margin-bottom: 6px; }
+        .empty-hostel-state h3 { font-size: 10px; margin-bottom: 4px; }
+        .empty-hostel-state p { font-size: 8px; margin-bottom: 8px; }
+        .empty-hostel-state .empty-steps { gap: 4px; margin: 6px 0 8px; }
+        .empty-hostel-state .empty-steps .step { min-width: 50px; padding: 4px 6px; border-radius: 4px; gap: 2px; }
+        .empty-hostel-state .empty-steps .step .step-number { width: 16px; height: 16px; font-size: 8px; }
+        .empty-hostel-state .empty-steps .step .step-icon { font-size: 12px; }
+        .empty-hostel-state .empty-steps .step .step-text { font-size: 7px; }
+        .empty-hostel-state .btn { font-size: 8px; padding: 3px 10px; border-radius: 4px; }
+        .modal-content { padding: 4px 6px; border-radius: 6px; }
+        .modal-content h3 { font-size: 10px; gap: 4px; }
+        .modal-content h3 i { padding: 2px; font-size: 10px; border-radius: 4px; }
+        .modal-sub { font-size: 8px; margin-bottom: 6px; }
+        .modal-close { font-size: 10px; top: 2px; right: 4px; padding: 1px 2px; }
+        .hostel-modal .modal-content { padding: 4px 6px; }
+        .hostel-modal .modal-content h3 { font-size: 10px; }
+        .hostel-modal .modal-sub { font-size: 8px; margin-bottom: 6px; }
+        .hostel-modal .form-grid { gap: 4px; }
+        .hostel-modal .form-group label { font-size: 8px; margin-bottom: 1px; }
+        .hostel-modal .form-group .form-hint { font-size: 7px; margin-top: 1px; }
+        .hostel-modal .form-group input,
+        .hostel-modal .form-group select,
+        .hostel-modal .form-group textarea { padding: 2px 4px; font-size: 8px; border-radius: 4px; }
+        .hostel-modal .form-actions { gap: 4px; margin-top: 6px; padding-top: 4px; }
+        .hostel-modal .form-actions .btn { font-size: 8px; padding: 2px 6px; border-radius: 4px; }
+        .hostel-modal .picker-search { gap: 4px; margin-bottom: 4px; }
+        .hostel-modal .picker-search input { padding: 2px 4px; font-size: 8px; }
+        .hostel-modal .picker-search .btn-search { font-size: 8px; padding: 2px 6px; border-radius: 4px; }
+        .hostel-modal .picker-map-wrap { height: 60px; border-radius: 4px; }
+        .hostel-modal .coords-row { gap: 4px; margin-top: 4px; }
+        .hostel-modal .coords-row input { padding: 2px 4px; font-size: 8px; border-radius: 4px; }
+        .hostel-modal .coords-row .btn-locate { font-size: 8px; padding: 2px 6px; height: 22px; border-radius: 4px; }
+        .hostel-modal .picker-hint { font-size: 7px; margin-top: 3px; gap: 3px; }
+        .hostel-modal .picker-suggestions { max-height: 100px; }
+        .hostel-modal .picker-suggestions .sugg-item { font-size: 8px; padding: 3px 6px; }
+        .hostel-modal .hostel-success, .hostel-modal .hostel-error { font-size: 9px; padding: 4px 8px; margin-bottom: 6px; }
+        .img-preview-wrap { max-width: 80px; }
+        .img-preview-wrap img { height: 50px; }
+        .img-remove-btn { width: 16px; height: 16px; font-size: 8px; }
+        .toast-container { top: 30px; right: 4px; left: 4px; gap: 4px; }
+        .toast { padding: 4px 6px; font-size: 8px; min-width: 60px; border-radius: 6px; border-left-width: 2px; gap: 6px; }
+        .toast-txt b { font-size: 8px; }
+        .toast-txt small { font-size: 7px; }
+        .toast-icon { width: 14px; height: 14px; font-size: 8px; border-radius: 4px; }
+        .toast-close { font-size: 8px; padding: 1px; }
+        .toast::after { height: 1px; }
+        .spinner { width: 10px; height: 10px; border-width: 1.5px; }
+        .leaflet-control-zoom { display: none !important; }
+        .leaflet-popup { transform: scale(0.5); transform-origin: bottom; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="add-room-container">
+    <div class="page-header">
+        <div class="header-left">
+            <h2>
+                <i class="fas fa-plus-circle"></i>
+                Add New Room
+            </h2>
+            <p class="subtitle">Fill in the details below to add a new room to the hostel</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-success" onclick="openAddHostelModal()">
+                <i class="fas fa-building"></i> Add Hostel
+            </button>
+            <a href="{% url 'hostel_room_management' user.uuid %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        {% if hostels|length == 0 %}
+        <div class="empty-hostel-state">
+            <span class="empty-icon">🏨</span>
+            <h3>No Hostels Found</h3>
+            <p>You need to create a hostel first before you can add rooms.</p>
+            <div class="empty-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon"></div>
+                    <div class="step-text">Create Hostel</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon"></div>
+                    <div class="step-text">Add Details</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon"></div>
+                    <div class="step-text">Add Rooms</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="openAddHostelModal()">
+                <i class="fas fa-plus-circle"></i> Create Your First Hostel
+            </button>
+        </div>
+        {% else %}
+        <div class="card-header-slim">
+            <div class="card-title">
+                <i class="fas fa-bed"></i>
+                Room Details
+            </div>
+            <span style="font-size:12px;color:var(--gray-400);">
+                <i class="fas fa-asterisk" style="color:var(--danger);font-size:8px;"></i> Required fields
+            </span>
+        </div>
+        <div class="card-body">
+            <form class="add-room-form" id="addRoomForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="hostel_id">Hostel <span class="required">*</span></label>
+                        <select name="hostel_id" id="hostel_id" required>
+                            <option value="">Select Hostel</option>
+                            {% for hostel in hostels %}
+                            <option value="{{ hostel.id }}">{{ hostel.name }} ({{ hostel.code }})</option>
+                            {% endfor %}
+                        </select>
+                        <span class="form-hint">Select the hostel where this room belongs</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="floor">Floor <span class="required">*</span></label>
+                        <select name="floor" id="floor" required disabled>
+                            <option value="">Select hostel first</option>
+                        </select>
+                        <span class="form-hint">Select the floor where the room is located</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="room_number">Room Number <span class="required">*</span></label>
+                        <input type="text" name="room_number" id="room_number"
+                               placeholder="e.g., 101, A-201, 3B" required>
+                        <span class="form-hint">Unique room identifier within the hostel</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="capacity">Capacity <span class="required">*</span></label>
+                        <input type="number" name="capacity" id="capacity"
+                               placeholder="e.g., 2, 3, 4" required min="1" max="10" step="1">
+                        <span class="form-hint">Maximum number of occupants</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rent_per_month">Rent per Month ($) <span class="required">*</span></label>
+                        <input type="number" name="rent_per_month" id="rent_per_month"
+                               placeholder="e.g., 500.00" required min="0" step="0.01">
+                        <span class="form-hint">Monthly rent amount in USD</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="room_type">Room Type</label>
+                        <select name="room_type" id="room_type">
+                            <option value="STANDARD">🏠 Standard</option>
+                            <option value="DELUXE">✨ Deluxe</option>
+                            <option value="PREMIUM">⭐ Premium</option>
+                            <option value="SUITE">🏢 Suite</option>
+                            <option value="DORMITORY">🛌 Dormitory</option>
+                        </select>
+                        <span class="form-hint">Type of room</span>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-full" style="margin-top: 14px;">
+                    <label>Room Photos <span class="required">*</span></label>
+                    <div class="image-gallery-wrapper" id="galleryWrapper">
+                        <div class="gallery-upload-area" id="galleryUploadArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Drag & drop photos here, or click to browse</p>
+                            <small>JPG, PNG, WEBP — up to 10 images</small>
+                            <span class="upload-count" id="uploadCount">0 images selected</span>
+                            <input type="file" name="images" id="roomImagesInput"
+                                   accept="image/*" multiple style="display:none;">
+                        </div>
+                        <div class="image-gallery-preview" id="galleryPreview"></div>
+                    </div>
+                    <span class="form-hint">The first photo will be used as the cover image</span>
+                </div>
+
+                <div class="form-group form-group-full" style="margin-top: 14px;">
+                    <label>Amenities</label>
+                    <div class="amenities-grid" id="amenitiesGrid">
+                        <label><input type="checkbox" name="amenities" value="Wi-Fi"><span class="amenity-icon">📶</span> Wi-Fi</label>
+                        <label><input type="checkbox" name="amenities" value="AC"><span class="amenity-icon">❄️</span> AC</label>
+                        <label><input type="checkbox" name="amenities" value="Laundry"><span class="amenity-icon">🧺</span> Laundry</label>
+                        <label><input type="checkbox" name="amenities" value="Kitchen"><span class="amenity-icon">🍳</span> Kitchen</label>
+                        <label><input type="checkbox" name="amenities" value="Fitness Center"><span class="amenity-icon">💪</span> Fitness</label>
+                        <label><input type="checkbox" name="amenities" value="Study Lounge"><span class="amenity-icon">📚</span> Study</label>
+                        <label><input type="checkbox" name="amenities" value="TV"><span class="amenity-icon">📺</span> TV</label>
+                        <label><input type="checkbox" name="amenities" value="Refrigerator"><span class="amenity-icon">🧊</span> Fridge</label>
+                        <label><input type="checkbox" name="amenities" value="Microwave"><span class="amenity-icon">🔴</span> Microwave</label>
+                        <label><input type="checkbox" name="amenities" value="Parking"><span class="amenity-icon">🅿️</span> Parking</label>
+                        <label><input type="checkbox" name="amenities" value="Security"><span class="amenity-icon">🔒</span> Security</label>
+                        <label><input type="checkbox" name="amenities" value="CCTV"><span class="amenity-icon">📹</span> CCTV</label>
+                        <label><input type="checkbox" name="amenities" value="Balcony"><span class="amenity-icon">🌅</span> Balcony</label>
+                        <label><input type="checkbox" name="amenities" value="Sea View"><span class="amenity-icon">🌊</span> Sea View</label>
+                        <label><input type="checkbox" name="amenities" value="Attached Bathroom"><span class="amenity-icon">🚿</span> Attached Bath</label>
+                        <label><input type="checkbox" name="amenities" value="Wardrobe"><span class="amenity-icon">🚪</span> Wardrobe</label>
+                    </div>
+                    <span class="form-hint">Select all amenities available in this room</span>
+                </div>
+
+                <div class="form-group form-group-full" style="margin-top: 6px;">
+                    <label for="custom_amenities">Other Amenities</label>
+                    <input type="text" name="custom_amenities" id="custom_amenities"
+                           placeholder="e.g., Balcony, Sea View, Attached Bathroom (comma separated)">
+                    <span class="form-hint">Add any additional amenities not listed above</span>
+                </div>
+
+                <div class="form-group form-group-full" style="margin-top: 14px;">
+                    <label for="description">Room Description</label>
+                    <textarea name="description" id="description" rows="3"
+                              placeholder="Describe the room, view, special features..."></textarea>
+                    <span class="form-hint">Optional description for the room</span>
+                </div>
+
+                <div class="form-group form-group-full" style="margin-top: 14px;">
+                    <label for="status">Status</label>
+                    <select name="status" id="status">
+                        <option value="AVAILABLE">✅ Available</option>
+                        <option value="MAINTENANCE">🔧 Under Maintenance</option>
+                        <option value="RESERVED">📌 Reserved</option>
+                        <option value="CLEANING">🧹 Cleaning</option>
+                    </select>
+                    <span class="form-hint">Current status of the room</span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-plus"></i> Add Room
+                    </button>
+                    <button type="reset" class="btn btn-secondary" id="resetBtn">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal hostel-modal" id="addHostelModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeAddHostelModal()"><i class="fas fa-times"></i></button>
+        <h3>
+            <i class="fas fa-building"></i>
+            Add New Hostel
+        </h3>
+        <p class="modal-sub">Fill in the details below to add a new hostel</p>
+
+        <div class="hostel-success" id="hostelSuccess">
+            <span>✅ Hostel created successfully!</span>
+        </div>
+        <div class="hostel-error" id="hostelError">
+            <span id="hostelErrorText">Something went wrong.</span>
+        </div>
+
+        <form id="addHostelForm" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="hostel_name">Hostel Name <span class="required">*</span></label>
+                    <input type="text" name="name" id="hostel_name"
+                           placeholder="e.g., Witte Hall" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="hostel_code">Hostel Code <span class="required">*</span></label>
+                    <input type="text" name="code" id="hostel_code"
+                           placeholder="e.g., WH" required maxlength="10">
+                    <span class="form-hint">Unique code for the hostel</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="hostel_total_floors">Total Floors <span class="required">*</span></label>
+                    <input type="number" name="total_floors" id="hostel_total_floors"
+                           placeholder="e.g., 4" required min="1" step="1" value="1">
+                    <span class="form-hint">Used to build the Floor dropdown when adding rooms</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="hostel_image_input">Hostel Photo</label>
+                    <input type="file" name="image" id="hostel_image_input" accept="image/*">
+                    <span class="form-hint">Optional cover photo</span>
+                    <div class="img-preview-wrap" id="hostelImgPreviewWrap">
+                        <img id="hostelImgPreview" src="" alt="Hostel preview">
+                        <button type="button" class="img-remove-btn" id="hostelImgRemoveBtn"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label for="hostel_address">Address</label>
+                    <div class="picker-search">
+                        <input type="text" name="address" id="hostel_address"
+                               placeholder="e.g., 615 W Dayton St, Madison, WI 53715" autocomplete="off">
+                        <button type="button" class="btn-search" id="pickerSearchBtn">
+                            <i class="fas fa-search-location"></i> Find
+                        </button>
+                        <div class="picker-suggestions" id="pickerSuggestions"></div>
+                    </div>
+                    <span class="form-hint">Type an address and hit Find, or place the pin directly on the map below</span>
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label>Pin Location <span style="font-weight:400;color:var(--gray-400);">(click or drag the pin to fine-tune)</span></label>
+                    <div class="picker-map-wrap">
+                        <div id="hostelPickerMap"></div>
+                    </div>
+                    <div class="coords-row">
+                        <input type="number" name="latitude" id="hostel_latitude" step="any" placeholder="Latitude">
+                        <input type="number" name="longitude" id="hostel_longitude" step="any" placeholder="Longitude">
+                        <button type="button" class="btn-locate" id="useMyLocationBtn" title="Use my current location">
+                            <i class="fas fa-location-crosshairs"></i> My location
+                        </button>
+                    </div>
+                    <span class="picker-hint"><i class="fas fa-circle-info"></i> Leaving this blank falls back to auto-locating from the address instead</span>
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label for="hostel_contact">Contact Number</label>
+                    <input type="text" name="contact_number" id="hostel_contact"
+                           placeholder="e.g., +1 608-555-0123">
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label for="hostel_description">Description</label>
+                    <textarea name="description" id="hostel_description" rows="3"
+                              placeholder="Brief description of the hostel..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="hostelSubmitBtn">
+                    <i class="fas fa-building"></i> Create Hostel
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeAddHostelModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{ hostel_floors_map|json_script:"hostel-floors-data" }}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+window.showToast = function(title, message, type) {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+
+    const iconMap = {
+        success: '<i class="fas fa-check-circle"></i>',
+        error: '<i class="fas fa-exclamation-circle"></i>',
+        info: '<i class="fas fa-info-circle"></i>'
+    };
+
+    toast.innerHTML = `
+        <div class="toast-icon">${iconMap[type] || iconMap.success}</div>
+        <div class="toast-txt">
+            <b>${title}</b>
+            <small>${message}</small>
+        </div>
+        <button class="toast-close" onclick="this.closest('.toast').remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(function() {
+        if (toast.parentNode) {
+            toast.classList.add('toast-removing');
+            setTimeout(function() {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 400);
+        }
+    }, 4000);
+
+    toast.querySelector('.toast-close').addEventListener('click', function() {
+        toast.classList.add('toast-removing');
+        setTimeout(function() {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 400);
+    });
+};
+
+window.openAddHostelModal = function() {
+    const modal = document.getElementById('addHostelModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.getElementById('hostelSuccess').classList.remove('show');
+    document.getElementById('hostelError').classList.remove('show');
+    document.getElementById('addHostelForm').reset();
+    document.getElementById('hostelImgPreviewWrap').classList.remove('show');
+    hidePickerSuggestions();
+    setTimeout(initHostelPickerMap, 50);
+};
+
+window.closeAddHostelModal = function() {
+    const modal = document.getElementById('addHostelModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+};
+
+let pickerMap = null;
+let pickerMarker = null;
+const DEFAULT_PICKER_CENTER = [43.0731, -89.4012];
+const latInput = document.getElementById('hostel_latitude');
+const lngInput = document.getElementById('hostel_longitude');
+const suggestionsEl = document.getElementById('pickerSuggestions');
+
+function hidePickerSuggestions() {
+    if (suggestionsEl) {
+        suggestionsEl.classList.remove('show');
+        suggestionsEl.innerHTML = '';
+    }
+}
+
+function setPickerMarker(lat, lng, panTo) {
+    if (latInput) latInput.value = lat.toFixed(6);
+    if (lngInput) lngInput.value = lng.toFixed(6);
+    if (!pickerMap) return;
+    if (pickerMarker) {
+        pickerMarker.setLatLng([lat, lng]);
+    } else {
+        pickerMarker = L.marker([lat, lng], { draggable: true }).addTo(pickerMap);
+        pickerMarker.on('dragend', function() {
+            const pos = pickerMarker.getLatLng();
+            if (latInput) latInput.value = pos.lat.toFixed(6);
+            if (lngInput) lngInput.value = pos.lng.toFixed(6);
+        });
+    }
+    if (panTo) pickerMap.setView([lat, lng], 15);
+}
+
+function initHostelPickerMap() {
+    const mapEl = document.getElementById('hostelPickerMap');
+    if (!mapEl || typeof L === 'undefined') return;
+
+    if (!pickerMap) {
+        pickerMap = L.map('hostelPickerMap', { zoomControl: true }).setView(DEFAULT_PICKER_CENTER, 12);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+            referrerPolicy: 'strict-origin-when-cross-origin'
+        }).addTo(pickerMap);
+
+        pickerMap.on('click', function(e) {
+            setPickerMarker(e.latlng.lat, e.latlng.lng, false);
+        });
+    }
+
+    const existingLat = latInput ? parseFloat(latInput.value) : NaN;
+    const existingLng = lngInput ? parseFloat(lngInput.value) : NaN;
+    if (!isNaN(existingLat) && !isNaN(existingLng)) {
+        setPickerMarker(existingLat, existingLng, true);
+    }
+
+    setTimeout(function() { if (pickerMap) pickerMap.invalidateSize(); }, 60);
+}
+
+const addressInput = document.getElementById('hostel_address');
+const pickerSearchBtn = document.getElementById('pickerSearchBtn');
+
+async function searchAddress() {
+    if (!addressInput || !pickerSearchBtn) return;
+    const q = addressInput.value.trim();
+    if (!q) return;
+    pickerSearchBtn.disabled = true;
+    const originalHTML = pickerSearchBtn.innerHTML;
+    pickerSearchBtn.innerHTML = '<span class="spinner" style="border-color:rgba(255,255,255,0.5);border-top-color:#fff;"></span>';
+
+    try {
+        const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q));
+        const results = await res.json();
+
+        if (!results.length) {
+            if (suggestionsEl) {
+                suggestionsEl.innerHTML = '<div class="sugg-item">No matches found</div>';
+                suggestionsEl.classList.add('show');
+            }
+        } else {
+            if (suggestionsEl) {
+                suggestionsEl.innerHTML = results.map(function(r, i) {
+                    return '<div class="sugg-item" data-idx="' + i + '">' + r.display_name + '</div>';
+                }).join('');
+                suggestionsEl.classList.add('show');
+
+                suggestionsEl.querySelectorAll('.sugg-item').forEach(function(item) {
+                    item.addEventListener('click', function() {
+                        const idx = parseInt(item.getAttribute('data-idx'));
+                        const picked = results[idx];
+                        if (!picked) return;
+                        setPickerMarker(parseFloat(picked.lat), parseFloat(picked.lon), true);
+                        hidePickerSuggestions();
+                    });
+                });
+            }
+        }
+    } catch (e) {
+        if (suggestionsEl) {
+            suggestionsEl.innerHTML = '<div class="sugg-item">Search failed, try again</div>';
+            suggestionsEl.classList.add('show');
+        }
+    } finally {
+        pickerSearchBtn.disabled = false;
+        pickerSearchBtn.innerHTML = originalHTML;
+    }
+}
+
+if (pickerSearchBtn) {
+    pickerSearchBtn.addEventListener('click', searchAddress);
+}
+
+if (addressInput) {
+    addressInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); searchAddress(); }
+    });
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.picker-search')) hidePickerSuggestions();
+});
+
+const useMyLocationBtn = document.getElementById('useMyLocationBtn');
+if (useMyLocationBtn) {
+    useMyLocationBtn.addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            showToast('Error', 'Geolocation is not supported by this browser.', 'error');
+            return;
+        }
+        const originalHTML = useMyLocationBtn.innerHTML;
+        useMyLocationBtn.disabled = true;
+        useMyLocationBtn.innerHTML = '<span class="spinner spinner-dark"></span> Locating...';
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                setPickerMarker(position.coords.latitude, position.coords.longitude, true);
+                useMyLocationBtn.disabled = false;
+                useMyLocationBtn.innerHTML = originalHTML;
+            },
+            function() {
+                showToast('Error', 'Could not get your location. Please search an address or click the map instead.', 'error');
+                useMyLocationBtn.disabled = false;
+                useMyLocationBtn.innerHTML = originalHTML;
+            },
+            { timeout: 8000 }
+        );
+    });
+}
+
+const hostelImageInput = document.getElementById('hostel_image_input');
+const hostelImgPreviewWrap = document.getElementById('hostelImgPreviewWrap');
+const hostelImgPreview = document.getElementById('hostelImgPreview');
+const hostelImgRemoveBtn = document.getElementById('hostelImgRemoveBtn');
+
+if (hostelImageInput) {
+    hostelImageInput.addEventListener('change', function() {
+        const file = this.files && this.files[0];
+        if (!file) {
+            if (hostelImgPreviewWrap) hostelImgPreviewWrap.classList.remove('show');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (hostelImgPreview) hostelImgPreview.src = e.target.result;
+            if (hostelImgPreviewWrap) hostelImgPreviewWrap.classList.add('show');
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+if (hostelImgRemoveBtn) {
+    hostelImgRemoveBtn.addEventListener('click', function() {
+        if (hostelImageInput) hostelImageInput.value = '';
+        if (hostelImgPreview) hostelImgPreview.src = '';
+        if (hostelImgPreviewWrap) hostelImgPreviewWrap.classList.remove('show');
+    });
+}
+
+document.getElementById('addHostelForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('hostelSubmitBtn');
+    const successMsg = document.getElementById('hostelSuccess');
+    const errorMsg = document.getElementById('hostelError');
+    const errorText = document.getElementById('hostelErrorText');
+
+    if (successMsg) successMsg.classList.remove('show');
+    if (errorMsg) errorMsg.classList.remove('show');
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Creating...';
+
+    const formData = new FormData(this);
+
+    fetch('{% url "add_hostel" user.uuid %}', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-building"></i> Create Hostel';
+
+        if (data.success) {
+            if (successMsg) successMsg.classList.add('show');
+
+            const hostelSelect = document.getElementById('hostel_id');
+            if (hostelSelect) {
+                const option = document.createElement('option');
+                option.value = data.hostel_id;
+                option.textContent = data.hostel_name + ' (' + data.hostel_code + ')';
+                hostelSelect.appendChild(option);
+
+                hostelFloorsMap[String(data.hostel_id)] = data.hostel_total_floors || 1;
+
+                if (hostelSelect._choicesInstance) {
+                    hostelSelect._choicesInstance.setChoiceByValue(data.hostel_id);
+                } else {
+                    hostelSelect.value = data.hostel_id;
+                }
+                populateFloorOptions(String(data.hostel_id));
+            }
+
+            setTimeout(function() {
+                closeAddHostelModal();
+                showToast('Success', data.message, 'success');
+            }, 800);
+        } else {
+            if (errorText) errorText.textContent = data.error || 'Failed to create hostel.';
+            if (errorMsg) errorMsg.classList.add('show');
+        }
+    })
+    .catch(function() {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-building"></i> Create Hostel';
+        if (errorText) errorText.textContent = 'Network error. Please check your connection.';
+        if (errorMsg) errorMsg.classList.add('show');
+    });
+});
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn');
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    const size = Math.max(rect.width, rect.height);
+    ripple.className = 'ripple';
+    ripple.style.cssText = `
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.3);
+        transform: scale(0);
+        animation: rippleAnim 0.6s ease-out;
+        pointer-events: none;
+        z-index: -1;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${e.clientX - rect.left - size/2}px;
+        top: ${e.clientY - rect.top - size/2}px;
+    `;
+    btn.style.position = 'relative';
+    btn.style.overflow = 'hidden';
+    btn.style.isolation = 'isolate';
+    btn.appendChild(ripple);
+    setTimeout(function() { ripple.remove(); }, 600);
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAddHostelModal();
+    }
+});
+
+function initChoices() {
+    const selects = document.querySelectorAll('select:not(.choices__input)');
+    selects.forEach(function(select) {
+        if (select.id === 'hostel_id') {
+            new Choices(select, {
+                searchEnabled: true,
+                shouldSort: false,
+                itemSelectText: '',
+                placeholder: true,
+                placeholderValue: 'Select Hostel',
+                noChoicesText: 'No hostels available',
+                noResultsText: 'No hostels found',
+                removeItemButton: false,
+                silent: true,
+                position: 'bottom'
+            });
+        } else if (select.id === 'room_type' || select.id === 'status') {
+            new Choices(select, {
+                searchEnabled: true,
+                shouldSort: false,
+                itemSelectText: '',
+                placeholder: true,
+                placeholderValue: 'Select option...',
+                noChoicesText: 'No options available',
+                noResultsText: 'No results found',
+                removeItemButton: false,
+                silent: true,
+                position: 'bottom'
+            });
+        }
+    });
+}
+
+let hostelFloorsMap = {};
+try {
+    const floorsDataEl = document.getElementById('hostel-floors-data');
+    hostelFloorsMap = floorsDataEl ? JSON.parse(floorsDataEl.textContent) : {};
+} catch (e) {
+    hostelFloorsMap = {};
+}
+
+function populateFloorOptions(hostelId, selectedValue) {
+    const floorSelect = document.getElementById('floor');
+    const totalFloors = hostelFloorsMap[hostelId];
+
+    floorSelect.innerHTML = '';
+
+    if (!hostelId || !totalFloors) {
+        floorSelect.innerHTML = '<option value="">Select hostel first</option>';
+        floorSelect.disabled = true;
+        return;
+    }
+
+    floorSelect.disabled = false;
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select Floor';
+    floorSelect.appendChild(placeholder);
+
+    const ground = document.createElement('option');
+    ground.value = '0';
+    ground.textContent = 'Ground (0)';
+    floorSelect.appendChild(ground);
+
+    for (let f = 1; f <= totalFloors; f++) {
+        const opt = document.createElement('option');
+        opt.value = String(f);
+        opt.textContent = 'Floor ' + f;
+        floorSelect.appendChild(opt);
+    }
+
+    if (selectedValue !== undefined && selectedValue !== null && selectedValue !== '') {
+        floorSelect.value = String(selectedValue);
+    }
+}
+
+const hostelIdSelect = document.getElementById('hostel_id');
+if (hostelIdSelect) {
+    hostelIdSelect.addEventListener('change', function() {
+        populateFloorOptions(this.value);
+    });
+}
+
+const imageFiles = [];
+
+function renderGallery() {
+    const preview = document.getElementById('galleryPreview');
+    const countEl = document.getElementById('uploadCount');
+    preview.innerHTML = '';
+    countEl.textContent = imageFiles.length + ' image' + (imageFiles.length !== 1 ? 's' : '') + ' selected';
+    
+    imageFiles.forEach(function(file, index) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            item.innerHTML = `
+                <img src="${e.target.result}" alt="Room image ${index + 1}">
+                <button class="gallery-item-remove" data-index="${index}">
+                    <i class="fas fa-times"></i>
+                </button>
+                <span class="gallery-item-index">${index + 1}</span>
+            `;
+            preview.appendChild(item);
+
+            item.querySelector('.gallery-item-remove').addEventListener('click', function() {
+                imageFiles.splice(index, 1);
+                renderGallery();
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+const uploadArea = document.getElementById('galleryUploadArea');
+const fileInput = document.getElementById('roomImagesInput');
+
+uploadArea.addEventListener('click', function(e) {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', function() {
+    const files = Array.from(this.files);
+    if (imageFiles.length + files.length > 10) {
+        showToast('Error', 'You can upload a maximum of 10 images.', 'error');
+        this.value = '';
+        return;
+    }
+    files.forEach(function(file) {
+        imageFiles.push(file);
+    });
+    renderGallery();
+    this.value = '';
+});
+
+const galleryWrapper = document.getElementById('galleryWrapper');
+
+galleryWrapper.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+});
+
+galleryWrapper.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+});
+
+galleryWrapper.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    const files = Array.from(e.dataTransfer.files);
+    if (imageFiles.length + files.length > 10) {
+        showToast('Error', 'You can upload a maximum of 10 images.', 'error');
+        return;
+    }
+    files.forEach(function(file) {
+        if (file.type.startsWith('image/')) {
+            imageFiles.push(file);
+        }
+    });
+    renderGallery();
+});
+
+const form = document.getElementById('addRoomForm');
+const submitBtn = document.getElementById('submitBtn');
+
+if (form) {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Adding...';
+
+        const formData = new FormData(form);
+        const floor = parseInt(document.getElementById('floor').value) || 0;
+        const capacity = parseInt(document.getElementById('capacity').value) || 0;
+        const rent = parseFloat(document.getElementById('rent_per_month').value) || 0;
+
+        formData.set('floor', floor);
+        formData.set('capacity', capacity);
+        formData.set('rent_per_month', rent);
+
+        imageFiles.forEach(function(file) {
+            formData.append('images', file);
+        });
+
+        const amenities = [];
+        document.querySelectorAll('#amenitiesGrid input[type="checkbox"]:checked').forEach(function(cb) {
+            amenities.push(cb.value);
+        });
+        const customAmenities = document.getElementById('custom_amenities').value;
+        if (customAmenities) {
+            customAmenities.split(',').forEach(function(item) {
+                const trimmed = item.trim();
+                if (trimmed) amenities.push(trimmed);
+            });
+        }
+        formData.set('amenities', amenities.join(', '));
+        formData.set('room_type', document.getElementById('room_type').value);
+        formData.set('description', document.getElementById('description').value);
+        formData.set('status', document.getElementById('status').value);
+
+        fetch('{% url "add_room" user.uuid %}', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToast('Success', data.message || 'Room added successfully!', 'success');
+                setTimeout(function() {
+                    window.location.href = '{% url "hostel_room_management" user.uuid %}';
+                }, 1500);
+            } else {
+                showToast('Error', data.error || 'Failed to add room.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Room';
+            }
+        })
+        .catch(function() {
+            showToast('Error', 'Network error. Please check your connection.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Room';
+        });
+    });
+}
+
+document.getElementById('resetBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('addRoomForm').reset();
+    imageFiles.length = 0;
+    renderGallery();
+    const floorSelect = document.getElementById('floor');
+    floorSelect.innerHTML = '<option value="">Select hostel first</option>';
+    floorSelect.disabled = true;
+    const hostelSelect = document.getElementById('hostel_id');
+    if (hostelSelect._choicesInstance) {
+        hostelSelect._choicesInstance.setChoiceByValue('');
+    }
+    document.getElementById('galleryWrapper').classList.remove('dragover');
+    document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(function(el) {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+    });
+    showToast('Info', 'Form has been reset', 'info');
+});
+
+document.getElementById('addHostelModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddHostelModal();
+});
+
+initChoices();
+</script>
+{% endblock %}

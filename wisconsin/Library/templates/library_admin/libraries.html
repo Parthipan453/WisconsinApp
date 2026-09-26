@@ -1,0 +1,1612 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Libraries{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/library_admin/libraries.css' %}">
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="libraries-page">
+
+    <!-- ===================================== -->
+    <!-- PAGE HEADER -->
+    <!-- ===================================== -->
+
+    <div class="libraries-header">
+
+        <div class="header-left">
+
+            <h2>Libraries</h2>
+
+            <div class="breadcrumb">
+
+                <a href="{% url 'library_dashboard' request.user.uuid %}">Dashboard</a>
+
+                <span>›</span>
+
+                <span class="active">Libraries</span>
+
+            </div>
+
+        </div>
+
+        <div class="header-right">
+
+            <a href="{% url 'add_library' %}" class="add-library-btn">
+
+                <i class="fa-solid fa-plus"></i>
+
+                Add Library
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ====================================== -->
+<!-- Library Statistics -->
+<!-- ====================================== -->
+
+<div class="library-stats" role="list" aria-label="Library statistics">
+
+    <!-- Total Libraries -->
+
+    <div class="library-stat-card" role="listitem">
+
+        <div class="library-stat-card__icon library-stat-card__icon--total">
+
+            <i class="fa-solid fa-building-columns"></i>
+
+        </div>
+
+        <div class="library-stat-card__body">
+
+            <p class="library-stat-card__label">
+                Total Libraries
+            </p>
+
+            <p class="library-stat-card__value">
+                {{ total_libraries }}
+            </p>
+
+            <p class="library-stat-card__delta library-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Library Collection
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Active Libraries -->
+
+    <div class="library-stat-card" role="listitem">
+
+        <div class="library-stat-card__icon library-stat-card__icon--active">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+        </div>
+
+        <div class="library-stat-card__body">
+
+            <p class="library-stat-card__label">
+                Active Libraries
+            </p>
+
+            <p class="library-stat-card__value">
+                {{ active_libraries }}
+            </p>
+
+            <p class="library-stat-card__delta library-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Currently Active
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Inactive Libraries -->
+
+    <div class="library-stat-card" role="listitem">
+
+        <div class="library-stat-card__icon library-stat-card__icon--inactive">
+
+            <i class="fa-solid fa-circle-xmark"></i>
+
+        </div>
+
+        <div class="library-stat-card__body">
+
+            <p class="library-stat-card__label">
+                Inactive Libraries
+            </p>
+
+            <p class="library-stat-card__value">
+                {{ inactive_libraries }}
+            </p>
+
+            <p class="library-stat-card__delta library-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Currently Inactive
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Buildings -->
+
+    <div class="library-stat-card" role="listitem">
+
+        <div class="library-stat-card__icon library-stat-card__icon--building">
+
+            <i class="fa-solid fa-city"></i>
+
+        </div>
+
+        <div class="library-stat-card__body">
+
+            <p class="library-stat-card__label">
+                Buildings
+            </p>
+
+            <p class="library-stat-card__value">
+                {{ total_buildings }}
+            </p>
+
+            <p class="library-stat-card__delta library-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Active Buildings
+
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+    <!-- ===================================== -->
+    <!-- SEARCH & FILTER -->
+    <!-- ===================================== -->
+
+    <div class="libraries-toolbar">
+
+        <form id="searchForm"
+              method="GET"
+              class="search-form">
+
+            <div class="search-box">
+
+                <i class="fa-solid fa-magnifying-glass"></i>
+
+                <input
+
+                    type="text"
+
+                    name="q"
+
+                    id="library-search"
+
+                    value="{{ search_query }}"
+
+                    placeholder="Search by library name, code, email or phone..."
+
+                    autocomplete="off"
+
+                >
+
+            </div>
+
+        </form>
+
+
+        <div class="toolbar-buttons">
+
+            <button
+
+                type="button"
+
+                class="filter-btn"
+
+                id="toggleFilter">
+
+                <i class="fa-solid fa-filter"></i>
+
+                Filter
+
+            </button>
+
+
+            <a
+
+                href="javascript:void(0);"
+
+                class="reset-btn"
+
+                id="resetFilters">
+
+                <i class="fa-solid fa-rotate-left"></i>
+
+                Reset
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===================================== -->
+    <!-- FILTER CARD -->
+    <!-- ===================================== -->
+
+    <div class="filter-card" id="filterCard">
+
+        <div class="row g-3">
+
+            <!-- Building -->
+
+            <div class="col-lg-6">
+
+                <label class="filter-label">
+
+                    Building
+
+                </label>
+
+                <select
+
+                    id="buildingFilter"
+
+                    class="form-select filter-select library-choice">
+
+                    <option value="">
+
+                        All Buildings
+
+                    </option>
+
+                    {% for building in buildings %}
+
+                    <option
+
+                        value="{{ building.id }}"
+
+                        {% if selected_building == building.id|stringformat:"s" %}selected{% endif %}>
+
+                        {{ building.building_name }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Status -->
+
+            <div class="col-lg-6">
+
+                <label class="filter-label">
+
+                    Status
+
+                </label>
+
+                <select
+
+                    id="statusFilter"
+
+                    class="form-select filter-select library-choice">
+
+                    <option value="">
+
+                        All Status
+
+                    </option>
+
+                    <option value="ACTIVE"
+
+                        {% if selected_status == "ACTIVE" %}selected{% endif %}>
+
+                        Active
+
+                    </option>
+
+                    <option value="INACTIVE"
+
+                        {% if selected_status == "INACTIVE" %}selected{% endif %}>
+
+                        Inactive
+
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =================================== -->
+<!-- LIBRARIES TABLE -->
+<!-- =================================== -->
+
+<div class="table-card">
+
+    <div class="table-responsive">
+
+        <table class="table libraries-table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th style="width:45px;">#</th>
+
+                    <th>LIBRARY</th>
+
+                    <th>CODE</th>
+
+                    <th>BUILDING</th>
+
+                    <th>EMAIL</th>
+
+                    <th>PHONE</th>
+
+                    <th>STATUS</th>
+
+                    <th>ACTIONS</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="libraries-body">
+
+                {% for library in libraries %}
+
+                <tr>
+
+                    <!-- Serial Number -->
+
+                    <td>
+
+                        {{ forloop.counter }}
+
+                    </td>
+
+
+                    <!-- Library -->
+
+                    <td>
+
+                        <div class="library-info">
+
+                            <div class="library-avatar">
+
+                                {% if library.image %}
+
+                                    <img src="{{ library.image.url }}"
+                                         alt="{{ library.library_name }}">
+
+                                {% else %}
+
+                                    <i class="fa-solid fa-building-columns"></i>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="library-details">
+
+                                <h6>
+
+                                    {{ library.library_name }}
+
+                                </h6>
+
+                                <span>
+
+                                    {{ library.address|default:"No Address" }}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <!-- Library Code -->
+
+                    <td>
+
+                        <span class="library-code">
+
+                            {{ library.library_code }}
+
+                        </span>
+
+                    </td>
+
+
+                    <!-- Building -->
+
+                    <td>
+
+                        {% if library.building %}
+
+                            <span class="building-badge">
+
+                                {{ library.building.building_name }}
+
+                            </span>
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- Email -->
+
+                    <td>
+
+                        {{ library.email|default:"—" }}
+
+                    </td>
+
+
+                    <!-- Phone -->
+
+                    <td>
+
+                        {{ library.phone|default:"—" }}
+
+                    </td>
+
+
+                    <!-- Status -->
+
+                    <td>
+
+                        {% if library.status == "ACTIVE" %}
+
+                            <span class="status active">
+
+                                <i class="fa-solid fa-circle"></i>
+
+                                Active
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="status inactive">
+
+                                <i class="fa-solid fa-circle"></i>
+
+                                Inactive
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- Actions -->
+
+                    <td>
+
+                        <div class="library-table-actions">
+
+    <!-- View -->
+
+    <a href="{% url 'view_library' library.id %}"
+       class="library-view-btn"
+       title="View">
+
+        <i class="fa-regular fa-eye"></i>
+
+    </a>
+
+    <!-- Edit -->
+
+    <a href="{% url 'edit_library' library.id %}"
+       class="library-edit-btn"
+       title="Edit">
+
+        <i class="fa-regular fa-pen-to-square"></i>
+
+    </a>
+
+    <!-- Delete -->
+
+    <a
+    href="javascript:void(0)"
+    class="library-delete-btn"
+    data-title="{{ library.library_name }}"
+    data-url="{% url 'delete_library' library.id %}"
+    onclick="openDeleteModal(this)">
+
+    <i class="fa-solid fa-trash"></i>
+
+</a>
+
+</div>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="8" class="text-center py-5">
+
+                        <i class="fa-solid fa-building-columns fa-2x text-secondary mb-3"></i>
+
+                        <h5>
+
+                            No Libraries Found
+
+                        </h5>
+
+                        <p>
+
+                            No libraries match
+
+                            <strong>
+
+                                "{{ search_query }}"
+
+                            </strong>
+
+                        </p>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <!-- =================================== -->
+<!-- TABLE FOOTER -->
+<!-- =================================== -->
+
+<!-- =================================== -->
+<!-- TABLE FOOTER -->
+<!-- =================================== -->
+
+<div class="table-footer">
+
+    <div class="table-info" id="libraryTableInfo">
+
+        Showing
+
+        <strong id="libraryStartIndex">0</strong>
+
+        to
+
+        <strong id="libraryEndIndex">0</strong>
+
+        of
+
+        <strong id="libraryTotal">0</strong>
+
+        libraries
+
+    </div>
+
+
+ <div class="libraries-pagination-wrapper">
+
+    <ul
+        class="libraries-pagination"
+        id="libraries-pagination"
+    ></ul>
+
+</div>
+
+</div>
+
+</div>
+{% endblock %}
+
+
+<!-- ========================================= -->
+<!-- DELETE LIBRARY MODAL -->
+<!-- ========================================= -->
+
+{% block global_modal %}
+
+<div class="modal-overlay" id="deleteLibraryModal">
+
+    <div class="delete-modal">
+
+        <!-- Header -->
+
+        <div class="modal-header">
+
+            <h3>
+
+                Delete Library
+
+            </h3>
+
+        </div>
+
+
+        <!-- Body -->
+
+        <div class="modal-body">
+
+            <div class="modal-icon">
+
+                <i class="ti ti-alert-triangle"></i>
+
+            </div>
+
+            <p class="modal-text">
+
+                Are you sure you want to delete
+
+                <strong id="deleteLibraryName"></strong>?
+
+            </p>
+
+            <p class="modal-warning">
+
+                This action cannot be undone.
+
+            </p>
+
+        </div>
+
+
+        <!-- Footer -->
+
+        <div class="modal-footer">
+
+            <button
+
+                type="button"
+
+                class="modal-btn-cancel"
+
+                onclick="closeDeleteModal()">
+
+                Cancel
+
+            </button>
+
+            <form
+
+                method="POST"
+
+                id="deleteLibraryForm">
+
+                {% csrf_token %}
+
+                <button
+
+                    type="submit"
+
+                    class="modal-btn-delete">
+
+                    Delete
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+{% block extra_js %}
+
+
+<script>
+
+// =====================================================
+// LIBRARIES AJAX
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    initializeFilterToggle();
+
+    initializeFilters();
+
+    initializeReset();
+
+    loadLibraries(1);
+
+});
+
+// =====================================================
+// FILTER TOGGLE
+// =====================================================
+
+function initializeFilterToggle() {
+
+    const filterBtn = document.getElementById("toggleFilter");
+
+    const filterCard = document.getElementById("filterCard");
+
+    if (!filterBtn || !filterCard) return;
+
+    filterBtn.addEventListener("click", function () {
+
+        filterCard.classList.toggle("show");
+
+    });
+
+}
+
+// =====================================================
+// SEARCH + FILTER
+// =====================================================
+
+function initializeFilters() {
+
+    const form = document.getElementById("searchForm");
+
+    const search = document.getElementById("library-search");
+
+    const building = document.getElementById("buildingFilter");
+
+    const status = document.getElementById("statusFilter");
+
+    let typingTimer;
+
+    // Prevent Form Submit
+
+    if(form){
+
+        form.addEventListener("submit",function(e){
+
+            e.preventDefault();
+
+            loadLibraries();
+
+        });
+
+    }
+
+    // Search
+
+    if(search){
+
+        search.addEventListener("input",function(){
+
+            clearTimeout(typingTimer);
+
+            typingTimer=setTimeout(function(){
+
+                loadLibraries();
+
+            },300);
+
+        });
+
+    }
+
+    // Building
+
+    if(building){
+
+        building.addEventListener("change",function(){
+
+            loadLibraries();
+
+        });
+
+    }
+
+    // Status
+
+    if(status){
+
+        status.addEventListener("change",function(){
+
+            loadLibraries();
+
+        });
+
+    }
+
+}
+
+// =====================================================
+// LOAD LIBRARIES
+// =====================================================
+
+function loadLibraries(page=1){
+
+    const params=new URLSearchParams({
+
+        page:page,
+
+        q:document.getElementById("library-search").value,
+
+        building:document.getElementById("buildingFilter").value,
+
+        status:document.getElementById("statusFilter").value
+
+    });
+
+    fetch(
+
+        window.location.pathname+"?"+params.toString(),
+
+        {
+
+            method:"GET",
+
+            cache:"no-store",
+
+            headers:{
+
+                "X-Requested-With":"XMLHttpRequest"
+
+            }
+
+        }
+
+    )
+
+    .then(function(response){
+
+        if(!response.ok){
+
+            throw new Error("Network Error");
+
+        }
+
+        return response.json();
+
+    })
+
+    .then(function(data){
+
+        console.log(data);
+
+        renderLibraries(data);
+
+        renderPagination(data);
+
+    })
+
+    .catch(function(error){
+
+        console.error(error);
+
+    });
+
+}
+// =====================================================
+// RENDER LIBRARIES
+// =====================================================
+
+function renderLibraries(data){
+
+    const tbody = document.getElementById("libraries-body");
+
+    tbody.innerHTML = "";
+
+    if(data.libraries.length===0){
+
+        tbody.innerHTML = `
+
+        <tr>
+
+            <td colspan="8" class="text-center py-5">
+
+                <i class="fa-solid fa-building-columns fa-2x text-secondary mb-3"></i>
+
+                <h5>No Libraries Found</h5>
+
+                <p>No matching libraries found.</p>
+
+            </td>
+
+        </tr>
+
+        `;
+
+        return;
+
+    }
+
+    data.libraries.forEach(function(library,index){
+
+        let image = "";
+
+        if(library.image){
+
+            image = `
+
+                <img src="${library.image}"
+
+                     alt="${library.library_name}">
+
+            `;
+
+        }
+
+        else{
+
+            image = `
+
+                <i class="fa-solid fa-building-columns"></i>
+
+            `;
+
+        }
+
+        let building = library.building
+            ? `<span class="building-badge">${library.building}</span>`
+            : "—";
+
+        let status = "";
+
+        if(library.status==="ACTIVE"){
+
+            status = `
+
+                <span class="status active">
+
+                    <i class="fa-solid fa-circle"></i>
+
+                    Active
+
+                </span>
+
+            `;
+
+        }
+
+        else{
+
+            status = `
+
+                <span class="status inactive">
+
+                    <i class="fa-solid fa-circle"></i>
+
+                    Inactive
+
+                </span>
+
+            `;
+
+        }
+
+        tbody.innerHTML += `
+
+<tr>
+
+    <td>
+
+        ${index+1}
+
+    </td>
+
+    <td>
+
+        <div class="library-info">
+
+            <div class="library-avatar">
+
+                ${image}
+
+            </div>
+
+            <div class="library-details">
+
+                <h6>
+
+                    ${library.library_name}
+
+                </h6>
+
+                <span>
+
+                    ${library.address}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </td>
+
+    <td>
+
+        <span class="library-code">
+
+            ${library.library_code}
+
+        </span>
+
+    </td>
+
+    <td>
+
+        ${building}
+
+    </td>
+
+    <td>
+
+        ${library.email}
+
+    </td>
+
+    <td>
+
+        ${library.phone}
+
+    </td>
+
+    <td>
+
+        ${status}
+
+    </td>
+
+    <td>
+
+        <div class="library-table-actions">
+
+            <a
+
+                href="${library.view_url}"
+
+                class="library-view-btn"
+
+                title="View">
+
+                <i class="fa-regular fa-eye"></i>
+
+            </a>
+
+            <a
+
+                href="${library.edit_url}"
+
+                class="library-edit-btn"
+
+                title="Edit">
+
+                <i class="fa-regular fa-pen-to-square"></i>
+
+            </a>
+
+            <a
+
+                href="javascript:void(0)"
+
+                class="library-delete-btn"
+
+                title="Delete"
+
+                data-title="${library.library_name}"
+
+                data-url="${library.delete_url}"
+
+                onclick="openDeleteModal(this)">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </a>
+
+        </div>
+
+    </td>
+
+</tr>
+
+`;
+
+    });
+
+}
+
+// =====================================================
+// RENDER PAGINATION
+// =====================================================
+
+// =====================================================
+// LIBRARIES PAGINATION
+// =====================================================
+
+function renderPagination(data) {
+
+    const pagination =
+        document.getElementById(
+            "libraries-pagination"
+        );
+
+
+    if (!pagination) {
+        return;
+    }
+
+
+    pagination.innerHTML = "";
+
+
+    // =================================================
+    // UPDATE TABLE FOOTER
+    // =================================================
+
+    const startIndex =
+        document.getElementById(
+            "libraryStartIndex"
+        );
+
+
+    const endIndex =
+        document.getElementById(
+            "libraryEndIndex"
+        );
+
+
+    const total =
+        document.getElementById(
+            "libraryTotal"
+        );
+
+
+    if (startIndex) {
+
+        startIndex.textContent =
+            data.start_index || 0;
+
+    }
+
+
+    if (endIndex) {
+
+        endIndex.textContent =
+            data.end_index || 0;
+
+    }
+
+
+    if (total) {
+
+        total.textContent =
+            data.total || 0;
+
+    }
+
+
+    // =================================================
+    // NO RESULTS
+    // =================================================
+
+    if (
+        !data.num_pages ||
+        data.num_pages <= 0
+    ) {
+        return;
+    }
+
+
+    const currentPage =
+        Number(data.current_page || 1);
+
+
+    const totalPages =
+        Number(data.num_pages || 1);
+
+
+    // =================================================
+    // PREVIOUS BUTTON
+    // =================================================
+
+    const previousItem =
+        document.createElement("li");
+
+
+    if (data.has_previous) {
+
+        previousItem.innerHTML = `
+
+            <button
+                type="button"
+                class="libraries-pagination-btn"
+            >
+                Previous
+            </button>
+
+        `;
+
+
+        previousItem
+            .querySelector("button")
+            .addEventListener(
+                "click",
+                function () {
+
+                    loadLibraries(
+                        data.previous_page
+                    );
+
+                }
+            );
+
+    } else {
+
+        previousItem.innerHTML = `
+
+            <button
+                type="button"
+                class="libraries-pagination-btn disabled"
+                disabled
+            >
+                Previous
+            </button>
+
+        `;
+
+    }
+
+
+    pagination.appendChild(
+        previousItem
+    );
+
+
+    // =================================================
+    // PAGE BUTTON
+    // =================================================
+
+    function createPageButton(pageNumber) {
+
+        const item =
+            document.createElement("li");
+
+
+        const button =
+            document.createElement("button");
+
+
+        button.type =
+            "button";
+
+
+        button.className =
+            "libraries-page-number";
+
+
+        if (
+            pageNumber === currentPage
+        ) {
+
+            button.classList.add(
+                "active"
+            );
+
+        }
+
+
+        button.textContent =
+            pageNumber;
+
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                loadLibraries(
+                    pageNumber
+                );
+
+            }
+        );
+
+
+        item.appendChild(button);
+
+
+        pagination.appendChild(item);
+
+    }
+
+
+    // =================================================
+    // ELLIPSIS
+    // =================================================
+
+    function createEllipsis() {
+
+        const item =
+            document.createElement("li");
+
+
+        item.className =
+            "libraries-pagination-ellipsis";
+
+
+        item.textContent =
+            "...";
+
+
+        pagination.appendChild(item);
+
+    }
+
+
+    // =================================================
+    // PAGE LOGIC
+    // =================================================
+
+    if (totalPages <= 4) {
+
+        for (
+            let page = 1;
+            page <= totalPages;
+            page++
+        ) {
+
+            createPageButton(page);
+
+        }
+
+    }
+
+
+    else if (currentPage <= 2) {
+
+        createPageButton(1);
+
+        createPageButton(2);
+
+        createEllipsis();
+
+        createPageButton(totalPages);
+
+    }
+
+
+    else if (
+        currentPage >= totalPages - 1
+    ) {
+
+        createPageButton(1);
+
+        createEllipsis();
+
+        createPageButton(
+            totalPages - 1
+        );
+
+        createPageButton(
+            totalPages
+        );
+
+    }
+
+
+    else {
+
+        createPageButton(1);
+
+        createEllipsis();
+
+        createPageButton(currentPage);
+
+        createEllipsis();
+
+        createPageButton(totalPages);
+
+    }
+
+
+    // =================================================
+    // NEXT BUTTON
+    // =================================================
+
+    const nextItem =
+        document.createElement("li");
+
+
+    if (data.has_next) {
+
+        nextItem.innerHTML = `
+
+            <button
+                type="button"
+                class="libraries-pagination-btn"
+            >
+                Next
+            </button>
+
+        `;
+
+
+        nextItem
+            .querySelector("button")
+            .addEventListener(
+                "click",
+                function () {
+
+                    loadLibraries(
+                        data.next_page
+                    );
+
+                }
+            );
+
+    } else {
+
+        nextItem.innerHTML = `
+
+            <button
+                type="button"
+                class="libraries-pagination-btn disabled"
+                disabled
+            >
+                Next
+            </button>
+
+        `;
+
+    }
+
+
+    pagination.appendChild(
+        nextItem
+    );
+
+}
+// =====================================================
+// RESET FILTERS
+// =====================================================
+
+function initializeReset(){
+
+    const reset=document.getElementById("resetFilters");
+
+    if(!reset) return;
+
+    reset.addEventListener("click",function(e){
+
+        e.preventDefault();
+
+        document.getElementById("library-search").value="";
+
+        document.getElementById("buildingFilter").value="";
+
+        document.getElementById("statusFilter").value="";
+
+        // Choices.js
+
+        if(window.buildingChoices){
+
+            buildingChoices.removeActiveItems();
+
+            buildingChoices.setChoiceByValue("");
+
+        }
+
+        if(window.statusChoices){
+
+            statusChoices.removeActiveItems();
+
+            statusChoices.setChoiceByValue("");
+
+        }
+
+        loadLibraries();
+
+    });
+
+}
+
+
+// =====================================================
+// INITIAL LOAD
+// =====================================================
+
+loadLibraries();
+
+// ==========================================
+// Delete Modal
+// ==========================================
+
+function openDeleteModal(button) {
+
+    const modal = document.getElementById("deleteLibraryModal");
+
+    const form = document.getElementById("deleteLibraryForm");
+
+    const name = document.getElementById("deleteLibraryName");
+
+    name.textContent = button.dataset.title;
+
+    form.action = button.dataset.url;
+
+    modal.classList.add("show");
+
+}
+
+
+
+function closeDeleteModal() {
+
+    document.getElementById("deleteLibraryModal").classList.remove("show");
+
+}
+
+
+
+// ==========================================
+// Close Modal on Overlay Click
+// ==========================================
+
+window.addEventListener("click", function (event) {
+
+    const modal = document.getElementById("deleteLibraryModal");
+
+    if (event.target === modal) {
+
+        closeDeleteModal();
+
+    }
+
+});
+</script>
+
+{% endblock %}

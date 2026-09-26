@@ -1,0 +1,492 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Reports & Analytics — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'Resources/reports.css' %}" />
+{% endblock %}
+
+{% block nav_resources_open %}open{% endblock %}
+{% block nav_resources_submenu %}open{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block content %}
+
+<div class="reports-page-header">
+  <div>
+    <h1>Reports & Analytics</h1>
+    <p>Access and generate comprehensive reports on student performance, enrollment, financial aid, and more.</p>
+  </div>
+  <div class="dash-date-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    {{ today|date:"d M Y, l" }}
+  </div>
+</div>
+
+<div class="reports-stats">
+  <div class="reports-stat-card" data-aos="fade-up" data-aos-delay="0">
+    <div class="reports-stat-number" data-count="24">0</div>
+    <div class="reports-stat-label">Total Reports</div>
+    <div class="reports-stat-change up">↑ 8 from last month</div>
+  </div>
+  <div class="reports-stat-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="reports-stat-number" data-count="1,284">0</div>
+    <div class="reports-stat-label">Total Views</div>
+    <div class="reports-stat-change up">↑ 23% from last month</div>
+  </div>
+  <div class="reports-stat-card" data-aos="fade-up" data-aos-delay="200">
+    <div class="reports-stat-number" data-count="456">0</div>
+    <div class="reports-stat-label">Total Downloads</div>
+    <div class="reports-stat-change up">↑ 15% from last month</div>
+  </div>
+  <div class="reports-stat-card" data-aos="fade-up" data-aos-delay="300">
+    <div class="reports-stat-number" data-count="12">0</div>
+    <div class="reports-stat-label">Generated This Month</div>
+    <div class="reports-stat-change up">↑ 4 from last month</div>
+  </div>
+</div>
+
+<div class="reports-actions">
+  <a href="#" class="action-btn primary" onclick="showNotification('Generating new report...')">
+    <i class="ti ti-plus"></i> Generate Report
+  </a>
+  <a href="#" class="action-btn" onclick="openTemplatePicker(event)">
+    <i class="ti ti-template"></i> Templates
+  </a>
+  <a href="#" class="action-btn" onclick="showNotification('Opening schedule manager...')">
+    <i class="ti ti-clock"></i> Schedule
+  </a>
+  <a href="#" class="action-btn" onclick="showNotification('Exporting data...')">
+    <i class="ti ti-upload"></i> Export Data
+  </a>
+</div>
+
+<div class="modal-overlay" id="templateModal" onclick="closeTemplateModal(event)">
+  <div class="modal-content template-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Choose a Report Style</h3>
+      <button class="modal-close" onclick="closeTemplateModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="template-grid">
+
+        <div class="template-card" data-template="classic" onclick="selectTemplate('classic')">
+          <div class="template-preview classic-preview">
+            <div class="tp-header"></div>
+            <div class="tp-row"></div><div class="tp-row alt"></div>
+            <div class="tp-row"></div><div class="tp-row alt"></div>
+          </div>
+          <div class="template-label">Classic</div>
+          <p>Blue header, clean grid — familiar and simple.</p>
+        </div>
+
+        <div class="template-card" data-template="modern" onclick="selectTemplate('modern')">
+          <div class="template-preview modern-preview">
+            <div class="tp-title-bar"></div>
+            <div class="tp-accent-line"></div>
+            <div class="tp-header dark"></div>
+            <div class="tp-row"></div><div class="tp-row alt"></div>
+            <div class="tp-row"></div>
+          </div>
+          <div class="template-label">Modern Minimal</div>
+          <p>Dark header, cyan accent, generous spacing.</p>
+        </div>
+
+        <div class="template-card" data-template="corporate" onclick="selectTemplate('corporate')">
+          <div class="template-preview corporate-preview">
+            <div class="tp-title-bar maroon"></div>
+            <div class="tp-header maroon"></div>
+            <div class="tp-row"></div><div class="tp-row alt-maroon"></div>
+            <div class="tp-row"></div>
+          </div>
+          <div class="template-label">Corporate</div>
+          <p>Maroon branding, bold header — formal look.</p>
+        </div>
+
+      </div>
+
+      <div id="templateReportChoice" style="display:none; margin-top:20px;">
+        <div id="templateContextLabel" class="template-context-label" style="display:none;"></div>
+        <div id="templateReportSelectWrap">
+          <label>Which report do you want to generate?</label>
+          <select id="templateReportType" class="filter-select" style="width:100%; margin-top:8px;">
+            <option value="students">Student Records</option>
+            <option value="financial-aid">Financial Aid</option>
+            <option value="research">Research Activity</option>
+          </select>
+        </div>
+        <div class="modal-actions" style="margin-top:16px;">
+          <button class="modal-btn primary" onclick="generateWithTemplate()">Generate PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="reports-search-filter">
+  <div class="search-wrapper">
+    <i class="ti ti-search"></i>
+    <input type="text" id="reportsSearch" placeholder="Search reports by name, type, or category..." onkeyup="filterReports()">
+  </div>
+  <div class="filter-wrapper">
+    <select id="typeFilter" onchange="filterReports()" class="filter-select">
+      <option value="all">All Types</option>
+      <option value="academic">Academic</option>
+      <option value="financial">Financial</option>
+      <option value="admissions">Admissions</option>
+      <option value="enrollment">Enrollment</option>
+      <option value="performance">Performance</option>
+      <option value="research">Research</option>
+    </select>
+    <select id="categoryFilter" onchange="filterReports()" class="filter-select">
+      <option value="all">All Categories</option>
+      <option value="student-services">Student Services</option>
+      <option value="academic-support">Academic Support</option>
+      <option value="financial-aid">Financial Aid</option>
+      <option value="records">Records</option>
+    </select>
+    <button class="btn-clear-filter" onclick="clearFilters()">
+      <i class="ti ti-rotate"></i> Reset
+    </button>
+  </div>
+</div>
+
+<div class="reports-grid" id="reportsGrid">
+
+  <!-- Report Card 1 -->
+  <div class="reports-card" data-type="enrollment" data-category="student-services">
+    <div class="reports-card-header">
+      <div class="reports-icon icon-blue"><i class="ti ti-users"></i></div>
+      <span class="reports-badge">Enrollment</span>
+    </div>
+    <h4>Student Records</h4>
+    <p class="reports-description">Complete list of all enrolled students with program, GPA, and status.</p>
+    <div class="reports-meta">
+      <span class="reports-tag"><i class="ti ti-folder"></i> Student Services</span>
+      <span class="reports-date"><i class="ti ti-calendar"></i> Updated today</span>
+    </div>
+    <div class="reports-actions-row">
+      <a href="#" class="reports-btn view" onclick="openTemplatePicker(event, 'students')">
+        <i class="ti ti-file-pdf"></i> PDF
+      </a>
+      <a class="reports-btn download" href="{% url 'export_student_records_excel' uuid=user.uuid %}">
+        <i class="ti ti-file-spreadsheet"></i> Excel
+      </a>
+      <span class="reports-stats-count">
+        <span><i class="ti ti-eye"></i> 156</span>
+        <span><i class="ti ti-download"></i> 42</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Report Card 2 -->
+  <div class="reports-card" data-type="financial" data-category="financial-aid">
+    <div class="reports-card-header">
+      <div class="reports-icon icon-green"><i class="ti ti-currency-dollar"></i></div>
+      <span class="reports-badge">Financial</span>
+    </div>
+    <h4>Financial Aid — This Year</h4>
+    <p class="reports-description">All financial aid awards for the current academic year.</p>
+    <div class="reports-meta">
+      <span class="reports-tag"><i class="ti ti-folder"></i> Financial Aid</span>
+      <span class="reports-date"><i class="ti ti-calendar"></i> Updated this week</span>
+    </div>
+    <div class="reports-actions-row">
+      <a href="#" class="reports-btn view" onclick="openTemplatePicker(event, 'financial-aid')">
+        <i class="ti ti-file-pdf"></i> PDF
+      </a>
+      <a class="reports-btn download" href="{% url 'export_financial_aid_excel' uuid=user.uuid %}?year=2025-2026">
+        <i class="ti ti-file-spreadsheet"></i> Excel
+      </a>
+      <span class="reports-stats-count">
+        <span><i class="ti ti-eye"></i> 98</span>
+        <span><i class="ti ti-download"></i> 31</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Report Card 3 -->
+  <div class="reports-card" data-type="research" data-category="academic-support">
+    <div class="reports-card-header">
+      <div class="reports-icon icon-purple"><i class="ti ti-flask"></i></div>
+      <span class="reports-badge">Research</span>
+    </div>
+    <h4>Research Grant Activity</h4>
+    <p class="reports-description">Active research records across all departments.</p>
+    <div class="reports-meta">
+      <span class="reports-tag"><i class="ti ti-folder"></i> Academic Support</span>
+      <span class="reports-date"><i class="ti ti-calendar"></i> Updated this month</span>
+    </div>
+    <div class="reports-actions-row">
+      <a href="#" class="reports-btn view" onclick="openTemplatePicker(event, 'research')">
+        <i class="ti ti-file-pdf"></i> PDF
+      </a>
+      <a class="reports-btn download" href="{% url 'export_research_excel' uuid=user.uuid %}">
+        <i class="ti ti-file-spreadsheet"></i> Excel
+      </a>
+      <span class="reports-stats-count">
+        <span><i class="ti ti-eye"></i> 64</span>
+        <span><i class="ti ti-download"></i> 19</span>
+      </span>
+    </div>
+  </div>
+
+</div>
+
+<div class="no-results" id="noResults" style="display:none;">
+  <i class="ti ti-search"></i>
+  <p>No reports found matching your search criteria.</p>
+</div>
+
+<div class="pagination-wrap">
+  <span class="pagination-info">Showing <span id="startCount">1</span> - <span id="endCount">6</span> of <span id="totalCount">6</span> reports</span>
+  <div class="pagination-links">
+    <a href="#" class="page-link disabled"><i class="ti ti-chevron-left"></i></a>
+    <a href="#" class="page-link active">1</a>
+    <a href="#" class="page-link">2</a>
+    <a href="#" class="page-link">3</a>
+    <a href="#" class="page-link"><i class="ti ti-chevron-right"></i></a>
+  </div>
+</div>
+
+<div class="notification-toast" id="notificationToast">
+  <span id="notificationMessage">Action completed</span>
+  <button onclick="closeNotification()">&times;</button>
+</div>
+
+<div class="modal-overlay" id="reportsModal" onclick="closeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modalTitle">Report Details</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  animateStats();
+  if (typeof AOS !== 'undefined') {
+    AOS.init({ once: true, duration: 400 });
+  }
+  updateCounts();
+});
+
+function animateStats() {
+  const stats = document.querySelectorAll('.reports-stat-number');
+  stats.forEach(stat => {
+    const target = stat.getAttribute('data-count');
+    const isDecimal = target.includes('.');
+    const numTarget = parseFloat(target.replace(/,/g, ''));
+    const duration = 1500;
+    const startTime = performance.now();
+
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = eased * numTarget;
+
+      if (isDecimal) {
+        stat.textContent = current.toFixed(1);
+      } else {
+        stat.textContent = Math.floor(current).toLocaleString();
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        stat.textContent = target;
+      }
+    }
+    requestAnimationFrame(update);
+  });
+}
+
+function filterReports() {
+  const searchInput = document.getElementById('reportsSearch');
+  const typeFilter = document.getElementById('typeFilter');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const searchTerm = searchInput.value.toLowerCase();
+  const typeTerm = typeFilter.value;
+  const categoryTerm = categoryFilter.value;
+  const cards = document.querySelectorAll('.reports-card');
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const type = card.getAttribute('data-type');
+    const category = card.getAttribute('data-category');
+
+    const matchesSearch = text.includes(searchTerm);
+    const matchesType = typeTerm === 'all' || type === typeTerm;
+    const matchesCategory = categoryTerm === 'all' || category === categoryTerm;
+
+    if (matchesSearch && matchesType && matchesCategory) {
+      card.style.display = '';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  const noResults = document.getElementById('noResults');
+  noResults.style.display = visibleCount === 0 ? 'flex' : 'none';
+  updateCounts();
+}
+
+function clearFilters() {
+  document.getElementById('reportsSearch').value = '';
+  document.getElementById('typeFilter').value = 'all';
+  document.getElementById('categoryFilter').value = 'all';
+  filterReports();
+  showNotification('Filters cleared');
+}
+
+function updateCounts() {
+  const cards = document.querySelectorAll('.reports-card:not([style*="display: none"])');
+  document.getElementById('startCount').textContent = cards.length > 0 ? 1 : 0;
+  document.getElementById('endCount').textContent = cards.length;
+  document.getElementById('totalCount').textContent = document.querySelectorAll('.reports-card').length;
+}
+
+function viewReport(event, name) {
+  event.preventDefault();
+  const modal = document.getElementById('reportsModal');
+  document.getElementById('modalTitle').textContent = `Report: ${name}`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-reports-info">
+      <div class="modal-details">
+        <p><strong>Report Name:</strong> ${name}</p>
+        <p><strong>Type:</strong> Academic Report</p>
+        <p><strong>Category:</strong> Student Services</p>
+        <p><strong>Format:</strong> PDF</p>
+        <p><strong>Generated:</strong> Dec 15, 2024</p>
+        <p><strong>Views:</strong> 156</p>
+        <p><strong>Downloads:</strong> 42</p>
+        <p><strong>Status:</strong> <span style="color:#16a34a;">Available</span></p>
+        <p style="margin-top:10px;"><strong>Description:</strong> Comprehensive overview of student enrollment by department, program, and academic year.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="closeModal()">Close</button>
+      <button class="modal-btn" onclick="closeModal(); downloadReport(event, '${name}')">Download</button>
+    </div>
+  `;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function downloadReport(event, name) {
+  event.preventDefault();
+  showNotification(`Downloading ${name}...`);
+  setTimeout(() => {
+    showNotification(`${name} downloaded successfully!`);
+  }, 2000);
+}
+
+function closeModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('reportsModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeTemplateModal();
+    closeNotification();
+  }
+});
+
+function showNotification(message) {
+  const toast = document.getElementById('notificationToast');
+  document.getElementById('notificationMessage').textContent = message;
+  toast.classList.add('show');
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function closeNotification() {
+  const toast = document.getElementById('notificationToast');
+  toast.classList.remove('show');
+  clearTimeout(toast._timeout);
+}
+
+let selectedTemplate = null;
+let contextReportType = null;
+
+const REPORT_URLS = {
+  'students': "{% url 'export_student_records_pdf' uuid=user.uuid %}",
+  'financial-aid': "{% url 'export_financial_aid_pdf' uuid=user.uuid %}",
+  'research': "{% url 'export_research_pdf' uuid=user.uuid %}",
+};
+
+const REPORT_LABELS = {
+  'students': 'Student Records',
+  'financial-aid': 'Financial Aid',
+  'research': 'Research Grant Activity',
+};
+
+function openTemplatePicker(e, reportType) {
+  e.preventDefault();
+  contextReportType = reportType || null;
+
+  const selectWrap = document.getElementById('templateReportSelectWrap');
+  const contextLabel = document.getElementById('templateContextLabel');
+
+  if (contextReportType) {
+    selectWrap.style.display = 'none';
+    contextLabel.style.display = 'block';
+    contextLabel.textContent = `Generating: ${REPORT_LABELS[contextReportType]}`;
+  } else {
+    selectWrap.style.display = 'block';
+    contextLabel.style.display = 'none';
+  }
+
+  document.getElementById('templateModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeTemplateModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('templateModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('templateReportChoice').style.display = 'none';
+  selectedTemplate = null;
+  contextReportType = null;
+}
+
+function selectTemplate(name) {
+  selectedTemplate = name;
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`.template-card[data-template="${name}"]`).classList.add('selected');
+  document.getElementById('templateReportChoice').style.display = 'block';
+}
+
+function generateWithTemplate() {
+  if (!selectedTemplate) {
+    showNotification('Pick a report style first');
+    return;
+  }
+  const reportType = contextReportType || document.getElementById('templateReportType').value;
+  const baseUrl = REPORT_URLS[reportType];
+  window.location.href = `${baseUrl}?template=${selectedTemplate}`;
+  closeTemplateModal();
+}
+
+console.log(' Reports & Analytics loaded successfully!');
+</script>
+{% endblock %}

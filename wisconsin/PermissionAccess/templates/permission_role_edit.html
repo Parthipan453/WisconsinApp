@@ -1,0 +1,159 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Edit Role — {{ role.name }}{% endblock %}
+{% block page_title %}Roles & Permissions{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="pm-page-header" data-aos="fade-down">
+    <div class="pm-page-header__text">
+      <a href="{% url 'Permission:permission_role_list' %}" class="pm-back-link">
+        <i data-lucide="arrow-left"></i> Roles & Permissions
+      </a>
+      <h1 class="pm-page-heading">
+        {{ role.name }}
+        {% if role.is_system %}<span class="pm-pill pm-pill--purple">System Role</span>{% endif %}
+      </h1>
+      <p>Edit this role's details and choose exactly which permissions it grants.</p>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="pm-grid-2 mb-6">
+
+      <div class="pm-card">
+        <div class="pm-card__head">
+          <h2 class="pm-card__title"><i data-lucide="id-card"></i> Role Details</h2>
+        </div>
+        <div class="pm-card__body">
+          <div class="pm-form-group">
+            <label for="name">Role Name</label>
+            <input type="text" id="name" name="name" value="{{ role.name }}"
+                   {% if role.is_system %}readonly{% endif %} required />
+            {% if role.is_system %}
+              <p class="pm-hint">System roles cannot be renamed.</p>
+            {% endif %}
+          </div>
+          <div class="pm-form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4">{{ role.description }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="pm-card" style="align-self:start;">
+        <div class="pm-card__head">
+          <h2 class="pm-card__title"><i data-lucide="bar-chart-3"></i> Summary</h2>
+        </div>
+        <div class="pm-card__body">
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div>
+              <div class="pm-stat-label">Assigned Users</div>
+              <div class="pm-stat-value">{{ role.user_roles.count }}</div>
+            </div>
+            <div>
+              <div class="pm-stat-label">Selected Permissions</div>
+              <div class="pm-stat-value" id="perm-count">{{ role.permissions.count }}</div>
+            </div>
+            <div>
+              <div class="pm-stat-label">Status</div>
+              {% if role.is_active %}
+                <span class="pm-pill pm-pill--green"><i data-lucide="check-circle"></i> Active</span>
+              {% else %}
+                <span class="pm-pill pm-pill--red"><i data-lucide="x-circle"></i> Inactive</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pm-card mb-6">
+      <div class="pm-card__head">
+        <h2 class="pm-card__title"><i data-lucide="shield-check"></i> Permissions</h2>
+        <div class="flex gap-2">
+          <button type="button" class="pm-btn-outline-sm" onclick="toggleAll(true)">
+            <i data-lucide="check-square"></i> Select All
+          </button>
+          <button type="button" class="pm-btn-outline-sm" onclick="toggleAll(false)">
+            <i data-lucide="square"></i> Clear All
+          </button>
+        </div>
+      </div>
+      <div class="pm-card__body">
+
+        {% for app_name, models in grouped.items %}
+          <div class="perm-group">
+            <div class="perm-group-title">{{ app_name }}</div>
+
+            {% for model_name, perms in models.items %}
+              <div class="perm-model-title">{{ model_name }}</div>
+              <div class="perm-checkboxes">
+                {% for item in perms %}
+                  <label class="perm-check">
+                    <input type="checkbox"
+                           name="permissions"
+                           value="{{ item.perm.id }}"
+                           {% if item.checked %}checked{% endif %}
+                           onchange="updateCount()" />
+                    {{ item.perm.get_action_display }}
+                  </label>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        {% empty %}
+          <p class="pm-hint">No permissions found. Run migrations to auto-generate them.</p>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <div class="permission-save-bar" style="border-radius: var(--pm-radius); border:1px solid var(--pm-border);">
+      <span class="permission-save-bar__hint">Changes take effect immediately for everyone holding this role.</span>
+      <div class="flex gap-3">
+        <a href="{% url 'Permission:permission_role_list' %}" class="permission-btn-cancel">Cancel</a>
+        <button type="submit" class="permission-btn-save"><i data-lucide="save"></i> Save Changes</button>
+      </div>
+    </div>
+
+  </form>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+  .perm-group { margin-bottom: 22px; }
+  .perm-group-title {
+    font-size: .78rem; font-weight: 700; color: var(--pm-text-dim);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--pm-border);
+  }
+  .perm-model-title { font-size: .82rem; font-weight: 600; color: var(--pm-ink); margin: 10px 0 6px; }
+  .perm-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .perm-check {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--pm-surface-2); border: 1px solid var(--pm-border);
+    border-radius: var(--pm-radius-sm); padding: 7px 12px; cursor: pointer;
+    transition: border-color .15s, background .15s; font-size: .8rem; color: var(--pm-text-strong);
+  }
+  .perm-check:has(input:checked) { border-color: var(--pm-red); background: var(--pm-red-light); color: var(--pm-red); }
+  .perm-check input[type="checkbox"] { accent-color: var(--pm-red); }
+</style>
+<script>
+  function updateCount() {
+    const total = document.querySelectorAll('input[name="permissions"]:checked').length;
+    document.getElementById('perm-count').textContent = total;
+  }
+  function toggleAll(state) {
+    document.querySelectorAll('input[name="permissions"]').forEach(cb => cb.checked = state);
+    updateCount();
+  }
+</script>
+{% endblock %}

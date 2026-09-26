@@ -1,0 +1,1315 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}
+    Research Evaluation | Faculty Portal
+{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/ResearchMilestone/research_milestone_detail.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="red-page">
+        <section class="red-hero">
+            <div class="red-hero-top">
+                {% comment %} <div class="red-breadcrumb">
+                    <a href="{% url 'research_milestone_list' uuid=request.user.uuid %}">Research Milestones</a>
+                    <i class="bi bi-chevron-right"></i>
+                    <span>Evaluation</span>
+                    <i class="bi bi-chevron-right"></i>
+                    <strong>Details</strong>
+                </div> {% endcomment %}
+                <div class="red-hero-actions">
+                    {% if milestone.status == "COMPLETED" %}
+                        <span class="red-evaluate-action completed">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Milestone Completed</span>
+                        </span>
+                    {% elif not submission %}
+                        <span class="red-evaluate-action disabled">
+                            <i class="bi bi-hourglass-split"></i>
+                            <span>Submission Pending</span>
+                        </span>
+                    {% elif is_chair %}
+                        {% if chair_evaluation %}
+                            <span class="red-evaluate-action finalized">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Evaluation Finalized</span>
+                            </span>
+                            <a href="{% url 'research_milestone_evaluation_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id evaluation_id=chair_evaluation.evaluation_id %}"
+                               class="red-evaluate-view">
+                                <i class="bi bi-eye"></i>
+                                <span>View</span>
+                            </a>
+                        {% elif committee_member_count == 0 %}
+                            <span class="red-evaluate-action disabled">
+                                <i class="bi bi-people"></i>
+                                <span>No Committee Members</span>
+                            </span>
+                        {% elif committee_evaluation_completed == 0 %}
+                            <span class="red-evaluate-action pending">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Evaluations Pending</span>
+                            </span>
+                        {% elif committee_evaluation_completed < committee_member_count %}
+                            <span class="red-evaluate-action started">
+                                <i class="bi bi-activity"></i>
+                                <span>
+                                    Evaluation Started
+                                    <small>{{ committee_evaluation_completed }}/{{ committee_member_count }}</small>
+                                </span>
+                            </span>
+                        {% else %}
+                            <a href="{% url 'research_milestone_evaluate' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                               class="red-evaluate-action finalize">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Finalize Evaluation</span>
+                                <i class="bi bi-arrow-right red-evaluate-arrow"></i>
+                            </a>
+                        {% endif %}
+                    {% elif is_committee_member %}
+                        {% if my_evaluation %}
+                            <span class="red-evaluate-action completed">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Evaluation Completed</span>
+                            </span>
+                            <a href="{% url 'research_milestone_evaluation_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id evaluation_id=my_evaluation.evaluation_id %}"
+                               class="red-evaluate-view">
+                                <i class="bi bi-eye"></i>
+                                <span>View</span>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'research_milestone_evaluate' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                               class="red-evaluate-action evaluate">
+                                <i class="bi bi-clipboard2-check"></i>
+                                <span>Evaluate Now</span>
+                                <i class="bi bi-arrow-right red-evaluate-arrow"></i>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                    <a href="{% url 'research_milestone_list' uuid=request.user.uuid %}"
+                       class="red-back">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Back to Milestone</span>
+                    </a>
+                </div>
+            </div>
+            <div class="red-hero-content">
+                <div class="red-hero-icon">
+                    <i class="bi bi-clipboard2-check-fill"></i>
+                </div>
+                <div class="red-hero-info">
+                    <span class="red-eyebrow">Research Milestone Evaluation</span>
+                    <h1>{{ milestone.milestone_title }}</h1>
+                    <p>
+                        Research milestone details and faculty evaluation
+                        for {{ student.user.get_full_name }}.
+                    </p>
+                    <div class="red-hero-tags">
+                        <span class="red-tag">
+                            <i class="bi bi-hash"></i>
+                            RM-{{ milestone.milestone_id }}
+                        </span>
+                        <span class="red-tag">
+                            <i class="bi bi-person"></i>
+                            {{ student.user.get_full_name }}
+                        </span>
+                        <span class="red-status status-{{ milestone.status|lower }}">{{ milestone.get_status_display }}</span>
+                        {% if is_chair %}
+                            <span class="red-role-tag chair">
+                                <i class="bi bi-shield-check"></i>
+                                Chair Faculty
+                            </span>
+                        {% elif is_committee_member %}
+                            <span class="red-role-tag member">
+                                <i class="bi bi-person-check"></i>
+                                Committee Member
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% if is_chair and milestone.status == "REVISION_REQUIRED" and chair_evaluation %}
+            <section class="red-side-card red-second-chance-card">
+                <div class="red-second-chance-glow"></div>
+                <div class="red-second-chance-icon">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <div class="red-second-chance-content">
+                    <span class="red-second-chance-eyebrow">
+                        <i class="bi bi-stars"></i>
+                        Chair Decision
+                    </span>
+                    <h3>Grant a Second Chance</h3>
+                    <p>
+                        This milestone requires revision. If you believe the student
+                        should be given another opportunity, you can reopen this
+                        milestone for resubmission.
+                    </p>
+                    <div class="red-second-chance-status">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        <span>Revision Required</span>
+                    </div>
+                    <form method="post"
+                          action="{% url 'research_milestone_second_chance' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                          style="margin: 0">
+                        {% csrf_token %}
+                        <button type="submit" class="red-second-chance-btn">
+                            <span>
+                                <i class="bi bi-unlock-fill"></i>
+                                Grant Second Chance
+                            </span>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </form>
+                    <small>The student will be allowed to submit a revised version.</small>
+                </div>
+            </section>
+        {% endif %}
+        <section class="red-summary-grid">
+            {% if is_chair %}
+                <div class="red-summary-card red-committee-summary">
+                    <div class="red-summary-icon red-icon-red">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Committee Evaluations</span>
+                        <strong>{{ committee_evaluation_completed }}/{{ committee_member_count }}</strong>
+                    </div>
+                </div>
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-green">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Evaluation Progress</span>
+                        <strong>{{ committee_evaluation_percent }}%</strong>
+                    </div>
+                </div>
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-purple">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Chair Evaluation</span>
+                        <strong>
+                            {% if chair_evaluation %}
+                                Completed
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-orange">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Submission</span>
+                        <strong>
+                            {% if submission %}
+                                #{{ submission.submission_number }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            {% else %}
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-red">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Your Evaluated Progress</span>
+                        <strong>
+                            {% if evaluation and evaluation.progress_percentage != None %}
+                                {{ evaluation.progress_percentage }}%
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-green">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Your Decision</span>
+                        <strong class="red-decision-text">
+                            {% if evaluation %}
+                                {{ evaluation.get_decision_display }}
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-purple">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Your Role</span>
+                        <strong>Committee Member</strong>
+                    </div>
+                </div>
+                <div class="red-summary-card">
+                    <div class="red-summary-icon red-icon-orange">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <div class="red-summary-content">
+                        <span>Submission</span>
+                        <strong>
+                            {% if submission %}
+                                #{{ submission.submission_number }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            {% endif %}
+        </section>
+        <div class="red-layout">
+            <main class="red-main">
+                <section class="red-card red-evaluation-card">
+                    <div class="red-card-header">
+                        <div class="red-heading">
+                            <div class="red-heading-icon">
+                                <i class="bi bi-award-fill"></i>
+                            </div>
+                            <div>
+                                <span>
+                                    {% if is_chair %}
+                                        Final Assessment
+                                    {% else %}
+                                        Your Assessment
+                                    {% endif %}
+                                </span>
+                                <h2>
+                                    {% if is_chair %}
+                                        Evaluation Summary
+                                    {% else %}
+                                        My Evaluation
+                                    {% endif %}
+                                </h2>
+                            </div>
+                        </div>
+                        {% if is_chair %}
+                            {% if chair_evaluation %}
+                                <span class="red-evaluation-badge">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Finalized
+                                </span>
+                            {% else %}
+                                <span class="red-evaluation-badge pending">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    Pending
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            {% if my_evaluation %}
+                                <span class="red-evaluation-badge">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Submitted
+                                </span>
+                            {% else %}
+                                <span class="red-evaluation-badge pending">
+                                    <i class="bi bi-clock"></i>
+                                    Pending
+                                </span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="red-evaluation-body">
+                        {% if not submission %}
+                            {% if is_chair %}
+                                <div class="red-submission-pending-panel">
+                                    <div class="red-submission-pending-icon">
+                                        <i class="bi bi-file-earmark-arrow-up"></i>
+                                    </div>
+                                    <div class="red-submission-pending-content">
+                                        <span>Student Submission</span>
+                                        <strong>Submission Not Received</strong>
+                                        <p>
+                                            The student has not submitted the required research
+                                            milestone documents yet. Faculty evaluation will become
+                                            available after the submission is received.
+                                        </p>
+                                        <div class="red-submission-state">
+                                            <i class="bi bi-clock"></i>
+                                            <span>Waiting for Student Submission</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% elif is_committee_member %}
+                                <div class="red-submission-pending-panel">
+                                    <div class="red-submission-pending-icon">
+                                        <i class="bi bi-hourglass-split"></i>
+                                    </div>
+                                    <div class="red-submission-pending-content">
+                                        <span>Student Submission</span>
+                                        <strong>Waiting for Student Submission</strong>
+                                        <p>
+                                            The student has not submitted this research milestone
+                                            yet. You can evaluate the milestone once the submission
+                                            is received.
+                                        </p>
+                                        <div class="red-submission-state">
+                                            <i class="bi bi-lock"></i>
+                                            <span>Evaluation Not Available</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% elif is_chair %}
+                            {% if chair_evaluation %}
+                                <div class="red-progress-section">
+                                    <div class="red-progress-top">
+                                        <div>
+                                            <span>Research Progress</span>
+                                            <strong>
+                                                {% if chair_evaluation.progress_percentage != None %}
+                                                    {{ chair_evaluation.progress_percentage }}%
+                                                {% else %}
+                                                    Not Applicable
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                        {% if chair_evaluation.progress_percentage != None %}
+                                            <div class="red-progress-number">{{ chair_evaluation.progress_percentage }}%</div>
+                                        {% endif %}
+                                    </div>
+                                    {% if chair_evaluation.progress_percentage != None %}
+                                        <div class="red-progress-track">
+                                            <div class="red-progress-fill"
+                                                 data-progress="{{ chair_evaluation.progress_percentage }}"></div>
+                                        </div>
+                                        <div class="red-progress-scale">
+                                            <span>0%</span>
+                                            <span>25%</span>
+                                            <span>50%</span>
+                                            <span>75%</span>
+                                            <span>100%</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="red-progress-na">
+                                            <i class="bi bi-dash-circle"></i>
+                                            <span>Progress percentage was not required for this evaluation.</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="red-decision-panel">
+                                    <div class="red-decision-icon {% if chair_evaluation.decision == 'COMPLETED' %} completed {% else %} revision {% endif %}">
+                                        {% if chair_evaluation.decision == "COMPLETED" %}
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="red-decision-content">
+                                        <span>Final Evaluation Decision</span>
+                                        <strong>{{ chair_evaluation.get_decision_display }}</strong>
+                                        <p>
+                                            {% if chair_evaluation.decision == "COMPLETED" %}
+                                                The research milestone has satisfied the evaluation
+                                                requirements and has been marked as completed.
+                                            {% else %}
+                                                The submitted research work requires revision before
+                                                the milestone can be completed.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="red-feedback">
+                                    <div class="red-feedback-title">
+                                        <i class="bi bi-chat-square-text-fill"></i>
+                                        <span>Chair Faculty Feedback</span>
+                                    </div>
+                                    <div class="red-feedback-box">
+                                        {% if chair_evaluation.feedback %}
+                                            {{ chair_evaluation.feedback|linebreaksbr }}
+                                        {% else %}
+                                            <span class="red-empty-text">No feedback was provided.</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="red-evaluation-meta">
+                                    <div class="red-meta-item">
+                                        <span>Evaluator</span>
+                                        <strong>{{ chair_evaluation.evaluator.user.get_full_name }}</strong>
+                                    </div>
+                                    <div class="red-meta-item">
+                                        <span>Role</span>
+                                        <strong>{{ chair_evaluation.get_evaluator_role_display }}</strong>
+                                    </div>
+                                    <div class="red-meta-item">
+                                        <span>Evaluated On</span>
+                                        <strong>{{ chair_evaluation.evaluated_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                    <div class="red-meta-item">
+                                        <span>Last Updated</span>
+                                        <strong>{{ chair_evaluation.updated_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                </div>
+                            {% elif committee_member_count == 0 %}
+                                <div class="red-submission-pending-panel">
+                                    <div class="red-submission-pending-icon">
+                                        <i class="bi bi-people"></i>
+                                    </div>
+                                    <div class="red-submission-pending-content">
+                                        <span>Committee Review</span>
+                                        <strong>No Committee Evaluations Available</strong>
+                                        <p>
+                                            The student submission has been received, but no
+                                            committee members are currently assigned to provide
+                                            evaluations.
+                                        </p>
+                                    </div>
+                                </div>
+                            {% elif committee_evaluation_completed < committee_member_count %}
+                                <div class="red-chair-review-panel">
+                                    <div class="red-chair-review-icon">
+                                        <i class="bi bi-people-fill"></i>
+                                    </div>
+                                    <div class="red-chair-review-content">
+                                        <span>Committee Evaluation Progress</span>
+                                        <strong>Awaiting Committee Evaluations</strong>
+                                        <p>
+                                            Committee members are currently reviewing the submitted
+                                            research milestone. The Chair Faculty can finalize the
+                                            milestone after all required evaluations are completed.
+                                        </p>
+                                        <div class="red-chair-review-progress">
+                                            <div class="red-chair-review-progress-top">
+                                                <span>
+                                                    {{ committee_evaluation_completed }}
+                                                    of
+                                                    {{ committee_member_count }}
+                                                    completed
+                                                </span>
+                                                <strong>{{ committee_evaluation_percent }}%</strong>
+                                            </div>
+                                            <div class="red-progress-track">
+                                                <div class="red-progress-fill"
+                                                     data-progress="{{ committee_evaluation_percent }}"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="red-chair-ready-panel">
+                                    <div class="red-chair-ready-icon">
+                                        <i class="bi bi-shield-check"></i>
+                                    </div>
+                                    <div class="red-chair-ready-content">
+                                        <span>Chair Final Evaluation</span>
+                                        <strong>Ready for Final Evaluation</strong>
+                                        <p>
+                                            All required committee evaluations have been submitted.
+                                            The Chair Faculty can now review the feedback and
+                                            finalize the research milestone.
+                                        </p>
+                                        <div class="red-submission-state ready">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            <span>
+                                                {{ committee_evaluation_completed }}/{{ committee_member_count }}
+                                                Committee Evaluations Completed
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% elif is_committee_member %}
+                            {% if my_evaluation %}
+                                <div class="red-progress-section">
+                                    <div class="red-progress-top">
+                                        <div>
+                                            <span>Your Research Progress</span>
+                                            <strong>
+                                                {% if my_evaluation.progress_percentage != None %}
+                                                    {{ my_evaluation.progress_percentage }}%
+                                                {% else %}
+                                                    Not Applicable
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                        {% if my_evaluation.progress_percentage != None %}
+                                            <div class="red-progress-number">{{ my_evaluation.progress_percentage }}%</div>
+                                        {% endif %}
+                                    </div>
+                                    {% if my_evaluation.progress_percentage != None %}
+                                        <div class="red-progress-track">
+                                            <div class="red-progress-fill"
+                                                 data-progress="{{ my_evaluation.progress_percentage }}"></div>
+                                        </div>
+                                        <div class="red-progress-scale">
+                                            <span>0%</span>
+                                            <span>25%</span>
+                                            <span>50%</span>
+                                            <span>75%</span>
+                                            <span>100%</span>
+                                        </div>
+                                    {% else %}
+                                        <div class="red-progress-na">
+                                            <i class="bi bi-dash-circle"></i>
+                                            <span>Progress percentage was not required for your evaluation.</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="red-decision-panel">
+                                    <div class="red-decision-icon {% if my_evaluation.decision == 'COMPLETED' %} completed {% else %} revision {% endif %}">
+                                        {% if my_evaluation.decision == "COMPLETED" %}
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="red-decision-content">
+                                        <span>Your Evaluation Decision</span>
+                                        <strong>{{ my_evaluation.get_decision_display }}</strong>
+                                        <p>
+                                            {% if my_evaluation.decision == "COMPLETED" %}
+                                                Your evaluation has been submitted successfully
+                                                and is now available to the Chair Faculty.
+                                            {% else %}
+                                                Your evaluation has requested revision before
+                                                the milestone can be completed.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="red-feedback">
+                                    <div class="red-feedback-title">
+                                        <i class="bi bi-chat-square-text-fill"></i>
+                                        <span>Your Feedback</span>
+                                    </div>
+                                    <div class="red-feedback-box">
+                                        {% if my_evaluation.feedback %}
+                                            {{ my_evaluation.feedback|linebreaksbr }}
+                                        {% else %}
+                                            <span class="red-empty-text">No feedback was provided.</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="red-evaluation-meta">
+                                    <div class="red-meta-item">
+                                        <span>Evaluator</span>
+                                        <strong>{{ my_evaluation.evaluator.user.get_full_name }}</strong>
+                                    </div>
+                                    <div class="red-meta-item">
+                                        <span>Role</span>
+                                        <strong>{{ my_evaluation.get_evaluator_role_display }}</strong>
+                                    </div>
+                                    <div class="red-meta-item">
+                                        <span>Evaluated On</span>
+                                        <strong>{{ my_evaluation.evaluated_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                    <div class="red-meta-item">
+                                        <span>Last Updated</span>
+                                        <strong>{{ my_evaluation.updated_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="red-member-pending-panel">
+                                    <div class="red-member-pending-icon">
+                                        <i class="bi bi-clipboard2-check"></i>
+                                    </div>
+                                    <div class="red-member-pending-content">
+                                        <span>Your Committee Evaluation</span>
+                                        <strong>Evaluation Pending</strong>
+                                        <p>
+                                            The student submission has been received.
+                                            You can now review the submitted research work
+                                            and provide your evaluation.
+                                        </p>
+                                        <div class="red-submission-state ready">
+                                            <i class="bi bi-file-earmark-check"></i>
+                                            <span>Student Submission Available</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </section>
+                <section class="red-card">
+                    <div class="red-card-header">
+                        <div class="red-heading">
+                            <div class="red-heading-icon">
+                                <i class="bi bi-folder2-open"></i>
+                            </div>
+                            <div>
+                                <span>Student Submission</span>
+                                <h2>Submitted Research Files</h2>
+                            </div>
+                        </div>
+                        <span class="red-file-count">
+                            {{ submission_files|length }}
+                            {% if submission_files|length == 1 %}
+                                File
+                            {% else %}
+                                Files
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="red-files-body">
+                        {% if submission %}
+                            <div class="red-submission-banner">
+                                <div class="red-submission-number">{{ submission.submission_number }}</div>
+                                <div class="red-submission-info">
+                                    <strong>Research Submission #{{ submission.submission_number }}</strong>
+                                    <span>
+                                        Submitted on
+                                        {{ submission.submitted_at|date:"d M Y, h:i A" }}
+                                    </span>
+                                </div>
+                                <span class="red-submission-status status-{{ submission.status|lower }}">{{ submission.get_status_display }}</span>
+                            </div>
+                            {% if submission_files %}
+                                <div class="red-files-grid">
+                                    {% for file in submission_files %}
+                                        <a href="{{ file.url }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="red-file-card">
+                                            <div class="red-file-icon {% if file.type == 'PRIMARY DOCUMENT' %}red-file-main{% endif %}">
+                                                <i class="bi {{ file.icon }}"></i>
+                                            </div>
+                                            <div class="red-file-content">
+                                                <span class="red-file-type">{{ file.type }}</span>
+                                                <strong>{{ file.name }}</strong>
+                                                <small>{{ file.filename }}</small>
+                                            </div>
+                                            <div class="red-file-open">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="red-no-files show">
+                                    <div>
+                                        <i class="bi bi-file-earmark-x"></i>
+                                    </div>
+                                    <strong>No submitted files</strong>
+                                    <span>
+                                        No research document is attached
+                                        to this submission.
+                                    </span>
+                                </div>
+                            {% endif %}
+                            {% if submission.student_remarks %}
+                                <div class="red-student-remarks">
+                                    <div class="red-remarks-heading">
+                                        <i class="bi bi-chat-left-text-fill"></i>
+                                        <span>Student Remarks</span>
+                                    </div>
+                                    <div class="red-remarks-content">{{ submission.student_remarks|linebreaksbr }}</div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="red-no-files show">
+                                <div>
+                                    <i class="bi bi-inbox"></i>
+                                </div>
+                                <strong>No Submission</strong>
+                                <span>
+                                    No research submission has been received
+                                    for this milestone.
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+                <section class="red-card">
+                    <div class="red-card-header">
+                        <div class="red-heading">
+                            <div class="red-heading-icon">
+                                <i class="bi bi-person-vcard-fill"></i>
+                            </div>
+                            <div>
+                                <span>Research Scholar</span>
+                                <h2>Student Information</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="red-student-body">
+                        <div class="red-student-profile">
+                            <div class="red-student-avatar">{{ student.user.first_name|first|upper }}</div>
+                            <div class="red-student-name">
+                                <h3>{{ student.user.get_full_name }}</h3>
+                                <span>PhD Research Scholar</span>
+                            </div>
+                        </div>
+                        <div class="red-detail-grid">
+                            <div class="red-detail">
+                                <span>Student ID</span>
+                                <strong>{{ student.student_number|default:"—" }}</strong>
+                            </div>
+                            <div class="red-detail">
+                                <span>PhD Program</span>
+                                <strong>{{ phd_student.phd_program|default:"—" }}</strong>
+                            </div>
+                            <div class="red-detail">
+                                <span>Department</span>
+                                <strong>{{ phd_student.phd_program.department|default:"—" }}</strong>
+                            </div>
+                            <div class="red-detail">
+                                <span>Advisor</span>
+                                <strong>
+                                    {% if phd_student.advisor %}
+                                        {{ phd_student.advisor.user.get_full_name }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="red-detail">
+                                <span>Student Status</span>
+                                <strong>{{ phd_student.get_current_status_display|default:"—" }}</strong>
+                            </div>
+                            <div class="red-detail">
+                                <span>Milestone Sequence</span>
+                                <strong>{{ milestone.sequence_number }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="red-card">
+                    <div class="red-card-header">
+                        <div class="red-heading">
+                            <div class="red-heading-icon">
+                                <i class="bi bi-diagram-3-fill"></i>
+                            </div>
+                            <div>
+                                <span>Research Supervision</span>
+                                <h2>Doctoral Committee</h2>
+                            </div>
+                        </div>
+                        <span class="red-approved">
+                            <i class="bi bi-check-circle-fill"></i>
+                            {{ committee.get_approval_status_display }}
+                        </span>
+                    </div>
+                    <div class="red-committee">
+                        <div class="red-person-row red-chair-row">
+                            <div class="red-person-avatar">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </div>
+                            <div class="red-person-info">
+                                <strong>{{ committee.chair_faculty.user.get_full_name }}</strong>
+                                <span>Chair Faculty</span>
+                            </div>
+                            <span class="red-role">Chair</span>
+                        </div>
+                        {% if phd_student.advisor %}
+                            <div class="red-person-row">
+                                <div class="red-person-avatar">
+                                    <i class="bi bi-person-workspace"></i>
+                                </div>
+                                <div class="red-person-info">
+                                    <strong>{{ phd_student.advisor.user.get_full_name }}</strong>
+                                    <span>Research Advisor</span>
+                                </div>
+                                <span class="red-role">Advisor</span>
+                            </div>
+                        {% endif %}
+                        {% if committee_members %}
+                            {% for member in committee_members %}
+                                <div class="red-person-row">
+                                    <div class="red-person-avatar">
+                                        {% if member.role == "CO_CHAIR" %}
+                                            <i class="bi bi-person-badge-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-person-fill"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="red-person-info">
+                                        <strong>{{ member.faculty.user.get_full_name }}</strong>
+                                        <span>
+                                            {% if member.role == "CO_CHAIR" %}
+                                                Co Chair Faculty
+                                            {% else %}
+                                                Committee Member
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <span class="red-role">{{ member.get_role_display }}</span>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="red-empty-committee">No additional committee members assigned.</div>
+                        {% endif %}
+                    </div>
+                </section>
+                {% if visible_evaluations %}
+                    <section class="red-card red-review-history-card">
+                        <div class="red-card-header">
+                            <div class="red-heading">
+                                <div class="red-heading-icon">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                                <div>
+                                    <span>
+                                        {% if is_chair %}
+                                            Committee Review
+                                        {% else %}
+                                            Your Review
+                                        {% endif %}
+                                    </span>
+                                    <h2>
+                                        {% if is_chair %}
+                                            Committee Evaluations
+                                        {% else %}
+                                            My Evaluation
+                                        {% endif %}
+                                    </h2>
+                                </div>
+                            </div>
+                            <span class="red-file-count">
+                                {% if is_chair %}
+                                    {{ committee_evaluation_completed }}/{{ committee_member_count }} Completed
+                                {% else %}
+                                    {% if evaluation %}
+                                        Submitted
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if is_chair %}
+                            <div class="red-committee-progress-panel">
+                                <div class="red-committee-progress-top">
+                                    <div>
+                                        <span>Current Committee Evaluation Progress</span>
+                                        <strong>{{ committee_evaluation_completed }}/{{ committee_member_count }}</strong>
+                                    </div>
+                                    <b>{{ committee_evaluation_percent }}%</b>
+                                </div>
+                                <div class="red-committee-progress-track">
+                                    <div class="red-committee-progress-fill"
+                                         data-progress="{{ committee_evaluation_percent }}"></div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="red-review-list">
+                            {% for item in visible_evaluations %}
+                                <div class="red-review {% if is_chair and item.evaluator_id == faculty.pk %}red-review-chair{% endif %}">
+                                    <div class="red-review-avatar">{{ item.evaluator.user.first_name|first|upper }}</div>
+                                    <div class="red-review-main">
+                                        <div class="red-review-top">
+                                            <div>
+                                                <strong>{{ item.evaluator.user.get_full_name }}</strong>
+                                                <span>{{ item.get_evaluator_role_display }}</span>
+                                            </div>
+                                            <time>{{ item.evaluated_at|date:"d M Y, h:i A" }}</time>
+                                        </div>
+                                        <div class="red-review-stats">
+                                            <span>
+                                                <i class="bi bi-graph-up"></i>
+                                                {% if item.progress_percentage != None %}
+                                                    {{ item.progress_percentage }}%
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </span>
+                                            <span class="{% if item.decision == 'COMPLETED' %}red-review-complete{% else %}red-review-revision{% endif %}">
+                                                {% if item.decision == "COMPLETED" %}
+                                                    <i class="bi bi-check-circle"></i>
+                                                {% else %}
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                {% endif %}
+                                                {{ item.get_decision_display }}
+                                            </span>
+                                        </div>
+                                        {% if item.feedback %}
+                                            <div class="red-review-feedback">{{ item.feedback|linebreaksbr }}</div>
+                                        {% else %}
+                                            <div class="red-review-feedback empty">No feedback was provided.</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if is_chair and not chair_evaluation %}
+                            <div class="red-chair-final-pending">
+                                <div class="red-chair-final-icon">
+                                    <i class="bi bi-shield-exclamation"></i>
+                                </div>
+                                <div>
+                                    <strong>Chair Final Evaluation Pending</strong>
+                                    <span>
+                                        {% if committee_evaluation_completed == committee_member_count and committee_member_count > 0 %}
+                                            All current committee evaluations are complete. The chair can now finalize the milestone.
+                                        {% else %}
+                                            Final evaluation becomes available after all current committee members submit their evaluations.
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </section>
+                {% endif %}
+                {% if is_chair and advisor_advice %}
+                    <section class="red-card">
+                        <div class="red-card-header">
+                            <div class="red-heading">
+                                <div class="red-heading-icon">
+                                    <i class="bi bi-chat-quote-fill"></i>
+                                </div>
+                                <div>
+                                    <span>Advisor Review</span>
+                                    <h2>Research Advice</h2>
+                                </div>
+                            </div>
+                            <span class="red-file-count">
+                                {{ advisor_advice|length }}
+                                {% if advisor_advice|length == 1 %}
+                                    Advice
+                                {% else %}
+                                    Advices
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="red-advice-list">
+                            {% for advice in advisor_advice %}
+                                <div class="red-advice">
+                                    <div class="red-advice-top">
+                                        <div class="red-advisor-avatar">{{ advice.advisor.user.first_name|first|upper }}</div>
+                                        <div>
+                                            <strong>{{ advice.advisor.user.get_full_name }}</strong>
+                                            <span>Research Advisor</span>
+                                        </div>
+                                        <time>
+                                            {% if advice.submitted_at %}
+                                                {{ advice.submitted_at|date:"d M Y, h:i A" }}
+                                            {% elif advice.created_at %}
+                                                {{ advice.created_at|date:"d M Y, h:i A" }}
+                                            {% endif %}
+                                        </time>
+                                    </div>
+                                    <div class="red-advice-content">
+                                        {% if advice.advice %}
+                                            {{ advice.advice|linebreaksbr }}
+                                        {% else %}
+                                            <span class="red-empty-text">No advisor advice was provided.</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="red-advice-status">
+                                        {% if advice.is_submitted %}
+                                            <span class="red-advice-submitted">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                Submitted
+                                            </span>
+                                        {% else %}
+                                            <span class="red-advice-draft">
+                                                <i class="bi bi-pencil"></i>
+                                                Draft
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endif %}
+            </main>
+            <aside class="red-sidebar">
+                <section class="red-side-card red-highlight">
+                    <div class="red-side-title">
+                        <div class="red-side-icon">
+                            <i class="bi bi-activity"></i>
+                        </div>
+                        <div>
+                            <span>Milestone Status</span>
+                            <strong>Current State</strong>
+                        </div>
+                    </div>
+                    <div class="red-side-status status-{{ milestone.status|lower }}">{{ milestone.get_status_display }}</div>
+                    <p>
+                        {% if milestone.status == "COMPLETED" %}
+                            This research milestone has been completed successfully.
+                        {% elif milestone.status == "REVISION_REQUIRED" %}
+                            Revision is required before the milestone can progress to completion.
+                        {% elif milestone.status == "UNDER_REVIEW" %}
+                            The milestone is currently under faculty review.
+                        {% elif milestone.status == "ON_HOLD" %}
+                            This research milestone is currently on hold.
+                        {% else %}
+                            This milestone is part of the active research workflow.
+                        {% endif %}
+                    </p>
+                </section>
+                <section class="red-side-card">
+                    <div class="red-side-title">
+                        <div class="red-side-icon">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div>
+                            <span>Milestone Schedule</span>
+                            <strong>Important Dates</strong>
+                        </div>
+                    </div>
+                    <div class="red-date-list">
+                        <div class="red-date">
+                            <div>
+                                <i class="bi bi-play-circle"></i>
+                                <span>Start Date</span>
+                            </div>
+                            <strong>{{ milestone.start_date|date:"d M Y"|default:"—" }}</strong>
+                        </div>
+                        <div class="red-date">
+                            <div>
+                                <i class="bi bi-calendar-event"></i>
+                                <span>Target Date</span>
+                            </div>
+                            <strong>{{ milestone.expected_completion_date|date:"d M Y"|default:"—" }}</strong>
+                        </div>
+                        <div class="red-date">
+                            <div>
+                                <i class="bi bi-check-circle"></i>
+                                <span>Completed</span>
+                            </div>
+                            <strong>{{ milestone.completion_date|date:"d M Y"|default:"—" }}</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="red-side-card">
+                    <div class="red-side-title">
+                        <div class="red-side-icon">
+                            <i class="bi bi-person-badge-fill"></i>
+                        </div>
+                        <div>
+                            <span>Research Authority</span>
+                            <strong>Chair Faculty</strong>
+                        </div>
+                    </div>
+                    <div class="red-chair">
+                        <div class="red-chair-avatar">{{ committee.chair_faculty.user.first_name|first|upper }}</div>
+                        <div>
+                            <strong>{{ committee.chair_faculty.user.get_full_name }}</strong>
+                            <span>Chair Faculty</span>
+                        </div>
+                    </div>
+                </section>
+                <section class="red-side-card">
+                    <div class="red-side-title">
+                        <div class="red-side-icon">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div>
+                            <span>Evaluation Timeline</span>
+                            <strong>Activity</strong>
+                        </div>
+                    </div>
+                    <div class="red-timeline">
+                        {% if submission %}
+                            <div class="red-timeline-item done">
+                                <div class="red-timeline-dot">
+                                    <i class="bi bi-check"></i>
+                                </div>
+                                <div>
+                                    <strong>Submission Received</strong>
+                                    <span>{{ submission.submitted_at|date:"d M Y, h:i A" }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if evaluation %}
+                            <div class="red-timeline-item done">
+                                <div class="red-timeline-dot">
+                                    <i class="bi bi-check"></i>
+                                </div>
+                                <div>
+                                    <strong>Evaluation Completed</strong>
+                                    <span>{{ evaluation.evaluated_at|date:"d M Y, h:i A" }}</span>
+                                </div>
+                            </div>
+                            <div class="red-timeline-item current">
+                                <div class="red-timeline-dot">
+                                    <i class="bi bi-circle-fill"></i>
+                                </div>
+                                <div>
+                                    <strong>{{ evaluation.get_decision_display }}</strong>
+                                    <span>Current evaluation decision</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="red-timeline-item current">
+                                <div class="red-timeline-dot">
+                                    <i class="bi bi-circle-fill"></i>
+                                </div>
+                                <div>
+                                    <strong>Evaluation Pending</strong>
+                                    <span>Awaiting faculty evaluation</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+                <section class="red-side-card red-actions-card">
+                    <div class="red-side-title">
+                        <div class="red-side-icon">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <div>
+                            <span>Navigation</span>
+                            <strong>Quick Actions</strong>
+                        </div>
+                    </div>
+                    <a href="{% url 'research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                       class="red-side-action">
+                        <i class="bi bi-diagram-3"></i>
+                        <span>View Milestone</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                    <a href="{% url 'research_milestone_list' uuid=request.user.uuid %}"
+                       class="red-side-action">
+                        <i class="bi bi-list-ul"></i>
+                        <span>All Milestones</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const progressFill = document.querySelector(
+        ".red-progress-fill"
+    );
+
+    if (progressFill) {
+
+        const value = parseFloat(
+            progressFill.dataset.progress
+        ) || 0;
+
+        const progress = Math.min(
+            Math.max(value, 0),
+            100
+        );
+
+        requestAnimationFrame(function () {
+
+            progressFill.style.width =
+                progress + "%";
+
+        });
+
+    }
+
+
+    const committeeProgressFill = document.querySelector(
+        ".red-committee-progress-fill"
+    );
+
+    if (committeeProgressFill) {
+        const value = parseFloat(
+            committeeProgressFill.dataset.progress
+        ) || 0;
+
+        const progress = Math.min(
+            Math.max(value, 0),
+            100
+        );
+
+        requestAnimationFrame(function () {
+            committeeProgressFill.style.width =
+                progress + "%";
+        });
+    }
+
+
+    const fileCards = document.querySelectorAll(
+        ".red-file-card"
+    );
+
+    fileCards.forEach(function (card) {
+
+        card.addEventListener(
+            "click",
+            function () {
+
+                const fileName =
+                    card.querySelector(
+                        ".red-file-content strong"
+                    );
+
+                if (fileName) {
+
+                    card.setAttribute(
+                        "aria-label",
+                        "Open " +
+                        fileName.textContent.trim()
+                    );
+
+                }
+
+            }
+        );
+
+    });
+
+
+    const statusElements =
+        document.querySelectorAll(
+            ".red-status, .red-side-status, .red-submission-status"
+        );
+
+    statusElements.forEach(function (element) {
+
+        const status =
+            element.textContent
+                .trim()
+                .toLowerCase();
+
+        element.setAttribute(
+            "data-status",
+            status
+        );
+
+    });
+
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            Swal.fire({
+
+                icon:
+                    "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+
+                title:
+                    "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Warning{% else %}Information{% endif %}",
+
+                text:
+                    "{{ message|escapejs }}",
+
+                confirmButtonColor:
+                    "#c5050c",
+
+                confirmButtonText:
+                    "Continue"
+
+            });
+
+        {% endfor %}
+
+    {% endif %}
+
+});
+
+    </script>
+{% endblock extra_js %}

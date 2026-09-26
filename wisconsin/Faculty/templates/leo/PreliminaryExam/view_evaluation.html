@@ -1,0 +1,709 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}View Evaluation{% endblock %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/PreliminaryExam/view_evaluation.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="euavaluation-zoom-div">
+        <div class="print-document-header">
+            <div class="print-university-name">UNIVERSITY OF WISCONSIN</div>
+            <div class="print-document-title">PRELIMINARY / QUALIFYING EXAMINATION</div>
+            <div class="print-document-subtitle">FACULTY EVALUATION REPORT</div>
+            <div class="print-header-line"></div>
+        </div>
+        <div class="print-report">
+            <div class="print-report-page print-report-page-one">
+                <header class="print-report-header">
+                    <div class="print-report-university">UNIVERSITY OF WISCONSIN</div>
+                    <div class="print-report-institution">GRADUATE SCHOOL</div>
+                    <div class="print-report-rule"></div>
+                    <h1>PRELIMINARY / QUALIFYING EXAMINATION</h1>
+                    <h2>FACULTY EVALUATION REPORT</h2>
+                </header>
+                <section class="print-report-section">
+                    <div class="print-report-section-title">Examination Information</div>
+                    <div class="print-info-grid">
+                        <div class="print-info-item print-info-wide">
+                            <span>Examination Title</span>
+                            <strong>{{ examination.title|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Examination Type</span>
+                            <strong>{{ examination.get_exam_type_display }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Examination Date</span>
+                            <strong>{{ examination.exam_date|date:"F d, Y" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Start Time</span>
+                            <strong>{{ examination.start_time|time:"g:i A" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>End Time</span>
+                            <strong>{{ examination.end_time|time:"g:i A" }}</strong>
+                        </div>
+                        <div class="print-info-item print-info-wide">
+                            <span>Venue</span>
+                            <strong>{{ examination.venue|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Status</span>
+                            <strong>{{ examination.get_status_display }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Published</span>
+                            <strong>
+                                {% if examination.is_published %}
+                                    Yes
+                                {% else %}
+                                    No
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Final Result</span>
+                            <strong>
+                                {% if examination.result == 'PASS' %}
+                                    Pass
+                                {% elif examination.result == 'FAIL' %}
+                                    Fail
+                                {% elif examination.result == 'REVISION' %}
+                                    Revision
+                                {% elif examination.result == 'PENDING' %}
+                                    Pending
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="print-report-section">
+                    <div class="print-report-section-title">Student Information</div>
+                    <div class="print-info-grid">
+                        <div class="print-info-item print-info-wide">
+                            <span>Student Name</span>
+                            <strong>{{ examination.phd_student.student.user.get_full_name }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Register Number</span>
+                            <strong>{{ examination.phd_student.student.student_number|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item print-info-wide">
+                            <span>Academic Program</span>
+                            <strong>{{ examination.phd_student.phd_program.program_name|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Admission Year</span>
+                            <strong>{{ examination.phd_student.admission_year|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Advisor</span>
+                            <strong>{{ examination.phd_student.advisor.user.get_full_name|default:"—" }}</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="print-report-section">
+                    <div class="print-report-section-title">Doctoral Committee</div>
+                    <div class="print-info-grid">
+                        <div class="print-info-item print-info-wide">
+                            <span>Chair Faculty</span>
+                            <strong>{{ examination.phd_student.doctoral_committee.chair_faculty.user.get_full_name|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item">
+                            <span>Advisor</span>
+                            <strong>{{ examination.phd_student.advisor.user.get_full_name|default:"—" }}</strong>
+                        </div>
+                        <div class="print-info-item print-info-wide">
+                            <span>Committee Members</span>
+                            <strong>
+                                {% for member in examination.phd_student.doctoral_committee.committee_members.all %}
+                                    {{ member.faculty.user.get_full_name }}
+                                    {% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    No committee members assigned.
+                                {% endfor %}
+                            </strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="print-report-section print-scores-section">
+                    <div class="print-report-section-title">Evaluation Scores</div>
+                    <table class="print-score-table">
+                        <thead>
+                            <tr>
+                                <th>Evaluation Criterion</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Knowledge Score</td>
+                                <td>{{ evaluation.knowledge_score }} / 100</td>
+                            </tr>
+                            <tr>
+                                <td>Research Aptitude</td>
+                                <td>{{ evaluation.research_aptitude_score }} / 100</td>
+                            </tr>
+                            <tr>
+                                <td>Presentation</td>
+                                <td>{{ evaluation.presentation_score }} / 100</td>
+                            </tr>
+                            <tr>
+                                <td>Technical Knowledge</td>
+                                <td>{{ evaluation.technical_score }} / 100</td>
+                            </tr>
+                            <tr class="print-score-total">
+                                <td>Overall Evaluation Score</td>
+                                <td>{{ average_score }} / 100</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+                <section class="print-recommendation-box">
+                    <div class="print-report-section-title">Final Recommendation</div>
+                    <div class="print-recommendation-content">
+                        <div class="print-recommendation-value">{{ evaluation.get_recommendation_display }}</div>
+                        <div class="print-recommendation-performance">
+                            Overall Performance:
+                            {% if average_score >= 90 %}
+                                Excellent
+                            {% elif average_score >= 75 %}
+                                Good
+                            {% elif average_score >= 50 %}
+                                Average
+                            {% else %}
+                                Needs Improvement
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+                <div class="print-report-page-number">Page 1</div>
+            </div>
+            <div class="print-report-page print-report-page-two">
+                <section class="print-report-section print-comments-section">
+                    <div class="print-report-section-title">Faculty Evaluation Comments</div>
+                    {% if evaluations %}
+                        {% for evaluation in evaluations %}
+                            <div class="print-comment-block">
+                                <div class="print-comment-heading">
+                                    <div>
+                                        <strong>{{ evaluation.faculty.user.get_full_name }}</strong>
+                                        <span>Faculty Evaluation</span>
+                                    </div>
+                                    {% if evaluation.submitted_at %}
+                                        <time>{{ evaluation.submitted_at|date:"F d, Y" }}</time>
+                                    {% endif %}
+                                </div>
+                                <div class="print-comment-text">
+                                    {% if evaluation.comments %}
+                                        {{ evaluation.comments|linebreaksbr }}
+                                    {% else %}
+                                        No comments were provided by this faculty member.
+                                    {% endif %}
+                                </div>
+                                {% if evaluation.submitted_at %}
+                                    <div class="print-comment-submitted">
+                                        Evaluation submitted on {{ evaluation.submitted_at|date:"F d, Y" }} at {{ evaluation.submitted_at|date:"g:i A" }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="print-empty-comments">No submitted faculty comments are available for this examination yet.</div>
+                    {% endif %}
+                </section>
+                <section class="print-report-section">
+                    <div class="print-report-section-title">Evaluation Submission Details</div>
+                    <table class="print-details-table">
+                        <tbody>
+                            <tr>
+                                <th>Evaluator</th>
+                                <td>{{ evaluation.faculty.user.get_full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Department</th>
+                                <td>{{ evaluation.faculty.department.department_name|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Submitted</th>
+                                <td>{{ evaluation.submitted_at|date:"F d, Y, g:i A" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <td>Submitted</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+                <section class="print-certification-section">
+                    <div class="print-report-section-title">Certification</div>
+                    <p>
+                        This report records the faculty evaluation submitted for the
+                        Preliminary / Qualifying Examination identified above.
+                    </p>
+                    <div class="print-signature-grid">
+                        <div class="print-signature">
+                            <div class="print-signature-line"></div>
+                            <strong>Faculty Evaluator</strong>
+                            <span>{{ evaluation.faculty.user.get_full_name }}</span>
+                        </div>
+                        <div class="print-signature">
+                            <div class="print-signature-line"></div>
+                            <strong>Date</strong>
+                            <span>{{ evaluation.submitted_at|date:"F d, Y"|default:"—" }}</span>
+                        </div>
+                    </div>
+                </section>
+                <footer class="print-report-footer">
+                    <div class="print-report-footer-rule"></div>
+                    <div>
+                        <span>Preliminary / Qualifying Examination Evaluation</span>
+                        <span>Confidential Academic Record</span>
+                    </div>
+                </footer>
+                <div class="print-report-page-number">Page 2</div>
+            </div>
+        </div>
+        <div class="exam-header d-flex flex-wrap align-items-center justify-content-between">
+            <div>
+                <h1 class="exam-page-title">View Evaluation</h1>
+                <p class="exam-page-subtitle">Review your submitted preliminary examination evaluation.</p>
+                {% comment %} <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">Faculty</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">PhD Management</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'faculty_my_preliminary_examinations' uuid=request.user.uuid %}">My Examinations</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">View Evaluation</li>
+                    </ol>
+                </nav> {% endcomment %}
+            </div>
+            <div class="exam-header-actions d-flex flex-wrap gap-2">
+                <span class="badge bg-primary px-3 py-2"><i class="bi bi-calendar-check me-1"></i> {{ examination.get_status_display }}</span>
+                <span class="badge bg-success-subtle text-success px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i> Published</span>
+                <span class="badge bg-success px-3 py-2"><i class="bi bi-check2-all me-1"></i> Submitted</span>
+                <span class="badge recommendation-badge-{{ evaluation.recommendation|lower }} px-3 py-2">
+                    {{ evaluation.get_recommendation_display }}
+                </span>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card exam-card mb-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-calendar-event me-2"></i> Examination Information
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Title</label>
+                                <p class="fw-bold mb-0">{{ examination.title|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Exam Type</label>
+                                <p class="fw-bold mb-0">{{ examination.get_exam_type_display }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Exam Date</label>
+                                <p class="fw-bold mb-0">{{ examination.exam_date|date:"M d, Y" }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Start Time</label>
+                                <p class="fw-bold mb-0">{{ examination.start_time|time:"g:i A" }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">End Time</label>
+                                <p class="fw-bold mb-0">{{ examination.end_time|time:"g:i A" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Venue</label>
+                                <p class="fw-bold mb-0">{{ examination.venue|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <p class="fw-bold mb-0">
+                                    <span class="badge bg-secondary">{{ examination.get_status_display }}</span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Published</label>
+                                <p class="fw-bold mb-0">
+                                    {% if examination.is_published %}
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-warning-subtle text-warning"><i class="bi bi-clock"></i> No</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Final Result</label>
+                                <p class="fw-bold mb-0">
+                                    {% if examination.result == 'PASS' %}
+                                        <span class="badge bg-success">Pass</span>
+                                    {% elif examination.result == 'FAIL' %}
+                                        <span class="badge bg-danger">Fail</span>
+                                    {% elif examination.result == 'REVISION' %}
+                                        <span class="badge bg-warning text-dark">Revision</span>
+                                    {% elif examination.result == 'PENDING' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">—</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card exam-card mb-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-person-vcard me-2"></i> Student Information
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Student Name</label>
+                                <p class="fw-bold mb-0">{{ examination.phd_student.student.user.get_full_name }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Register Number</label>
+                                <p class="fw-bold mb-0">{{ examination.phd_student.student.student_number|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Program</label>
+                                <p class="fw-bold mb-0">{{ examination.phd_student.phd_program.program_name|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Admission Year</label>
+                                <p class="fw-bold mb-0">{{ examination.phd_student.admission_year|default:"—" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Advisor</label>
+                                <p class="fw-bold mb-0">{{ examination.phd_student.advisor.user.get_full_name|default:"—" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card exam-card mb-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-people me-2"></i> Doctoral Committee
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Chair Faculty</label>
+                                <p class="fw-bold mb-0">
+                                    <span class="badge bg-danger-subtle text-danger me-1">Chair</span>
+                                    {{ examination.phd_student.doctoral_committee.chair_faculty.user.get_full_name|default:"—" }}
+                                </p>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Committee Members</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for member in examination.phd_student.doctoral_committee.committee_members.all %}
+                                        <span class="badge bg-light text-dark border px-3 py-2 fs-6 fw-normal">
+                                            {% if member.faculty == faculty %}
+                                                <span class="badge bg-success me-1">You</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary me-1">{{ member.get_role_display }}</span>
+                                            {% endif %}
+                                            {{ member.faculty.user.get_full_name }}
+                                        </span>
+                                    {% empty %}
+                                        <span class="text-muted">No committee members assigned.</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Advisor</label>
+                                <p class="fw-bold mb-0">
+                                    {% if examination.phd_student.advisor == faculty %}
+                                        <span class="badge bg-success me-1">You</span>
+                                    {% endif %}
+                                    {{ examination.phd_student.advisor.user.get_full_name|default:"—" }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card exam-card mb-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-bar-chart-fill me-2"></i> Evaluation Scores
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="score-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label">Knowledge Score</label>
+                                        <span class="fw-bold score-value">{{ evaluation.knowledge_score }} / 100</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar progress-bar-animated"
+                                             role="progressbar"
+                                             style="width: {{ evaluation.knowledge_score }}%"
+                                             aria-valuenow="{{ evaluation.knowledge_score }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label">Research Aptitude</label>
+                                        <span class="fw-bold score-value">{{ evaluation.research_aptitude_score }} / 100</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar progress-bar-animated"
+                                             role="progressbar"
+                                             style="width: {{ evaluation.research_aptitude_score }}%"
+                                             aria-valuenow="{{ evaluation.research_aptitude_score }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label">Presentation</label>
+                                        <span class="fw-bold score-value">{{ evaluation.presentation_score }} / 100</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar progress-bar-animated"
+                                             role="progressbar"
+                                             style="width: {{ evaluation.presentation_score }}%"
+                                             aria-valuenow="{{ evaluation.presentation_score }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="score-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label class="form-label">Technical Knowledge</label>
+                                        <span class="fw-bold score-value">{{ evaluation.technical_score }} / 100</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar progress-bar-animated"
+                                             role="progressbar"
+                                             style="width: {{ evaluation.technical_score }}%"
+                                             aria-valuenow="{{ evaluation.technical_score }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card exam-card mb-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-check-circle me-2"></i> Recommendation
+                    </div>
+                    <div class="card-body text-center py-5">
+                        <div class="recommendation-display recommendation-{{ evaluation.recommendation|lower }}">
+                            {% if evaluation.recommendation == 'PASS' %}
+                                <i class="bi bi-check-circle-fill display-4"></i>
+                            {% elif evaluation.recommendation == 'FAIL' %}
+                                <i class="bi bi-x-circle-fill display-4"></i>
+                            {% elif evaluation.recommendation == 'REVISION' %}
+                                <i class="bi bi-arrow-repeat display-4"></i>
+                            {% else %}
+                                <i class="bi bi-question-circle display-4"></i>
+                            {% endif %}
+                            <h2 class="mt-3 fw-bold">{{ evaluation.get_recommendation_display }}</h2>
+                            <p class="text-muted">Your final recommendation for this examination.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card exam-card mb-4 pe-faculty-comments-card">
+                    <div class="card-header exam-card-header pe-comments-header">
+                        <div class="pe-comments-header-left">
+                            <span class="pe-comments-icon">
+                                <i class="bi bi-chat-left-text-fill"></i>
+                            </span>
+                            <div class="pe-comments-title">
+                                <strong>Faculty Comments</strong>
+                                <span>Evaluation feedback submitted by faculty</span>
+                            </div>
+                        </div>
+                        {% if evaluations %}
+                            <span class="pe-comments-count">{{ evaluations|length }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body pe-comments-body">
+                        {% if evaluations %}
+                            <div class="pe-comments-list">
+                                {% for evaluation in evaluations %}
+                                    <div class="pe-comment-item">
+                                        <div class="pe-comment-top">
+                                            <div class="pe-comment-faculty">
+                                                <div class="pe-comment-avatar">{{ evaluation.faculty.user.first_name|first|upper }}</div>
+                                                <div class="pe-comment-faculty-info">
+                                                    <strong>{{ evaluation.faculty.user.get_full_name }}</strong>
+                                                    <span>Faculty Evaluation</span>
+                                                </div>
+                                            </div>
+                                            {% if evaluation.submitted_at %}
+                                                <span class="pe-comment-date">
+                                                    <i class="bi bi-calendar3"></i>
+                                                    {{ evaluation.submitted_at|date:"M d, Y" }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        {% if evaluation.comments %}
+                                            <div class="pe-comment-content">
+                                                <span class="pe-comment-quote">
+                                                    <i class="bi bi-quote"></i>
+                                                </span>
+                                                <p>{{ evaluation.comments|linebreaksbr }}</p>
+                                            </div>
+                                        {% else %}
+                                            <div class="pe-comment-no-content">
+                                                <i class="bi bi-chat-square-text"></i>
+                                                <span>No comments were provided by this faculty member.</span>
+                                            </div>
+                                        {% endif %}
+                                        {% if evaluation.submitted_at %}
+                                            <div class="pe-comment-submitted">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                <span>Evaluation submitted</span>
+                                                <span class="pe-comment-time">{{ evaluation.submitted_at|date:"g:i A" }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="pe-comments-empty">
+                                <div class="pe-comments-empty-icon">
+                                    <i class="bi bi-chat-square-text"></i>
+                                </div>
+                                <strong>No Faculty Comments</strong>
+                                <span>No submitted faculty comments are available for this examination yet.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card exam-card summary-card sticky-top" style="top: 20px;">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-clipboard-data me-2"></i> Evaluation Summary
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="circular-progress-container">
+                            <div class="circular-progress" style="--value: {{ average_score }};">
+                                <span class="progress-text">{{ average_score }}%</span>
+                            </div>
+                        </div>
+                        <h5 class="mt-3 performance-label {% if average_score >= 90 %} text-success {% elif average_score >= 75 %} text-primary {% elif average_score >= 50 %} text-warning {% else %} text-danger {% endif %}">
+                            {% if average_score >= 90 %}
+                                Excellent
+                            {% elif average_score >= 75 %}
+                                Good
+                            {% elif average_score >= 50 %}
+                                Average
+                            {% else %}
+                                Needs Improvement
+                            {% endif %}
+                        </h5>
+                        <p class="text-muted">Overall Performance</p>
+                    </div>
+                </div>
+                <div class="card exam-card mt-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-clock-history me-2"></i> Submission Details
+                    </div>
+                    <div class="card-body">
+                        <div class="submission-timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-badge bg-primary"></div>
+                                <div>
+                                    <p class="mb-0 fw-bold">Evaluator</p>
+                                    <small class="text-muted">{{ evaluation.faculty.user.get_full_name }}</small>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-badge bg-secondary"></div>
+                                <div>
+                                    <p class="mb-0 fw-bold">Department</p>
+                                    <small class="text-muted">{{ evaluation.faculty.department.department_name|default:"—" }}</small>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-badge bg-success"></div>
+                                <div>
+                                    <p class="mb-0 fw-bold">Submitted</p>
+                                    <small class="text-muted">{{ evaluation.submitted_at|date:"M d, Y g:i A" }}</small>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-badge bg-info"></div>
+                                <div>
+                                    <p class="mb-0 fw-bold">Status</p>
+                                    <span class="badge bg-success-subtle text-success">Submitted</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card exam-card mt-4">
+                    <div class="card-header exam-card-header">
+                        <i class="bi bi-arrow-right-circle me-2"></i> Quick Actions
+                    </div>
+                    <div class="card-body d-flex flex-column gap-2">
+                        <a href="{% url 'faculty_my_preliminary_examinations' uuid=request.user.uuid %}"
+                           class="btn btn-outline-primary w-100">
+                            <i class="bi bi-arrow-left me-1"></i> Back to My Examinations
+                        </a>
+                        <button class="btn btn-outline-secondary w-100" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> Print Evaluation
+                        </button>
+                        <button class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-download me-1"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="print-document-footer">
+            <div class="print-footer-line"></div>
+            <div class="print-footer-content">
+                <span>Preliminary / Qualifying Examination Evaluation</span>
+                <span>Confidential Academic Record</span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress bars with delay
+        document.querySelectorAll('.progress-bar').forEach((bar, index) => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 100 + index * 150);
+        });
+
+        // Tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+    </script>
+{% endblock %}

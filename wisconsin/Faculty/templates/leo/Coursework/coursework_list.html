@@ -1,0 +1,392 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Advisor Coursework{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+
+<link rel="stylesheet" href="{% static 'css/leo/Coursework/coursework_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cw-modern-container">
+
+  <div class="cw-hero" >
+    <div class="cw-hero-content">
+      <h1 class="cw-hero-title">Advisor Coursework</h1>
+      <p class="cw-hero-sub">Manage doctoral coursework, monitor assigned credits, and track academic progress for your advisees.</p>
+      <div class="cw-hero-badges">
+        <span class="cw-badge"><i class="ti ti-calendar"></i> Academic Year {{ academic_year }}</span>
+        <span class="cw-badge"><i class="ti ti-users"></i> {{ advisees }} Advisees</span>
+        <span class="cw-badge"><i class="ti ti-book"></i> {{ active_courses }} Active</span>
+        <span class="cw-badge"><i class="ti ti-chart-line"></i> {{ completion_rate|default:0 }}% Completion</span>
+      </div>
+      <div class="cw-hero-actions">
+        <a href="{% url 'faculty_coursework_create_master' uuid=faculty.user.uuid %}" class="btn cw-btn-primary">
+          <i class="ti ti-plus"></i> Create Coursework
+        </a>
+        <a href="{% url 'faculty_coursework_create' uuid=faculty.user.uuid %}" class="btn cw-btn-outline">
+          <i class="ti ti-file-plus"></i> Assign Coursework
+        </a>
+        <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}" class="btn cw-btn-ghost">
+          <i class="ti ti-arrow-left"></i> Back
+        </a>
+        <a href="{% url 'faculty_coursework_master_list' uuid=faculty.user.uuid %}"
+          class="btn cw-btn-view-coursework">
+            <i class="ti ti-book-2"></i>
+            <span>View Coursework list</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="cw-analytics" >
+    <div class="cw-analytic-card gradient-1">
+      <div class="cw-analytic-icon"><i class="ti ti-users"></i></div>
+      <div class="cw-analytic-content">
+        <span class="cw-analytic-value">{{ advisees|default:0 }}</span>
+        <span class="cw-analytic-label">Total Advisees</span>
+      </div>
+    </div>
+    <div class="cw-analytic-card gradient-2">
+      <div class="cw-analytic-icon"><i class="ti ti-book-2"></i></div>
+      <div class="cw-analytic-content">
+        <span class="cw-analytic-value">{{ total_courseworks|default:0 }}</span>
+        <span class="cw-analytic-label">Assigned Courseworks</span>
+      </div>
+    </div>
+    <div class="cw-analytic-card gradient-3">
+      <div class="cw-analytic-icon"><i class="ti ti-credit-card"></i></div>
+      <div class="cw-analytic-content">
+        <span class="cw-analytic-value">{{ total_assigned_credits|default:0 }}</span>
+        <span class="cw-analytic-label">Assigned Credits</span>
+      </div>
+    </div>
+    <div class="cw-analytic-card gradient-4">
+      <div class="cw-analytic-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="cw-analytic-content">
+        <span class="cw-analytic-value">{{ completed_credits|default:0 }}</span>
+        <span class="cw-analytic-label">Completed Credits</span>
+      </div>
+    </div>
+    <div class="cw-analytic-card gradient-5">
+      <div class="cw-analytic-icon"><i class="ti ti-percentage"></i></div>
+      <div class="cw-analytic-content">
+        <span class="cw-analytic-value">{{ completion_rate|default:0 }}%</span>
+        <span class="cw-analytic-label">Completion Rate</span>
+      </div>
+    </div>
+    <div class="cw-analytic-card gradient-6">
+      <div class="cw-analytic-icon"><i class="ti ti-chart-bar"></i></div>
+      <div class="cw-analytic-content">
+        <span class="cw-analytic-value">{{ avg_progress|default:0 }}%</span>
+        <span class="cw-analytic-label">Average Progress</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cw-management-toolbar" >
+    <div class="cw-toolbar-inner">
+      <form method="get" action="" class="cw-filter-form">
+        <div class="cw-filter-row">
+          <div class="cw-filter-group search-group">
+            <i class="ti ti-search"></i>
+            <input type="text" name="q" placeholder="Search by student, program or coursework..." value="{{ request.GET.q|default:'' }}">
+          </div>
+          <div class="cw-filter-group">
+            <select name="status" class="cw-select">
+              <option value="">All Status</option>
+              <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+              <option value="IN_PROGRESS" {% if request.GET.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+              <option value="NOT_STARTED" {% if request.GET.status == 'NOT_STARTED' %}selected{% endif %}>Not Started</option>
+              <option value="FAILED" {% if request.GET.status == 'FAILED' %}selected{% endif %}>Failed</option>
+            </select>
+          </div>
+          <div class="cw-filter-group">
+            <select name="program" class="cw-select">
+              <option value="">All Programs</option>
+              {% for program in programs %}
+                <option value="{{ program.phd_program_id }}" {% if request.GET.program == program.phd_program_id|stringformat:"s" %}selected{% endif %}>
+                  {{ program.phd_program__program_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="cw-filter-actions">
+            <button type="submit" class="btn cw-btn-outline"><i class="ti ti-search"></i> Search</button>
+            <a href="{% url 'faculty_coursework_list' uuid=faculty.user.uuid %}" class="btn cw-btn-ghost"><i class="ti ti-refresh"></i> Reset</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if recent_courseworks %}
+    <div class="cw-section" >
+      <div class="cw-section-header">
+        <div>
+          <h2 class="cw-section-title">Recently Assigned</h2>
+          <p class="cw-section-sub">Latest coursework assignments across all advisees</p>
+        </div>
+      </div>
+      <div class="cw-recent-grid">
+        {% for item in recent_courseworks|slice:":5" %}
+          <div class="cw-recent-card">
+            <div class="cw-recent-student">
+              <span class="cw-avatar-sm">{{ item.phd_student.student.user.first_name|first }}{{ item.phd_student.student.user.last_name|first }}</span>
+              <div>
+                <div class="cw-recent-name">{{ item.phd_student.student.user.get_full_name }}</div>
+                <div class="cw-recent-meta">{{ item.coursework.coursework_name }} · {{ item.coursework.credits }} Credits</div>
+              </div>
+            </div>
+            <div class="cw-recent-right">
+              <span class="cw-status-badge
+                {% if item.status == 'COMPLETED' %}status-completed
+                {% elif item.status == 'IN_PROGRESS' %}status-progress
+                {% elif item.status == 'NOT_STARTED' %}status-pending
+                {% elif item.status == 'FAILED' %}status-danger
+                {% else %}status-default{% endif %}
+              ">{{ item.get_status_display }}</span>
+              <a href="{% url 'faculty_coursework_master_list' uuid=faculty.user.uuid %}" class="cw-action-btn" title="View"><i class="ti ti-eye"></i></a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="cw-section" >
+    <div class="cw-section-header">
+      <div>
+        <h2 class="cw-section-title">Advisee Coursework</h2>
+        <p class="cw-section-sub">Monitor coursework assignments and academic progress for your doctoral advisees.</p>
+      </div>
+    </div>
+
+    {% if advisee_coursework %}
+      <div class="cw-advisee-grid">
+        {% for advisee in advisee_coursework %}
+          <div class="cw-advisee-card">
+            <div class="cw-advisee-header">
+              <div class="cw-advisee-identity">
+                <span class="cw-avatar-lg">{{ advisee.student.user.first_name|first }}{{ advisee.student.user.last_name|first }}</span>
+                <div>
+                  <div class="cw-advisee-name">{{ advisee.student.user.get_full_name }}</div>
+                  <div class="cw-advisee-number">{{ advisee.student.student_number }}</div>
+                  <div class="cw-advisee-program">{{ advisee.program.program_name }}</div>
+                </div>
+              </div>
+              <div class="cw-advisee-actions">
+                <a href="{% url 'faculty_coursework_master_list' uuid=faculty.user.uuid %}" class="btn cw-btn-primary-sm">View Coursework List</a>
+                <a href="{% url 'faculty_coursework_create' uuid=faculty.user.uuid %}" class="btn cw-btn-outline-sm">Assign</a>
+              </div>
+            </div>
+
+            <div class="cw-advisee-stats">
+              <div class="cw-stat-item">
+                <span class="cw-stat-label">Courseworks</span>
+                <span class="cw-stat-value">{{ advisee.coursework_count }}</span>
+              </div>
+              <div class="cw-stat-item">
+                <span class="cw-stat-label">Assigned Credits</span>
+                <span class="cw-stat-value">{{ advisee.assigned_credits }}</span>
+              </div>
+              <div class="cw-stat-item">
+                <span class="cw-stat-label">Completed Credits</span>
+                <span class="cw-stat-value">{{ advisee.completed_credits }}</span>
+              </div>
+              <div class="cw-stat-item">
+                <span class="cw-stat-label">Remaining</span>
+                <span class="cw-stat-value {% if advisee.remaining_credits == 0 %}text-success{% endif %}">{{ advisee.remaining_credits }}</span>
+              </div>
+            </div>
+
+            <div class="cw-advisee-progress">
+              <div class="cw-progress-header">
+                <span>Coursework Completion</span>
+                <span>{{ advisee.progress_percentage|default:0 }}%</span>
+              </div>
+              <div class="cw-progress-track">
+                <div class="cw-progress-fill" style="width: {{ advisee.progress_percentage|default:0 }}%;"></div>
+              </div>
+              <div class="cw-progress-credits">
+                <span>{{ advisee.completed_credits }} / {{ advisee.required_credits }} Credits</span>
+                {% if advisee.remaining_credits == 0 %}
+                  <span class="cw-credit-status success">Requirement Complete</span>
+                {% elif advisee.remaining_credits <= 6 %}
+                  <span class="cw-credit-status warning">{{ advisee.remaining_credits }} Credits Remaining</span>
+                {% else %}
+                  <span class="cw-credit-status">{{ advisee.remaining_credits }} Credits Remaining</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="cw-advisee-courseworks">
+              <div class="cw-coursework-list-header">Assigned Courseworks</div>
+              {% for cw in advisee.courseworks|slice:":3" %}
+                <div class="cw-coursework-item">
+                  <div class="cw-coursework-info">
+                    <span class="cw-coursework-name">{{ cw.coursework.coursework_name }}</span>
+                    <span class="cw-coursework-credits">{{ cw.coursework.credits }} Credits</span>
+                  </div>
+              <div class="cw-coursework-meta">
+
+                <span class="cw-status-badge
+                    {% if cw.status == 'COMPLETED' %}status-completed
+                    {% elif cw.status == 'IN_PROGRESS' %}status-progress
+                    {% elif cw.status == 'NOT_STARTED' %}status-pending
+                    {% elif cw.status == 'FAILED' %}status-danger
+                    {% else %}status-default{% endif %}
+                ">
+                    {{ cw.get_status_display }}
+                </span>
+
+                {% if cw.grade %}
+                    <span class="cw-grade">{{ cw.grade }}</span>
+                {% endif %}
+
+                <span class="cw-progress-mini">
+                    {{ cw.progress_percentage|default:0 }}%
+                </span>
+
+
+                {% if cw.submission %}
+                    {% if cw.submission.evaluation %}
+                        <span class="cw-status-badge status-completed">
+                            <i class="ti ti-circle-check"></i>
+                            Evaluated
+                        </span>
+                    {% else %}
+                        <a
+                            href="{% url 'faculty_coursework_evaluate' faculty.user.uuid cw.faculty_coursework_id %}"
+                            class="cw-evaluate-btn"
+                            title="Evaluate Coursework"
+                        >
+                            <i class="ti ti-clipboard-check"></i>
+                            <span>Evaluate</span>
+                        </a>
+                    {% endif %}
+                {% endif %}
+
+
+
+                <a
+                    href="{% url 'faculty_coursework_view' faculty.user.uuid cw.faculty_coursework_id %}"
+                    class="cw-action-btn"
+                    title="View Coursework"
+                    aria-label="View Coursework"
+                >
+                    <i class="ti ti-eye"></i>
+                </a>
+
+            </div>
+                </div>
+              {% endfor %}
+              {% if advisee.courseworks|length > 3 %}
+                <div class="cw-more-courseworks">+ {{ advisee.courseworks|length|add:"-3" }} more courseworks</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+        <div class="cw-pagination-card">
+          <div class="cw-pagination-info">
+            Showing {{ page_obj.start_index }} – {{ page_obj.end_index }} of {{ page_obj.paginator.count }} Advisees
+          </div>
+          <ul class="cw-pagination">
+            {% if page_obj.has_previous %}
+              <li><a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}"><i class="ti ti-chevrons-left"></i></a></li>
+              <li><a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}"><i class="ti ti-chevron-left"></i></a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <li class="active"><span>{{ num }}</span></li>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li><a href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}">{{ num }}</a></li>
+              {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <li><a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}"><i class="ti ti-chevron-right"></i></a></li>
+              <li><a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}"><i class="ti ti-chevrons-right"></i></a></li>
+            {% endif %}
+          </ul>
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="cw-empty-workspace">
+        <div class="cw-empty-icon"><i class="ti ti-book-off"></i></div>
+        <h3 class="cw-empty-title">No Coursework Assignments Yet</h3>
+        <p class="cw-empty-desc">Start by creating coursework definitions and assigning them to your doctoral advisees.</p>
+        <div class="cw-empty-actions">
+          <a href="{% url 'faculty_coursework_create_master' uuid=faculty.user.uuid %}" class="btn cw-btn-primary">Create Coursework</a>
+          <a href="{% url 'faculty_coursework_create' uuid=faculty.user.uuid %}" class="btn cw-btn-outline">Assign Coursework</a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'script/leo/Coursework/coursework_list.js' %}"></script>
+
+{% if messages %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  {% for message in messages %}
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: '{{ message.tags }}',
+      title: '{{ message|escapejs }}',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    });
+  {% endfor %}
+});
+</script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.cw-select').forEach(function(select) {
+    new Choices(select, {
+      searchEnabled: true,
+      shouldSort: false,
+      itemSelectText: '',
+      placeholder: true,
+      placeholderValue: select.options[0] ? select.options[0].text : 'Select'
+    });
+  });
+
+  document.querySelectorAll('.cw-delete-form').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'Delete Coursework Assignment?',
+        text: 'Are you sure you want to remove this coursework assignment? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#c5050c',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel'
+      }).then(function(result) {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+    });
+  });
+});
+</script>
+{% endblock %}
+

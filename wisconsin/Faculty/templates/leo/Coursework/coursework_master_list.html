@@ -1,0 +1,368 @@
+    {% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Master Coursework{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/leo/Coursework/coursework_master_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="mcw-page">
+
+  {% comment %} <nav class="mcw-breadcrumb" aria-label="breadcrumb">
+    <ol class="mcw-breadcrumb-list">
+      <li class="mcw-breadcrumb-item">
+        <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">Faculty</a>
+      </li>
+      <li class="mcw-breadcrumb-item">
+        <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">PhD Management</a>
+      </li>
+      <li class="mcw-breadcrumb-item active" aria-current="page">Master Coursework</li>
+    </ol>
+  </nav> {% endcomment %}
+
+<div class="mcw-hero">
+    <div class="mcw-hero-content">
+        <div class="mcw-hero-left">
+            <h1 class="mcw-hero-title">Master Coursework</h1>
+
+            <p class="mcw-hero-sub">
+                Manage reusable coursework definitions for your doctoral programs.
+            </p>
+        </div>
+
+        <div class="mcw-hero-right">
+            <a
+                href="{% url 'faculty_coursework_list' uuid=request.user.uuid %}"
+                class="mcw-back-btn"
+            >
+                <i class="ti ti-arrow-left"></i>
+                <span>Return to Coursework List</span>
+            </a>
+
+            <a
+                href="{% url 'faculty_coursework_create_master' uuid=request.user.uuid %}"
+                class="mcw-btn mcw-btn-primary"
+            >
+                <i class="ti ti-plus"></i>
+                <span>Create Master Coursework</span>
+            </a>
+        </div>
+    </div>
+</div>
+  <div class="mcw-stats">
+    <div class="mcw-stat-card">
+      <div class="mcw-stat-icon"><i class="ti ti-book-2"></i></div>
+      <div class="mcw-stat-content">
+        <span class="mcw-stat-value">{{ total_courseworks|default:0 }}</span>
+        <span class="mcw-stat-label">Total Coursework</span>
+        <span class="mcw-stat-desc">All definitions</span>
+      </div>
+    </div>
+    <div class="mcw-stat-card">
+      <div class="mcw-stat-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="mcw-stat-content">
+        <span class="mcw-stat-value">{{ active_courseworks|default:0 }}</span>
+        <span class="mcw-stat-label">Active</span>
+        <span class="mcw-stat-desc">Available for assignment</span>
+      </div>
+    </div>
+    <div class="mcw-stat-card">
+      <div class="mcw-stat-icon"><i class="ti ti-circle-x"></i></div>
+      <div class="mcw-stat-content">
+        <span class="mcw-stat-value">{{ inactive_courseworks|default:0 }}</span>
+        <span class="mcw-stat-label">Inactive</span>
+        <span class="mcw-stat-desc">Not currently available</span>
+      </div>
+    </div>
+    <div class="mcw-stat-card">
+      <div class="mcw-stat-icon"><i class="ti ti-building"></i></div>
+      <div class="mcw-stat-content">
+        <span class="mcw-stat-value">{{ total_programs|default:0 }}</span>
+        <span class="mcw-stat-label">Programs</span>
+        <span class="mcw-stat-desc">With coursework</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mcw-filter-card">
+    <div class="mcw-filter-inner">
+      <form method="get" action="" class="mcw-filter-form">
+        <div class="mcw-filter-row">
+          <div class="mcw-filter-group mcw-search-group">
+            <i class="ti ti-search"></i>
+            <input type="text" name="search" placeholder="Search by coursework name..." value="{{ request.GET.search|default:'' }}">
+          </div>
+          <div class="mcw-filter-group">
+            <select name="program" class="mcw-select">
+              <option value="">All Programs</option>
+              {% for program in program_list %}
+                <option value="{{ program.pk }}" {% if request.GET.program == program.pk|stringformat:"s" %}selected{% endif %}>
+                  {{ program.program_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mcw-filter-group">
+            <select name="status" class="mcw-select">
+              <option value="">All Status</option>
+              <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+          <div class="mcw-filter-actions">
+            <button type="submit" class="mcw-btn mcw-btn-primary-sm">
+              <i class="ti ti-search"></i> Search
+            </button>
+            <a href="{% url 'faculty_coursework_master_list' uuid=request.user.uuid %}" class="mcw-btn mcw-btn-ghost-sm">
+              <i class="ti ti-refresh"></i> Reset
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if coursework_list %}
+    <div class="mcw-table-card">
+      <div class="mcw-table-wrapper">
+        <table class="mcw-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Coursework</th>
+              <th>Program</th>
+              <th>Credits</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for coursework in coursework_list %}
+              <tr>
+                <td data-label="#">{{ forloop.counter }}</td>
+                <td data-label="Coursework" class="mcw-coursework-name">
+                  <strong>{{ coursework.coursework_name }}</strong>
+                </td>
+                <td data-label="Program">{{ coursework.program.program_name }}</td>
+                <td data-label="Credits">
+                  <span class="mcw-credits-badge">{{ coursework.credits }} Credits</span>
+                </td>
+                <td data-label="Description" class="mcw-description-cell">
+                  {% if coursework.description %}
+                    {{ coursework.description|truncatechars:60 }}
+                  {% else %}
+                    <span class="mcw-empty-text">—</span>
+                  {% endif %}
+                </td>
+                <td data-label="Status">
+                  <span class="mcw-status-badge {% if coursework.is_active %}mcw-status-active{% else %}mcw-status-inactive{% endif %}">
+                    {% if coursework.is_active %}Active{% else %}Inactive{% endif %}
+                  </span>
+                </td>
+                <td data-label="Created">{{ coursework.created_at|date:"M d, Y" }}</td>
+                <td data-label="Actions">
+                  <div class="mcw-actions">
+                    <a href="{% url 'faculty_coursework_master_update' uuid=request.user.uuid coursework_id=coursework.coursework_id %}" 
+                       class="mcw-action-btn mcw-action-edit" 
+                       title="Edit Coursework">
+                      <i class="ti ti-edit"></i>
+                    </a>
+                    <button type="button" 
+                            class="mcw-action-btn mcw-action-delete" 
+                            title="Delete Coursework"
+                            data-coursework-id="{{ coursework.coursework_id }}"
+                            data-coursework-name="{{ coursework.coursework_name }}"
+                            data-delete-url="{% url 'faculty_coursework_master_delete' uuid=request.user.uuid coursework_id=coursework.coursework_id %}">
+                      <i class="ti ti-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if is_paginated %}
+      <div class="mcw-pagination-card">
+        <div class="mcw-pagination-info">
+          Showing {{ page_obj.start_index }} – {{ page_obj.end_index }} of {{ page_obj.paginator.count }} Coursework
+        </div>
+        <ul class="mcw-pagination">
+          {% if page_obj.has_previous %}
+            <li>
+              <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                <i class="ti ti-chevrons-left"></i>
+              </a>
+            </li>
+            <li>
+              <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                <i class="ti ti-chevron-left"></i>
+              </a>
+            </li>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <li class="mcw-active"><span>{{ num }}</span></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li>
+                <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                  {{ num }}
+                </a>
+              </li>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <li>
+              <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                <i class="ti ti-chevron-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.program %}&program={{ request.GET.program }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                <i class="ti ti-chevrons-right"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="mcw-empty-state">
+      <div class="mcw-empty-card">
+        <div class="mcw-empty-icon"><i class="ti ti-book-off"></i></div>
+        <h2 class="mcw-empty-title">No Master Coursework Found</h2>
+        <p class="mcw-empty-desc">
+          {% if request.GET.search or request.GET.program or request.GET.status %}
+            No coursework definitions match your current filters.
+          {% else %}
+            You haven't created any master coursework definitions yet. Start by creating your first coursework.
+          {% endif %}
+        </p>
+        <div class="mcw-empty-actions">
+          <a href="{% url 'faculty_coursework_create_master' uuid=request.user.uuid %}" class="mcw-btn mcw-btn-primary">
+            <i class="ti ti-plus"></i> Create Master Coursework
+          </a>
+          {% if request.GET.search or request.GET.program or request.GET.status %}
+            <a href="{% url 'faculty_coursework_master_list' uuid=request.user.uuid %}" class="mcw-btn mcw-btn-outline">
+              <i class="ti ti-refresh"></i> Clear Filters
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <form id="deleteForm" method="post" style="display: none;">
+    {% csrf_token %}
+  </form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'script/leo/Coursework/coursework_master_list.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const selectElements = document.querySelectorAll('.mcw-select');
+
+    selectElements.forEach(function(select) {
+        new Choices(select, {
+            searchEnabled: true,
+            shouldSort: false,
+            itemSelectText: '',
+            placeholder: true,
+            placeholderValue: select.options[0]
+                ? select.options[0].text
+                : 'Select',
+            searchPlaceholderValue: 'Search...',
+            noResultsText: 'No options found',
+            noChoicesText: 'No options available',
+            allowHTML: false
+        });
+    });
+
+    const deleteButtons = document.querySelectorAll(
+        '.mcw-action-delete'
+    );
+
+    deleteButtons.forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const courseworkName =
+                this.getAttribute('data-coursework-name');
+
+            const deleteUrl =
+                this.getAttribute('data-delete-url');
+
+            Swal.fire({
+                title: 'Delete Master Coursework?',
+                html:
+                    'Are you sure you want to delete <strong>"' +
+                    courseworkName +
+                    '"</strong>?<br>This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#c5050c',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                focusCancel: true
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    const deleteForm =
+                        document.getElementById('deleteForm');
+
+                    deleteForm.action = deleteUrl;
+                    deleteForm.submit();
+                }
+            });
+        });
+    });
+
+    const searchInput =
+        document.querySelector('.mcw-search-group input');
+
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.closest('form').submit();
+            }
+        });
+    }
+
+});
+</script>
+
+{% if messages %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for message in messages %}
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: '{% if message.tags == "error" %}error{% elif message.tags == "warning" %}warning{% elif message.tags == "info" %}info{% else %}success{% endif %}',
+        title: '{{ message|escapejs }}',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+    {% endfor %}
+});
+</script>
+{% endif %}
+{% endblock %}

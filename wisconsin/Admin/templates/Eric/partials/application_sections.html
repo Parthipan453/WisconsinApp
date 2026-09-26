@@ -1,0 +1,300 @@
+{% comment %}
+Shared application viewer sections — expects `app`, `applicant`, `profile`, `form_groups`, etc.
+Styling comes from css/Eric/application_detail.css (loaded by both admin & staff pages).
+{% endcomment %}
+
+<div class="prm-grid">
+
+  <div class="prm-main">
+
+    
+    {% if sidebar_workflow_include %}
+    {% include sidebar_workflow_include %}
+    {% endif %}
+
+
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-school"></i>
+        <span class="prm-card__title">Program &amp; Application</span>
+      </div>
+      <div class="prm-fields">
+        <div class="prm-field"><span class="prm-field__label">University</span><span class="prm-field__value">{{ app.university }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Program</span><span class="prm-field__value">{{ app.program|default:"—" }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Backup program</span><span class="prm-field__value">{{ app.backup_program|default:"—" }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Degree level</span><span class="prm-field__value">{{ app.degree_level|default:"—" }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Admission level</span><span class="prm-field__value">{{ app.get_admission_level_display|default:"—" }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Term / cycle</span><span class="prm-field__value">{{ app.admission_cycle|default:"—" }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Campus</span><span class="prm-field__value">{{ app.campus_name }}</span></div>
+        <div class="prm-field"><span class="prm-field__label">Apply method</span><span class="prm-field__value">{{ app.get_apply_method_display|default:"—" }}</span></div>
+      </div>
+    </div>
+
+    {% if review_materials %}
+    {% include "Eric/partials/review_materials.html" %}
+    {% else %}
+    {% if app.offline_form_pdf %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-file-text"></i>
+        <span class="prm-card__title">Offline application form</span>
+        <span class="prm-chip prm-chip--green">PDF received</span>
+      </div>
+      <div class="prm-card__body" style="padding:0;">
+        <div class="prm-doc">
+          <span class="prm-doc__icon"><i class="ti ti-file-type-pdf"></i></span>
+          <div class="prm-doc__body">
+            <div class="prm-doc__name">{{ app.offline_form_pdf.name|default:"offline-application-form.pdf" }}</div>
+            <div class="prm-doc__meta">Completed copy of the printed application form</div>
+          </div>
+          <a class="prm-btn prm-btn--ghost prm-btn--sm" href="{{ app.offline_form_pdf.url }}" target="_blank" rel="noopener"><i class="ti ti-download"></i> Open PDF</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not is_admin_user and not app.offline_form_pdf %}
+    {% include "Eric/partials/form_responses.html" %}
+    {% endif %}
+    {% endif %}
+
+
+    {% if checklist_items %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-checklist"></i>
+        <span class="prm-card__title">Checklist</span>
+        <span class="prm-card__sub">{{ checklist_items|length }}</span>
+      </div>
+      <div class="prm-table-wrap">
+        <table class="prm-table">
+          <thead><tr><th>Item</th><th>Required</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for item in checklist_items %}
+          <tr>
+            <td>{{ item.label }}</td>
+            <td>{% if item.is_required %}Yes{% else %}No{% endif %}</td>
+            <td>
+              {% if item.is_completed %}<span class="prm-chip prm-chip--green">Completed</span>
+              {% else %}<span class="prm-chip prm-chip--orange">Pending</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if material_requests %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-basket"></i>
+        <span class="prm-card__title">Material Requests</span>
+        <span class="prm-card__sub">{{ material_requests|length }}</span>
+      </div>
+      <div class="prm-table-wrap">
+        <table class="prm-table">
+          <thead><tr><th>Requested by</th><th>Document</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+          {% for mr in material_requests %}
+          <tr>
+            <td>{{ mr.requested_by.get_full_name|default:mr.requested_by.username }}</td>
+            <td>{{ mr.get_doc_type_display|default:"—" }}{% if mr.requirement %} ({{ mr.requirement.name }}){% endif %}</td>
+            <td>
+              {% if mr.status == 'fulfilled' %}<span class="prm-chip prm-chip--green">Fulfilled</span>
+              {% elif mr.status == 'waived' %}<span class="prm-chip prm-chip--gray">Waived</span>
+              {% else %}<span class="prm-chip prm-chip--orange">Pending</span>{% endif %}
+            </td>
+            <td>{{ mr.requested_at|date:"M d, Y" }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if payments %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-credit-card"></i>
+        <span class="prm-card__title">Payments</span>
+        <span class="prm-card__sub">{{ payments|length }}</span>
+      </div>
+      <div class="prm-table-wrap">
+        <table class="prm-table">
+          <thead><tr><th>Transaction</th><th>Amount</th><th>Status</th><th>Paid</th></tr></thead>
+          <tbody>
+          {% for pay in payments %}
+          <tr>
+            <td class="mono">{{ pay.transaction_id }}</td>
+            <td>${{ pay.amount }}</td>
+            <td>
+              {% if pay.status == 'completed' %}<span class="prm-chip prm-chip--green">Completed</span>
+              {% else %}<span class="prm-chip prm-chip--orange">{{ pay.get_status_display }}</span>{% endif %}
+            </td>
+            <td>{{ pay.paid_at|date:"M d, Y"|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if status_history %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-history"></i>
+        <span class="prm-card__title">Status History</span>
+        <span class="prm-card__sub">{{ status_history|length }}</span>
+      </div>
+      <div class="prm-timeline">
+        {% for h in status_history %}
+        <div class="prm-timeline__item">
+          <span class="prm-timeline__dot prm-timeline__dot--rose"></span>
+          <div class="prm-timeline__body">
+            <div class="prm-timeline__title">
+              {% if h.from_status %}{{ h.from_status|default:"" }} <i class="ti ti-arrow-right"></i> {% endif %}<b>{{ h.to_status }}</b>
+            </div>
+            <div class="prm-timeline__meta">by {{ h.changed_by|default:"—" }}</div>
+          </div>
+          <span class="prm-timeline__when">{{ h.changed_at|date:"M d · H:i" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if logs %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-list-details"></i>
+        <span class="prm-card__title">Activity Log</span>
+        <span class="prm-card__sub">{{ logs|length }}</span>
+      </div>
+      <div class="prm-timeline">
+        {% for log in logs %}
+        <div class="prm-timeline__item">
+          <span class="prm-timeline__dot prm-timeline__dot--gray"></span>
+          <div class="prm-timeline__body">
+            <div class="prm-timeline__title">{{ log.field_name }} <i class="ti ti-arrow-right"></i> {{ log.new_value|default:log.old_value|default:"—" }}</div>
+            <div class="prm-timeline__meta">by {{ log.actor|default:"—" }}</div>
+          </div>
+          <span class="prm-timeline__when">{{ log.timestamp|date:"M d · H:i" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    
+
+  </div>
+
+  <div class="prm-side">
+    {% if essays and not review_materials %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-writing"></i>
+        <span class="prm-card__title">Essays</span>
+        <span class="prm-card__sub">{{ essays|length }}</span>
+      </div>
+      {% for essay in essays %}
+      <div class="prm-essay">
+        <div class="prm-essay__head">
+          <b>{{ essay.get_essay_type_display|default:essay.essay_type }}</b>
+          <span class="prm-chip prm-chip--gray">{{ essay.word_count }} words</span>
+        </div>
+        {% if essay.prompt_text %}<p class="prm-essay__prompt">{{ essay.prompt_text }}</p>{% endif %}
+        <p class="prm-essay__body">{{ essay.content }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if app.offline_extracted_test_scores %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-chart-bar"></i>
+        <span class="prm-card__title">Extracted test scores</span>
+        <span class="prm-chip prm-chip--green">From PDF</span>
+      </div>
+      <div class="prm-fields">
+        {% for t in app.offline_extracted_test_scores %}
+        <div class="prm-field">
+          <span class="prm-field__label">{{ t.test }}{% if t.date %} · {{ t.date }}{% endif %}</span>
+          <span class="prm-field__value"><b>{{ t.score }}</b></span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if documents and not review_materials %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-file"></i>
+        <span class="prm-card__title">Documents</span>
+        <span class="prm-card__sub">{{ documents|length }} uploaded</span>
+      </div>
+      <div class="prm-table-wrap">
+        <table class="prm-table">
+          <thead><tr><th>Document</th><th>Type</th><th>Uploaded</th><th>Verification</th><th>Verified by</th></tr></thead>
+          <tbody>
+          {% for doc in documents %}
+          <tr>
+            <td>{{ doc.file_name }}</td>
+            <td>{{ doc.get_doc_type_display|default:"—" }}</td>
+            <td>{{ doc.uploaded_at|date:"M d, Y" }}</td>
+            <td>
+              {% if doc.is_verified %}<span class="prm-chip prm-chip--green">Verified</span>
+              {% else %}<span class="prm-chip prm-chip--orange">Not verified</span>{% endif %}
+            </td>
+            <td>{{ doc.verified_by|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if uploaded_files %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-inbox"></i>
+        <span class="prm-card__title">Application content</span>
+        <span class="prm-card__sub">{{ uploaded_files|length }} uploaded</span>
+      </div>
+      <div class="prm-table-wrap">
+        <table class="prm-table">
+          <thead><tr><th>File</th><th>Type / Section</th><th>Source</th></tr></thead>
+          <tbody>
+          {% for f in uploaded_files %}
+          <tr>
+            <td>{% if f.url %}<a href="{{ f.url }}" target="_blank" rel="noopener">{{ f.name }}</a>{% else %}{{ f.name }}{% endif %}</td>
+            <td>{{ f.category|default:"—" }}</td>
+            <td>{{ f.source }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% elif not essays and not documents and not app.offline_form_pdf and not review_materials %}
+    <div class="prm-card">
+      <div class="prm-card__head">
+        <i class="ti ti-inbox"></i>
+        <span class="prm-card__title">Application content</span>
+      </div>
+      <div class="prm-empty">
+        No essays or documents are on file for this application yet.
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>

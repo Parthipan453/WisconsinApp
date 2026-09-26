@@ -1,0 +1,314 @@
+{% extends 'Applicants/builder/base.html' %}
+{% load static %}
+{% block title %}
+  Dashboard — Form Builder
+{% endblock %}
+{% block mobile_title %}
+  Form Builder
+{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/Applicants/builder_dashboard.css' %}" />
+{% endblock %}
+{% block content %}
+  <div class="bld-list-page bld-dash-page">
+    <div class="bld-dash-hero">
+      <h1>Form Builder</h1>
+      <p>{{ total_forms }} form{{ total_forms|pluralize }} &middot; {{ total_workflows }} workflow{{ total_workflows|pluralize }}</p>
+      <div class="bld-dash-hero-actions">
+        <button class="bld-btn bld-btn-primary" onclick="openFormAdd()"><i class="ti ti-plus"></i> New Form</button>
+        <a href="{% url 'builder_workflow_create' %}" class="bld-btn"><i class="ti ti-hierarchy"></i> New Workflow</a>
+      </div>
+    </div>
+
+    <!--  <div class="bld-stats">
+  <div class="bld-stat">
+    <div class="bld-stat-icon"><i class="ti ti-forms"></i></div>
+    <div class="bld-stat-value">{{ total_forms }}</div>
+    <div class="bld-stat-label">Form Definitions</div>
+  </div>
+  <div class="bld-stat">
+    <div class="bld-stat-icon"><i class="ti ti-hierarchy"></i></div>
+    <div class="bld-stat-value">{{ total_workflows }}</div>
+    <div class="bld-stat-label">Workflows</div>
+  </div>
+  <div class="bld-stat">
+    <div class="bld-stat-icon"><i class="ti ti-calendar"></i></div>
+    <div class="bld-stat-value">{{ cycles|length }}</div>
+    <div class="bld-stat-label">Admission Cycles</div>
+  </div>
+  <div class="bld-stat">
+    <div class="bld-stat-icon"><i class="ti ti-cash"></i></div>
+    <div class="bld-stat-value">{{ total_fees }}</div>
+    <div class="bld-stat-label">Fee Rules</div>
+  </div>
+  <div class="bld-stat">
+    <div class="bld-stat-icon"><i class="ti ti-users"></i></div>
+    <div class="bld-stat-value">{{ total_req_types }}</div>
+    <div class="bld-stat-label">Type Requirements</div>
+  </div>
+  <div class="bld-stat">
+    <div class="bld-stat-icon"><i class="ti ti-file-stack"></i></div>
+    <div class="bld-stat-value">{{ total_doc_reqs }}</div>
+    <div class="bld-stat-label">Doc Requirements</div>
+  </div>
+</div>  -->
+
+    <div class="bld-card">
+      <div class="bld-card-header">
+        <h2 class="bld-h2"><i class="ti ti-forms"></i> Form Definitions</h2>
+      </div>
+      <div class="bld-table-wrap">
+        <table class="bld-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Code</th>
+              <th>Sections</th>
+              <th>Fields</th>
+              <th>Assignments</th>
+              <th>Version</th>
+              <th>Status</th>
+              <th class="bld-th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fd in form_data %}
+              <tr>
+                <td class="bld-cell-name">
+                  {% if fd.form.icon %}
+                    <i class="ti ti-{{ fd.form.icon }}"></i>
+                  {% endif %}
+                  <a href="{% url 'builder_form_edit' fd.form.pk %}">{{ fd.form.name }}</a>
+                </td>
+                <td>
+                  <code>{{ fd.form.code }}</code>
+                </td>
+                <td>{{ fd.section_count }}</td>
+                <td>{{ fd.field_count }}</td>
+                <td>{{ fd.assignment_count }}</td>
+                <td>v{{ fd.form.version }}</td>
+                <td>
+                  {% if fd.form.is_active %}
+                    <span class="bld-badge bld-badge-green">Active</span>
+                  {% else %}
+                    <span class="bld-badge bld-badge-red">Inactive</span>
+                  {% endif %}
+                </td>
+                <td class="bld-cell-actions">
+                  <button class="bld-btn-icon" title="Edit form" onclick="openFormEdit({{ fd.form.pk }})"><i class="ti ti-edit"></i></button>
+                  <a href="{% url 'builder_form_preview' fd.form.pk %}" class="bld-btn-icon" title="Preview"><i class="ti ti-eye"></i></a>
+                  <a href="{% url 'builder_assignments' fd.form.pk %}" class="bld-btn-icon" title="Assignments"><i class="ti ti-link"></i></a>
+                  <a href="{% url 'builder_form_clone' fd.form.pk %}" class="bld-btn-icon" title="Clone"><i class="ti ti-copy"></i></a>
+                  <button class="bld-btn-icon bld-btn-icon-danger" title="Delete form" onclick="openFormDelete({{ fd.form.pk }}, '{{ fd.form.name|escapejs }}')"><i class="ti ti-trash"></i></button>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" class="bld-empty">
+                  No forms yet. <a href="#" onclick="event.preventDefault(); openFormAdd()">Create your first form</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bld-card">
+      <div class="bld-card-header">
+        <h2 class="bld-h2"><i class="ti ti-hierarchy"></i> Workflow Definitions</h2>
+        <a href="{% url 'builder_workflow_list' %}" class="bld-btn bld-btn-sm bld-btn-outline">Manage All</a>
+      </div>
+      <div class="bld-table-wrap">
+        <table class="bld-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Code</th>
+              <th>Scope</th>
+              <th>Default</th>
+              <th>Status</th>
+              <th class="bld-th-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for wf in workflows %}
+              <tr>
+                <td>
+                  <a href="{% url 'builder_workflow_edit' wf.pk %}">{{ wf.name }}</a>
+                </td>
+                <td>
+                  <code>{{ wf.code }}</code>
+                </td>
+                <td class="bld-cell-scope">
+                  {% if wf.university %}
+                    {{ wf.university.university_name|truncatechars:20 }}
+                  {% else %}
+                    <span class="text-muted">All</span>
+                  {% endif %}/{% if wf.degree_level %}
+                    {{ wf.degree_level.degree_name|truncatechars:15 }}
+                  {% else %}
+                    <span class="text-muted">All</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if wf.is_default %}
+                    <i class="ti ti-star-filled" style="color:#f59e0b"></i>
+                  {% else %}
+                    &mdash;
+                  {% endif %}
+                </td>
+                <td>
+                  {% if wf.is_active %}
+                    <span class="bld-badge bld-badge-green">Active</span>
+                  {% else %}
+                    <span class="bld-badge bld-badge-red">Inactive</span>
+                  {% endif %}
+                </td>
+                <td class="bld-cell-actions">
+                  <a href="{% url 'builder_workflow_edit' wf.pk %}" class="bld-btn-icon" title="Edit"><i class="ti ti-edit"></i></a>
+                  <a href="{% url 'builder_workflow_delete' wf.pk %}" class="bld-btn-icon bld-btn-icon-danger" title="Delete" onclick="return confirm('Delete this workflow?')"><i class="ti ti-trash"></i></a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="bld-empty">
+                  No workflows yet. <a href="{% url 'builder_workflow_create' %}">Create your first workflow</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {# ── Form Add/Edit Modal ── #}
+  <div class="bld-overlay bld-overlay-hidden" id="formModal" role="dialog" aria-modal="true">
+    <div class="bld-overlay-backdrop" onclick="closeModal('formModal')"></div>
+    <div class="bld-overlay-card">
+      <div class="bld-overlay-header">
+        <h3 id="formModalTitle">New Form</h3>
+        <button type="button" class="bld-btn-icon" onclick="closeModal('formModal')" title="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <form id="formEditForm" method="POST" action="{% url 'builder_form_create' %}">
+        {% csrf_token %}
+        <input type="hidden" name="form_id" id="form_id" />
+        <div class="bld-overlay-body">
+          <div class="bld-form-group">
+            <label class="bld-label">
+              Form Code <span style="color:var(--bld-red)">*</span>
+              <span style="font-weight:400;color:var(--bld-muted)">(unique, lowercase, no spaces)</span>
+            </label>
+            <input type="text" name="code" id="form_code" class="bld-input" placeholder="e.g. graduate_application" required pattern="[a-z0-9_]+" />
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Form Name <span style="color:var(--bld-red)">*</span></label>
+            <input type="text" name="name" id="form_name" class="bld-input" placeholder="e.g. Graduate Application" required />
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Description</label>
+            <textarea name="description" id="form_description" class="bld-input" rows="3" placeholder="What does this form collect?"></textarea>
+          </div>
+          <div class="bld-overlay-grid-2">
+            <div class="bld-form-group">
+              <label class="bld-label">Icon</label>
+              <input type="text" name="icon" id="form_icon" class="bld-input" placeholder="e.g. user, mail, book-open" />
+            </div>
+            <div class="bld-form-group">
+              <label class="bld-label">Sort Order</label>
+              <input type="number" name="sort_order" id="form_sort_order" class="bld-input" value="0" min="0" />
+            </div>
+          </div>
+          <label class="bld-overlay-check"><input type="checkbox" name="is_active" id="form_is_active" checked />Active</label>
+        </div>
+        <div class="bld-overlay-footer">
+          <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('formModal')">Cancel</button>
+          <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Form</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── Delete Form Modal ── #}
+  <div class="bld-overlay bld-overlay-hidden" id="deleteFormModal" role="dialog" aria-modal="true">
+    <div class="bld-overlay-backdrop" onclick="closeModal('deleteFormModal')"></div>
+    <div class="bld-overlay-card bld-overlay-sm">
+      <div class="bld-overlay-header">
+        <h3>Delete Form</h3>
+        <button type="button" class="bld-btn-icon" onclick="closeModal('deleteFormModal')" title="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <form id="deleteFormForm" method="POST" action="">
+        {% csrf_token %}
+        <div class="bld-overlay-body">
+          <p style="margin:0;color:var(--bld-muted)">
+            Are you sure you want to delete form <strong id="deleteFormName"></strong> and all its data? This cannot be undone.
+          </p>
+        </div>
+        <div class="bld-overlay-footer">
+          <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('deleteFormModal')">Cancel</button>
+          <button type="submit" class="bld-btn bld-btn-danger"><i class="ti ti-trash"></i> Delete Form</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    function openModal(id) {
+      var el = document.getElementById(id)
+      if (el) el.classList.remove('bld-overlay-hidden')
+      document.body.style.overflow = 'hidden'
+    }
+    function closeModal(id) {
+      var el = document.getElementById(id)
+      if (el) el.classList.add('bld-overlay-hidden')
+      document.body.style.overflow = ''
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.bld-overlay:not(.bld-overlay-hidden)').forEach(function (o) {
+          closeModal(o.id)
+        })
+      }
+    })
+    
+    function openFormAdd() {
+      document.getElementById('formEditForm').reset()
+      document.getElementById('form_id').value = ''
+      document.getElementById('form_is_active').checked = true
+      document.getElementById('form_sort_order').value = 0
+      document.getElementById('formEditForm').action = '{% url "builder_form_create" %}'
+      document.getElementById('form_code').readOnly = false
+      document.getElementById('formModalTitle').textContent = 'New Form'
+      openModal('formModal')
+    }
+    
+    function openFormEdit(formId) {
+      fetch('/applicants/builder/forms/' + formId + '/json/')
+        .then(function (r) {
+          return r.json()
+        })
+        .then(function (d) {
+          document.getElementById('form_id').value = d.pk
+          document.getElementById('form_code').value = d.code || ''
+          document.getElementById('form_name').value = d.name || ''
+          document.getElementById('form_description').value = d.description || ''
+          document.getElementById('form_icon').value = d.icon || ''
+          document.getElementById('form_sort_order').value = d.sort_order || 0
+          document.getElementById('form_is_active').checked = d.is_active !== false
+          document.getElementById('formEditForm').action = '/applicants/builder/forms/' + formId + '/edit/'
+          document.getElementById('form_code').readOnly = true
+          document.getElementById('formModalTitle').textContent = 'Edit Form'
+          openModal('formModal')
+        })
+    }
+    
+    function openFormDelete(formId, name) {
+      document.getElementById('deleteFormName').textContent = name
+      document.getElementById('deleteFormForm').action = '/applicants/builder/forms/' + formId + '/delete/'
+      openModal('deleteFormModal')
+    }
+  </script>
+{% endblock %}

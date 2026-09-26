@@ -1,0 +1,562 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Graduation Students{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+<link rel="stylesheet" href="{% static 'css/leo/graduation/committee_graduation_student_list.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="committee-graduation-page">
+
+    <div class="graduation-header">
+        <div class="graduation-header-left">
+            <div class="graduation-icon">
+                <i class="ti ti-school"></i>
+            </div>
+
+            <div class="graduation-header-content">
+                <div class="graduation-eyebrow">PHD MANAGEMENT</div>
+                <h1>Graduation Students</h1>
+                <p>Review doctoral graduation records and final approval status.</p>
+            </div>
+        </div>
+
+        <div class="graduation-header-status">
+            <span class="status-dot"></span>
+            Faculty Workspace
+        </div>
+    </div>
+
+    <div class="graduation-summary">
+
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="ti ti-users"></i>
+            </div>
+            <div class="summary-card-content">
+                <span>Total Graduations</span>
+                <strong>{{ graduations.paginator.count|default:graduations|length }}</strong>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-icon pending">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div class="summary-card-content">
+                <span>Pending Approval</span>
+                <strong>{{ pending_count|default:"0" }}</strong>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-icon approved">
+                <i class="ti ti-circle-check"></i>
+            </div>
+            <div class="summary-card-content">
+                <span>Approved</span>
+                <strong>{{ approved_count|default:"0" }}</strong>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card-icon calendar">
+                <i class="ti ti-calendar-event"></i>
+            </div>
+            <div class="summary-card-content">
+                <span>Upcoming</span>
+                <strong>{{ upcoming_count|default:"0" }}</strong>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="graduation-filter-card">
+
+        <div class="filter-heading">
+            <div>
+                <span class="filter-kicker">GRADUATION RECORDS</span>
+                <h2>Find a Student</h2>
+            </div>
+
+            <span class="record-count">
+                {{ graduations.paginator.count|default:graduations|length }} records
+            </span>
+        </div>
+
+        <form method="get" class="graduation-filters">
+
+            <div class="filter-group filter-search">
+                <label for="graduation-search">Search</label>
+
+                <div class="filter-input-wrap">
+                    <i class="ti ti-search"></i>
+                    <input
+                        type="text"
+                        id="graduation-search"
+                        name="search"
+                        value="{{ search }}"
+                        placeholder="Search student name or email"
+                        autocomplete="off"
+                    >
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="graduation-status">Status</label>
+
+                <select id="graduation-status" name="status">
+                    <option value="">All Statuses</option>
+
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="graduation-date-from">Graduation From</label>
+
+                <div class="filter-input-wrap date-wrap">
+                    <i class="ti ti-calendar"></i>
+
+                    <input
+                        type="text"
+                        id="graduation-date-from"
+                        name="date_from"
+                        value="{{ date_from }}"
+                        placeholder="Select date"
+                        autocomplete="off"
+                        readonly
+                    >
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="graduation-date-to">Graduation To</label>
+
+                <div class="filter-input-wrap date-wrap">
+                    <i class="ti ti-calendar"></i>
+
+                    <input
+                        type="text"
+                        id="graduation-date-to"
+                        name="date_to"
+                        value="{{ date_to }}"
+                        placeholder="Select date"
+                        autocomplete="off"
+                        readonly
+                    >
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="filter-btn">
+                    <i class="ti ti-adjustments-horizontal"></i>
+                    {% comment %} <span></span> {% endcomment %}
+                </button>
+
+                <a
+                    href="{% url 'committee_graduation_student_list' uuid=request.user.uuid %}"
+                    class="clear-btn"
+                >
+                    <i class="ti ti-refresh"></i>
+                    <span>Clear</span>
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+
+    {% if graduations %}
+
+        <div class="graduation-list">
+
+            {% for graduation in graduations %}
+
+                <article class="graduation-card">
+
+                    <div class="graduation-card-main">
+
+                        <div class="student-avatar">
+                            {% if graduation.phd_student.student.user.first_name %}
+                                {{ graduation.phd_student.student.user.first_name|first|upper }}
+                            {% else %}
+                                S
+                            {% endif %}
+                        </div>
+
+                        <div class="student-information">
+
+                            <div class="student-name-row">
+
+                                <h3>
+                                    {{ graduation.phd_student.student.user.get_full_name|default:graduation.phd_student.student.user.email }}
+                                </h3>
+
+                                {% if graduation.status == "APPROVED" %}
+
+                                    <span class="graduation-status approved">
+                                        <i class="ti ti-circle-check"></i>
+                                        Approved
+                                    </span>
+
+                                {% elif graduation.status == "PENDING_CHAIR_APPROVAL" %}
+
+                                    <span class="graduation-status pending">
+                                        <i class="ti ti-clock"></i>
+                                        Pending Chair Approval
+                                    </span>
+
+                                {% elif graduation.status == "COMPLETED" %}
+
+                                    <span class="graduation-status completed">
+                                        <i class="ti ti-rosette"></i>
+                                        Completed
+                                    </span>
+
+                                {% elif graduation.status == "REJECTED" %}
+
+                                    <span class="graduation-status rejected">
+                                        <i class="ti ti-circle-x"></i>
+                                        Rejected
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="graduation-status">
+                                        {{ graduation.get_status_display }}
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="student-meta">
+
+                                {% if graduation.phd_student.student.student_id %}
+                                    <span>
+                                        <i class="ti ti-id"></i>
+                                        {{ graduation.phd_student.student.student_id }}
+                                    </span>
+                                {% endif %}
+
+                                {% if graduation.phd_student.phd_program %}
+                                    <span>
+                                        <i class="ti ti-school"></i>
+                                        {{ graduation.phd_student.phd_program }}
+                                    </span>
+                                {% endif %}
+
+                                {% if graduation.phd_student.student.user.email %}
+                                    <span>
+                                        <i class="ti ti-mail"></i>
+                                        {{ graduation.phd_student.student.user.email }}
+                                    </span>
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="graduation-card-details">
+
+                        <div class="detail-item">
+                            <span class="detail-label">Graduation Date</span>
+
+                            <strong>
+                                {% if graduation.graduation_date %}
+                                    {{ graduation.graduation_date|date:"M d, Y" }}
+                                {% else %}
+                                    Not Scheduled
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Location</span>
+                            <strong>
+                                {{ graduation.graduation_location|default:"Not Scheduled" }}
+                            </strong>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Final GPA</span>
+
+                            <strong>
+                                {% if graduation.final_gpa %}
+                                    {{ graduation.final_gpa }}
+                                {% else %}
+                                    Not Available
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                    <div class="graduation-card-footer">
+
+                        <div class="verification-summary">
+
+                            {% if graduation.dissertation_accepted %}
+                                <span class="verification-item verified">
+                                    <i class="ti ti-file-check"></i>
+                                    Dissertation Approved
+                                </span>
+                            {% else %}
+                                <span class="verification-item">
+                                    <i class="ti ti-file-x"></i>
+                                    Dissertation Pending
+                                </span>
+                            {% endif %}
+
+                            {% if graduation.defense_passed %}
+                                <span class="verification-item verified">
+                                    <i class="ti ti-checkup-list"></i>
+                                    Defense Passed
+                                </span>
+                            {% else %}
+                                <span class="verification-item">
+                                    <i class="ti ti-alert-circle"></i>
+                                    Defense Pending
+                                </span>
+                            {% endif %}
+
+                        </div>
+
+                        <a
+                            href="{% url 'committee_graduation_student_detail' uuid=request.user.uuid graduation_id=graduation.graduation_id %}"
+                            class="graduation-action {% if is_chair %}chair-action{% endif %}"
+                        >
+
+                            {% if is_chair %}
+                                <span>Finalize</span>
+                                <i class="ti ti-arrow-right"></i>
+                            {% else %}
+                                <span>View Details</span>
+                                <i class="ti ti-eye"></i>
+                            {% endif %}
+
+                        </a>
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+        {% if graduations.has_other_pages %}
+
+            <div class="graduation-pagination">
+
+                <div class="pagination-info">
+                    Showing
+                    <strong>{{ graduations.start_index }}</strong>
+                    –
+                    <strong>{{ graduations.end_index }}</strong>
+                    of
+                    <strong>{{ graduations.paginator.count }}</strong>
+                </div>
+
+                <div class="pagination-controls">
+
+                    {% if graduations.has_previous %}
+                        <a
+                            href="?page={{ graduations.previous_page_number }}{% if search %}&amp;search={{ search|urlencode }}{% endif %}{% if status %}&amp;status={{ status|urlencode }}{% endif %}{% if date_from %}&amp;date_from={{ date_from|urlencode }}{% endif %}{% if date_to %}&amp;date_to={{ date_to|urlencode }}{% endif %}"
+                            class="pagination-btn"
+                            aria-label="Previous page"
+                        >
+                            <i class="ti ti-chevron-left"></i>
+                        </a>
+                    {% endif %}
+
+                    <div class="pagination-pages">
+
+                        {% for page_num in graduations.paginator.page_range %}
+
+                            {% if page_num == graduations.number %}
+
+                                <span class="pagination-page active">
+                                    {{ page_num }}
+                                </span>
+
+                            {% elif page_num > graduations.number|add:"-2" and page_num < graduations.number|add:"2" %}
+
+                                <a
+                                    href="?page={{ page_num }}{% if search %}&amp;search={{ search|urlencode }}{% endif %}{% if status %}&amp;status={{ status|urlencode }}{% endif %}{% if date_from %}&amp;date_from={{ date_from|urlencode }}{% endif %}{% if date_to %}&amp;date_to={{ date_to|urlencode }}{% endif %}"
+                                    class="pagination-page"
+                                >
+                                    {{ page_num }}
+                                </a>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                    {% if graduations.has_next %}
+                        <a
+                            href="?page={{ graduations.next_page_number }}{% if search %}&amp;search={{ search|urlencode }}{% endif %}{% if status %}&amp;status={{ status|urlencode }}{% endif %}{% if date_from %}&amp;date_from={{ date_from|urlencode }}{% endif %}{% if date_to %}&amp;date_to={{ date_to|urlencode }}{% endif %}"
+                            class="pagination-btn"
+                            aria-label="Next page"
+                        >
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    {% else %}
+
+        <div class="graduation-empty">
+            <div class="empty-icon">
+                <i class="ti ti-school-off"></i>
+            </div>
+
+            <h2>No Graduation Records</h2>
+
+            <p>
+                No doctoral graduation records match your current filters.
+            </p>
+
+            <a
+                href="{% url 'committee_graduation_student_list' uuid=request.user.uuid %}"
+                class="empty-reset"
+            >
+                <i class="ti ti-refresh"></i>
+                Clear Filters
+            </a>
+        </div>
+
+    {% endif %}
+
+    <div class="graduation-guidance">
+
+        <div class="guidance-icon">
+            <i class="ti ti-info-circle"></i>
+        </div>
+
+        <div>
+            <span class="guidance-label">GRADUATION WORKFLOW</span>
+
+            <p>
+                Review the student's complete academic record before final graduation approval.
+                Committee members have view access, while Chair Faculty completes the final approval.
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const statusSelect = document.getElementById("graduation-status");
+    const dateFrom = document.getElementById("graduation-date-from");
+    const dateTo = document.getElementById("graduation-date-to");
+
+    if (statusSelect && typeof Choices !== "undefined") {
+        new Choices(statusSelect, {
+            searchEnabled: false,
+            searchChoices: false,
+            shouldSort: false,
+            itemSelectText: "",
+            allowHTML: false,
+            placeholder: false,
+            removeItemButton: false,
+            classNames: {
+                containerOuter: "graduation-choices"
+            }
+        });
+    }
+
+    if (typeof flatpickr !== "undefined") {
+        let fromPicker = null;
+        let toPicker = null;
+
+        if (dateFrom) {
+            const fromWrapper = dateFrom.closest(".date-wrap");
+
+            fromPicker = flatpickr(dateFrom, {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "M d, Y",
+                allowInput: false,
+                clickOpens: true,
+                disableMobile: true,
+                maxDate: "today",
+                monthSelectorType: "dropdown",
+                position: "below left",
+                static: false,
+                appendTo: fromWrapper || document.body,
+                onChange: function (selectedDates) {
+                    if (selectedDates.length && toPicker) {
+                        toPicker.set("minDate", selectedDates[0]);
+                    }
+                }
+            });
+        }
+
+        if (dateTo) {
+            const toWrapper = dateTo.closest(".date-wrap");
+
+            toPicker = flatpickr(dateTo, {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "M d, Y",
+                allowInput: false,
+                clickOpens: true,
+                disableMobile: true,
+                monthSelectorType: "dropdown",
+                maxDate: "today",
+                position: "below left",
+                static: false,
+                appendTo: toWrapper || document.body,
+                onChange: function (selectedDates) {
+                    if (selectedDates.length && fromPicker) {
+                        fromPicker.set("maxDate", selectedDates[0]);
+                    }
+                }
+            });
+        }
+
+        document.querySelectorAll(".date-wrap").forEach(function (wrapper) {
+            wrapper.addEventListener("click", function (event) {
+                const input = wrapper.querySelector("input:not(.flatpickr-input)");
+
+                if (!input) {
+                    return;
+                }
+
+                if (input._flatpickr && !event.target.closest(".flatpickr-calendar")) {
+                    input._flatpickr.open();
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

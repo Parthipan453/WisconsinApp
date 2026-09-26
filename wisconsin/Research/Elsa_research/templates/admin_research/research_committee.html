@@ -1,0 +1,388 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load committee_extras %}
+
+{% block title %}Research Committee{% endblock %}
+{% block page_title %}Research Committee{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin_research/research_committee.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="rc-page">
+
+    <!-- Header -->
+    <div class="rc-page-header">
+        <div>
+            <h1>Research Committee</h1>
+            <p>Manage committee membership across departments</p>
+        </div>
+        <div class="rc-header-actions">
+            <button class="rc-btn rc-btn-primary" type="button" onclick="rcToggle('rcAddModal')">
+                <i class="ti ti-user-plus"></i> Add Member
+            </button>
+        </div>
+    </div>
+    <!-- Stats -->
+    <div class="rc-stats-grid">
+        <div class="rc-stat-card">
+            <div class="rc-icon rc-icon-red"><i class="ti ti-users"></i></div>
+            <div><h3>{{ stat_total }}</h3><span>Total Members</span></div>
+        </div>
+        <div class="rc-stat-card">
+            <div class="rc-icon rc-icon-green"><i class="ti ti-circle-check"></i></div>
+            <div><h3>{{ stat_active }}</h3><span>Active</span></div>
+        </div>
+        <div class="rc-stat-card">
+            <div class="rc-icon rc-icon-rose"><i class="ti ti-circle-x"></i></div>
+            <div><h3>{{ stat_inactive }}</h3><span>Inactive</span></div>
+        </div>
+        <div class="rc-stat-card">
+            <div class="rc-icon rc-icon-gold"><i class="ti ti-crown"></i></div>
+            <div><h3>{{ stat_chairpersons }}</h3><span>Chairpersons</span></div>
+        </div>
+        <div class="rc-stat-card">
+            <div class="rc-icon rc-icon-blue"><i class="ti ti-building"></i></div>
+            <div><h3>{{ stat_departments }}</h3><span>Departments</span></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="rc-filter-section">
+        <div class="rc-filter-row">
+            <div class="rc-filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select name="status" class="rc-input" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="active" {% if selected_status == "active" %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if selected_status == "inactive" %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+
+            <div class="rc-filter-group">
+                <label><i class="ti ti-building"></i> Department</label>
+                <select name="department" class="rc-input" onchange="this.form.submit()">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.department_id }}" {% if selected_department == dept.department_id|stringformat:"s" %}selected{% endif %}>
+                        {{ dept.department_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="rc-filter-group">
+                <label><i class="ti ti-badge"></i> Role</label>
+                <select name="role" class="rc-input" onchange="this.form.submit()">
+                    <option value="">All Roles</option>
+                    {% for role_value, role_label in roles %}
+                    <option value="{{ role_value }}" {% if selected_role == role_value %}selected{% endif %}>
+                        {{ role_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="rc-filter-group rc-filter-group-wide">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div class="rc-search-wrap">
+                    <input type="text" name="q" class="rc-input" placeholder="Search by name or department..." value="{{ search_query }}">
+                    <button class="rc-search-btn" type="submit" aria-label="Search"><i class="ti ti-search"></i></button>
+                </div>
+            </div>
+
+            <div class="rc-filter-group rc-filter-group-reset">
+                <label class="rc-label-hidden">Reset</label>
+                <a href="{% url 'Elsa_research:research_committee' %}" class="rc-btn rc-btn-reset">
+                    <i class="ti ti-refresh"></i> Reset
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <!-- Grid -->
+    <div class="rc-section">
+        <div class="rc-section-header">
+            <h3><i class="ti ti-users-group"></i> Committee Members</h3>
+            <span class="rc-record-count">{{ members|length }} Members</span>
+        </div>
+
+        <div class="rc-grid">
+            {% for m in members %}
+            <div class="rc-card {% if not m.is_active %}rc-inactive{% endif %}">
+                <div class="rc-card-top">
+                    <div class="rc-avatar">
+                        {% if m.faculty.profile_photo %}
+                            <img src="{{ m.faculty.profile_photo.url }}"
+                                alt="{{ m.faculty.user.first_name }}"
+                                class="rc-avatar-img">
+                        {% else %}
+                            {{ m.faculty.user.first_name|first|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="rc-card-info">
+                        <p class="rc-card-name">{{ m.faculty.user.first_name }}</p>
+                        <p class="rc-card-id"><i class="ti ti-id"></i>{{m.faculty.employee_id}}</p>
+                        <p class="rc-card-dept"><i class="ti ti-building"></i> {{ m.department.department_name }}</p>
+                    </div>
+                </div>
+
+                <div class="rc-badge-row">
+                    <span class="rc-role-badge rc-role-{{ m.role }}">{{ m.get_role_display }}</span>
+                    <span class="rc-status-badge rc-status-{% if m.is_active %}active{% else %}inactive{% endif %}">
+                        {% if m.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                <div class="rc-details">
+                    <div class="rc-detail-item">
+                        <span class="rc-detail-label">
+                            <i class="ti ti-mail"></i> Email
+                        </span>
+                        <span class="rc-detail-value">
+                            {{ m.faculty.email|default:"Not Available" }}
+                        </span>
+                    </div>
+                    <div class="rc-detail-item">
+                        <span class="rc-detail-label">
+                            <i class="ti ti-phone"></i> Phone
+                        </span>
+                        <span class="rc-detail-value">
+                            {{ m.faculty.phone|default:"Not Available" }}
+                        </span>
+                    </div>
+                    <div class="rc-detail-item">
+                        <span class="rc-detail-label">
+                            <i class="ti ti-briefcase"></i> Designation
+                        </span>
+                        <span class="rc-detail-value">
+                            {{ m.faculty.faculty_rank.rank_name|default:"-" }}
+                        </span>
+                    </div>
+                    <div class="rc-detail-item">
+                        <span class="rc-detail-label">
+                            <i class="ti ti-mail"></i> Employment Status
+                        </span>
+                        <span class="rc-employment-badge rc-status-{{ m.faculty.employment_status|lower }}">
+                            {{ m.faculty.employment_status }}
+                        </span>
+                    </div>
+                    <div class="rc-detail-item">
+                        <span class="rc-detail-label">
+                            <i class="ti ti-map-pin"></i> Office
+                        </span>
+                        <span class="rc-detail-value">
+                            {{ m.faculty.office_location|default:"-" }}
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="rc-meta-row">
+                    <span><i class="ti ti-calendar-plus"></i> Joined {{ m.joined_at|date:"d M Y" }}</span>
+                    {% if m.ended_at %}<span><i class="ti ti-calendar-x"></i> Ended {{ m.ended_at }}</span>{% endif %}
+                </div>
+                <div class="rc-card-actions">
+                {% if m.is_active %}
+                <button class="rc-btn rc-btn-edit" type="button" onclick="rcToggle('rcEditModal{{ m.id }}')">
+                    <i class="ti ti-edit"></i> Edit
+                </button>
+                {% else %}
+                <button class="rc-btn rc-btn-edit rc-btn-disabled" type="button" disabled>
+                    <i class="ti ti-edit"></i> Edit
+                </button>
+                {% endif %}
+                    {% if m.is_active %}
+                    <button class="rc-btn rc-btn-deactivate" type="button"
+                            onclick="rcConfirmDeactivate('{% url 'Elsa_research:committee_deactivate' m.id %}?page={{ request.GET.page }}', '{{ m.faculty.user.first_name|escapejs }} {{ m.faculty.user.last_name|escapejs }}')">
+                        <i class="ti ti-user-off"></i> Inactive
+                    </button>
+                    {% else %}
+                    <form method="post" action="{% url 'Elsa_research:committee_reactivate' m.id %}?page={{ request.GET.page }}" style="display:contents;">
+                        {% csrf_token %}
+                        <button class="rc-btn rc-btn-reactivate" type="submit">
+                            <i class="ti ti-user-check"></i> Reactivate
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>  
+
+            <div class="rc-modal-overlay edit" id="rcEditModal{{ m.id }}" >
+                <div class="rc-modal">
+                    <div class="rc-modal-header">
+                        <h3><i class="ti ti-edit"></i> Edit Committee Member</h3>
+                        <button class="rc-modal-close" type="button" onclick="rcToggle('rcEditModal{{ m.id }}')">&times;</button>
+                    </div>
+                    <form method="post"  class="rc-edit-form"
+                    action="{% url 'Elsa_research:committee_update' m.id %}?page={{ request.GET.page }}">
+                        {% csrf_token %}
+                        <div class="rc-modal-body">
+                            {% with form=edit_forms|dictkey:m.id %}
+                            <div class="rc-form-group">
+                                <label>Department <span class="rc-required">*</span></label>
+                                {{ form.department }}
+                                {% if form.department.errors %}<div class="rc-field-error">{{ form.department.errors|striptags }}</div>{% endif %}
+                            </div>
+                            <div class="rc-form-group">
+                                <label>Faculty <span class="rc-required">*</span></label>
+                                {{ form.faculty }}
+                                {% if form.faculty.errors %}<div class="rc-field-error">{{ form.faculty.errors|striptags }}</div>{% endif %}
+                            </div>
+                         <div class="rc-form-group">
+                            <label>Role <span class="rc-required">*</span></label>
+                            {{ form.role }}
+                            <div class="rc-field-error">
+                                {% if form.role.errors %}
+                                    {{ form.role.errors|striptags }}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                            {% endwith %}
+                        </div>
+                        <div class="rc-modal-footer">
+                            <button class="rc-btn rc-btn-reset" type="button" onclick="rcToggle('rcEditModal{{ m.id }}')">Cancel</button>
+                            <button class="rc-btn rc-btn-primary" type="submit"> Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <p class="rc-empty">
+                <i class="ti ti-users"></i>
+                <span>No committee members match your filters.</span>
+            </p>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="rc-pagination-wrapper">
+        <div class="rc-pagination-info">
+            Showing 
+            {{ page_obj.start_index }}–{{ page_obj.end_index }}
+            of {{ page_obj.paginator.count }} Members
+        </div>
+        <div class="rc-pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.role %}role={{ request.GET.role }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                class="rc-page-btn">
+                    <i class="ti ti-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="rc-page-btn disabled">
+                    <i class="ti ti-chevron-left"></i>
+                </span>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                    {% if page_obj.number == num %}
+                        <span class="rc-page-btn active">{{ num }}</span>
+                    {% else %}
+                        <a class="rc-page-btn" href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.role %}role={{ request.GET.role }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ num }}">
+                            {{ num }}
+                        </a>
+                    {% endif %}
+                {% elif num == 2 and page_obj.number > 4 %}
+                    <span class="rc-page-dots">...</span>
+                {% elif num == page_obj.paginator.num_pages|add:"-1" and page_obj.number < page_obj.paginator.num_pages|add:"-3" %}
+                    <span class="rc-page-dots">...</span>
+                {% endif %}
+            {% endfor %}
+           {% if page_obj.has_next %}
+                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.role %}role={{ request.GET.role }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                class="rc-page-btn">
+                    <i class="ti ti-chevron-right"></i>
+                </a>
+            {% else %}
+                <span class="rc-page-btn disabled">
+                    <i class="ti ti-chevron-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Add Member modal -->
+    <div class="rc-modal-overlay" id="rcAddModal" {% if show_add_modal %}style="display:flex"{% endif %}>
+        <div class="rc-modal">
+            <div class="rc-modal-header">
+                <h3><i class="ti ti-user-plus"></i> Add Committee Member</h3>
+                <button class="rc-modal-close" type="button" onclick="rcToggle('rcAddModal')">&times;</button>
+            </div>
+            <form method="post" action="{% url 'Elsa_research:committee_create' %}">
+                {% csrf_token %}
+                <div class="rc-modal-body">
+                    <div class="rc-form-group">
+                        <label>Department <span class="rc-required">*</span></label>
+                        {{ add_form.department }}
+                        <div class="rc-field-error" id="department-error">
+                        {% if add_form.department.errors %}
+                            {{ add_form.department.errors|striptags }}
+                        {% endif %}
+                        </div>
+                    </div>
+                    <div class="rc-form-group">
+                        <label>Faculty <span class="rc-required">*</span></label>
+                        {{ add_form.faculty }}
+                        <div class="rc-field-error" id="faculty-error">
+                        {% if add_form.faculty.errors %}
+                            {{ add_form.faculty.errors|striptags }}
+                        {% endif %}
+                        </div>
+                    </div>
+                    <div class="rc-form-group">
+                        <label>Role <span class="rc-required">*</span></label>
+                        {{ add_form.role }}
+                        <div class="rc-field-error" id="role-error">
+                        {% if add_form.role.errors %}                        
+                            {{ add_form.role.errors|striptags }}                        
+                        {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="rc-modal-footer">
+                    <button class="rc-btn rc-btn-reset" type="button" onclick="rcToggle('rcAddModal')">Cancel</button>
+                    <button class="rc-btn rc-btn-primary" type="submit">Add Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<!-- Deactivate Confirm Modal -->
+<div class="rc-modal-overlay" id="rcDeactivateModal">
+    <div class="rc-modal">
+        <div class="rc-modal-header">
+            <h3><i class="ti ti-user-off"></i> Confirm Deactivation</h3>
+            <button class="rc-modal-close" type="button" onclick="rcToggle('rcDeactivateModal')">&times;</button>
+        </div>
+        <div class="rc-modal-body">
+            <p>Mark <strong id="rcDeactivateName"></strong> as inactive?</p>
+        </div>
+        <div class="rc-modal-footer">
+            <button class="rc-btn rc-btn-reset" type="button" onclick="rcToggle('rcDeactivateModal')">Cancel</button>
+            <button class="rc-btn rc-btn-deactivate-solid" type="button" id="rcDeactivateConfirmBtn">
+                <i class="ti ti-user-off"></i> Yes, Deactivate
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form used to actually submit the deactivate POST -->
+<form method="post" id="rcDeactivateForm" style="display:none;">
+    {% csrf_token %}
+</form>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+{% if show_add_modal %}
+<script>document.body.style.overflow = "hidden";</script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+    const facultyByDepartmentUrl = "{% url 'Elsa_research:get_faculty_by_department' 999999 %}";
+</script>
+<script src="{% static 'script/admin_research/research_committee.js' %}"></script>
+{% endblock %}

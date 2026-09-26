@@ -1,0 +1,791 @@
+{% extends 'faculty_base.html' %}
+{% load static %} 
+{% block title %}Medical History{% endblock %} 
+{% block extra_css %}
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+/>
+
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+
+<link rel="stylesheet" href="{% static 'css/luna/appointment_history.css' %}" />
+
+{% endblock %} {% block nav_medical_open %}open{% endblock %} \
+{% block nav_medical_submenu %}open{% endblock %} 
+{% block nav_meedical_history_subcontent %}active{% endblock %} 
+{% block content %}
+
+{% comment %} {% if messages %}
+
+<div class="appointment-toast-container">
+  {% for message in messages %}
+
+  <div class="appointment-toast {{ message.tags }}">
+    <div class="appointment-toast-icon">
+      {% if message.tags == "success" %}
+
+      <i class="ti ti-circle-check"></i>
+
+      {% elif message.tags == "error" %}
+
+      <i class="ti ti-circle-x"></i>
+
+      {% else %}
+
+      <i class="ti ti-info-circle"></i>
+
+      {% endif %}
+    </div>
+
+    <div class="appointment-toast-content">{{ message }}</div>
+
+    <button
+      type="button"
+      class="appointment-toast-close"
+      onclick="this.parentElement.remove()"
+    >
+      <i class="ti ti-x"></i>
+    </button>
+  </div>
+
+  {% endfor %}
+</div>
+
+{% endif %} {% endcomment %}
+
+<div class="appointment-page-wrapper">
+  <div class="app-header">
+    <div class="app-header-title">
+      <h1>
+        <i class="ti ti-heart-rate-monitor"></i>
+        Medical History
+      </h1>
+
+      <p class="page-subtitle">Your appointments and previous medical visits</p>
+    </div>
+
+    <div class="app-header-actions">
+      <div class="app-search-wrap">
+        <i class="ti ti-search"></i>
+
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search doctor, diagnosis, reason..."
+          value="{{ search_query }}"
+          autocomplete="off"
+        />
+      </div>
+
+      <select id="statusFilter">
+        <option
+          value="All Status"
+          {%
+          if
+          not
+          current_status
+          or
+          current_status=""
+          ="ALL STATUS"
+          or
+          current_status=""
+          ="All Status"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          All Status
+        </option>
+
+        <option
+          value="PENDING"
+          {%
+          if
+          current_status=""
+          ="PENDING"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          Pending
+        </option>
+        <option
+          value="WAITING"
+          {% if current_status == "WAITING" %}
+          selected
+          {% endif %}
+        >
+          Waiting
+        </option>
+
+        <option
+          value="CONFIRMED"
+          {%
+          if
+          current_status=""
+          ="CONFIRMED"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          Confirmed
+        </option>
+
+        <option
+          value="ARRIVED"
+          {%
+          if
+          current_status=""
+          ="ARRIVED"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          Arrived
+        </option>
+
+        <option
+          value="IN_PROGRESS"
+          {%
+          if
+          current_status=""
+          ="IN_PROGRESS"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          In Progress
+        </option>
+
+        <option
+          value="COMPLETED"
+          {%
+          if
+          current_status=""
+          ="COMPLETED"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          Completed
+        </option>
+
+        <option
+          value="CANCELLED"
+          {%
+          if
+          current_status=""
+          ="CANCELLED"
+          %}
+          selected
+          {%
+          endif
+          %}
+        >
+          Cancelled
+        </option>
+      </select>
+    </div>
+  </div>
+
+
+  <div id="appointmentStatsWrapper">
+    <div class="stats-row">
+      <div class="stat-card stat-total">
+        <div class="stat-icon">
+          <i class="ti ti-history"></i>
+        </div>
+
+        <div class="stat-content">
+          <h3>{{ status_counts.total }}</h3>
+
+          <p>Total Visits</p>
+
+          <span> All medical records </span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-pending">
+        <div class="stat-icon">
+          <i class="ti ti-clock"></i>
+        </div>
+
+        <div class="stat-content">
+          <h3>{{ status_counts.pending }}</h3>
+
+          <p>Pending</p>
+
+          <span> Awaiting confirmation </span>
+        </div>
+      </div>
+
+      <div class="stat-card stat-confirmed">
+        <div class="stat-icon">
+          <i class="ti ti-circle-check"></i>
+        </div>
+
+        <div class="stat-content">
+          <h3>{{ status_counts.confirmed }}</h3>
+
+          <p>Confirmed</p>
+
+          <span> Upcoming visits </span>
+        </div>
+      </div>
+      <div class="stat-card stat-completed">
+        <div class="stat-icon">
+          <i class="ti ti-file-check"></i>
+        </div>
+
+        <div class="stat-content">
+          <h3>{{ status_counts.completed }}</h3>
+
+          <p>Completed</p>
+
+          <span> Medical records available </span>
+        </div>
+      </div>
+      <div class="stat-card stat-cancelled">
+        <div class="stat-icon">
+          <i class="ti ti-circle-x"></i>
+        </div>
+
+        <div class="stat-content">
+          <h3>{{ status_counts.cancelled }}</h3>
+
+          <p>Cancelled</p>
+
+          <span> Cancelled appointments </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="appointmentTableWrapper">
+    <div class="appointments-table-container">
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>Doctor / Department</th>
+            <th>Appointment / Token</th>
+            <th>Date & Time</th>
+            <th>Type</th>
+            <th>Reason / Complaint</th>
+            <th>Diagnosis</th>
+            <th>Visit Type</th>
+            <th>Treatment</th>
+            <th>Follow-up</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for registration in appointments %}
+
+          <tr>
+            <td>
+              <div class="doctor-cell">
+                {% if registration.display_doctor %} 
+                {% if registration.display_doctor.user.profile_photo %}
+
+                <img
+                  src="{{ registration.display_doctor.user.profile_photo.url }}"
+                  class="doctor-avatar"
+                  alt="Doctor"
+                />
+                {% else %}
+                <div class="doctor-avatar doctor-initial">
+                  {{ registration.display_doctor.user.first_name|slice:":1"|upper }} 
+                  {{ registration.display_doctor.user.last_name|slice:":1"|upper }}
+                </div>
+                {% endif %}
+                <div class="doctor-info">
+                  <strong>
+                    Dr. {{ registration.display_doctor.user.get_full_name }}
+                  </strong>
+                  {% if registration.display_doctor.specialization %}
+                  <span>
+                    {{ registration.display_doctor.specialization }}
+                  </span>
+                  {% else %}
+                  <span> General Medicine </span>
+                  {% endif %}
+                </div>
+                {% else %}
+                <div class="doctor-info">
+                  <strong> Not Assigned </strong>
+                  <span> General Checkup </span>
+                </div>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="appt-id-wrap">
+                <div>
+                  <strong> {{ registration.display_number }} </strong>
+
+                  {% if registration.display_type == "Walk In" %}
+
+                  <small class="appointment-type-label"> Walk-in Token </small>
+
+                  {% else %}
+
+                  <small class="appointment-type-label"> Appointment </small>
+
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="date-cell">
+                {% if registration.display_date %}
+
+                <strong> {{ registration.display_date|date:"d M Y" }} </strong>
+
+                {% else %}
+
+                <strong> — </strong>
+
+                {% endif %} 
+                {% if registration.display_time %}
+
+                <span> {{ registration.display_time|time:"h:i A" }} </span>
+
+                {% else %}
+
+                <span> Time not assigned </span>
+
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              {% if registration.display_type == "Walk In" %}
+
+              <span class="appointment-type-badge type-walkin">
+                <i class="ti ti-walk"></i>
+
+                Walk In
+              </span>
+
+              {% else %}
+
+              <span
+                class="priority-badge appointment-type-badge type-appointment"
+              >
+                <i class="ti ti-calendar"></i>
+
+                Appointment
+              </span>
+
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="reason-cell">
+                {{ registration.display_reason|default:"-" }}
+              </div>
+            </td>
+
+            <td>
+              <div class="medical-info-cell">
+                {% if registration.medical_visit %} 
+                {% if registration.medical_visit.diagnosis %}
+
+                <strong> {{ registration.medical_visit.diagnosis }} </strong>
+
+                {% else %}
+
+                <span class="empty-medical"> Not recorded </span>
+
+                {% endif %} 
+                {% else %}
+
+                <span class="empty-medical"> Consultation pending </span>
+
+                {% endif %}
+              </div>
+            </td>
+
+            <td>
+              {% if registration.medical_visit %} 
+              {% if registration.display_visit_type %}
+
+              <span class="visit_type_badge">
+                <i class="ti ti-stethoscope"></i>
+
+                {{ registration.display_visit_type }}
+              </span>
+
+              {% else %}
+
+              <span class="empty-medical"> Not recorded </span>
+
+              {% endif %} 
+              {% else %}
+
+              <span class="empty-medical"> — </span>
+
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="medical-info-cell">
+                {% if registration.medical_visit %} 
+                {% if registration.medical_visit.treatment %} 
+                {{ registration.medical_visit.treatment }} {% else %}
+
+                <span class="empty-medical"> Not recorded </span>
+
+                {% endif %} 
+                {% else %}
+
+                <span class="empty-medical"> Consultation pending </span>
+
+                {% endif %}
+              </div>
+            </td>
+
+            <td>
+              {% if registration.medical_visit %} 
+              {% if registration.medical_visit.follow_up_required %}
+
+              <div class="follow-up-cell">
+                <span class="follow-up-badge">
+                  <i class="ti ti-calendar-check"></i>
+
+                  Required
+                </span>
+
+                {% if registration.medical_visit.follow_up_date %}
+
+                <small>
+                  {{ registration.medical_visit.follow_up_date|date:"d M Y" }}
+                </small>
+
+                {% endif %}
+              </div>
+
+              {% else %}
+
+              <span class="no-follow-up"> No </span>
+
+              {% endif %} {% else %}
+
+              <span class="no-follow-up"> - </span>
+
+              {% endif %}
+            </td>
+            <td>
+              <span
+                class="appointment-status status-{{ registration.display_status|lower }}"
+              >
+                {% if registration.display_status == "PENDING" %}
+
+                <i class="ti ti-clock"></i>
+
+                {% elif registration.display_status == "CONFIRMED" %}
+
+                <i class="ti ti-check"></i>
+                {% elif registration.display_status == "WAITING" %}
+
+                <i class="ti ti-hourglass"></i>
+                
+
+                {% elif registration.display_status == "ARRIVED" %}
+
+                <i class="ti ti-map-pin"></i>
+
+                {% elif registration.display_status == "IN_PROGRESS" %}
+
+                <i class="ti ti-stethoscope"></i>
+
+                {% elif registration.display_status == "COMPLETED" %}
+
+                <i class="ti ti-circle-check"></i>
+
+                {% elif registration.display_status == "CANCELLED" %}
+
+                <i class="ti ti-x"></i>
+
+                {% else %}
+
+                <i class="ti ti-info-circle"></i>
+
+                {% endif %} {{ registration.display_status|title }}
+              </span>
+            </td>
+            <td>
+              {% if registration.appointment %}
+               {% if registration.can_cancel %}
+
+              <a
+                href="{% url 'faculty_cancel_appointment' uuid=registration.appointment.uuid %}"
+                class="btn-action btn-outline-danger"
+              >
+                Cancel
+              </a>
+
+              <div
+                class="countdown"
+                data-created="{{ registration.appointment.created_at|date:'c' }}"
+                data-url="{% url 'faculty_cancel_appointment' uuid=registration.appointment.uuid %}"
+              ></div>
+
+              {% else %}
+
+              <button
+                type="button"
+                class="btn-action btn-outline-secondary"
+                disabled
+              >
+                Cancel
+              </button>
+
+              {% if registration.appointment.status == "CANCELLED" %}
+
+              <div style="font-size: 10px; color: #dc3545; margin-top: 4px">
+                Cancelled
+              </div>
+
+              {% elif registration.appointment.status == "CONFIRMED" %}
+
+              <div style="font-size: 10px; color: #198754; margin-top: 4px">
+                Confirmed
+              </div>
+
+              {% elif registration.appointment.status == "COMPLETED" %}
+
+              <div style="font-size: 10px; color: #6c757d; margin-top: 4px">
+                Completed
+              </div>
+
+              {% elif registration.appointment.status == "ARRIVED" %}
+
+              <div style="font-size: 10px; color: #198754; margin-top: 4px">
+                Arrived
+              </div>
+
+              {% elif registration.appointment.status == "IN_PROGRESS" %}
+
+              <div style="font-size: 10px; color: #0d6efd; margin-top: 4px">
+                In Progress
+              </div>
+
+              {% else %}
+
+              <div style="font-size: 10px; color: #6c757d; margin-top: 4px">
+                Cancel time expired
+              </div>
+
+              {% endif %}
+               {% endif %}
+                {% else %}
+
+              <span class="no-follow-up"> — </span>
+
+              {% endif %}
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td
+              colspan="11"
+              style="text-align: center; padding: 50px; color: #6b7280"
+            >
+              <i
+                class="ti ti-file-search"
+                style="font-size: 42px; display: block; margin-bottom: 12px"
+              ></i>
+
+              <strong> No medical history found </strong>
+
+              <div style="margin-top: 5px">
+                Your appointments and completed visits will appear here.
+              </div>
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if appointments.paginator.num_pages > 1 %}
+
+    <div class="pagination-wrapper">
+      <div class="pagination-info">
+        Showing
+
+        <strong> {{ appointments.start_index }} </strong>
+        -
+        <strong> {{ appointments.end_index }} </strong>
+        of
+        <strong> {{ appointments.paginator.count }} </strong>
+        records
+      </div>
+      <div class="pagination">
+        {% if appointments.has_previous %}
+        <a
+          href="?page={{ appointments.previous_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if current_status %}&status={{ current_status|urlencode }}{% endif %}"
+          class="page-btn ajax-page"
+        >
+          <i class="ti ti-chevron-left"></i>
+        </a>
+        {% else %}
+        <button type="button" class="page-btn disabled" disabled>
+          <i class="ti ti-chevron-left"></i>
+        </button>
+        {% endif %}
+        {% for num in appointments.paginator.page_range %} 
+        {% if num == appointments.number %}
+        <a
+          href="?page={{ num }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if current_status %}&status={{ current_status|urlencode }}{% endif %}"
+          class="page-btn active ajax-page"
+        >
+          {{ num }}
+        </a>
+        {% elif num == 1 or num == appointments.paginator.num_pages %}
+        <a
+          href="?page={{ num }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if current_status %}&status={{ current_status|urlencode }}{% endif %}"
+          class="page-btn ajax-page"
+        >
+          {{ num }}
+        </a>
+        {% endif %} 
+        {% endfor %}
+        {% if appointments.has_next %}
+        <a
+          href="?page={{ appointments.next_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if current_status %}&status={{ current_status|urlencode }}{% endif %}"
+          class="page-btn ajax-page"
+        >
+          <i class="ti ti-chevron-right"></i>
+        </a>
+        {% else %}
+        <button type="button" class="page-btn disabled" disabled>
+          <i class="ti ti-chevron-right"></i>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="bottom-cta-wrap">
+    <div class="cta-left">
+      <div class="cta-icon">
+        <i class="ti ti-calendar-plus"></i>
+      </div>
+
+      <div class="cta-text">
+        <h4>Need another consultation?</h4>
+
+        <p>Book a new appointment with a doctor.</p>
+      </div>
+    </div>
+    <a href="{% url 'faculty_book_appointment' %}" class="btn-primary-red">
+      <i class="ti ti-plus"></i>
+      Book Appointment
+    </a>
+  </div>
+</div>
+{% endblock %} 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/luna/appointment_history.js' %}"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (typeof AOS !== "undefined") {
+      AOS.init({
+        duration: 650,
+        easing: "ease-out-cubic",
+        once: true,
+        offset: 40,
+      });
+    }
+    const toasts = document.querySelectorAll(".appointment-toast");
+
+    toasts.forEach(function (toast) {
+      setTimeout(function () {
+        toast.style.opacity = "0";
+
+        toast.style.transform = "translateX(30px)";
+
+        setTimeout(function () {
+          toast.remove();
+        }, 300);
+      }, 3000);
+    });
+    const statusFilter = document.getElementById("statusFilter");
+
+    if (statusFilter) {
+      statusFilter.addEventListener("change", function () {
+        const url = new URL(window.location.href);
+
+        const value = this.value;
+
+        url.searchParams.delete("page");
+
+        if (value && value !== "All Status") {
+          url.searchParams.set("status", value);
+        } else {
+          url.searchParams.delete("status");
+        }
+
+        window.location.href = url.toString();
+      });
+    }
+
+    const searchInput = document.getElementById("searchInput");
+
+    if (searchInput) {
+      let searchTimer;
+
+      searchInput.addEventListener("input", function () {
+        clearTimeout(searchTimer);
+
+        searchTimer = setTimeout(function () {
+          const url = new URL(window.location.href);
+
+          const value = searchInput.value.trim();
+
+          url.searchParams.delete("page");
+
+          if (value) {
+            url.searchParams.set("search", value);
+          } else {
+            url.searchParams.delete("search");
+          }
+
+          window.location.href = url.toString();
+        }, 500);
+      });
+    }
+
+    document.querySelectorAll(".ajax-page").forEach(function (link) {
+      link.addEventListener("click", function (event) {
+        event.preventDefault();
+
+        window.location.href = this.href;
+      });
+    });
+  });
+</script>
+
+{% endblock %}

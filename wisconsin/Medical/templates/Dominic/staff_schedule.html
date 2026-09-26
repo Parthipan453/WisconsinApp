@@ -1,0 +1,163 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Staff Schedule{% endblock %}
+{% block page_title %}Staff Schedule{% endblock %}
+
+{% block extra_css %}
+    <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard_staff_focus.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/staff_schedule.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/shift_management.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/shift_calendar_modern.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sched-page">
+
+    <div class="sched-hero">
+        <div class="sched-hero__left">
+            <span class="sched-hero__icon"><i data-lucide="calendar-clock"></i></span>
+            <div>
+                <h1>Staff Schedule</h1>
+                <p>{% if is_admin_view %}Viewing shift coverage across every department{% else %}Viewing shift coverage for {{ staff_profile.department.department_name }}{% endif %}</p>
+            </div>
+        </div>
+        <div class="sched-hero__actions">
+            <a href="{% url 'Medical:medical_staff_dashboard' %}" class="med-btn med-btn--ghost-dark">
+                <i data-lucide="arrow-left"></i> Back to Dashboard
+            </a>
+            {% has_page_access "medical_shift_management" as can_see_medical_shift_management %}
+            {% if can_see_medical_shift_management %} 
+            <a href="{% url 'Medical:shift_management' %}" class="med-btn med-btn--solid-red">
+                <i data-lucide="calendar-cog"></i> Manage Shifts
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="sched-toolbar">
+        <div class="sched-toolbar__nav">
+            <a href="?year={{ prev_month_year }}&month={{ prev_month_month }}&view={{ view_mode }}" class="sched-nav-btn"><i data-lucide="chevron-left"></i></a>
+            <h2>{{ month_name }}</h2>
+            <a href="?year={{ next_month_year }}&month={{ next_month_month }}&view={{ view_mode }}" class="sched-nav-btn"><i data-lucide="chevron-right"></i></a>
+            <a href="?view={{ view_mode }}" class="sched-today-btn">Today</a>
+        </div>
+        <div class="sched-toolbar__toggle">
+            <a href="?year={{ current_year }}&month={{ current_month }}&view=calendar" class="sched-view-btn {% if view_mode == 'calendar' %}is-active{% endif %}">
+                <i data-lucide="layout-grid"></i> Calendar
+            </a>
+            <a href="?year={{ current_year }}&month={{ current_month }}&view=list" class="sched-view-btn {% if view_mode == 'list' %}is-active{% endif %}">
+                <i data-lucide="list"></i> List
+            </a>
+        </div>
+    </div>
+
+    {% if view_mode == 'calendar' %}
+        <div class="sched-legend" id="schedLegend" aria-hidden="true"></div>
+
+        <div class="sched-calendar">
+            <div class="sched-calendar__scroll">
+                <div class="sched-calendar__weekdays">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+                <div class="sched-calendar__grid">
+                    {% for day in calendar_days %}
+                        <div class="sched-day {% if not day.in_month %}sched-day--muted{% endif %} {% if day.is_today %}sched-day--today{% endif %}">
+                            <div class="sched-day__head">
+                                <span class="sched-day__weekday">{{ day.date|date:"D" }}</span>
+                                <span class="sched-day__num">{{ day.date.day }}</span>
+                                {% if day.entries|length > 0 %}<span class="sched-day__count">{{ day.entries|length }}</span>{% endif %}
+                            </div>
+                            <div class="sched-day__body">
+                                {% if day.entries %}
+                                    <button type="button" class="sched-day__stack" data-day-toggle aria-haspopup="dialog" aria-expanded="false">
+                                        <span class="sched-avatar-stack">
+                                            {% for entry in day.entries|slice:":3" %}
+                                                <span class="sched-avatar-stack__item sched-avatar-stack__item--{{ entry.color_class }}">{{ entry.medical_staff.user.full_name|first|upper }}</span>
+                                            {% endfor %}
+                                        </span>
+                                        <span class="sched-day__stack-label">
+                                            {% if day.entries|length == 1 %}{{ day.entries.0.medical_staff.user.full_name }}{% else %}{{ day.entries|length }} staff{% endif %}
+                                        </span>
+                                    </button>
+                                    <div class="sched-day-popover" data-day-popover role="dialog" aria-label="Staff on {{ day.date|date:'M d, Y' }}" hidden>
+                                        <div class="sched-day-popover__header">
+                                            <strong>{{ day.date|date:"D, M j" }}</strong>
+                                            <button type="button" class="sched-day-popover__close" data-day-popover-close aria-label="Close staff list"><i data-lucide="x"></i></button>
+                                        </div>
+                                        <div class="sched-day-popover__list">
+                                            {% for entry in day.entries %}
+                                                <div class="sched-day-popover__row" data-legend-label="{{ entry.get_shift_display }}" data-legend-color="{{ entry.color_class }}">
+                                                    <span class="sched-chip__dot sched-chip__dot--{{ entry.color_class }}"></span>
+                                                    <span class="sched-day-popover__info">
+                                                        <strong>{{ entry.medical_staff.user.full_name }}</strong>
+                                                        <small>{{ entry.get_shift_display }} · {{ entry.start_time|time:'h:i A' }}–{{ entry.end_time|time:'h:i A' }} · {{ entry.department.department_name }} · Hospital {{ entry.hospital }} {% if entry.room %} · Room {{ entry.room }}{% endif %}</small>
+                                                    </span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="sched-day__empty">No shifts</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="sched-list">
+            <p class="sched-list__hint"><i data-lucide="info"></i> This is a read-only view. Create, edit, or assign shifts from <a href="{% url 'Medical:shift_management' %}">Shift Management</a>.</p>
+            <div class="table-responsive med-table-wrap">
+                <table class="table med-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Staff Member</th>
+                            <th>Department</th>
+                            <th>Shift</th>
+                            <th>Time</th>
+                            <th>Room</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day_date, entry in list_entries %}
+                            <tr>
+                                <td data-label="Date">{{ day_date|date:"M d, Y" }}</td>
+                                <td data-label="Staff Member">
+                                    <div class="med-patient">
+                                        <img src="https://ui-avatars.com/api/?name={{ entry.medical_staff.user.full_name|urlencode }}&background=c5050c&color=fff&size=64" alt="" width="36" height="36" loading="lazy">
+                                        <span>{{ entry.medical_staff.user.full_name }}</span>
+                                    </div>
+                                </td>
+                                <td data-label="Department">{{ entry.department.department_name }}</td>
+                                <td data-label="Shift">
+                                    <span class="med-badge shiftmgmt-label shiftmgmt-label--{{ entry.color_class }}">{{ entry.get_shift_display }}</span>
+                                </td>
+                                <td data-label="Time">{{ entry.start_time|time:"h:i A" }} – {{ entry.end_time|time:"h:i A" }}</td>
+                                <td data-label="Room">{{ entry.room|default:"—" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr class="sched-empty-row"><td colspan="6"><div class="sched-empty-state"><i data-lucide="calendar-x"></i><p>No shifts scheduled this month.</p></div></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/Dominic/staff_schedule.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
+{% endblock %}

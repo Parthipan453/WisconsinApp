@@ -1,0 +1,227 @@
+<!-- Leo's Code Start -->
+
+{% extends 'faculty_base.html' %} {% load static %} {% block title %} Student
+Attendance {% endblock %} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{% static 'css/leo/Attendance/Attendance_take.css' %}"
+/>
+{% endblock %} {% block content %}
+<div class="attendance-page">
+  <!-- ================= HEADER ================= -->
+  <div class="attendance-header">
+    <div>
+      <h2>
+        <i class="ti ti-checkup-list"></i>
+        Take Attendance
+      </h2>
+      <p>Mark attendance for today's class session.</p>
+    </div>
+    <a href="{% url 'student_attendance_list' %}" class="back-btn">
+      <i class="ti ti-arrow-left"></i>
+      Back
+    </a>
+  </div>
+  <form method="POST">
+    {% csrf_token %}
+    <!-- ================= COURSE DETAILS ================= -->
+    <div class="course-card">
+      <div class="course-top">
+        <div>
+          <span class="badge-semester">{{ session.section.semester_id }}</span>
+          <h3>{{ session.course.course_name }}</h3>
+          <span class="course-code">{{ session.course.course_code }}</span>
+        </div>
+      </div>
+      <div class="course-grid">
+        <div class="course-item">
+          <small>Faculty</small>
+          <strong>{{ session.faculty }}</strong>
+        </div>
+        <div class="course-item">
+          <small>Department</small>
+          <strong>{{ session.course.department.department_name }}</strong>
+        </div>
+        <div class="course-item">
+          <small>Section</small>
+          <strong>{{ session.section }}</strong>
+        </div>
+        <div class="course-item">
+          <small>Academic Year</small>
+          <strong>{{ session.section.semester_id.academic_year }}</strong>
+        </div>
+        <div class="course-item">
+          <small>Date</small>
+          <strong>{{ session.attendance_date|date:'M d, Y' }}</strong>
+        </div>
+        <div class="course-item">
+          <small>Total Students</small>
+          <strong>{{ total_students }} Students</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ATTENDANCE CARD ================= -->
+    <div class="attendance-card">
+      <div class="attendance-top">
+        <h4>
+          <i class="ti ti-users"></i>
+          Student Attendance
+        </h4>
+        <input
+          type="text"
+          id="searchStudent"
+          class="form-control"
+          placeholder="Search Student..."
+          aria-label="Search student"
+        />
+      </div>
+
+      <div class="table-responsive">
+        <table class="attendance-table" id="attendanceTable">
+          <thead>
+            <tr>
+              <th>Student No</th>
+              <th>Student Name</th>
+              <th>Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for enrollment in enrollments %}
+            <tr>
+              <td>{{ enrollment.student.student_number }}</td>
+
+              <td>{{ enrollment.student.user.get_full_name }}</td>
+
+              <td>
+                <select
+                  class="form-select attendance-status"
+                  name="status_{{ enrollment.student.id }}"
+                >
+                  <option value="PRESENT" selected>Present</option>
+
+                  <option value="ABSENT">Absent</option>
+
+                  <option value="LATE">Late</option>
+
+                  <option value="LEAVE">Leave</option>
+
+                  <option value="HALF_DAY">Half Day</option>
+
+                  <option value="PERMISSION">Permission</option>
+                </select>
+              </td>
+
+              <td>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="remarks_{{ enrollment.student.id }}"
+                  placeholder="Remarks"
+                />
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-4">No Students Found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= SUMMARY ================= -->
+    <div class="attendance-summary">
+      <div class="summary-box">
+        <span>Total Students</span>
+        <strong>{{ total_students }}</strong>
+      </div>
+      <div class="summary-box">
+        <span>Present</span>
+        <strong id="presentCount">{{ total_students }}</strong>
+      </div>
+      <div class="summary-box">
+        <span>Absent</span>
+        <strong id="absentCount">0</strong>
+      </div>
+      <div class="summary-box">
+        <span>Late</span>
+        <strong id="lateCount">0</strong>
+      </div>
+    </div>
+
+    <!-- ================= BUTTONS ================= -->
+    <div class="attendance-buttons">
+      <a href="{% url 'student_attendance_list' %}" class="cancel-btn">
+        <i class="ti ti-x"></i>
+        Cancel
+      </a>
+      <button type="submit" class="save-btn">
+        <i class="ti ti-device-floppy"></i>
+        Save Attendance
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const selects = document.querySelectorAll(".attendance-status");
+
+    const presentCount = document.getElementById("presentCount");
+    const absentCount = document.getElementById("absentCount");
+    const lateCount = document.getElementById("lateCount");
+
+    function updateSummary() {
+      let present = 0;
+      let absent = 0;
+      let late = 0;
+
+      selects.forEach(function (select) {
+        if (select.value === "PRESENT") {
+          present++;
+        } else if (select.value === "ABSENT") {
+          absent++;
+        } else if (select.value === "LATE") {
+          late++;
+        }
+      });
+
+      presentCount.textContent = present;
+      absentCount.textContent = absent;
+      lateCount.textContent = late;
+    }
+
+    selects.forEach(function (select) {
+      select.addEventListener("change", updateSummary);
+    });
+
+    updateSummary();
+  });
+</script>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchBox = document.getElementById("searchStudent");
+    const rows = document.querySelectorAll("#attendanceTable tbody tr");
+
+    searchBox.addEventListener("keyup", function () {
+      const keyword = this.value.toLowerCase();
+
+      rows.forEach(function (row) {
+        const rollNo = row.cells[0].textContent.toLowerCase();
+        const studentName = row.cells[1].textContent.toLowerCase();
+
+        if (rollNo.includes(keyword) || studentName.includes(keyword)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}
+<!-- Leo's Code End -->

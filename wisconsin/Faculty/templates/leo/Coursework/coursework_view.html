@@ -1,0 +1,603 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Review Coursework Submission{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="{% static 'css/leo/Coursework/coursework_view.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cw-review-container">
+
+    {% comment %} <nav class="cw-breadcrumb" aria-label="breadcrumb">
+        <ol class="cw-breadcrumb-list">
+            <li class="cw-breadcrumb-item">
+                <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+                    <i class="bi bi-house-door"></i> Faculty
+                </a>
+            </li>
+            <li class="cw-breadcrumb-item">
+                <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">PhD Management</a>
+            </li>
+            <li class="cw-breadcrumb-item">
+                <a href="{% url 'faculty_coursework_list' uuid=request.user.uuid %}">Coursework</a>
+            </li>
+            <li class="cw-breadcrumb-item active" aria-current="page">
+                {{ coursework.get_coursework_name_display }}
+            </li>
+        </ol>
+    </nav> {% endcomment %}
+
+    {% if submission %}
+
+    <div class="cw-review-header">
+        <div class="cw-review-header-content">
+            <div class="cw-review-header-left">
+                <div class="cw-review-title-group">
+                    <h1 class="cw-review-title">{{ coursework.get_coursework_name_display }}</h1>
+                    <span class="cw-status-badge status-{{ submission.status|lower }}">
+                        {{ submission.get_status_display }}
+                    </span>
+                </div>
+                <div class="cw-review-subtitle">
+                    <span class="cw-meta-item">
+                        <i class="bi bi-person"></i> {{ coursework.phd_student.student.user.get_full_name }}
+                    </span>
+                    <span class="cw-meta-item">
+                        <i class="bi bi-mortarboard"></i> {{ coursework.program.program_name }}
+                    </span>
+                    <span class="cw-meta-item">
+                        <i class="bi bi-calendar3"></i> {{ coursework.academic_year }}
+                    </span>
+                </div>
+            </div>
+            <div class="cw-review-header-actions">
+                <a href="{{ submission.submission_file.url }}" target="_blank" class="btn cw-btn-outline">
+                    <i class="bi bi-download"></i> Download
+                </a>
+              <a href="{% url 'faculty_coursework_evaluate' faculty.user.uuid coursework.faculty_coursework_id %}"
+                class="btn cw-btn-primary">
+                    <i class="bi bi-clipboard2-check"></i>
+                    Evaluate
+                </a>
+                <a href="{% url 'faculty_coursework_list' uuid=request.user.uuid %}" class="btn cw-btn-ghost">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="cw-review-grid">
+
+        <div class="cw-review-card">
+            <div class="cw-card-header">
+                <h3 class="cw-card-title">
+                    <i class="bi bi-person-circle"></i> Student Information
+                </h3>
+            </div>
+            <div class="cw-card-body">
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Student Name</span>
+                    <span class="cw-info-value">{{ coursework.phd_student.student.user.get_full_name }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Student Number</span>
+                    <span class="cw-info-value">{{ coursework.phd_student.student.student_number }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Email</span>
+                    <span class="cw-info-value">{{ coursework.phd_student.student.user.email }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Program</span>
+                    <span class="cw-info-value">{{ coursework.program.program_name }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Advisor</span>
+                    <span class="cw-info-value">{{ request.user.get_full_name }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Coursework Status</span>
+                    <span class="cw-info-value">
+                        <span class="cw-status-badge 
+                            {% if coursework.status == 'COMPLETED' %}status-completed
+                            {% elif coursework.status == 'IN_PROGRESS' %}status-progress
+                            {% elif coursework.status == 'NOT_STARTED' %}status-pending
+                            {% elif coursework.status == 'FAILED' %}status-danger
+                            {% else %}status-default{% endif %}
+                        ">
+                            {{ coursework.get_status_display }}
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="cw-review-card">
+            <div class="cw-card-header">
+                <h3 class="cw-card-title">
+                    <i class="bi bi-book"></i> Coursework Information
+                </h3>
+            </div>
+            <div class="cw-card-body">
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Coursework Name</span>
+                    <span class="cw-info-value">{{ coursework.get_coursework_name_display }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Academic Year</span>
+                    <span class="cw-info-value">{{ coursework.academic_year }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Start Date</span>
+                    <span class="cw-info-value">{{ coursework.start_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Expected Completion</span>
+                    <span class="cw-info-value">{{ coursework.expected_completion_date|date:"M d, Y" }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Completion Date</span>
+                    <span class="cw-info-value">
+                        {% if coursework.completion_date %}
+                            {{ coursework.completion_date|date:"M d, Y" }}
+                        {% else %}
+                            <span class="cw-empty-value">—</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="cw-review-card">
+            <div class="cw-card-header">
+                <h3 class="cw-card-title">
+                    <i class="bi bi-clock-history"></i> Submission Details
+                </h3>
+            </div>
+            <div class="cw-card-body">
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Submission Status</span>
+                    <span class="cw-info-value">
+                        <span class="cw-status-badge status-{{ submission.status|lower }}">
+                            {{ submission.get_status_display }}
+                        </span>
+                    </span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Submitted On</span>
+                    <span class="cw-info-value">{{ submission.submitted_at|date:"M d, Y · h:i A" }}</span>
+                </div>
+ 
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Last Updated</span>
+                    <span class="cw-info-value">{{ submission.updated_at|date:"M d, Y · h:i A" }}</span>
+                </div>
+                <div class="cw-info-row">
+                    <span class="cw-info-label">Student Remarks</span>
+                    <span class="cw-info-value">
+                        {% if submission.remarks %}
+                            <span class="cw-remarks-text">{{ submission.remarks }}</span>
+                        {% else %}
+                            <span class="cw-empty-value">No student remarks</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="cw-review-card cw-document-card">
+            <div class="cw-card-header">
+                <h3 class="cw-card-title">
+                    <i class="bi bi-file-earmark-pdf"></i> Submitted Document
+                </h3>
+            </div>
+            <div class="cw-card-body">
+                <div class="cw-document-display">
+                    <div class="cw-document-icon">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </div>
+                    <div class="cw-document-info">
+                        <div class="cw-document-filename">
+                            {% if submission.submission_file %}
+                                {{ submission.submission_file.name|slice:"35" }}
+                                {% if submission.submission_file.name|length > 35 %}...{% endif %}
+                            {% else %}
+                                No file uploaded
+                            {% endif %}
+                        </div>
+                        <div class="cw-document-meta">
+                            <span>
+                                <i class="bi bi-calendar3"></i> 
+                                {{ submission.submitted_at|date:"M d, Y" }}
+                            </span>
+                            {% if file_size %}
+                            <span>
+                                <i class="bi bi-hdd"></i> 
+                                {{ file_size|filesizeformat }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="cw-document-actions">
+                    <a href="{{ submission.submission_file.url }}" target="_blank" class="btn cw-btn-outline-sm">
+                        <i class="bi bi-eye"></i> Preview
+                    </a>
+                    <a href="{{ submission.submission_file.url }}" download class="btn cw-btn-primary-sm">
+                        <i class="bi bi-download"></i> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+
+<div class="cw-review-card cw-feedback-card">
+    <div class="cw-card-header">
+        <h3 class="cw-card-title">
+            <i class="bi bi-chat-dots"></i>
+            Faculty Feedback
+        </h3>
+    </div>
+
+    <div class="cw-card-body">
+        {% if coursework.remarks %}
+            <div class="cw-feedback-content">
+                <div class="cw-feedback-text">
+                    {{ coursework.remarks|linebreaks }}
+                </div>
+
+                {% if coursework.updated_at %}
+                    <div class="cw-feedback-meta">
+                        <i class="bi bi-clock"></i>
+                        Updated on {{ coursework.updated_at|date:"M d, Y · h:i A" }}
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="cw-empty-feedback">
+                <i class="bi bi-chat-left"></i>
+                <span>No faculty feedback available.</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="cw-review-card cw-timeline-card">
+    <div class="cw-card-header">
+        <h3 class="cw-card-title">
+            <i class="bi bi-list-steps"></i>
+            Submission Timeline
+        </h3>
+    </div>
+
+    <div class="cw-card-body">
+        <div class="cw-timeline">
+
+            <div class="cw-timeline-item completed">
+                <div class="cw-timeline-badge">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+
+                <div class="cw-timeline-content">
+                    <div class="cw-timeline-title">
+                        Coursework Assigned
+                    </div>
+
+                    <div class="cw-timeline-date">
+                        {{ coursework.created_at|date:"M d, Y" }}
+                    </div>
+
+                    <div class="cw-timeline-desc">
+                        Coursework assigned to student
+                    </div>
+                </div>
+            </div>
+
+
+            {% if submission %}
+                <div class="cw-timeline-item completed">
+                    <div class="cw-timeline-badge">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+
+                    <div class="cw-timeline-content">
+                        <div class="cw-timeline-title">
+                            Submission Received
+                        </div>
+
+                        <div class="cw-timeline-date">
+                            {{ submission.submitted_at|date:"M d, Y" }}
+                        </div>
+
+                        <div class="cw-timeline-desc">
+                            Student submitted coursework
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+
+            <div class="
+                cw-timeline-item
+                {% if coursework.status == 'COMPLETED' or coursework.status == 'FAILED' %}
+                    completed
+                {% elif submission and submission.status == 'UNDER_REVIEW' %}
+                    active
+                {% elif submission and submission.status == 'SUBMITTED' %}
+                    active
+                {% else %}
+                    pending
+                {% endif %}
+            ">
+
+                <div class="cw-timeline-badge">
+
+                    {% if coursework.status == 'COMPLETED' or coursework.status == 'FAILED' %}
+                        <i class="bi bi-check-circle-fill"></i>
+
+                    {% elif submission and submission.status == 'UNDER_REVIEW' %}
+                        <i class="bi bi-hourglass-split"></i>
+
+                    {% elif submission and submission.status == 'SUBMITTED' %}
+                        <i class="bi bi-hourglass-split"></i>
+
+                    {% else %}
+                        <i class="bi bi-circle"></i>
+                    {% endif %}
+
+                </div>
+
+                <div class="cw-timeline-content">
+
+                    <div class="cw-timeline-title">
+                        Faculty Evaluation
+                    </div>
+
+                    <div class="cw-timeline-date">
+
+                        {% if coursework.status == 'COMPLETED' or coursework.status == 'FAILED' %}
+
+                            {% if coursework.updated_at %}
+                                {{ coursework.updated_at|date:"M d, Y" }}
+                            {% else %}
+                                Completed
+                            {% endif %}
+
+                        {% elif submission and submission.status == 'UNDER_REVIEW' %}
+
+                            Awaiting evaluation
+
+                        {% elif submission and submission.status == 'SUBMITTED' %}
+
+                            Awaiting evaluation
+
+                        {% else %}
+
+                            —
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="cw-timeline-desc">
+
+                        {% if coursework.status == 'COMPLETED' %}
+
+                            Faculty evaluation completed
+
+                        {% elif coursework.status == 'FAILED' %}
+
+                            Faculty evaluation completed with failed result
+
+                        {% elif submission and submission.status == 'UNDER_REVIEW' %}
+
+                            Currently being reviewed
+
+                        {% elif submission and submission.status == 'SUBMITTED' %}
+
+                            Pending faculty evaluation
+
+                        {% else %}
+
+                            Not yet started
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+            </div>
+
+
+            <div class="
+                cw-timeline-item
+                {% if coursework.status == 'COMPLETED' or coursework.status == 'FAILED' %}
+                    completed
+                {% else %}
+                    pending
+                {% endif %}
+            ">
+
+                <div class="cw-timeline-badge">
+
+                    {% if coursework.status == 'COMPLETED' %}
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                    {% elif coursework.status == 'FAILED' %}
+
+                        <i class="bi bi-x-circle-fill rejected"></i>
+
+                    {% else %}
+
+                        <i class="bi bi-circle"></i>
+
+                    {% endif %}
+
+                </div>
+
+                <div class="cw-timeline-content">
+
+                    <div class="cw-timeline-title">
+
+                        {% if coursework.status == 'COMPLETED' %}
+
+                            Final Decision
+
+                        {% elif coursework.status == 'FAILED' %}
+
+                            Final Decision
+
+                        {% else %}
+
+                            Final Decision
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="cw-timeline-date">
+
+                        {% if coursework.status == 'COMPLETED' %}
+
+                            {% if coursework.updated_at %}
+                                {{ coursework.updated_at|date:"M d, Y" }}
+                            {% else %}
+                                Completed
+                            {% endif %}
+
+                        {% elif coursework.status == 'FAILED' %}
+
+                            {% if coursework.updated_at %}
+                                {{ coursework.updated_at|date:"M d, Y" }}
+                            {% else %}
+                                Completed
+                            {% endif %}
+
+                        {% else %}
+
+                            Pending
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="cw-timeline-desc">
+
+                        {% if coursework.status == 'COMPLETED' %}
+
+                            <span class="cw-timeline-approved">
+                                ✓ Coursework evaluation completed
+                            </span>
+
+                        {% elif coursework.status == 'FAILED' %}
+
+                            <span class="cw-timeline-rejected">
+                                ✗ Coursework evaluation failed
+                            </span>
+
+                        {% else %}
+
+                            Awaiting final decision
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    <div class="cw-review-bottom-actions">
+        <a href="{% url 'faculty_coursework_list' uuid=request.user.uuid %}" class="btn cw-btn-outline p-2">
+            <i class="bi bi-arrow-left"></i> Back to the List
+        </a>
+        <div class="cw-review-bottom-actions-right">
+            <a href="{{ submission.submission_file.url }}" target="_blank" class="btn cw-btn-outline">
+                <i class="bi bi-eye"></i> Preview
+            </a>
+            <a href="{{ submission.submission_file.url }}" download class="btn cw-btn-outline">
+                <i class="bi bi-download"></i> Download
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+
+    <div class="cw-review-header cw-empty-header" >
+        <div class="cw-review-header-content">
+            <div class="cw-review-header-left">
+                <div class="cw-review-title-group">
+                    <h1 class="cw-review-title">{{ coursework.get_coursework_name_display }}</h1>
+                    <span class="cw-status-badge 
+                        {% if coursework.status == 'COMPLETED' %}status-completed
+                        {% elif coursework.status == 'IN_PROGRESS' %}status-progress
+                        {% elif coursework.status == 'NOT_STARTED' %}status-pending
+                        {% elif coursework.status == 'FAILED' %}status-danger
+                        {% else %}status-default{% endif %}
+                    ">
+                        {{ coursework.get_status_display }}
+                    </span>
+                </div>
+                <div class="cw-review-subtitle">
+                    <span class="cw-meta-item">
+                        <i class="bi bi-person"></i> {{ coursework.phd_student.student.user.get_full_name }}
+                    </span>
+                    <span class="cw-meta-item">
+                        <i class="bi bi-mortarboard"></i> {{ coursework.program.program_name }}
+                    </span>
+                    <span class="cw-meta-item">
+                        <i class="bi bi-calendar3"></i> {{ coursework.academic_year }}
+                    </span>
+                </div>
+            </div>
+            <div class="cw-review-header-actions">
+                <a href="{% url 'faculty_coursework_list' uuid=request.user.uuid %}" class="btn cw-btn-ghost">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="cw-empty-state">
+        <div class="cw-empty-state-card">
+            <div class="cw-empty-state-icon-wrapper">
+                <div class="cw-empty-state-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+            </div>
+            <h2 class="cw-empty-state-title">No Submission Received</h2>
+            <p class="cw-empty-state-description">
+                The student has not submitted this coursework yet.<br>
+                Once a submission is uploaded, it will appear here for review.
+            </p>
+            <div class="cw-empty-state-actions">
+                <a href="{% url 'faculty_coursework_list' uuid=request.user.uuid %}" class="btn cw-btn-outline">
+                    <i class="bi bi-arrow-left"></i> Back to Coursework
+                </a>
+                <button type="button" onclick="location.reload()" class="btn cw-btn-ghost">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: none;">
+    </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+{% endblock %}

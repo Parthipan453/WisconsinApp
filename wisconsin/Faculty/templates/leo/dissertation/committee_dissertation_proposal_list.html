@@ -1,0 +1,1091 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Dissertation Proposal Evaluation{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js@11.2.3/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/dissertation/committee_dissertation_proposal_list.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    {% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+            <i class="ti ti-layout-dashboard"></i>
+            <span>Dashboard</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+            <i class="ti ti-school"></i>
+            <span>PhD Management</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        {% comment %}
+    <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">
+        <i class="ti ti-file-description"></i>
+        <span>Dissertation Proposals</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <span class="common-breadcrumb-current">
+        <i class="ti ti-file-text"></i>
+        <span>Current Page</span>
+        </span> 
+    </nav> {% endcomment %}
+    <div class="cm-pr-page">
+        <section class="cm-pr-hero">
+            <div class="cm-pr-hero-glow cm-pr-glow-one"></div>
+            <div class="cm-pr-hero-glow cm-pr-glow-two"></div>
+            <div class="cm-pr-hero-content">
+                <div class="cm-pr-hero-icon">
+                    <i class="ti ti-file-analytics"></i>
+                </div>
+                <div class="cm-pr-hero-text">
+                    <span class="cm-pr-eyebrow">
+                        {% if is_chair %}
+                            Chair Faculty Workspace
+                        {% else %}
+                            Committee Member Workspace
+                        {% endif %}
+                    </span>
+                    <h1>Dissertation Proposal Evaluation</h1>
+                    <p>
+                        Review dissertation proposals assigned to your doctoral
+                        committee and manage the evaluation workflow.
+                    </p>
+                </div>
+            </div>
+            <div class="cm-pr-hero-side">
+                <div class="cm-pr-role-chip">
+                    <span class="cm-pr-role-dot"></span>
+                    {% if is_chair %}
+                        Chair Faculty
+                    {% else %}
+                        Committee Member
+                    {% endif %}
+                </div>
+                <div class="cm-pr-live-status">
+                    <i class="ti ti-activity"></i>
+                    <span>Live Workspace</span>
+                </div>
+            </div>
+        </section>
+        <section class="cm-pr-stats">
+            <div class="cm-pr-stat-card cm-pr-stat-total">
+                <div class="cm-pr-stat-icon">
+                    <i class="ti ti-files"></i>
+                </div>
+                <div class="cm-pr-stat-data">
+                    <span>Total Proposals</span>
+                    <strong>{{ total_proposals }}</strong>
+                    <small>Assigned proposals</small>
+                </div>
+                <div class="cm-pr-stat-shine"></div>
+            </div>
+            <div class="cm-pr-stat-card cm-pr-stat-pending">
+                <div class="cm-pr-stat-icon">
+                    <i class="ti ti-clock"></i>
+                </div>
+                <div class="cm-pr-stat-data">
+                    <span>
+                        {% if is_chair %}
+                            Pending Committee
+                        {% else %}
+                            Pending Evaluation
+                        {% endif %}
+                    </span>
+                    <strong>{{ pending_committee_evaluation }}</strong>
+                    <small>
+                        {% if is_chair %}
+                            Awaiting members
+                        {% else %}
+                            Awaiting your action
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="cm-pr-stat-shine"></div>
+            </div>
+            <div class="cm-pr-stat-card cm-pr-stat-completed">
+                <div class="cm-pr-stat-icon">
+                    <i class="ti ti-circle-check"></i>
+                </div>
+                <div class="cm-pr-stat-data">
+                    <span>Completed</span>
+                    <strong>{{ completed_evaluations }}</strong>
+                    <small>Evaluations submitted</small>
+                </div>
+                <div class="cm-pr-stat-shine"></div>
+            </div>
+            <div class="cm-pr-stat-card cm-pr-stat-final">
+                <div class="cm-pr-stat-icon">
+                    <i class="ti ti-shield-check"></i>
+                </div>
+                <div class="cm-pr-stat-data">
+                    <span>Final Review</span>
+                    <strong>{{ final_review_proposals }}</strong>
+                    <small>Ready for final review</small>
+                </div>
+                <div class="cm-pr-stat-shine"></div>
+            </div>
+        </section>
+        <section class="cm-pr-workspace">
+            <div class="cm-pr-workspace-head">
+                <div class="cm-pr-workspace-title">
+                    <div class="cm-pr-title-icon">
+                        <i class="ti ti-adjustments-horizontal"></i>
+                    </div>
+                    <div>
+                        <span>Proposal Workspace</span>
+                        <h2>Find &amp; Review Proposals</h2>
+                    </div>
+                </div>
+                <div class="cm-pr-result-count">
+                    <strong>{{ filtered_total }}</strong>
+                    <span>proposal{{ filtered_total|pluralize }}</span>
+                </div>
+            </div>
+            <form method="get" class="cm-pr-filter-form" id="cmPrFilterForm">
+                <div class="cm-pr-search-box">
+                    <i class="ti ti-search"></i>
+                    <input type="text"
+                           name="search"
+                           value="{{ search }}"
+                           placeholder="Search student, ID or proposal title..."
+                           autocomplete="off"
+                           id="cmPrSearchInput">
+                    {% if search %}
+                        <button type="button"
+                                class="cm-pr-search-clear"
+                                id="cmPrSearchClear"
+                                aria-label="Clear search">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    {% endif %}
+                </div>
+                <div class="cm-pr-select-box">
+                    <select name="status" id="cmPrStatusFilter">
+                        <option value="">All Evaluation Status</option>
+                        <option value="PENDING_ADVISOR"
+                                {% if status_filter == "PENDING_ADVISOR" %}selected{% endif %}>
+                            Waiting for Advisor
+                        </option>
+                        <option value="PENDING_COMMITTEE"
+                                {% if status_filter == "PENDING_COMMITTEE" %}selected{% endif %}>
+                            Pending Evaluation
+                        </option>
+                        <option value="COMPLETED"
+                                {% if status_filter == "COMPLETED" %}selected{% endif %}>Completed</option>
+                        <option value="FINAL_REVIEW"
+                                {% if status_filter == "FINAL_REVIEW" %}selected{% endif %}>Final Review</option>
+                        <option value="REVISION_REQUIRED"
+                                {% if status_filter == "REVISION_REQUIRED" %}selected{% endif %}>
+                            Revision Required
+                        </option>
+                        <option value="REJECTED"
+                                {% if status_filter == "REJECTED" %}selected{% endif %}>Rejected</option>
+                        <option value="APPROVED"
+                                {% if status_filter == "APPROVED" %}selected{% endif %}>Approved</option>
+                    </select>
+                </div>
+                <button type="submit" class="cm-pr-filter-button">
+                    <i class="ti ti-filter"></i>
+                    <span>Apply Filter</span>
+                </button>
+                {% if search or status_filter %}
+                    <a href="{% url 'faculty_committee_dissertation_proposal_list' uuid=request.user.uuid %}"
+                       class="cm-pr-reset-button"
+                       id="cmPrResetButton">
+                        <i class="ti ti-refresh"></i>
+                        <span>Reset</span>
+                    </a>
+                {% endif %}
+            </form>
+        </section>
+        {% if proposals %}
+            <section class="cm-pr-results-head">
+                <div>
+                    <span>Assigned Proposals</span>
+                    <h2>Dissertation Review Queue</h2>
+                </div>
+                <div class="cm-pr-results-indicator">
+                    <span class="cm-pr-indicator-dot"></span>
+                    <span>
+                        {% if pending_committee_evaluation %}
+                            {{ pending_committee_evaluation }}
+                            awaiting action
+                        {% else %}
+                            All caught up
+                        {% endif %}
+                    </span>
+                </div>
+            </section>
+            <section class="cm-pr-proposal-grid">
+                {% for proposal in proposals %}
+                    <article class=" cm-pr-proposal-card  {% if proposal.is_final_review %} cm-pr-card-final {% elif proposal.evaluation_completed %} cm-pr-card-completed {% elif proposal.can_evaluate %} cm-pr-card-action {% elif proposal.is_waiting_for_advisor %} cm-pr-card-waiting {% elif proposal.is_revision_required %} cm-pr-card-revision {% elif proposal.is_rejected %} cm-pr-card-rejected {% elif proposal.is_approved %} cm-pr-card-approved {% else %} cm-pr-card-neutral {% endif %} "
+                             data-proposal-id="{{ proposal.proposal_id }}">
+                        <div class="cm-pr-card-accent"></div>
+                        <div class="cm-pr-card-top">
+                            <div class="cm-pr-student">
+                                <div class="cm-pr-avatar">
+                                    {% if proposal.phd_student.student.user.first_name %}
+                                        {{ proposal.phd_student.student.user.first_name|first|upper }}
+                                    {% else %}
+                                        S
+                                    {% endif %}
+                                    <span class="cm-pr-avatar-ring"></span>
+                                </div>
+                                <div class="cm-pr-student-info">
+                                    <h3>{{ proposal.phd_student.student.user.get_full_name|default:"PhD Student" }}</h3>
+                                    <span>
+                                        <i class="ti ti-id"></i>
+                                        {{ proposal.phd_student.student.student_number|default:"Student ID unavailable" }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="cm-pr-card-state">
+                                {% if proposal.is_final_review %}
+                                    <span class="cm-pr-state cm-pr-state-final">
+                                        <i class="ti ti-shield-check"></i>
+                                        Final Review
+                                    </span>
+                                {% elif proposal.evaluation_completed %}
+                                    <span class="cm-pr-state cm-pr-state-completed">
+                                        <i class="ti ti-lock"></i>
+                                        Completed
+                                    </span>
+                                {% elif proposal.can_evaluate %}
+                                    <span class="cm-pr-state cm-pr-state-action">
+                                        <span class="cm-pr-state-pulse"></span>
+                                        Action Required
+                                    </span>
+                                {% elif proposal.is_waiting_for_advisor %}
+                                    <span class="cm-pr-state cm-pr-state-waiting">
+                                        <i class="ti ti-hourglass"></i>
+                                        Waiting for Advisor
+                                    </span>
+                                {% elif proposal.is_final_review %}
+                                    <span class="cm-pr-state cm-pr-state-final">
+                                        <i class="ti ti-shield-check"></i>
+                                        Final Review
+                                    </span>
+                                {% elif proposal.is_revision_required %}
+                                    <span class="cm-pr-state cm-pr-state-revision">
+                                        <i class="ti ti-refresh-alert"></i>
+                                        Revision Required
+                                    </span>
+                                {% elif proposal.is_rejected %}
+                                    <span class="cm-pr-state cm-pr-state-rejected">
+                                        <i class="ti ti-circle-x"></i>
+                                        Rejected
+                                    </span>
+                                {% elif proposal.is_approved %}
+                                    <span class="cm-pr-state cm-pr-state-approved">
+                                        <i class="ti ti-circle-check"></i>
+                                        Approved
+                                    </span>
+                                {% else %}
+                                    <span class="cm-pr-state cm-pr-state-neutral">
+                                        <i class="ti ti-clock"></i>
+                                        {{ proposal.status|default:"Pending" }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-proposal-heading">
+                                <span>
+                                    <i class="ti ti-file-text"></i>
+                                    Dissertation Proposal
+                                </span>
+                                <h2>{{ proposal.proposal_title|default:"Untitled Dissertation Proposal" | truncatechars:50 }}</h2>
+                            </div>
+                            <div class="cm-pr-meta-grid">
+                                <div class="cm-pr-meta">
+                                    <div class="cm-pr-meta-icon">
+                                        <i class="ti ti-school"></i>
+                                    </div>
+                                    <div>
+                                        <span>Program</span>
+                                        <strong>{{ proposal.phd_student.phd_program.program_name|default:"PhD Program" }}</strong>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-meta">
+                                    <div class="cm-pr-meta-icon">
+                                        <i class="ti ti-user-star"></i>
+                                    </div>
+                                    <div>
+                                        <span>Advisor</span>
+                                        <strong>{{ proposal.phd_student.advisor.user.get_full_name|default:"Not Assigned" }}</strong>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-meta">
+                                    <div class="cm-pr-meta-icon">
+                                        <i class="ti ti-calendar-event"></i>
+                                    </div>
+                                    <div>
+                                        <span>Submitted</span>
+                                        <strong>
+                                            {% if proposal.submission_date %}
+                                                {{ proposal.submission_date|date:"M d, Y" }}
+                                            {% else %}
+                                                Not Available
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-meta">
+                                    <div class="cm-pr-meta-icon">
+                                        <i class="ti ti-refresh"></i>
+                                    </div>
+                                    <div>
+                                        <span>Submission</span>
+                                        <strong>
+                                            {% if proposal.current_submission_number > 1 %}
+                                                Resubmission #{{ proposal.current_submission_number }}
+                                            {% else %}
+                                                Submission #1
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-meta">
+                                    <div class="cm-pr-meta-icon">
+                                        <i class="ti ti-users"></i>
+                                    </div>
+                                    <div>
+                                        <span>Role</span>
+                                        <strong>{{ proposal.committee_role|default:"Committee Member" }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if proposal.total_members > 0 %}
+                                <div class="cm-pr-progress">
+                                    <div class="cm-pr-progress-head">
+                                        <div>
+                                            <span>Committee Evaluation Progress</span>
+                                            <strong>
+                                                {{ proposal.submitted_members }}
+                                                /
+                                                {{ proposal.total_members }}
+                                                submitted
+                                            </strong>
+                                        </div>
+                                        <span class="cm-pr-progress-percent">{% widthratio proposal.submitted_members proposal.total_members 100 %}%</span>
+                                    </div>
+                                    <div class="cm-pr-progress-track">
+                                        <div class="cm-pr-progress-bar"
+                                             style="width:{% widthratio proposal.submitted_members proposal.total_members 100 %}%">
+                                        </div>
+                                    </div>
+                                    <div class="cm-pr-progress-foot">
+                                        <span>
+                                            <i class="ti ti-circle-check"></i>
+                                            {{ proposal.submitted_members }} completed
+                                        </span>
+                                        <span>
+                                            <i class="ti ti-clock"></i>
+                                            {{ proposal.pending_members }} pending
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="cm-pr-workflow-banner">
+                                {% if proposal.is_final_review %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-final">
+                                        <i class="ti ti-shield-check"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>All Committee Evaluations Completed · Ready for Chair Finalization</strong>
+                                    </div>
+                                {% elif proposal.evaluation_completed %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-success">
+                                        <i class="ti ti-circle-check"></i>
+                                    </div>
+                                    <div>
+                                        <span>Your Evaluation</span>
+                                        <strong>Evaluation Submitted &amp; Locked</strong>
+                                    </div>
+                                {% elif proposal.can_evaluate %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-action">
+                                        <i class="ti ti-clipboard-check"></i>
+                                    </div>
+                                    <div>
+                                        <span>Your Evaluation</span>
+                                        <strong>Evaluation Required</strong>
+                                    </div>
+                                {% elif proposal.is_waiting_for_advisor %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-waiting">
+                                        <i class="ti ti-hourglass-high"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>Waiting for Advisor Approval</strong>
+                                    </div>
+                                {% elif proposal.is_final_review %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-final">
+                                        <i class="ti ti-shield-check"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>All Committee Evaluations Completed</strong>
+                                    </div>
+                                {% elif proposal.is_revision_required %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-revision">
+                                        <i class="ti ti-refresh-alert"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>Revision Required</strong>
+                                    </div>
+                                {% elif proposal.is_rejected %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-rejected">
+                                        <i class="ti ti-circle-x"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>Proposal Rejected</strong>
+                                    </div>
+                                {% elif proposal.is_approved %}
+                                    <div class="cm-pr-workflow-icon cm-pr-workflow-success">
+                                        <i class="ti ti-circle-check"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>Proposal Approved</strong>
+                                    </div>
+                                {% else %}
+                                    <div class="cm-pr-workflow-icon">
+                                        <i class="ti ti-clock"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Workflow Stage</span>
+                                        <strong>{{ proposal.status|default:"Pending" }}</strong>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% if is_chair and proposal.status == "COMMITTEE_EVALUATION" %}
+                                <div class="cm-pr-chair-status">
+                                    {% if proposal.pending_members > 0 %}
+                                        <div class="cm-pr-chair-waiting-icon">
+                                            <i class="ti ti-hourglass-high"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Waiting for Committee Members</strong>
+                                            <span>
+                                                {{ proposal.submitted_members }}
+                                                of
+                                                {{ proposal.total_members }}
+                                                evaluations completed.
+                                                {{ proposal.pending_members }}
+                                                still pending.
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <div class="cm-pr-chair-ready-icon">
+                                            <i class="ti ti-circle-check"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Committee Evaluation Completed</strong>
+                                            <span>All committee members have submitted their evaluations.</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            <div class="cm-pr-card-divider"></div>
+                            <div class="cm-pr-card-footer">
+                                <div class="cm-pr-stage">
+                                    {% if proposal.is_final_review %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-final">
+                                            <i class="ti ti-shield-check"></i>
+                                        </div>
+                                        <div>
+                                            <span>Current Stage</span>
+                                            <strong>Ready for Final Review</strong>
+                                        </div>
+                                    {% elif proposal.evaluation_completed %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-success">
+                                            <i class="ti ti-lock"></i>
+                                        </div>
+                                        <div>
+                                            <span>Your Evaluation</span>
+                                            <strong>Completed</strong>
+                                        </div>
+                                    {% elif proposal.can_evaluate %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-action">
+                                            <i class="ti ti-clipboard-check"></i>
+                                        </div>
+                                        <div>
+                                            <span>Your Evaluation</span>
+                                            <strong>Action Required</strong>
+                                        </div>
+                                    {% elif proposal.is_waiting_for_advisor %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-waiting">
+                                            <i class="ti ti-hourglass"></i>
+                                        </div>
+                                        <div>
+                                            <span>Current Stage</span>
+                                            <strong>Advisor Review</strong>
+                                        </div>
+                                    {% elif proposal.is_final_review %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-final">
+                                            <i class="ti ti-shield-check"></i>
+                                        </div>
+                                        <div>
+                                            <span>Current Stage</span>
+                                            <strong>Ready for Final Review</strong>
+                                        </div>
+                                    {% elif proposal.is_revision_required %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-revision">
+                                            <i class="ti ti-refresh-alert"></i>
+                                        </div>
+                                        <div>
+                                            <span>Current Stage</span>
+                                            <strong>Revision Required</strong>
+                                        </div>
+                                    {% elif proposal.is_rejected %}
+                                        <div class="cm-pr-stage-icon cm-pr-stage-rejected">
+                                            <i class="ti ti-circle-x"></i>
+                                        </div>
+                                        <div>
+                                            <span>Current Stage</span>
+                                            <strong>Proposal Rejected</strong>
+                                        </div>
+                                    {% else %}
+                                        <div class="cm-pr-stage-icon">
+                                            <i class="ti ti-clock"></i>
+                                        </div>
+                                        <div>
+                                            <span>Current Stage</span>
+                                            <strong>{{ proposal.status|default:"Pending" }}</strong>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="cm-pr-actions">
+                                    <a href="{% url 'faculty_committee_dissertation_proposal_detail' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                                       class="cm-pr-view-button">
+                                        <i class="ti ti-eye"></i>
+                                        <span>View</span>
+                                    </a>
+                                    {% if is_chair and proposal.is_final_review %}
+                                        <a href="{% url 'faculty_chair_dissertation_proposal_finalize' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                                           class="cm-pr-final-button">
+                                            <i class="ti ti-shield-check"></i>
+                                            <span>Finalize</span>
+                                            <i class="ti ti-arrow-up-right"></i>
+                                        </a>
+                                    {% elif proposal.is_final_review %}
+                                        <span class="cm-pr-final-button">
+                                            <i class="ti ti-shield-check"></i>
+                                            <span>Final Review</span>
+                                        </span>
+                                    {% elif proposal.can_evaluate %}
+                                        <a href="{% url 'faculty_committee_dissertation_proposal_evaluate' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                                           class="cm-pr-evaluate-button">
+                                            <i class="ti ti-clipboard-check"></i>
+                                            <span>Evaluate</span>
+                                            <i class="ti ti-arrow-up-right"></i>
+                                        </a>
+                                    {% elif proposal.evaluation_completed %}
+                                        <span class="cm-pr-locked-button"
+                                              title="Your evaluation has already been submitted">
+                                            <i class="ti ti-lock"></i>
+                                            <span>Completed</span>
+                                        </span>
+                                    {% elif proposal.is_waiting_for_advisor %}
+                                        <span class="cm-pr-disabled-button"
+                                              title="Evaluation will unlock after advisor approval">
+                                            <i class="ti ti-lock"></i>
+                                            <span>Waiting</span>
+                                        </span>
+                                    {% elif is_chair and proposal.is_final_review %}
+                                        <a href="{% url 'faculty_chair_dissertation_proposal_finalize' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                                           class="cm-pr-final-button">
+                                            <i class="ti ti-shield-check"></i>
+                                            <span>Finalize</span>
+                                        </a>
+                                    {% elif proposal.is_final_review %}
+                                        <span class="cm-pr-final-button">
+                                            <i class="ti ti-shield-check"></i>
+                                            <span>Final Review</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="cm-pr-disabled-button">
+                                            <i class="ti ti-lock"></i>
+                                            <span>Locked</span>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <section class="cm-pr-empty">
+                <div class="cm-pr-empty-orbit">
+                    <div class="cm-pr-empty-orbit-ring"></div>
+                    <div class="cm-pr-empty-icon">
+                        <i class="ti ti-files-off"></i>
+                    </div>
+                </div>
+                <span class="cm-pr-empty-label">PROPOSAL WORKSPACE</span>
+                <h2>
+                    {% if search or status_filter %}
+                        No Matching Proposals
+                    {% else %}
+                        No Dissertation Proposals Yet
+                    {% endif %}
+                </h2>
+                <p>
+                    {% if search or status_filter %}
+                        No dissertation proposal matches your current
+                        search or evaluation filter. Try adjusting your
+                        filters and search again.
+                    {% else %}
+                        Dissertation proposals connected to your doctoral
+                        committee will appear here automatically as they
+                        progress through the workflow.
+                    {% endif %}
+                </p>
+                {% if search or status_filter %}
+                    <a href="{% url 'faculty_committee_dissertation_proposal_list' uuid=request.user.uuid %}"
+                       class="cm-pr-empty-button"
+                       id="cmPrEmptyReset">
+                        <i class="ti ti-refresh"></i>
+                        <span>Clear Filters</span>
+                    </a>
+                {% endif %}
+            </section>
+        {% endif %}
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@11.2.3/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+(function () {
+
+    "use strict";
+
+
+    function initializeChoicesFilter() {
+
+        const select =
+            document.getElementById("cmPrStatusFilter");
+
+
+        if (!select) {
+
+            console.error(
+                "[Dissertation] Status filter element not found."
+            );
+
+            return;
+
+        }
+
+
+        if (typeof Choices === "undefined") {
+
+            console.error(
+                "[Dissertation] Choices.js failed to load."
+            );
+
+            select.classList.add(
+                "cm-pr-native-select"
+            );
+
+            return;
+
+        }
+
+
+        if (
+            select.dataset.choicesInitialized === "true"
+        ) {
+
+            return;
+
+        }
+
+
+        try {
+
+     const instance = new Choices(select, {
+    searchEnabled: false,
+    shouldSort: false,
+    itemSelectText: "",
+    allowHTML: false,
+    removeItemButton: false,
+    duplicateItemsAllowed: false,
+    searchChoices: false,
+    placeholder: false,
+    position: "auto",
+    resetScrollPosition: false,
+});
+
+
+            select.dataset.choicesInitialized =
+                "true";
+
+
+            select._cmPrChoices =
+                instance;
+
+
+            console.log(
+                "[Dissertation] Choices.js initialized successfully."
+            );
+
+        } catch (error) {
+
+            console.error(
+                "[Dissertation] Choices.js initialization failed:",
+                error
+            );
+
+            select.classList.add(
+                "cm-pr-native-select"
+            );
+
+        }
+
+    }
+
+
+    function initializeWorkspace() {
+
+        initializeChoicesFilter();
+
+
+        const searchInput =
+            document.getElementById(
+                "cmPrSearchInput"
+            );
+
+
+        const searchClear =
+            document.getElementById(
+                "cmPrSearchClear"
+            );
+
+
+        if (
+            searchInput &&
+            searchClear
+        ) {
+
+            searchClear.addEventListener(
+                "click",
+                function () {
+
+                    searchInput.value = "";
+
+                    searchInput.focus();
+
+                }
+            );
+
+        }
+
+
+        const resetButton =
+            document.getElementById(
+                "cmPrResetButton"
+            );
+
+
+        if (resetButton) {
+
+            resetButton.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+
+                    const targetUrl =
+                        this.href;
+
+
+                    if (
+                        typeof Swal === "undefined"
+                    ) {
+
+                        window.location.href =
+                            targetUrl;
+
+                        return;
+
+                    }
+
+
+                    Swal.fire({
+
+                        icon: "question",
+
+                        title: "Reset Filters?",
+
+                        text:
+                            "All search and evaluation filters will be cleared.",
+
+                        showCancelButton: true,
+
+                        confirmButtonText: "Reset",
+
+                        cancelButtonText:
+                            "Keep Filters",
+
+                        confirmButtonColor:
+                            "#c5050c",
+
+                        reverseButtons: true
+
+                    }).then(
+                        function (result) {
+
+                            if (
+                                result.isConfirmed
+                            ) {
+
+                                window.location.href =
+                                    targetUrl;
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+
+
+        const emptyReset =
+            document.getElementById(
+                "cmPrEmptyReset"
+            );
+
+
+        if (emptyReset) {
+
+            emptyReset.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+
+                    const targetUrl =
+                        this.href;
+
+
+                    if (
+                        typeof Swal === "undefined"
+                    ) {
+
+                        window.location.href =
+                            targetUrl;
+
+                        return;
+
+                    }
+
+
+                    Swal.fire({
+
+                        icon: "info",
+
+                        title: "Clear Filters?",
+
+                        text:
+                            "You will return to the complete proposal workspace.",
+
+                        showCancelButton: true,
+
+                        confirmButtonText:
+                            "Clear Filters",
+
+                        cancelButtonText:
+                            "Cancel",
+
+                        confirmButtonColor:
+                            "#c5050c",
+
+                        reverseButtons: true
+
+                    }).then(
+                        function (result) {
+
+                            if (
+                                result.isConfirmed
+                            ) {
+
+                                window.location.href =
+                                    targetUrl;
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+
+
+        const evaluateButtons =
+            document.querySelectorAll(
+                ".cm-pr-evaluate-button"
+            );
+
+
+        evaluateButtons.forEach(
+            function (button) {
+
+                button.addEventListener(
+                    "click",
+                    function (event) {
+
+                        event.preventDefault();
+
+
+                        const targetUrl =
+                            this.href;
+
+
+                        if (
+                            typeof Swal === "undefined"
+                        ) {
+
+                            window.location.href =
+                                targetUrl;
+
+                            return;
+
+                        }
+
+
+                        Swal.fire({
+
+                            icon: "warning",
+
+                            title:
+                                "Evaluate Proposal?",
+
+                            text:
+                                "You are about to open the committee evaluation form.",
+
+                            showCancelButton: true,
+
+                            confirmButtonText:
+                                "Continue",
+
+                            cancelButtonText:
+                                "Cancel",
+
+                            confirmButtonColor:
+                                "#c5050c",
+
+                            reverseButtons: true
+
+                        }).then(
+                            function (result) {
+
+                                if (
+                                    result.isConfirmed
+                                ) {
+
+                                    window.location.href =
+                                        targetUrl;
+
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+        const cards =
+            document.querySelectorAll(
+                ".cm-pr-proposal-card"
+            );
+
+
+        cards.forEach(
+            function (card, index) {
+
+                card.style.setProperty(
+                    "--cm-pr-delay",
+                    (index * 70) + "ms"
+                );
+
+            }
+        );
+
+
+        {% if messages %}
+
+        {% for message in messages %}
+
+        if (
+            typeof Swal !== "undefined"
+        ) {
+
+            Swal.fire({
+
+                icon:
+                    "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+
+                title:
+                    "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Attention{% else %}Notice{% endif %}",
+
+                text:
+                    "{{ message|escapejs }}",
+
+                confirmButtonColor:
+                    "#c5050c",
+
+                confirmButtonText:
+                    "OK"
+
+            });
+
+        }
+
+        {% endfor %}
+
+        {% endif %}
+
+    }
+
+
+    if (
+        document.readyState === "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeWorkspace
+        );
+
+    } else {
+
+        initializeWorkspace();
+
+    }
+
+})();
+
+    </script>
+{% endblock extra_js %}

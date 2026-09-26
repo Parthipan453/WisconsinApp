@@ -1,0 +1,202 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Faculty Details{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_team %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/jordan/research_details_faculty.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+{% endblock %}
+
+{% block content %}
+    <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <div>
+                <h1 class="page-title">
+                    Research Faculty Details
+                </h1>
+                <p class="text-muted">View all research projects posted by you</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="refreshData()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="section-header">
+        <div class="section-header-left">
+            <h3 class="section-title">
+                Your Research Projects
+            </h3>
+            <span class="record-count" id="projectCount">0 projects</span>
+        </div>
+    </div>
+
+    <div id="loadingState" style="text-align: center; padding: 60px 20px;">
+        <i class="ti ti-loader" style="font-size: 48px; animation: spin 1s linear infinite; color: var(--primary-red);"></i>
+        <h3 style="margin-top: 16px; color: var(--text-secondary);">Loading projects...</h3>
+    </div>
+
+    <div class="projects-grid" id="projectsGrid">
+        <!-- Projects will be rendered by JavaScript -->
+    </div>
+
+    <!-- Project Details Modal -->
+    <div class="modal-overlay" id="projectDetailModal" style="display: none;">
+        <div class="modal-container detail-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="ti ti-file-text"></i>
+                    Project Details
+                </h3>
+                <button class="modal-close" onclick="closeModal('projectDetailModal')">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                    <!-- Project Info -->
+                    <div class="detail-section">
+                        <div class="detail-header">
+                            <h4 id="detailTitle">Project Title</h4>
+                            <div class="status-control-wrapper">
+                                <span class="status-badge" id="detailStatus">Draft</span>
+                                <button class="btn btn-sm btn-edit-status" onclick="openStatusEditor()" title="Change Status">
+                                    <i class="ti ti-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Editor (hidden by default) -->
+                    <div class="detail-section status-editor" id="statusEditor" style="display: none;">
+                        <div class="status-editor-content">
+                            <h5><i class="ti ti-edit"></i> Change Project Status</h5>
+                            <div class="custom-select-wrapper">
+                                <div class="custom-select" id="customStatusSelect">
+                                    <div class="custom-select-trigger" onclick="toggleStatusDropdown()">
+                                        <span class="custom-select-placeholder" id="statusPlaceholder">Select Status</span>
+                                        <i class="ti ti-chevron-down custom-select-arrow"></i>
+                                    </div>
+                                    <div class="custom-select-dropdown" id="statusDropdown" style="display: none;">
+                                        <div class="custom-select-options" id="statusOptionsContainer">
+                                            <!-- Options will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="status-editor-actions">
+                                    <button class="btn btn-primary btn-sm" onclick="saveProjectStatus()">
+                                        <i class="ti ti-check"></i> Save
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" onclick="closeStatusEditor()">
+                                        <i class="ti ti-x"></i> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-file-text"></i> Description</h5>
+                        <p id="detailDescription">Description goes here...</p>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-calendar"></i> Timeline</h5>
+                        <div class="detail-dates">
+                            <span><strong>Start Date:</strong> <span id="detailStartDate">-</span></span>
+                            <span><strong>End Date:</strong> <span id="detailEndDate">-</span></span>
+                            <span><strong>Slots:</strong> <span id="detailSlots">-</span></span>
+                            <span><strong>Estimated Amount:</strong> <span id="detailEstimatedAmount">-</span></span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-tag"></i> Category</h5>
+                        <p id="detailCategory">-</p>
+                    </div>
+
+                    <div class="detail-section">
+                        <h5><i class="ti ti-code"></i> Required Skills</h5>
+                        <div id="detailSkills" class="skills-container"></div>
+                    </div>
+
+                    <!-- Team Section -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-users"></i> Team</h5>
+                        <div class="team-detail-container">
+                            <div class="team-detail-item">
+                                <strong>Team Name:</strong>
+                                <span id="detailTeamName">-</span>
+                            </div>
+                            <div id="detailTeamMembers" class="detail-team-members">
+                                <!-- Team members by role will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-chart-bar"></i> Research Progress</h5>
+                        <div class="progress-overall">
+                            <div class="progress-label">
+                                <span>Overall Progress</span>
+                                <span id="modalOverallProgressText">0%</span>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="modalOverallProgressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('projectDetailModal')">
+                    <i class="ti ti-x"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div class="notification" id="successNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-check-circle notification-icon success"></i>
+            <span id="notificationMessage">Success!</span>
+            <button class="notification-close" onclick="closeNotification()"><i class="ti ti-x"></i></button>
+        </div>
+    </div>
+
+    <!-- Error Notification -->
+    <div class="notification error" id="errorNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-exclamation-circle notification-icon error"></i>
+            <span id="errorMessage">Error!</span>
+            <button class="notification-close" onclick="closeErrorNotification()"><i class="ti ti-x"></i></button>
+        </div>
+    </div>
+
+    <!-- Warning Notification -->
+    <div class="notification warning" id="warningNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-alert-circle notification-icon warning"></i>
+            <span id="warningMessage">Warning!</span>
+            <button class="notification-close" onclick="closeWarningNotification()"><i class="ti ti-x"></i></button>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'script/jordan/research_details_faculty.js' %}"></script>
+{% endblock %}

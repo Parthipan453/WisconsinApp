@@ -1,0 +1,792 @@
+<!-- Gayathri G -->
+
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}
+Faculty Advisees
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Academics/academics.css' %}">
+<link rel="stylesheet" href="{% static 'css/StudentAdvising/faculty_advisees.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================= -->
+
+<div class="page-header">
+
+    <div>
+
+        <h1 class="page-title">
+            My Advisees
+        </h1>
+
+        <p class="page-sub">
+            View students assigned to you for academic advising.
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     STATS
+========================================================= -->
+
+<div class="stat-grid">
+
+
+    <!-- Total Advisees -->
+
+    <div class="stat-card">
+
+        <div class="stat-icon si-red">
+            <i class="ti ti-users"></i>
+        </div>
+
+        <div>
+
+            <div class="stat-label">
+                Total Advisees
+            </div>
+
+            <div class="stat-value">
+                {{ total_advisees }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Active Students -->
+
+    <div class="stat-card">
+
+        <div class="stat-icon si-green">
+            <i class="ti ti-user-check"></i>
+        </div>
+
+        <div>
+
+            <div class="stat-label">
+                Active Students
+            </div>
+
+            <div class="stat-value">
+                {{ active_advisees }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Undergraduate -->
+
+    <div class="stat-card">
+
+        <div class="stat-icon si-blue">
+            <i class="ti ti-school"></i>
+        </div>
+
+        <div>
+
+            <div class="stat-label">
+                Undergraduate
+            </div>
+
+            <div class="stat-value">
+                {{ undergraduate_advisees }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Graduate / PhD -->
+
+    <div class="stat-card">
+
+        <div class="stat-icon si-purple">
+            <i class="ti ti-certificate"></i>
+        </div>
+
+        <div>
+
+            <div class="stat-label">
+                Graduate / PhD
+            </div>
+
+            <div class="stat-value">
+                {{ graduate_advisees }}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     SEARCH / FILTER (live — no click, no reload)
+========================================================= -->
+
+<div class="card advisee-toolbar-card">
+
+    <div class="advisee-toolbar">
+
+        <div class="search-wrapper">
+
+            <i class="ti ti-search"></i>
+
+            <input
+                type="text"
+                id="adviseeSearchInput"
+                placeholder="Search by name, student number, program..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <div class="filter-select-wrap">
+            <select id="adviseeBatchFilter" class="filter-select">
+                <option value="">All Batches</option>
+            </select>
+        </div>
+
+
+        <div class="filter-select-wrap">
+            <select id="adviseeLevelFilter" class="filter-select">
+                <option value="">All Levels</option>
+                <option value="undergraduate">Undergraduate</option>
+                <option value="graduate">Graduate / PhD</option>
+            </select>
+        </div>
+
+
+        <div class="filter-select-wrap">
+            <select id="adviseeStatusFilter" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="leave">Leave</option>
+                <option value="graduated">Graduated</option>
+                <option value="withdrawn">Withdrawn</option>
+            </select>
+        </div>
+
+
+        <button
+            type="button"
+            id="adviseeClearBtn"
+            class="filter-clear-btn"
+            hidden>
+
+            <i class="ti ti-x"></i>
+
+            Clear
+
+        </button>
+
+    </div>
+
+
+    <div class="advisee-filter-summary" id="adviseeFilterSummary" hidden>
+
+        <i class="ti ti-filter"></i>
+
+        <span id="adviseeFilterSummaryText"></span>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ADVISEE LIST
+========================================================= -->
+
+<div class="card">
+
+    <div class="card-header">
+
+        <div>
+
+            <div class="card-title">
+                Assigned Students
+            </div>
+
+            <div class="card-subtitle">
+                Students currently assigned to you.
+            </div>
+
+        </div>
+
+        <div class="advisee-results-info" id="adviseeResultsInfo"></div>
+
+    </div>
+
+
+    <div class="advisee-table-wrapper">
+
+        <table class="advisee-table" id="adviseeTable">
+
+            <thead>
+
+                <tr>
+                    <th>Student</th>
+                    <th>Program</th>
+                    <th>Batch</th>
+                    <th>Level</th>
+                    <th>GPA</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="adviseeList">
+
+
+                {% for item in advisees %}
+
+                    {% with student=item.student %}
+                    {% with academic_profile=item.academic_profile %}
+
+
+                        <!-- =================================================
+                             STUDENT ROW
+                        ================================================== -->
+
+                        <tr class="advisee-row"
+                            data-advisee-item
+                            data-search="
+                                {{ student.student_number|lower }}
+                                {% if student.preferred_name %}{{ student.preferred_name|lower }}{% endif %}
+                                {{ student.user.get_full_name|lower }}
+                                {{ item.program.program_name|lower }}
+                             "
+                            data-batch="{{ item.batch }}"
+                            data-level="{% if student.academic_level|upper == 'UNDERGRADUATE' or student.academic_level|upper == 'UG' %}undergraduate{% else %}graduate{% endif %}"
+                            data-status="{{ student.current_status|lower }}">
+
+
+                            <!-- Student -->
+
+                            <td data-label="Student">
+
+                                <div class="advisee-student-cell">
+
+                                    <div class="student-avatar">
+
+                                        {% if student.preferred_name %}
+
+                                            {{ student.preferred_name|first|upper }}
+
+                                        {% elif student.user.first_name %}
+
+                                            {{ student.user.first_name|first|upper }}
+
+                                        {% else %}
+
+                                            S
+
+                                        {% endif %}
+
+                                    </div>
+
+
+                                    <div class="advisee-student-text">
+
+                                        <span class="student-name">
+
+                                            {% if student.preferred_name %}
+
+                                                {{ student.preferred_name }}
+
+                                            {% else %}
+
+                                                {{ student.user.get_full_name }}
+
+                                            {% endif %}
+
+                                        </span>
+
+                                        <span class="student-meta">
+                                            #{{ student.student_number }}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- Program (+ department as subtitle) -->
+
+                            <td data-label="Program">
+
+                                <div class="advisee-program-cell">
+
+                                    <span class="advisee-program-name" title="{{ item.program.program_name }}">
+                                        {{ item.program.program_name }}
+                                    </span>
+
+                                    <span class="advisee-program-dept">
+                                        {{ item.department.department_name }}
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- Batch -->
+
+                            <td data-label="Batch">
+                                {{ item.batch }}
+                            </td>
+
+
+                            <!-- Level -->
+
+                            <td data-label="Level">
+
+                                {% if student.academic_level %}
+                                    {{ student.academic_level }}
+                                {% else %}
+                                    —
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- GPA -->
+
+                            <td data-label="GPA">
+
+                                {% if student.cumulative_gpa %}
+                                    {{ student.cumulative_gpa }}
+                                {% else %}
+                                    —
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Email -->
+
+                            <td data-label="Email">
+
+                                {% if student.university_email %}
+
+                                    <span class="advisee-email" title="{{ student.university_email }}">
+                                        {{ student.university_email }}
+                                    </span>
+
+                                {% elif student.user.email %}
+
+                                    <span class="advisee-email" title="{{ student.user.email }}">
+                                        {{ student.user.email }}
+                                    </span>
+
+                                {% else %}
+
+                                    —
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Status -->
+
+                            <td data-label="Status">
+
+                                {% if student.current_status == "ACTIVE" %}
+
+                                    <span class="status-badge active">
+                                        Active
+                                    </span>
+
+                                {% elif student.current_status == "WITHDRAWN" %}
+
+                                    <span class="status-badge withdrawn">
+                                        Withdrawn
+                                    </span>
+
+                                {% elif student.current_status == "LEAVE" %}
+
+                                    <span class="status-badge leave">
+                                        Leave
+                                    </span>
+
+                                {% elif student.current_status == "GRADUATED" %}
+
+                                    <span class="status-badge graduated">
+                                        Graduated
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="status-badge">
+                                        {{ student.get_current_status_display }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+
+                    {% endwith %}
+                    {% endwith %}
+
+                {% empty %}
+
+
+                    <!-- =================================================
+                         EMPTY STATE (no advisees at all)
+                    ================================================== -->
+
+                    <tr class="advisee-empty-row">
+                        <td colspan="7">
+
+                            <div class="empty-state" id="adviseeServerEmptyState">
+
+                                <div class="empty-icon">
+                                    <i class="ti ti-users-off"></i>
+                                </div>
+
+                                <h3>
+                                    No Advisees Found
+                                </h3>
+
+                                <p>
+                                    You currently have no students
+                                    assigned for academic advising.
+                                </p>
+
+                            </div>
+
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+
+            </tbody>
+
+        </table>
+
+
+        <!-- =================================================
+             EMPTY STATE (search/filter matched nothing)
+        ================================================== -->
+
+        <div class="empty-state" id="adviseeLiveEmptyState" hidden>
+
+            <div class="empty-icon">
+                <i class="ti ti-users-off"></i>
+            </div>
+
+            <h3>
+                No Matches Found
+            </h3>
+
+            <p>
+                No advisees match your search or filters.
+            </p>
+
+            <button type="button" class="filter-clear-btn" id="adviseeLiveClearBtn">
+                <i class="ti ti-x"></i>
+                Clear Search &amp; Filters
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PAGINATION (built client-side, 10 per page)
+    ====================================================== -->
+
+    <div class="pagination-wrapper" id="adviseePagination"></div>
+
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<script>
+(function () {
+
+    var searchInput   = document.getElementById('adviseeSearchInput');
+    var batchFilter    = document.getElementById('adviseeBatchFilter');
+    var levelFilter     = document.getElementById('adviseeLevelFilter');
+    var statusFilter     = document.getElementById('adviseeStatusFilter');
+    var clearBtn          = document.getElementById('adviseeClearBtn');
+    var liveClearBtn        = document.getElementById('adviseeLiveClearBtn');
+    var summary               = document.getElementById('adviseeFilterSummary');
+    var summaryText            = document.getElementById('adviseeFilterSummaryText');
+    var list                    = document.getElementById('adviseeList');
+    var liveEmpty                = document.getElementById('adviseeLiveEmptyState');
+    var resultsInfo                = document.getElementById('adviseeResultsInfo');
+    var paginationWrapper            = document.getElementById('adviseePagination');
+
+    var PAGE_SIZE = 10;
+    var currentPage = 1;
+
+    if (!list) { return; }
+
+    var items = Array.prototype.slice.call(
+        list.querySelectorAll('[data-advisee-item]')
+    );
+
+    // Nothing to filter (server already rendered the "no advisees" state)
+    if (items.length === 0) { return; }
+
+
+    // -----------------------------------------------------
+    // Populate the batch dropdown from what's actually on the page
+    // -----------------------------------------------------
+
+    var batches = [];
+
+    items.forEach(function (item) {
+
+        var batch = item.getAttribute('data-batch');
+
+        if (batch && batches.indexOf(batch) === -1) {
+            batches.push(batch);
+        }
+
+    });
+
+    batches.sort(function (a, b) { return b - a; });
+
+    batches.forEach(function (batch) {
+
+        var opt = document.createElement('option');
+        opt.value = batch;
+        opt.textContent = batch;
+
+        batchFilter.appendChild(opt);
+
+    });
+
+
+    // -----------------------------------------------------
+    // Choices.js — must run AFTER the batch <option>s above,
+    // since Choices reads the select's options at init time
+    // -----------------------------------------------------
+
+    var choicesConfig = {
+        searchEnabled: false,
+        itemSelectText: '',
+        shouldSort: false,
+        allowHTML: false,
+        position: 'bottom'
+    };
+
+    var batchChoices  = new Choices(batchFilter, choicesConfig);
+    var levelChoices   = new Choices(levelFilter, choicesConfig);
+    var statusChoices   = new Choices(statusFilter, choicesConfig);
+
+
+    // -----------------------------------------------------
+    // Filtering + pagination
+    // -----------------------------------------------------
+
+    function getFiltered() {
+
+        var query = searchInput.value.trim().toLowerCase();
+        var batch = batchFilter.value;
+        var level = levelFilter.value;
+        var status = statusFilter.value;
+
+        return items.filter(function (item) {
+
+            var text = item.getAttribute('data-search') || '';
+
+            var matchesQuery = !query || text.indexOf(query) !== -1;
+            var matchesBatch = !batch || item.getAttribute('data-batch') === batch;
+            var matchesLevel = !level || item.getAttribute('data-level') === level;
+            var matchesStatus = !status || item.getAttribute('data-status') === status;
+
+            return matchesQuery && matchesBatch && matchesLevel && matchesStatus;
+
+        });
+
+    }
+
+    function activeFilterLabels() {
+
+        var labels = [];
+
+        if (searchInput.value.trim()) {
+            labels.push('\u201c' + searchInput.value.trim() + '\u201d');
+        }
+
+        if (batchFilter.value) {
+            labels.push(batchFilter.options[batchFilter.selectedIndex].textContent);
+        }
+
+        if (levelFilter.value) {
+            labels.push(levelFilter.options[levelFilter.selectedIndex].textContent);
+        }
+
+        if (statusFilter.value) {
+            labels.push(statusFilter.options[statusFilter.selectedIndex].textContent);
+        }
+
+        return labels;
+
+    }
+
+    function render() {
+
+        var filtered = getFiltered();
+        var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+        if (currentPage > totalPages) { currentPage = totalPages; }
+        if (currentPage < 1) { currentPage = 1; }
+
+        var start = (currentPage - 1) * PAGE_SIZE;
+        var end = start + PAGE_SIZE;
+        var pageItems = filtered.slice(start, end);
+
+        // Show only the current page's matches; hide everything else
+        items.forEach(function (item) {
+            item.hidden = pageItems.indexOf(item) === -1;
+        });
+
+        liveEmpty.hidden = filtered.length !== 0;
+
+        // Filter summary chip
+        var labels = activeFilterLabels();
+        var hasFilters = labels.length > 0;
+
+        clearBtn.hidden = !hasFilters;
+        summary.hidden = !hasFilters;
+
+        if (hasFilters) {
+            summaryText.textContent = 'Filtered by ' + labels.join(', ') +
+                ' — ' + filtered.length + ' result' + (filtered.length === 1 ? '' : 's');
+        }
+
+        // Results info text
+        if (filtered.length === 0) {
+
+            resultsInfo.textContent = '';
+
+        } else {
+
+            resultsInfo.textContent =
+                'Showing ' + (start + 1) + '\u2013' + Math.min(end, filtered.length) +
+                ' of ' + filtered.length;
+
+        }
+
+        renderPagination(totalPages);
+
+    }
+
+    function renderPagination(totalPages) {
+
+        paginationWrapper.innerHTML = '';
+
+        if (totalPages <= 1) { return; }
+
+        function makeBtn(label, page, isActive, isDisabled, ariaLabel) {
+
+            var el = document.createElement(isDisabled ? 'span' : 'a');
+
+            el.className = 'page-btn' + (isActive ? ' active' : '');
+            el.innerHTML = label;
+
+            if (ariaLabel) { el.setAttribute('aria-label', ariaLabel); }
+
+            if (!isDisabled) {
+
+                el.href = '#';
+
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    currentPage = page;
+                    render();
+
+                    list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                });
+
+            } else {
+
+                el.setAttribute('aria-disabled', 'true');
+
+            }
+
+            return el;
+
+        }
+
+        paginationWrapper.appendChild(
+            makeBtn('<i class="ti ti-chevron-left"></i>', currentPage - 1, false, currentPage === 1, 'Previous page')
+        );
+
+        for (var p = 1; p <= totalPages; p++) {
+            paginationWrapper.appendChild(
+                makeBtn(String(p), p, p === currentPage, false)
+            );
+        }
+
+        paginationWrapper.appendChild(
+            makeBtn('<i class="ti ti-chevron-right"></i>', currentPage + 1, false, currentPage === totalPages, 'Next page')
+        );
+
+    }
+
+    function onFilterChange() {
+        currentPage = 1;
+        render();
+    }
+
+    searchInput.addEventListener('input', onFilterChange);
+    batchFilter.addEventListener('change', onFilterChange);
+    levelFilter.addEventListener('change', onFilterChange);
+    statusFilter.addEventListener('change', onFilterChange);
+
+    function clearAll() {
+
+        searchInput.value = '';
+
+        batchChoices.setChoiceByValue('');
+        levelChoices.setChoiceByValue('');
+        statusChoices.setChoiceByValue('');
+
+        onFilterChange();
+
+    }
+
+    clearBtn.addEventListener('click', clearAll);
+    liveClearBtn.addEventListener('click', clearAll);
+
+    render();
+
+})();
+</script>
+
+{% endblock %}

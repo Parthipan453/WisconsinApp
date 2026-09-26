@@ -1,0 +1,325 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Research Project Progress{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/jordan/research_committee.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+<div class="committee-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Research Committee Dashboard</h1>
+            <p>Review and approve research project applications from faculty and students</p>
+        </div>
+        {% comment %} <div class="header-actions">
+            <button class="action-btn primary-btn" onclick="refreshData()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+            <button class="action-btn secondary-btn" onclick="window.location.href='{% url 'dashboard' %}'">
+                <i class="ti ti-dashboard"></i> Dashboard
+            </button>
+        </div> {% endcomment %}
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="icon purple">
+                <i class="ti ti-files"></i>
+            </div>
+            <div>
+                <h3 id="statTotalApplications">0</h3>
+                <span>Total Applications</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div>
+                <h3 id="statPendingApplications">0</h3>
+                <span>Pending Review</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-check"></i>
+            </div>
+            <div>
+                <h3 id="statApprovedApplications">0</h3>
+                <span>Approved</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon red">
+                <i class="ti ti-x"></i>
+            </div>
+            <div>
+                <h3 id="statRejectedApplications">0</h3>
+                <span>Rejected</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-building"></i>
+            </div>
+            <div>
+                <h3 id="statDepartments">0</h3>
+                <span>Departments</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon teal">
+                <i class="ti ti-users"></i>
+            </div>
+            <div>
+                <h3 id="statApplicants">0</h3>
+                <span>Applicants</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section card">
+        <div class="filter-row">
+            <!-- Application Type Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-file"></i> Application Type</label>
+                <select id="appTypeFilter" class="filter-input">
+                    <option value="">All Types</option>
+                    <option value="faculty">Faculty</option>
+                    <option value="student">Student</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="statusFilter" class="filter-input">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="reviewing">Under Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="revision-required">Revision Required</option>
+                </select>
+            </div>
+
+            <!-- Department Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-building"></i> Department</label>
+                <select id="departmentFilter" class="filter-input">
+                    <option value="">All Departments</option>
+                    <option value="computer-science">Computer Science</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="physics">Physics</option>
+                    <option value="chemistry">Chemistry</option>
+                    <option value="biology">Biology</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="business">Business Administration</option>
+                    <option value="humanities">Humanities</option>
+                </select>
+            </div>
+
+            <!-- Date Range -->
+            <div class="filter-group">
+                <label><i class="ti ti-calendar"></i> Date Range</label>
+                <select id="dateFilter" class="filter-input">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                </select>
+            </div>
+
+            <!-- Search Input -->
+            <div class="filter-group" style="flex: 2;">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="searchInput" placeholder="Search by project title, applicant name..." class="filter-input" style="flex: 1;">
+                    <button class="filter-search-btn" onclick="applySearch()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <button class="quick-filter-btn active" onclick="setQuickFilter('all')">All Applications</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('faculty')">Faculty</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('student')">Students</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('pending')">Pending</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('reviewing')">Under Review</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('approved')">Approved</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('revision-required')">Revision Required</button>
+        </div>
+    </div>
+
+    <!-- Applications Grid -->
+    <div class="applications-section">
+        <div class="section-header">
+            <h3><i class="ti ti-file-inbox"></i> Research Applications</h3>
+            <div class="section-actions">
+                <span class="record-count" id="appCount">0 Applications</span>
+            </div>
+        </div>
+        <div class="applications-grid" id="applicationsGrid">
+            <!-- Application cards will be dynamically generated -->
+        </div>
+    </div>
+
+    <!-- Application Details Modal -->
+    <div class="modal-overlay" id="appModal" style="display: none;">
+        <div class="modal-container committee-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2 id="modalProjectTitle">Project Title</h2>
+                    <div class="modal-status-group">
+                        <span class="modal-status" id="modalStatus">Pending</span>
+                        <span class="modal-type" id="modalType">Faculty Application</span>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Application Details -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-file-text"></i> Application Details</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Application ID</label>
+                            <span id="modalAppId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Submitted Date</label>
+                            <span id="modalSubmittedDate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Application Type</label>
+                            <span id="modalAppType">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Department</label>
+                            <span id="modalDepartment">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Project Title</label>
+                            <span id="modalProjectTitleDetail">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Research Type</label>
+                            <span id="modalResearchType">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Duration</label>
+                            <span id="modalDuration">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Abstract</label>
+                            <p id="modalAbstract">-</p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Research Objectives</label>
+                            <ul id="modalObjectives"></ul>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Expected Outcomes</label>
+                            <ul id="modalOutcomes"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Applicant Information -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-user"></i> Applicant Information</h4>
+                    <div class="applicant-info-card" id="modalApplicant">
+                        <!-- Applicant info will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Committee Review -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-clipboard"></i> Committee Review</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Review Status</label>
+                            <span id="modalReviewStatus">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Reviewer</label>
+                            <span id="modalReviewer">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Review Comments</label>
+                            <textarea id="modalComments" rows="4" placeholder="Add your review comments here..." class="comment-textarea"></textarea>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Recommendation</label>
+                            <div class="recommendation-options">
+                                <button class="recommend-btn" onclick="setRecommendation('approve')">
+                                    <i class="ti ti-check"></i> Approve
+                                </button>
+                                <button class="recommend-btn revision" onclick="setRecommendation('revision')">
+                                    <i class="ti ti-refresh"></i> Revision Required
+                                </button>
+                                <button class="recommend-btn reject" onclick="setRecommendation('reject')">
+                                    <i class="ti ti-x"></i> Reject
+                                </button>
+                            </div>
+                            <div id="selectedRecommendation" style="margin-top: 8px; font-weight: 500;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review History -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-history"></i> Review History</h4>
+                    <div class="review-history" id="modalHistory">
+                        <!-- Review history will be dynamically generated -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="modal-btn reject-btn" onclick="submitReview('rejected')">
+                    <i class="ti ti-x"></i> Reject
+                </button>
+                <button class="modal-btn revision-btn" onclick="submitReview('revision-required')">
+                    <i class="ti ti-refresh"></i> Revision Required
+                </button>
+                <button class="modal-btn reviewing-btn" onclick="submitReview('reviewing')">
+                    <i class="ti ti-clock"></i> Under Review
+                </button>
+                <button class="modal-btn approve-btn" onclick="submitReview('approved')">
+                    <i class="ti ti-check-circle"></i> Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+    <script src="{% static 'script/jordan/research_committee.js' %}"></script>
+{% endblock %}
+

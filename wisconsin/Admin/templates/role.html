@@ -1,0 +1,471 @@
+<!-- kali code  -->
+ 
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load permission_tags %}
+{% block title %}Role Management{% endblock %}
+{% block page_title %}Role Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/role.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+{% endblock %}
+
+{% block content %} 
+
+<div id="roleConfig"
+     hidden
+     data-csrf="{{ csrf_token }}"
+     data-assignments-url="{% url 'role_assignments_json' %}"
+     data-create-role-url="{% url 'role_create_json' %}"
+     data-unassign-url-template="{% url 'role_unassign_json' 999999 %}"
+     data-edit-url-template="/dashboard/user/__UUID__/edit/"
+     data-total-roles="{{ total_roles }}"
+     data-role-details-url-template="{% url 'role_detail_json' 999999 %}"
+     data-role-available-url-template="{% url 'role_available_users_json' 999999 %}"
+     data-role-assign-url-template="{% url 'role_assign_users_json' 999999 %}"
+     data-role-revoke-url-template="{% url 'role_revoke_user_json' 999999 %}"
+     data-role-update-url-template="{% url 'role_update_json' 999999 %}"
+     data-role-convert-url-template="{% url 'role_convert_users_json' 999999 %}">
+    
+    </div>
+
+<div class="roles-header" data-aos="fade-down" data-aos-duration="500">
+    <div class="roles-header__text">
+        <h1 class="roles-header__title">Role Management</h1>
+        <p class="roles-header__sub">Manage user roles, permissions and assignments</p>
+    </div>
+    {% has_permission "userrole_create" as create_userrole %}
+
+    {% if create_userrole %}
+    <button class="btn-add-role" id="openAddRoleModal" data-aos="zoom-in" data-aos-duration="500" data-aos-delay="100">
+        <i data-lucide="plus"></i>
+        <span>Add Role</span>
+    </button>
+
+    {% endif %}
+</div>
+
+
+
+<div class="roles-stats" data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+
+    <div class="stat-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card__icon stat-card__icon--red">
+            <i data-lucide="shield"></i>
+        </div>
+        <div class="stat-card__body">
+            <span class="stat-card__value" id="totalRolesValue">{{ total_roles }}</span>
+            <span class="stat-card__label">Total Roles</span>
+        </div>
+        <div class="stat-card__trend stat-card__trend--up">
+            <i data-lucide="trending-up"></i> {{ roles_this_month }} new
+        </div>
+    </div>
+
+    <div class="stat-card" data-aos="fade-up" data-aos-delay="160">
+        <div class="stat-card__icon stat-card__icon--blue">
+            <i data-lucide="users"></i>
+        </div>
+        <div class="stat-card__body">
+            <span class="stat-card__value">{{ total_users }}</span>
+            <span class="stat-card__label">Total Assigned Users</span>
+        </div>
+        <div class="stat-card__trend stat-card__trend--up">
+            <i data-lucide="trending-up"></i> {{ users_this_month }} this month
+        </div>
+    </div>
+
+    <div class="stat-card" data-aos="fade-up" data-aos-delay="220">
+        <div class="stat-card__icon stat-card__icon--green">
+            <i data-lucide="user-check"></i>
+        </div>
+        <div class="stat-card__body">
+            <span class="stat-card__value">{{ active_users }}</span>
+            <span class="stat-card__label">Active Users</span>
+        </div>
+        <div class="stat-card__trend stat-card__trend--up">
+            <i data-lucide="trending-up"></i> {{ active_pct }}%
+        </div>
+    </div>
+
+    <div class="stat-card" data-aos="fade-up" data-aos-delay="280">
+        <div class="stat-card__icon stat-card__icon--amber">
+            <i data-lucide="user-x"></i>
+        </div>
+        <div class="stat-card__body">
+            <span class="stat-card__value" id="unassignedUsersValue">{{ unassigned_users }}</span>
+            <span class="stat-card__label">Unassigned Users</span>
+        </div>
+        <div class="stat-card__trend stat-card__trend--down">
+            <i data-lucide="trending-down"></i> {{ unassigned_pct }}%
+        </div>
+    </div>
+
+</div>
+
+<div class="roles-pills-wrap" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+    <div class="roles-pills" id="rolePills">
+        {% for pill in role_pills %}
+        <div class="role-pill" data-role-id="{{ pill.id }}" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:240 }}">
+            <span class="role-pill__dot role-pill__dot--{{ pill.color }}"></span>
+            <span class="role-pill__name">{{ pill.name }}</span>
+            <span class="role-pill__badge">{{ pill.count }}</span>
+        </div>
+        {% empty %}
+        <div class="role-pill" id="noRolePill">
+            <span class="role-pill__name">No roles yet — add one to get started.</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="roles-table-section" data-aos="fade-up" data-aos-duration="500" data-aos-delay="260">
+
+    <div class="roles-table-header">
+        <div class="roles-table-header__left">
+            <h2 class="roles-table-header__title">Role Assignments</h2>
+            <span class="roles-table-header__count" id="tableCount">Loading users…</span>
+        </div>
+        <div class="roles-table-header__right">
+            <div class="filter-select-wrap">
+                <i data-lucide="filter" class="filter-icon"></i>
+                <select class="filter-select" id="roleFilter" aria-label="Filter by role">
+                    <option value="">All Roles</option>
+                    {% for r in roles %}
+                    <option value="{{ r.id }}">{{ r.role_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="table-search-wrap">
+                <i data-lucide="search" class="table-search-icon"></i>
+                <input type="search" id="tableSearch" class="table-search" placeholder="Search users…" aria-label="Search users">
+            </div>
+        </div>
+    </div>
+
+    <div class="roles-table-wrap">
+        <table class="roles-table" id="rolesTable" aria-label="Role assignments table">
+            <thead>
+                <tr>
+                    <th class="col-no">#</th>
+                    <th class="col-user">User</th>
+                    <th class="col-uid">University ID</th>
+                    <th class="col-role">Role</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-assigned">Assigned</th>
+                    <!-- <th class="col-actions">Actions</th> -->
+                </tr>
+            </thead>
+            <tbody id="rolesTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="roles-cards" id="rolesMobileCards">
+    </div>
+
+    <div class="roles-pagination" id="rolesPagination">
+        <button class="page-btn" id="prevPage" aria-label="Previous page" disabled>
+            <i data-lucide="chevron-left"></i>
+        </button>
+        <div class="page-numbers" id="pageNumbers"></div>
+        <button class="page-btn" id="nextPage" aria-label="Next page">
+            <i data-lucide="chevron-right"></i>
+        </button>
+    </div>
+
+</div>
+
+
+
+
+ 
+<!-- <div class="role-toast" id="roleToast" role="alert" aria-live="polite" hidden>
+    <i data-lucide="check-circle" class="role-toast__icon"></i>
+    <span class="role-toast__msg" id="toastMsg">Saved successfully.</span>
+</div> -->
+
+<!-- <div class="role-toast" id="roleToast" role="alert" aria-live="polite" hidden>
+    <div class="role-toast__icon-wrap" id="toastIconWrap">
+        <i data-lucide="x-circle" id="toastIcon"></i>
+    </div>
+    <div class="role-toast__body">
+        <span class="role-toast__title" id="toastTitle">Error</span>
+        <span class="role-toast__msg"   id="toastMsg"></span>
+    </div>
+    <button class="role-toast__close" id="toastClose" aria-label="Dismiss">
+        <i data-lucide="x"></i>
+    </button>
+</div> -->
+
+{% endblock %}
+
+{% block global_modal %}
+<div class="roles-modal-overlay" id="roleModal" role="dialog" aria-modal="true" aria-labelledby="roleModalTitle" hidden>
+    <div class="roles-modal">
+        <div class="roles-modal__header">
+            <h3 class="roles-modal__title" id="roleModalTitle">Add New Role</h3>
+            <button class="roles-modal__close" id="closeRoleModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="roles-modal__body">
+            <div class="form-group">
+                <label class="form-label" for="roleUserType">User Type <span class="req">*</span></label>
+                <select id="roleUserType" class="form-control-role">
+                    <option value="">Select User Type</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty</option>
+                    <option value="admin">Admin</option>
+                    <option value="staff">Staff</option>
+                </select>
+                <span class="field-hint">Roles will be filtered by this type when creating users.</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="roleName">Role Name <span class="req">*</span></label>
+                <input type="text" id="roleName" class="form-control-role" placeholder="e.g. Department Head" maxlength="100">
+                <span class="field-hint">Must be unique. Max 100 characters.</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="roleDesc">Description</label>
+                <textarea id="roleDesc" class="form-control-role" rows="3" placeholder="Brief description of this role's responsibilities…"></textarea>
+            </div>
+            <!-- <div class="form-group">
+                <label class="form-label">Role Color</label>
+                <div class="color-swatches" id="colorSwatches">
+                    <button class="swatch swatch--red active" data-color="red" aria-label="Red" title="Red"></button>
+                    <button class="swatch swatch--blue" data-color="blue" aria-label="Blue" title="Blue"></button>
+                    <button class="swatch swatch--green" data-color="green" aria-label="Green" title="Green"></button>
+                    <button class="swatch swatch--purple" data-color="purple" aria-label="Purple" title="Purple"></button>
+                    <button class="swatch swatch--amber" data-color="amber" aria-label="Amber" title="Amber"></button>
+                    <button class="swatch swatch--gray" data-color="gray" aria-label="Gray" title="Gray"></button>
+                </div>
+            </div> -->
+        </div>
+        <div class="roles-modal__footer">
+            <button class="btn-modal-cancel" id="cancelRoleModal">Cancel</button>
+            <button class="btn-modal-save" id="saveRole">
+                <i data-lucide="save"></i> Save Role
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div class="roles-modal-overlay" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" hidden>
+    <div class="roles-modal roles-modal--sm">
+        <div class="roles-modal__header">
+            <h3 class="roles-modal__title" id="deleteModalTitle">Confirm Deletion</h3>
+            <button class="roles-modal__close" id="closeDeleteModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="roles-modal__body">
+            <div class="delete-warning">
+                <i data-lucide="alert-triangle" class="delete-warning__icon"></i>
+                <p class="delete-warning__text">Are you sure you want to remove this role assignment? This action cannot be undone.</p>
+            </div>
+        </div>
+        <div class="roles-modal__footer">
+            <button class="btn-modal-cancel" id="cancelDeleteModal">Cancel</button>
+            <button class="btn-modal-delete" id="confirmDelete">
+                <i data-lucide="trash-2"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Role Details Modal -->
+<div class="roles-modal-overlay" id="roleDetailsModal" role="dialog" aria-modal="true"
+     aria-labelledby="rdModalTitle" hidden>
+    <div class="roles-modal roles-modal--wide">
+ 
+        <!-- Header -->
+        <div class="roles-modal__header rd-header">
+            <div class="rd-header__left">
+                <h3 class="roles-modal__title" id="rdModalTitle">Role Details</h3>
+                <div class="rd-meta">
+                    <span class="rd-meta__users" id="rdTotalUsers">
+                        <i data-lucide="users"></i> <span id="rdUserCount">0</span> users
+                    </span>
+                    <span class="rd-meta__desc" id="rdDescription"></span>
+                </div>
+            </div>
+            <button class="roles-modal__close" id="closeRoleDetailsModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+ 
+        <div class="rd-tabs" role="tablist">
+            <button class="rd-tab rd-tab--active" id="rdTabAssigned" role="tab"
+                    aria-selected="true" aria-controls="rdPanelAssigned">
+                <i data-lucide="user-check"></i> Assigned Users
+            </button>
+            {% has_permission "userrole_update" as update_userrole %}
+
+            {% if update_userrole %}
+            <button class="rd-tab" id="rdTabAdd" role="tab"
+                    aria-selected="false" aria-controls="rdPanelAdd">
+                <i data-lucide="user-plus"></i> Add Users
+            </button>
+            <button class="rd-tab" id="rdTabSettings" role="tab"
+                    aria-selected="false" aria-controls="rdPanelSettings">
+                <i data-lucide="settings"></i> Role Settings
+            </button>
+            {% endif %}
+        </div>
+ 
+        
+        <div class="rd-panel" id="rdPanelAssigned" role="tabpanel" aria-labelledby="rdTabAssigned">
+            <div class="rd-search-wrap">
+                <i data-lucide="search" class="rd-search-icon"></i>
+                <input type="search" id="rdAssignedSearch" class="rd-search"
+                       placeholder="Search assigned users…" aria-label="Search assigned users">
+            </div>
+            <div class="rd-user-list" id="rdAssignedList">
+                <!-- rows rendered by JS -->
+            </div>
+        </div>
+ 
+       
+        <div class="rd-panel rd-panel--hidden" id="rdPanelAdd" role="tabpanel" aria-labelledby="rdTabAdd">
+            <div class="rd-search-wrap" style="position:relative;">
+                <i data-lucide="search" class="rd-search-icon"></i>
+                <input type="search" id="rdAvailableSearch" class="rd-search"
+                       placeholder="Search users to add…" autocomplete="off"
+                       aria-label="Search users to add">
+                <div class="rd-autocomplete" id="rdAutocomplete" hidden></div>
+            </div>
+ 
+            <!-- Selected chips -->
+            <div class="rd-chips" id="rdChips"></div>
+ 
+            <div class="rd-add-footer">
+                <span class="rd-add-hint" id="rdAddHint">Select users above to assign.</span>
+                <button class="btn-modal-save rd-assign-btn" id="rdAssignBtn" disabled>
+                    <i data-lucide="user-plus"></i> Assign Users
+                </button>
+            </div>
+        </div>
+
+        <!-- Role Settings panel -->
+        <div class="rd-panel rd-panel--hidden" id="rdPanelSettings" role="tabpanel" aria-labelledby="rdTabSettings">
+
+            <div class="rs-section">
+                <h4 class="rs-section__title">Edit Role Name</h4>
+                <div class="rs-rename-row">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label" for="rsRoleNameInput">Role Name <span class="req">*</span></label>
+                        <input type="text" id="rsRoleNameInput" class="form-control-role" maxlength="100" placeholder="Role name">
+                        <span class="field-hint" id="rsRoleNameHint">Must be unique. Existing user assignments are not affected.</span>
+                    </div>
+                    <button class="btn-modal-save" id="rsUpdateNameBtn">
+                        <i data-lucide="check"></i> Update Role Name
+                    </button>
+                </div>
+            </div>
+
+            <div class="rs-section">
+                <h4 class="rs-section__title">Switch Users To Another Role</h4>
+                <div class="rs-convert-row">
+                    <div class="rs-convert-field">
+                        <label class="form-label">Current Role</label>
+                        <input type="text" id="rsCurrentRoleInput" class="form-control-role" readonly>
+                    </div>
+                    <div class="rs-convert-arrow" aria-hidden="true">
+                        <i data-lucide="arrow-right-left"></i>
+                    </div>
+                    <div class="rs-convert-field">
+                        <label class="form-label" for="rsTargetRoleSelect">Target Role</label>
+                        <select id="rsTargetRoleSelect" class="form-control-role">
+                            <option value="">Select target role</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p class="rs-warning">
+                    <i data-lucide="alert-triangle"></i>
+                    If you want to assign users to a new role, create the role first.
+                </p>
+
+                <button class="btn-modal-delete rs-convert-btn" id="rsConvertBtn" disabled>
+                    <i data-lucide="repeat"></i> Convert Users
+                </button>
+            </div>
+
+        </div>
+ 
+    </div>
+</div>
+ 
+
+<div class="roles-modal-overlay" id="revokeConfirmModal" role="dialog" aria-modal="true"
+     aria-labelledby="revokeConfirmTitle" hidden>
+    <div class="roles-modal roles-modal--sm">
+        <div class="roles-modal__header">
+            <h3 class="roles-modal__title" id="revokeConfirmTitle">Revoke Role</h3>
+            <button class="roles-modal__close" id="closeRevokeModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="roles-modal__body">
+            <div class="delete-warning">
+                <i data-lucide="shield-off" class="delete-warning__icon"></i>
+                <p class="delete-warning__text" id="revokeConfirmText">
+                    Remove this role from the user?
+                </p>
+            </div>
+        </div>
+        <div class="roles-modal__footer">
+            <button class="btn-modal-cancel" id="cancelRevokeModal">Cancel</button>
+            <button class="btn-modal-delete" id="confirmRevokeBtn">
+                <i data-lucide="user-minus"></i> Revoke
+            </button>
+        </div> 
+    </div>
+</div>
+
+
+<div class="roles-modal-overlay" id="convertUsersConfirmModal" role="dialog" aria-modal="true"
+     aria-labelledby="convertUsersConfirmTitle" hidden>
+    <div class="roles-modal roles-modal--sm">
+        <div class="roles-modal__header">
+            <h3 class="roles-modal__title" id="convertUsersConfirmTitle">Convert Users</h3>
+            <button class="roles-modal__close" id="closeConvertUsersModal" aria-label="Close">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="roles-modal__body">
+            <div class="delete-warning">
+                <i data-lucide="alert-triangle" class="delete-warning__icon"></i>
+                <p class="delete-warning__text" id="convertUsersConfirmText">
+                    Are you sure you want to move all users to the target role?
+                </p>
+            </div>
+        </div>
+        <div class="roles-modal__footer">
+            <button class="btn-modal-cancel" id="cancelConvertUsersModal">Cancel</button>
+            <button class="btn-modal-delete" id="confirmConvertUsersBtn">
+                <i data-lucide="repeat"></i> Convert
+            </button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+ 
+
+
+
+{% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script>
+    {% has_permission "userrole_update" as update_userrole %}
+    window.CAN_UPDATE_USERROLE = {{ update_userrole|yesno:"true,false" }};
+</script>
+<script src="{% static 'script/role.js' %}"></script>
+{% endblock %}

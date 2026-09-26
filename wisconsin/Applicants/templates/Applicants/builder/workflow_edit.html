@@ -1,0 +1,465 @@
+{% extends "Applicants/builder/base.html" %}
+{% load static %}
+{% block title %}Edit Workflow — {{ wf.name }}{% endblock %}
+{% block mobile_title %}{{ wf.name }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_workflow_edit.css' %}">
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_visual.css' %}">
+{% endblock %}
+{% block content %}
+<div class="bld-dash-hero">
+  <a href="{% url 'builder_workflow_list' %}" class="bld-back-link" style="color:rgba(255,255,255,0.85)">&larr; Back to Workflows</a>
+  <h1>{{ wf.name }}</h1>
+  <p><code style="color:rgba(255,255,255,0.9)">{{ wf.code }}</code> &middot; v{{ wf.version }}</p>
+  <div class="bld-dash-hero-actions">
+    <a href="{% url 'builder_workflow_delete' wf.pk %}" class="bld-btn"><i class="ti ti-trash"></i> Delete</a>
+  </div>
+</div>
+
+{# ── Builder Tabs ── #}
+<div class="bld-builder-tabs">
+  <button class="bld-builder-tab active" onclick="switchWfTab(this,'wf-steps')">
+    <i class="ti ti-list"></i> Steps
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Define the review stages applicants go through. Each step can be linked to a form or be a manual review.</span></span>
+  </button>
+  <button class="bld-builder-tab" onclick="switchWfTab(this,'wf-settings')">
+    <i class="ti ti-settings"></i> Settings
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Configure workflow name, description, and global options.</span></span>
+  </button>
+  <button class="bld-builder-tab" onclick="switchWfTab(this,'wf-guide')">
+    <i class="ti ti-info-circle"></i> Guide
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Step-by-step guide on how to build a workflow.</span></span>
+  </button>
+</div>
+
+{# ═══════════════ STEPS TAB ═══════════════ #}
+<div class="bld-tab-content active" id="tab-wf-steps">
+<div style="max-width:800px;margin:0 auto">
+  {% if steps %}
+  {% for step in steps %}
+  <div class="bld-step-card">
+    <div class="bld-step-header">
+      <div class="bld-step-number">{{ step.sort_order }}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--bld-text)">{{ step.name }}</div>
+        {% if step.description %}<div style="font-size:12px;color:var(--bld-muted);margin-top:2px;max-width:520px">{{ step.description|truncatechars:120 }}</div>{% endif %}
+        <div style="font-size:11px;color:var(--bld-muted);display:flex;gap:8px;align-items:center;margin-top:2px">
+          <code>{{ step.code }}</code>
+          <span class="bld-badge bld-badge-{{ step.step_type }}">{{ step.get_step_type_display }}</span>
+          {% if step.is_required %}<span class="bld-badge bld-badge-red">Required</span>{% endif %}
+          {% if step.is_skippable %}<span class="bld-badge">Skippable</span>{% endif %}
+          {% if step.form %}<span class="bld-badge bld-badge-blue"><i class="ti ti-forms"></i> {{ step.form.name }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="bld-field-actions" style="opacity:1">
+        <button class="bld-btn-icon" onclick="showEditStep({{ step.pk }},'{{ step.code|escapejs }}','{{ step.name|escapejs }}','{{ step.step_type|escapejs }}','{{ step.form_id|default:''|escapejs }}',{{ step.sort_order }},{{ step.is_required|lower }},{{ step.is_skippable|lower }},'{{ step.group|escapejs }}','{{ step.description|escapejs }}',{{ step.is_active|lower }})" title="Edit step"><i class="ti ti-settings"></i></button>
+        <button class="bld-btn-icon" onclick="showAddCondition({{ step.pk }})" title="Add routing condition"><i class="ti ti-git-branch"></i></button>
+        <form method="POST" action="{% url 'builder_workflow_step_delete' step.pk %}" style="display:inline" onsubmit="return confirm('Delete this step?')">
+          {% csrf_token %}
+          <button type="submit" class="bld-btn-icon bld-btn-icon-danger" title="Delete step"><i class="ti ti-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% if step.group %}
+    <div style="padding:8px 18px;font-size:12px;color:var(--bld-muted);border-bottom:1px solid var(--bld-border)">
+      <i class="ti ti-folder"></i> Group: {{ step.group }}
+    </div>
+    {% endif %}
+
+    {% with conditions=step.conditions.all %}
+    {% if conditions %}
+    <div style="padding:12px 18px;background:#f8fafc;border-bottom:1px solid var(--bld-border)">
+      <div style="font-size:11px;font-weight:700;color:var(--bld-primary);text-transform:uppercase;margin-bottom:6px">
+        <i class="ti ti-git-branch"></i> Routing Conditions
+        <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">This step is only shown when ALL conditions below are met.</span></span>
+      </div>
+      {% for cond in conditions %}
+      <div class="bld-logic-row" style="margin-bottom:4px">
+        <span class="bld-logic-gate">{{ cond.logic_operator }}</span>
+        <span style="font-size:12px;font-weight:600;color:var(--bld-text)">{{ cond.target_field }}</span>
+        <span style="font-size:12px;color:var(--bld-muted)">{{ cond.get_operator_display }}</span>
+        <code style="font-size:11px;background:#fff;padding:2px 6px;border-radius:4px;border:1px solid var(--bld-border)">{{ cond.value }}</code>
+        <form method="POST" action="{% url 'builder_workflow_step_condition_delete' cond.pk %}" style="display:inline" onsubmit="return confirm('Delete condition?')">
+          {% csrf_token %}
+          <button type="submit" class="bld-btn-icon bld-btn-icon-danger" style="width:20px;height:20px;font-size:10px" title="Delete"><i class="ti ti-x"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  {% if not forloop.last %}
+  <div class="bld-step-connector"><i class="ti ti-arrow-down"></i></div>
+  {% endif %}
+  {% endfor %}
+  {% else %}
+  <div class="bld-section-empty" style="padding:48px">
+    <i class="ti ti-list" style="font-size:48px;display:block;margin-bottom:12px;opacity:0.3"></i>
+    <h3 style="margin:0 0 4px">No steps yet</h3>
+    <p style="margin:0">Click "Add Step" to start building your workflow</p>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:16px;text-align:center">
+    <button class="bld-btn bld-btn-primary" onclick="showAddStep()"><i class="ti ti-plus"></i> Add Step</button>
+  </div>
+</div>
+</div>
+
+{# ═══════════════ SETTINGS TAB ═══════════════ #}
+<div class="bld-tab-content" id="tab-wf-settings" style="display:none">
+<div style="max-width:640px;margin:0 auto">
+  <div class="bld-card">
+    <div class="bld-card-header">
+      <h2 class="bld-h2"><i class="ti ti-settings"></i> Workflow Settings</h2>
+    </div>
+    <div class="bld-card-body">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="bld-form-group">
+          <label class="bld-label">Code
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Unique identifier for this workflow. Used in URLs and data exports.</span></span>
+          </label>
+          <input type="text" name="code" class="bld-input" value="{{ wf.code }}" required pattern="[a-z0-9_]+">
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Name
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Display name shown in the dashboard and to reviewers.</span></span>
+          </label>
+          <input type="text" name="name" class="bld-input" value="{{ wf.name }}" required>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Description
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Internal note about what this workflow handles.</span></span>
+          </label>
+          <textarea name="description" class="bld-input" rows="2">{{ wf.description }}</textarea>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Applicant Type Scope
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Limit this workflow to specific applicant types. Leave blank for all types.</span></span>
+          </label>
+          <input type="text" name="applicant_type" class="bld-input" value="{{ wf.applicant_type|default:'' }}" placeholder="Leave blank for all">
+        </div>
+        <div class="bld-form-row" style="gap:16px">
+          <label class="bld-checkbox">
+            <input type="checkbox" name="is_active" {% if wf.is_active %}checked{% endif %}>
+            Active
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Only active workflows are used for new applications.</span></span>
+          </label>
+          <label class="bld-checkbox">
+            <input type="checkbox" name="is_default" {% if wf.is_default %}checked{% endif %}>
+            Default
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Default workflow is auto-assigned to new applications that don't match a specific workflow.</span></span>
+          </label>
+        </div>
+        <div class="bld-form-actions">
+          <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
+{# ═══════════════ GUIDE TAB ═══════════════ #}
+<div class="bld-tab-content" id="tab-wf-guide" style="display:none">
+<div style="max-width:700px;margin:0 auto">
+  <div class="bld-card">
+    <div class="bld-card-header">
+      <h2 class="bld-h2"><i class="ti ti-book"></i> How to Build a Workflow</h2>
+    </div>
+    <div class="bld-card-body" style="font-size:13px;line-height:1.8;color:var(--bld-text)">
+      <h3 style="font-size:15px;margin:0 0 8px">1. What is a Workflow?</h3>
+      <p>A workflow defines the stages an application goes through from submission to decision. Each step is a checkpoint where staff review materials, fill forms, or make decisions.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px">2. Step Types</h3>
+      <ul style="margin:0;padding-left:20px">
+        <li><strong>Form Section</strong> — Applicant fills out a form (linked to a Form Definition)</li>
+        <li><strong>Review</strong> — Staff manually reviews materials and makes a verdict</li>
+        <li><strong>Document Upload</strong> — Applicant uploads required documents (transcripts, IDs)</li>
+        <li><strong>Payment</strong> — Application fee payment checkpoint</li>
+        <li><strong>External Redirect</strong> — Send the applicant to an external site/portal</li>
+        <li><strong>Submit</strong> — Final submission step</li>
+      </ul>
+
+      <h3 style="font-size:15px;margin:16px 0 8px">3. Adding Steps</h3>
+      <p>Click <strong>"Add Step"</strong> to create a new step. Give it a code (unique ID), name, and select the step type. Link it to a form if the step requires applicant input.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px">4. Routing Conditions</h3>
+      <p>Click the <strong>branch icon</strong> on any step to add conditions. Conditions control when a step is shown. For example:</p>
+      <ul style="margin:0;padding-left:20px">
+        <li>Show "Transfer Transcript" step only when <code>applicant_type = transfer</code></li>
+        <li>Show "International Documents" step only when <code>applicant_type contains international</code></li>
+        <li>Skip "Essay" step when <code>essay_waiver = true</code></li>
+      </ul>
+
+      <h3 style="font-size:15px;margin:16px 0 8px">5. Step Order</h3>
+      <p>Steps execute in the order defined by <strong>Sort Order</strong>. Lower numbers run first. Use the edit button to change order.</p>
+
+      <h3 style="font-size:15px;margin:16px 0 8px">6. Required vs Skippable</h3>
+      <ul style="margin:0;padding-left:20px">
+        <li><strong>Required</strong> — Must be completed before advancing</li>
+        <li><strong>Skippable</strong> — Applicant or reviewer can skip this step</li>
+      </ul>
+
+      <h3 style="font-size:15px;margin:16px 0 8px">7. Groups</h3>
+      <p>Group related steps together with a group label. This helps organize the review process visually.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+{# ── Add Step Modal ── #}
+<div class="bld-modal" id="addStepModal" style="display:none">
+  <div class="bld-modal-backdrop" onclick="hideAddStep()"></div>
+  <div class="bld-modal-content">
+    <div class="bld-modal-header">
+      <h3>Add Workflow Step</h3>
+      <button type="button" class="bld-modal-close" onclick="hideAddStep()">&times;</button>
+    </div>
+    <form method="POST" action="{% url 'builder_workflow_step_add' wf.pk %}">
+      {% csrf_token %}
+      <div class="bld-form-group">
+        <label class="bld-label">Step Code *
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Unique identifier. Lowercase, underscores only. E.g., personal_info, essay_review.</span></span>
+        </label>
+        <input type="text" name="code" class="bld-input" required pattern="[a-z0-9_]+" placeholder="e.g. personal_information">
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Step Name *
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Display name shown to applicants and reviewers.</span></span>
+        </label>
+        <input type="text" name="name" class="bld-input" required placeholder="e.g. Personal Information">
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Description
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Optional note on what happens in this step.</span></span>
+        </label>
+        <textarea name="description" class="bld-input" rows="2" placeholder="e.g. Applicant enters their contact details"></textarea>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Step Type
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Form = applicant fills out. Review = staff reviews. Decision = final verdict. Payment = fee checkpoint.</span></span>
+          </label>
+          <select name="step_type" class="bld-input">
+            {% for val, label in step_types %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Linked Form
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">For "Form" steps, select which form the applicant fills out.</span></span>
+          </label>
+          <select name="form_id" class="bld-input">
+            <option value="">None</option>
+            {% for f in forms %}
+            <option value="{{ f.pk }}">{{ f.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:100px">
+          <label class="bld-label">Order
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Controls execution order. Lower numbers run first.</span></span>
+          </label>
+          <input type="number" name="sort_order" class="bld-input" value="1">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Group Label
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Optional. Groups related steps together visually.</span></span>
+          </label>
+          <input type="text" name="group" class="bld-input" placeholder="e.g. Personal Information">
+        </div>
+      </div>
+      <div class="bld-form-row" style="gap:16px">
+        <label class="bld-checkbox">
+          <input type="checkbox" name="is_required" checked>
+          Required
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Must be completed before advancing.</span></span>
+        </label>
+        <label class="bld-checkbox">
+          <input type="checkbox" name="is_skippable">
+          Skippable
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Allow applicant/reviewer to skip this step.</span></span>
+        </label>
+      </div>
+      <div class="bld-modal-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="hideAddStep()">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-plus"></i> Add Step</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Edit Step Modal ── #}
+<div class="bld-modal" id="editStepModal" style="display:none">
+  <div class="bld-modal-backdrop" onclick="hideEditStep()"></div>
+  <div class="bld-modal-content">
+    <div class="bld-modal-header">
+      <h3>Edit Workflow Step</h3>
+      <button type="button" class="bld-modal-close" onclick="hideEditStep()">&times;</button>
+    </div>
+    <form method="POST" id="editStepForm">
+      {% csrf_token %}
+      <div class="bld-form-group">
+        <label class="bld-label">Step Code *</label>
+        <input type="text" name="code" id="es_code" class="bld-input" required pattern="[a-z0-9_]+">
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Step Name *</label>
+        <input type="text" name="name" id="es_name" class="bld-input" required>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Description</label>
+        <textarea name="description" id="es_description" class="bld-input" rows="2"></textarea>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Step Type</label>
+          <select name="step_type" id="es_type" class="bld-input">
+            {% for val, label in step_types %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Linked Form</label>
+          <select name="form_id" id="es_form" class="bld-input">
+            <option value="">None</option>
+            {% for f in forms %}
+            <option value="{{ f.pk }}">{{ f.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:100px">
+          <label class="bld-label">Order</label>
+          <input type="number" name="sort_order" id="es_order" class="bld-input">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Group</label>
+          <input type="text" name="group" id="es_group" class="bld-input">
+        </div>
+      </div>
+      <div class="bld-form-row" style="gap:16px">
+        <label class="bld-checkbox"><input type="checkbox" name="is_required" id="es_required"> Required</label>
+        <label class="bld-checkbox"><input type="checkbox" name="is_skippable" id="es_skip"> Skippable</label>
+        <label class="bld-checkbox"><input type="checkbox" name="is_active" id="es_active" checked> Active</label>
+      </div>
+      <div class="bld-modal-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="hideEditStep()">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Update</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Add Condition Modal ── #}
+<div class="bld-modal" id="addConditionModal" style="display:none">
+  <div class="bld-modal-backdrop" onclick="hideAddCondition()"></div>
+  <div class="bld-modal-content" style="max-width:500px">
+    <div class="bld-modal-header">
+      <h3>Add Routing Condition</h3>
+      <button type="button" class="bld-modal-close" onclick="hideAddCondition()">&times;</button>
+    </div>
+    <form method="POST" id="addConditionForm">
+      {% csrf_token %}
+      <div class="bld-form-group">
+        <label class="bld-label">Target Field
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Which application field should this condition check?</span></span>
+        </label>
+        <select name="target_field" class="bld-input" required>
+          <option value="applicant_type">Applicant Type</option>
+          <option value="degree_level">Degree Level</option>
+          <option value="military_status">Military Status</option>
+          <option value="residency_status">Residency Status</option>
+          <option value="university">University</option>
+          <option value="program">Program</option>
+        </select>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Operator
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">How to compare the field value. "Equals" is exact match. "In List" matches any of comma-separated values.</span></span>
+          </label>
+          <select name="operator" class="bld-input">
+            {% for val, label in condition_operators %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group" style="width:80px">
+          <label class="bld-label">Logic
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">AND = all conditions must match. OR = any condition can match.</span></span>
+          </label>
+          <select name="logic_operator" class="bld-input">
+            <option value="AND">AND</option>
+            <option value="OR">OR</option>
+          </select>
+        </div>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Value
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Expected value. For "In List", use comma-separated values (e.g., first_year,transfer).</span></span>
+        </label>
+        <input type="text" name="value" class="bld-input" placeholder="e.g. first_year">
+      </div>
+      <div class="bld-modal-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="hideAddCondition()">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-plus"></i> Add Condition</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function switchWfTab(btn, tabId) {
+  document.querySelectorAll('.bld-builder-tab').forEach(function(t){ t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.bld-tab-content').forEach(function(c){
+    c.style.display = 'none';
+    c.classList.remove('active');
+  });
+  var target = document.getElementById('tab-' + tabId);
+  if (target) { target.style.display = ''; target.classList.add('active'); }
+}
+
+function showAddStep() { document.getElementById('addStepModal').style.display = 'block'; }
+function hideAddStep() { document.getElementById('addStepModal').style.display = 'none'; }
+
+function showEditStep(pk, code, name, type, formId, order, required, skip, group, description, active) {
+  document.getElementById('es_code').value = code;
+  document.getElementById('es_name').value = name;
+  document.getElementById('es_description').value = description;
+  document.getElementById('es_type').value = type;
+  document.getElementById('es_form').value = formId;
+  document.getElementById('es_order').value = order;
+  document.getElementById('es_group').value = group;
+  document.getElementById('es_required').checked = required;
+  document.getElementById('es_skip').checked = skip;
+  document.getElementById('es_active').checked = active;
+  document.getElementById('editStepForm').action = "{% url 'builder_workflow_step_edit' 0 %}".replace('/0/', '/' + pk + '/');
+  document.getElementById('editStepModal').style.display = 'block';
+}
+function hideEditStep() { document.getElementById('editStepModal').style.display = 'none'; }
+
+function showAddCondition(stepId) {
+  document.getElementById('addConditionForm').action = "{% url 'builder_workflow_step_condition_add' 0 %}".replace('/0/', '/' + stepId + '/');
+  document.getElementById('addConditionModal').style.display = 'block';
+}
+function hideAddCondition() { document.getElementById('addConditionModal').style.display = 'none'; }
+
+document.querySelectorAll('.bld-modal-backdrop').forEach(function(bd) {
+  bd.addEventListener('click', function() { this.parentElement.style.display = 'none'; });
+});
+</script>
+{% endblock %}

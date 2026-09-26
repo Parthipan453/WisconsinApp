@@ -1,0 +1,528 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Assign Medical Staff{% endblock %}
+{% block page_title %}Assign Medical Staff{% endblock %}
+
+{% block extra_css %}
+    <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/assign_medical_staff.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/assign_medical_staff_enhance.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="assign-page">
+
+        <div class="assign-page__hero">
+            <div class="d-flex">
+                <div class="assign-page__hero-icon"><i data-lucide="user-plus"></i></div>
+                <div class="ms-3">
+                    <h1>Assign Medical Staff</h1>
+                    <p>Link an existing staff account to a hospital, department, and role.</p>
+                </div>
+            </div>
+            <button type="button" class="med-btn med-btn--solid-red">
+                <a href="{% url 'Medical:medical_staff_dashboard' %}" class="assign-page__back">
+                    <i data-lucide="arrow-left"></i> Back to Dashboard
+                </a>
+            </button>
+        </div>
+
+        <div class="assign-progress" id="assignProgress">
+            <div class="assign-progress__track">
+                <div class="assign-progress__fill" id="assignProgressFill"></div>
+            </div>
+            <div class="assign-progress__steps">
+                <button type="button" class="assign-progress__step is-active" data-goto="1">
+                    <span class="assign-progress__num" data-num="1">1</span><span class="assign-progress__label">Staff User</span>
+                </button>
+                <button type="button" class="assign-progress__step" data-goto="2">
+                    <span class="assign-progress__num" data-num="2">2</span><span class="assign-progress__label">Assignment</span>
+                </button>
+                <button type="button" class="assign-progress__step" data-goto="3">
+                    <span class="assign-progress__num" data-num="3">3</span><span class="assign-progress__label">Professional</span>
+                </button>
+                <button type="button" class="assign-progress__step" data-goto="4">
+                    <span class="assign-progress__num" data-num="4">4</span><span class="assign-progress__label">Emergency</span>
+                </button>
+                <button type="button" class="assign-progress__step" data-goto="5">
+                    <span class="assign-progress__num" data-num="5">5</span><span class="assign-progress__label">Review</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="assign-layout">
+            <form method="post" action="{% url 'Medical:assign_medical_staff' %}" class="assign-form" id="assignMedicalStaffForm" novalidate
+                  data-dept-url-template="{% url 'Medical:departments_by_hospital' 999999 %}"
+                  data-reporting-url="{% url 'Medical:reporting_staff_options' %}"
+                  data-facilities-url-template="{% url 'Medical:hospital_facilities' 999999 %}">
+                {% csrf_token %}
+                <input type="hidden" name="category" id="assignMedicalStaffCategory" value="{{ category }}">
+
+                {% if assign_medical_staff_form.non_field_errors %}
+                    <div class="assign-form__error assign-form__error--global">{{ assign_medical_staff_form.non_field_errors|striptags }}</div>
+                {% endif %}
+
+                <section class="assign-card" data-step="1">
+                    <div class="assign-card__head">
+                        <span class="assign-card__step">1</span>
+                        <div>
+                            <h2>Select Staff User <span class="req-star">*</span></h2>
+                            <p>Pick from users already marked as Staff who aren't medical staff yet.</p>
+                        </div>
+                    </div>
+
+                    <div class="assign-card__body">
+                        <div class="med-custom-select" id="staffCustomSelect">
+                            <button type="button" class="med-custom-select__trigger" id="staffSelectTrigger">
+                                <span class="med-custom-select__avatar" id="staffSelectAvatar">
+                                    <i data-lucide="user"></i>
+                                </span>
+                                <span class="med-custom-select__label" id="staffSelectLabel">Select Staff User</span>
+                                <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                            </button>
+
+                            <div class="med-custom-select__panel" id="staffSelectPanel" hidden>
+                                <div class="med-custom-select__search">
+                                    <i data-lucide="search"></i>
+                                    <input type="text" id="staffSelectSearch" placeholder="Search by name or username..." autocomplete="off">
+                                </div>
+                                <ul class="med-custom-select__list" id="staffSelectList">
+                                    {% for u in assignable_staff_users %}
+                                        <li class="med-custom-select__item"
+                                            data-value="{{ u.pk }}"
+                                            data-search="{{ u.full_name|lower }} {{ u.username|lower }}">
+                                            <span class="med-custom-select__item-avatar">
+                                                {% if u.profile_photo %}
+                                                    <img src="{{ u.profile_photo.url }}" alt="">
+                                                {% else %}
+                                                    <img src="https://ui-avatars.com/api/?name={{ u.full_name|urlencode }}&background=c5050c&color=fff&size=64" alt="">
+                                                {% endif %}
+                                            </span>
+                                            <span class="med-custom-select__item-info">
+                                                <strong>{{ u.full_name }}</strong>
+                                                <small>{{ u.username }}{% if u.university_id %} · {{ u.university_id }}{% endif %}</small>
+                                            </span>
+                                        </li>
+                                    {% empty %}
+                                        <li class="med-custom-select__empty">No eligible staff users found.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="med-visually-hidden">
+                            {{ assign_medical_staff_form.user }}
+                        </div>
+                        <div class="assign-form__error" id="err_user" {% if not assign_medical_staff_form.user.errors %}hidden{% endif %}>{% if assign_medical_staff_form.user.errors %}{{ assign_medical_staff_form.user.errors|striptags }}{% else %}Please select a staff user to continue.{% endif %}</div>
+
+                        <div class="assign-autofill-card" id="autofillCard" hidden>
+                            <span class="assign-autofill-card__badge"><i data-lucide="sparkles"></i> Auto-filled from account</span>
+                            <div class="assign-autofill-card__row">
+                                <label>Preferred Name</label>
+                                {{ assign_medical_staff_form.preferred_name }}
+                            </div>
+                            <div class="assign-autofill-card__row">
+                                <label>Personal Email</label>
+                                {{ assign_medical_staff_form.personal_email }}
+                            </div>
+                            <div class="assign-autofill-card__row">
+                                <label>Phone</label>
+                                {{ assign_medical_staff_form.phone }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="assign-card__nav">
+                        <span></span>
+                        <button type="button" class="med-btn med-btn--solid assign-next" data-next="2">Continue <i data-lucide="arrow-right"></i></button>
+                    </div>
+                </section>
+
+                <section class="assign-card" data-step="2" hidden>
+                    <div class="assign-card__head">
+                        <span class="assign-card__step">2</span>
+                        <div>
+                            <h2>Assignment Details</h2>
+                            <p>Which hospital, department, and medical role this staff member belongs to.</p>
+                        </div>
+                    </div>
+                    <div class="assign-card__body assign-grid">
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.hospital.label }}{% if assign_medical_staff_form.hospital.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            <div class="med-custom-select" id="hospitalCustomSelect">
+                                <button type="button" class="med-custom-select__trigger" id="hospitalSelectTrigger">
+                                    <span class="med-custom-select__avatar" id="hospitalSelectIcon">
+                                        <i data-lucide="hospital"></i>
+                                    </span>
+                                    <span class="med-custom-select__label" id="hospitalSelectLabel">Select Hospital</span>
+                                    <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                                </button>
+                                <div class="med-custom-select__panel" id="hospitalSelectPanel" hidden>
+                                    <div class="med-custom-select__search">
+                                        <i data-lucide="search"></i>
+                                        <input type="text" id="hospitalSelectSearch" placeholder="Search hospital..." autocomplete="off">
+                                    </div>
+                                    <ul class="med-custom-select__list" id="hospitalSelectList"></ul>
+                                </div>
+                            </div>
+                            <div class="med-visually-hidden">
+                                {{ assign_medical_staff_form.hospital }}
+                            </div>
+                            <div class="assign-form__error" id="err_hospital" {% if not assign_medical_staff_form.hospital.errors %}hidden{% endif %}>{% if assign_medical_staff_form.hospital.errors %}{{ assign_medical_staff_form.hospital.errors|striptags }}{% else %}Please select a hospital.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.department.label }}{% if assign_medical_staff_form.department.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            <div class="med-custom-select" id="departmentCustomSelect">
+                                <button type="button" class="med-custom-select__trigger" id="departmentSelectTrigger">
+                                    <span class="med-custom-select__avatar" id="departmentSelectIcon">
+                                        <i data-lucide="building-2"></i>
+                                    </span>
+                                    <span class="med-custom-select__label" id="departmentSelectLabel">Select Department</span>
+                                    <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                                </button>
+                                <div class="med-custom-select__panel" id="departmentSelectPanel" hidden>
+                                    <div class="med-custom-select__search">
+                                        <i data-lucide="search"></i>
+                                        <input type="text" id="departmentSelectSearch" placeholder="Search department..." autocomplete="off">
+                                    </div>
+                                    <ul class="med-custom-select__list" id="departmentSelectList"></ul>
+                                </div>
+                            </div>
+                            <div class="med-visually-hidden">
+                                {{ assign_medical_staff_form.department }}
+                            </div>
+                            <div class="assign-form__error" id="err_department" {% if not assign_medical_staff_form.department.errors %}hidden{% endif %}>{% if assign_medical_staff_form.department.errors %}{{ assign_medical_staff_form.department.errors|striptags }}{% else %}Please select a department.{% endif %}</div>
+                        </div>
+                        <div class="assign-field assign-field--full">
+                            {% if category %}
+                                <div class="assign-role-filter-notice">
+                                    <i data-lucide="filter"></i>
+                                    Showing <strong>{{ category_display }}</strong> roles only.
+                                    <a href="{% url 'Medical:assign_medical_staff' %}">View all roles instead</a>
+                                </div>
+                            {% else %}
+                                <label>Filter Role by Category</label>
+                                <div class="role-category-pills" id="roleCategoryPills">
+                                    <button type="button" class="role-pill is-active" data-category="ALL"><i data-lucide="layout-grid"></i> All</button>
+                                    <button type="button" class="role-pill" data-category="DOCTOR"><i data-lucide="stethoscope"></i> Doctor</button>
+                                    <button type="button" class="role-pill" data-category="NURSE"><i data-lucide="heart-handshake"></i> Nurse</button>
+                                    <button type="button" class="role-pill" data-category="PHYSIO"><i data-lucide="activity"></i> Physio</button>
+                                    <button type="button" class="role-pill" data-category="LAB"><i data-lucide="flask-conical"></i> Lab</button>
+                                    <button type="button" class="role-pill" data-category="PHARMACY"><i data-lucide="pill"></i> Pharmacy</button>
+                                    <button type="button" class="role-pill" data-category="FRONT_DESK"><i data-lucide="user-round"></i> Front Desk</button>
+                                    <button type="button" class="role-pill" data-category="OTHER"><i data-lucide="shapes"></i> Other</button>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="assign-field assign-field--full">
+                            <label>{{ assign_medical_staff_form.role.label }}{% if assign_medical_staff_form.role.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            <div class="med-custom-select" id="roleCustomSelect">
+                                <button type="button" class="med-custom-select__trigger" id="roleSelectTrigger">
+                                    <span class="med-custom-select__avatar med-role-icon med-role-icon--other" id="roleSelectIcon">
+                                        <i data-lucide="tags"></i>
+                                    </span>
+                                    <span class="med-custom-select__label" id="roleSelectLabel">Select Role</span>
+                                    <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                                </button>
+
+                                <div class="med-custom-select__panel" id="roleSelectPanel" hidden>
+                                    <ul class="med-custom-select__list" id="roleSelectList">
+                                        {% for role in assign_medical_staff_form.fields.role.queryset %}
+                                            <li class="med-custom-select__item"
+                                                data-value="{{ role.pk }}"
+                                                data-category="{{ role.category }}">
+                                                <span class="med-custom-select__item-avatar med-role-icon med-role-icon--{{ role.category|lower }}">
+                                                    <i data-lucide="tag"></i>
+                                                </span>
+                                                <span class="med-custom-select__item-info">
+                                                    <strong>{{ role.name }}</strong>
+                                                    <small>{{ role.get_category_display }}</small>
+                                                </span>
+                                            </li>
+                                        {% empty %}
+                                            <li class="med-custom-select__empty">No roles available yet — create one from the dashboard first.</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="med-visually-hidden">
+                                <select name="role" id="id_role" {% if assign_medical_staff_form.role.field.required %}required{% endif %}>
+                                    <option value="">---------</option>
+                                    {% for role in assign_medical_staff_form.fields.role.queryset %}
+                                        <option value="{{ role.pk }}" {% if role.pk|stringformat:"s" == assign_medical_staff_form.role.value|stringformat:"s" %}selected{% endif %}>{{ role.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="assign-form__error" id="err_role" {% if not assign_medical_staff_form.role.errors %}hidden{% endif %}>{% if assign_medical_staff_form.role.errors %}{{ assign_medical_staff_form.role.errors|striptags }}{% else %}Please select a role.{% endif %}</div>
+                        </div>
+
+                        {# ---- Dominic's Reporting Hierarchy: Senior toggle ---- #}
+                        <div class="assign-field assign-field--full">
+                            <label class="med-toggle-row" for="id_is_senior">
+                                <span class="med-toggle-row__text">
+                                    <strong>{{ assign_medical_staff_form.is_senior.label }}</strong>
+                                    <small>{{ assign_medical_staff_form.is_senior.help_text }}</small>
+                                </span>
+                                <span class="med-toggle">
+                                    {{ assign_medical_staff_form.is_senior }}
+                                    <span class="med-toggle__track"><span class="med-toggle__thumb"></span></span>
+                                </span>
+                            </label>
+                        </div>
+
+                        {# ---- Dominic's Reporting Hierarchy: Reporting Staff dropdown ---- #}
+                        <div class="assign-field assign-field--full" id="reportingToField">
+                            <label>{{ assign_medical_staff_form.reporting_to.label }} <span class="req-star" id="reportingRequiredStar">*</span></label>
+                            <div class="med-custom-select med-custom-select--locked" id="reportingCustomSelect">
+                                <button type="button" class="med-custom-select__trigger" id="reportingSelectTrigger">
+                                    <span class="med-custom-select__avatar" id="reportingSelectIcon"><i data-lucide="user-round-cog"></i></span>
+                                    <span class="med-custom-select__label" id="reportingSelectLabel">Select hospital &amp; role first</span>
+                                    <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                                </button>
+                                <div class="med-custom-select__panel" id="reportingSelectPanel" hidden>
+                                    <ul class="med-custom-select__list" id="reportingSelectList"></ul>
+                                </div>
+                            </div>
+                            <div class="med-visually-hidden">
+                                {{ assign_medical_staff_form.reporting_to }}
+                            </div>
+                            <div class="assign-form__error" id="err_reporting_to" hidden>Please select who this staff member reports to.</div>
+                            <div class="assign-director-note" id="reportingDirectorNote" hidden data-director-name="">
+                                <i data-lucide="shield-check"></i>
+                                <span id="reportingDirectorText">Senior doctors report directly to the hospital director.</span>
+                            </div>
+                            <p class="assign-field__hint" id="reportingHint">Pick a hospital and role to see reporting options.</p>
+                        </div>
+
+                        {# ---- Dominic's Reporting Hierarchy: Facilities checklist ---- #}
+                        <div class="assign-field assign-field--full" id="facilitiesField">
+                            <label>{{ assign_medical_staff_form.work_facilities.label }}{% if assign_medical_staff_form.work_facilities.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            <div class="assign-facilities-grid" id="facilitiesGrid">
+                                <p class="assign-field__hint">Select a hospital to see its facilities.</p>
+                            </div>
+                            <div class="med-visually-hidden" id="workFacilitiesHidden">
+                                {{ assign_medical_staff_form.work_facilities }}
+                            </div>
+                        </div>
+
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.employee_id.label }}{% if assign_medical_staff_form.employee_id.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.employee_id }}
+                            <div class="assign-form__error" id="err_employee_id" {% if not assign_medical_staff_form.employee_id.errors %}hidden{% endif %}>{% if assign_medical_staff_form.employee_id.errors %}{{ assign_medical_staff_form.employee_id.errors|striptags }}{% else %}Please enter an employee ID.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.employment_type.label }}{% if assign_medical_staff_form.employment_type.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            <div class="med-custom-select" id="employmentTypeCustomSelect">
+                                <button type="button" class="med-custom-select__trigger" id="employmentTypeSelectTrigger">
+                                    <span class="med-custom-select__avatar" id="employmentTypeSelectIcon">
+                                        <i data-lucide="briefcase"></i>
+                                    </span>
+                                    <span class="med-custom-select__label" id="employmentTypeSelectLabel">Select Employment Type</span>
+                                    <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                                </button>
+                                <div class="med-custom-select__panel" id="employmentTypeSelectPanel" hidden>
+                                    <ul class="med-custom-select__list" id="employmentTypeSelectList"></ul>
+                                </div>
+                            </div>
+                            <div class="med-visually-hidden">
+                                {{ assign_medical_staff_form.employment_type }}
+                            </div>
+                            <div class="assign-form__error" id="err_employment_type" {% if not assign_medical_staff_form.employment_type.errors %}hidden{% endif %}>{% if assign_medical_staff_form.employment_type.errors %}{{ assign_medical_staff_form.employment_type.errors|striptags }}{% else %}Please select an employment type.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.hire_date.label }}{% if assign_medical_staff_form.hire_date.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.hire_date }}
+                            <div class="assign-form__error" id="err_hire_date" {% if not assign_medical_staff_form.hire_date.errors %}hidden{% endif %}>{% if assign_medical_staff_form.hire_date.errors %}{{ assign_medical_staff_form.hire_date.errors|striptags }}{% else %}Please select a hire date.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.work_email.label }}{% if assign_medical_staff_form.work_email.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.work_email }}
+                            <div class="assign-form__error" id="err_work_email" {% if not assign_medical_staff_form.work_email.errors %}hidden{% endif %}>{% if assign_medical_staff_form.work_email.errors %}{{ assign_medical_staff_form.work_email.errors|striptags }}{% else %}Enter a valid email address.{% endif %}</div>
+                        </div>
+                    </div>
+                    <div class="assign-card__nav">
+                        <button type="button" class="med-btn med-btn--ghost-light assign-back" data-back="1"><i data-lucide="arrow-left"></i> Back</button>
+                        <button type="button" class="med-btn med-btn--solid assign-next" data-next="3">Continue <i data-lucide="arrow-right"></i></button>
+                    </div>
+                </section>
+
+                <section class="assign-card" data-step="3" hidden>
+                    <div class="assign-card__head">
+                        <span class="assign-card__step">3</span>
+                        <div>
+                            <h2>Professional Information</h2>
+                            <p>Qualifications and specialization details.</p>
+                        </div>
+                    </div>
+                    <div class="assign-card__body assign-grid">
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.qualification.label }}{% if assign_medical_staff_form.qualification.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.qualification }}
+                            <div class="assign-form__error" id="err_qualification" {% if not assign_medical_staff_form.qualification.errors %}hidden{% endif %}>{% if assign_medical_staff_form.qualification.errors %}{{ assign_medical_staff_form.qualification.errors|striptags }}{% else %}Please enter a qualification.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.specialization.label }}{% if assign_medical_staff_form.specialization.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.specialization }}
+                            <div class="assign-form__error" id="err_specialization" {% if not assign_medical_staff_form.specialization.errors %}hidden{% endif %}>{% if assign_medical_staff_form.specialization.errors %}{{ assign_medical_staff_form.specialization.errors|striptags }}{% else %}Please enter a specialization.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.medical_license_number.label }}{% if assign_medical_staff_form.medical_license_number.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.medical_license_number }}
+                            <div class="assign-form__error" id="err_medical_license_number" {% if not assign_medical_staff_form.medical_license_number.errors %}hidden{% endif %}>{% if assign_medical_staff_form.medical_license_number.errors %}{{ assign_medical_staff_form.medical_license_number.errors|striptags }}{% else %}Please enter a medical license number.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.years_of_experience.label }}{% if assign_medical_staff_form.years_of_experience.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.years_of_experience }}
+                            <div class="assign-form__error" id="err_years_of_experience" {% if not assign_medical_staff_form.years_of_experience.errors %}hidden{% endif %}>{% if assign_medical_staff_form.years_of_experience.errors %}{{ assign_medical_staff_form.years_of_experience.errors|striptags }}{% else %}Please enter years of experience.{% endif %}</div>
+                        </div>
+                        <div class="assign-field assign-field--full">
+                            <label>{{ assign_medical_staff_form.address.label }}{% if assign_medical_staff_form.address.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.address }}
+                            <div class="assign-form__error" id="err_address" {% if not assign_medical_staff_form.address.errors %}hidden{% endif %}>{% if assign_medical_staff_form.address.errors %}{{ assign_medical_staff_form.address.errors|striptags }}{% else %}Please enter an address.{% endif %}</div>
+                        </div>
+                    </div>
+                    <div class="assign-card__nav">
+                        <button type="button" class="med-btn med-btn--ghost-light assign-back" data-back="2"><i data-lucide="arrow-left"></i> Back</button>
+                        <button type="button" class="med-btn med-btn--solid assign-next" data-next="4">Continue <i data-lucide="arrow-right"></i></button>
+                    </div>
+                </section>
+
+                <section class="assign-card" data-step="4" hidden>
+                    <div class="assign-card__head">
+                        <span class="assign-card__step">4</span>
+                        <div>
+                            <h2>Emergency Contact</h2>
+                            <p>Who to reach in case of an emergency involving this staff member.</p>
+                        </div>
+                    </div>
+                    <div class="assign-card__body assign-grid">
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.emergency_contact_name.label }}{% if assign_medical_staff_form.emergency_contact_name.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.emergency_contact_name }}
+                            <div class="assign-form__error" id="err_emergency_contact_name" {% if not assign_medical_staff_form.emergency_contact_name.errors %}hidden{% endif %}>{% if assign_medical_staff_form.emergency_contact_name.errors %}{{ assign_medical_staff_form.emergency_contact_name.errors|striptags }}{% else %}Please enter an emergency contact name.{% endif %}</div>
+                        </div>
+                        <div class="assign-field">
+                            <label>{{ assign_medical_staff_form.emergency_contact_phone.label }}{% if assign_medical_staff_form.emergency_contact_phone.field.required %} <span class="req-star">*</span>{% endif %}</label>
+                            {{ assign_medical_staff_form.emergency_contact_phone }}
+                            <div class="assign-form__error" id="err_emergency_contact_phone" {% if not assign_medical_staff_form.emergency_contact_phone.errors %}hidden{% endif %}>{% if assign_medical_staff_form.emergency_contact_phone.errors %}{{ assign_medical_staff_form.emergency_contact_phone.errors|striptags }}{% else %}Please enter an emergency contact phone number.{% endif %}</div>
+                        </div>
+                    </div>
+                    <div class="assign-card__nav">
+                        <button type="button" class="med-btn med-btn--ghost-light assign-back" data-back="3"><i data-lucide="arrow-left"></i> Back</button>
+                        <button type="button" class="med-btn med-btn--solid assign-next" data-next="5">Continue <i data-lucide="arrow-right"></i></button>
+                    </div>
+                </section>
+
+                <section class="assign-card" data-step="5" hidden>
+                    <div class="assign-card__head">
+                        <span class="assign-card__step">5</span>
+                        <div>
+                            <h2>Review &amp; Confirm</h2>
+                            <p>Double-check everything below before assigning this staff member.</p>
+                        </div>
+                    </div>
+                    <div class="assign-card__body">
+                        <div class="assign-review">
+
+                            <div class="assign-review__group">
+                                <div class="assign-review__group-head">
+                                    <h4><i data-lucide="user"></i> Staff User</h4>
+                                    <button type="button" class="assign-review__edit" data-goto="1">Edit</button>
+                                </div>
+                                <div class="assign-review__person">
+                                    <span class="assign-review__avatar" id="reviewAvatar"><i data-lucide="user"></i></span>
+                                    <div>
+                                        <strong id="reviewName">No staff selected</strong>
+                                        <small id="reviewUsername">&nbsp;</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="assign-review__group">
+                                <div class="assign-review__group-head">
+                                    <h4><i data-lucide="briefcase"></i> Assignment Details</h4>
+                                    <button type="button" class="assign-review__edit" data-goto="2">Edit</button>
+                                </div>
+                                <ul class="assign-review__list">
+                                    <li><span>Hospital</span><strong id="reviewHospital">—</strong></li>
+                                    <li><span>Department</span><strong id="reviewDepartment">—</strong></li>
+                                    <li><span>Role</span><strong id="reviewRole">—</strong></li>
+                                    <li><span>Employee ID</span><strong id="reviewEmployeeId">—</strong></li>
+                                    <li><span>Employment Type</span><strong id="reviewEmploymentType">—</strong></li>
+                                    <li><span>Hire Date</span><strong id="reviewHireDate">—</strong></li>
+                                    <li><span>Work Email</span><strong id="reviewWorkEmail">—</strong></li>
+                                    <li><span>Senior Staff</span><strong id="reviewSenior">—</strong></li>
+                                    <li><span>Reports To</span><strong id="reviewReporting">—</strong></li>
+                                    <li class="assign-review__list-full"><span>Facilities</span><strong id="reviewFacilities">—</strong></li>
+                                </ul>
+                            </div>
+
+                            <div class="assign-review__group">
+                                <div class="assign-review__group-head">
+                                    <h4><i data-lucide="graduation-cap"></i> Professional Information</h4>
+                                    <button type="button" class="assign-review__edit" data-goto="3">Edit</button>
+                                </div>
+                                <ul class="assign-review__list">
+                                    <li><span>Qualification</span><strong id="reviewQualification">—</strong></li>
+                                    <li><span>Specialization</span><strong id="reviewSpecialization">—</strong></li>
+                                    <li><span>License Number</span><strong id="reviewLicense">—</strong></li>
+                                    <li><span>Experience</span><strong id="reviewExperience">—</strong></li>
+                                    <li class="assign-review__list-full"><span>Address</span><strong id="reviewAddress">—</strong></li>
+                                </ul>
+                            </div>
+
+                            <div class="assign-review__group">
+                                <div class="assign-review__group-head">
+                                    <h4><i data-lucide="phone-call"></i> Emergency Contact</h4>
+                                    <button type="button" class="assign-review__edit" data-goto="4">Edit</button>
+                                </div>
+                                <ul class="assign-review__list">
+                                    <li><span>Contact Name</span><strong id="reviewEmergencyName">—</strong></li>
+                                    <li><span>Contact Phone</span><strong id="reviewEmergencyPhone">—</strong></li>
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="assign-card__nav">
+                        <button type="button" class="med-btn med-btn--ghost-light assign-back" data-back="4"><i data-lucide="arrow-left"></i> Back</button>
+                        <button type="submit" class="med-btn med-btn--solid">
+                            <i data-lucide="check-circle"></i> Confirm &amp; Assign Staff
+                        </button>
+                    </div>
+                </section>
+            </form>
+
+            <aside class="assign-preview" id="assignPreview">
+                <div class="assign-preview__card">
+                    <h3><i data-lucide="eye"></i> Live Preview</h3>
+                    <div class="assign-preview__person">
+                        <span class="assign-preview__avatar" id="previewAvatar"><i data-lucide="user"></i></span>
+                        <div>
+                            <strong id="previewName">No staff selected</strong>
+                            <small id="previewUsername">&nbsp;</small>
+                        </div>
+                    </div>
+                    <ul class="assign-preview__list">
+                        <li><span>Hospital</span><strong id="previewHospital">—</strong></li>
+                        <li><span>Department</span><strong id="previewDepartment">—</strong></li>
+                        <li><span>Role</span><strong id="previewRole">—</strong></li>
+                        <li><span>Employee ID</span><strong id="previewEmployeeId">—</strong></li>
+                        <li><span>Employment Type</span><strong id="previewEmploymentType">—</strong></li>
+                        <li><span>Work Email</span><strong id="previewWorkEmail">—</strong></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    {{ staff_directory|json_script:"staffDirectoryData" }}
+    {{ assign_medical_staff_form.reporting_to.value|json_script:"initialReportingData" }}
+    {{ assign_medical_staff_form.work_facilities.value|json_script:"initialFacilitiesData" }}
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'js/Dominic/assign_medical_staff.js' %}"></script>
+{% endblock %}

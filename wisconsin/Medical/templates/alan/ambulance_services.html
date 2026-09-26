@@ -1,0 +1,360 @@
+{% extends "dashboard_base.html" %}
+
+{% load static %}
+
+{% block title %}Medical Center{% endblock %}
+{% block page_title %}Medical Center{% endblock %}
+
+{% block extra_css %}
+
+
+<!-- Bootstrap FIRST -->
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+    crossorigin="anonymous"
+>
+
+<!-- Third-party CSS -->
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css"
+/>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+/>
+
+<!-- YOUR CUSTOM CSS LAST -->
+<link
+    rel="stylesheet"
+    href="{% static 'css/Alan/ambulance_services.css' %}"
+>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+{% endblock %}
+
+{% block content %}
+
+
+<body>
+<div class="amb-scope">
+
+  <!-- ============ TOP BAR: Hospital identity ============ -->
+  <header class="amb-topbar">
+    <div class="amb-container">
+      <div class="amb-topbar-row">
+        <div class="amb-hospital-id">
+          <div class="amb-hospital-badge">
+              {{ hospital.hospital_name|slice:":2"|upper }}
+          </div>
+          <div class="amb-hospital-text">
+            <div class="amb-hospital-name">{{ hospital.hospital_name }}</div>
+            <div class="amb-hospital-meta">
+              <span><i class="fa-solid fa-location-dot"></i> {{ hospital.hospital_location }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="amb-topbar-right">
+          <span class="amb-live-chip"><span class="amb-live-dot"></span><span>Fleet monitoring live</span></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="amb-container">
+
+    <!-- ============ HERO ============ -->
+    <section class="amb-hero">
+      <div class="amb-hero-row">
+        <div>
+          <div class="amb-eyebrow"><i class="fa-solid fa-truck-medical"></i> Ambulance Services</div>
+          <h1 class="amb-hero-title">Manage the <span>emergency fleet</span> for this hospital</h1>
+          <p class="amb-hero-sub">
+              Register vehicles and track real-time status for every ambulance operating under {{ hospital.hospital_name }}.
+          </p>
+        </div>
+        <div class="amb-hero-visual" aria-hidden="true">
+          <div class="amb-hero-ambicon"><i class="fa-solid fa-truck-medical"></i></div>
+          <div class="amb-hero-road"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STAT SUMMARY ============ -->
+    <section class="amb-stats" id="ambStats" aria-label="Fleet summary">
+      <!-- injected by JS -->
+    </section>
+
+    <!-- ============ TOOLBAR ============ -->
+    <section class="amb-toolbar">
+      <div class="amb-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="ambSearchInput" placeholder="Search unit, plate or VIN…" aria-label="Search ambulances">
+      </div>
+      <div class="amb-filter">
+        <select id="ambStatusFilter" aria-label="Filter by status">
+          <option value="all">All statuses</option>
+          <option value="available">Available</option>
+          <option value="dispatched">On duty / Dispatched</option>
+          <option value="maintenance">Under maintenance</option>
+          <option value="reserved">Reserved</option>
+          <option value="outofservice">Out of service</option>
+        </select>
+      </div>
+      <button class="amb-btn amb-btn-primary amb-btn-block-mobile" id="ambAddBtn" type="button">
+        <i class="fa-solid fa-plus"></i><span class="amb-btn-label">Add Ambulance</span>
+      </button>
+    </section>
+
+    <!-- ============ FLEET LIST ============ -->
+    <section aria-label="Registered ambulances">
+      <div class="amb-fleet-heading">
+        <h2>Registered ambulances</h2>
+        <span class="amb-fleet-count" id="ambFleetCount">0 vehicles</span>
+      </div>
+
+      <div class="amb-fleet-grid" id="ambFleetGrid"></div>
+
+      <div class="amb-empty" id="ambEmptyState" hidden>
+        <div class="amb-empty-icon"><i class="fa-solid fa-truck-medical"></i></div>
+        <h3>No ambulances registered yet</h3>
+        <p>This hospital doesn't have any ambulances on file. Add the first vehicle to start building your emergency fleet.</p>
+        <button class="amb-btn amb-btn-primary" id="ambEmptyAddBtn" type="button">
+          <i class="fa-solid fa-plus"></i><span>Register an ambulance</span>
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+
+
+  <!-- ============ TOASTS ============ -->
+  <div class="amb-toast-stack" id="ambToastStack" aria-live="polite"></div>
+
+</div>
+
+
+</body>
+
+{% endblock %}
+
+{% block global_modal %}
+
+  <!-- ============ ADD / EDIT MODAL ============ -->
+  <div class="modal fade" id="ambFormModal" tabindex="-1" aria-labelledby="ambFormModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="amb-modal-header">
+          <div class="amb-modal-eyebrow" id="ambModalEyebrow">New registration</div>
+          <h2 class="amb-modal-title" id="ambFormModalTitle">Register Ambulance</h2>
+          <span class="amb-modal-hospital"><i class="fa-solid fa-hospital"></i> {{ hospital.hospital_name }}</span>
+          <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <form id="ambForm" novalidate>
+          {% csrf_token %}
+          <div class="amb-modal-body">
+
+            <div class="amb-context-banner">
+              <i class="fa-solid fa-circle-info"></i>
+              <div class="amb-context-banner-text">
+                <b>
+                    This vehicle will be added to {{ hospital.hospital_name }}'s fleet
+                </b>
+                <span>All fields marked <span class="amb-req-mark">*</span> are required before this ambulance can be saved.</span>
+              </div>
+            </div>
+
+            <!-- Vehicle Identification -->
+            <div class="amb-form-section">
+              <div class="amb-form-section-title"><i class="fa-solid fa-id-card"></i> Vehicle identification</div>
+              <div class="amb-form-grid">
+                <div class="amb-field">
+                  <label class="amb-label" for="fUnitNumber">Unit / call sign <span class="req">*</span></label>
+                  <input class="amb-input is-mono" id="fUnitNumber" placeholder="e.g. AMB-104" required>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Unit number is required.</div>
+                </div>
+                <div class="amb-field">
+                  <label class="amb-label" for="fPlate">License plate / reg. number <span class="req">*</span></label>
+                  <input class="amb-input is-mono" id="fPlate" placeholder="e.g. OR-EMS 1042" required>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Plate / registration number is required.</div>
+                </div>
+                <div class="amb-field full">
+                  <label class="amb-label" for="fVin">Vehicle Identification Number (VIN) <span class="req">*</span></label>
+                  <input class="amb-input is-mono" id="fVin" placeholder="17-character VIN" maxlength="17" required>
+                  <div class="amb-hint">Must be exactly 17 characters, letters and numbers only.</div>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Enter a valid 17-character VIN.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Vehicle Specifications -->
+            <div class="amb-form-section">
+              <div class="amb-form-section-title"><i class="fa-solid fa-truck-medical"></i> Vehicle specifications</div>
+              <div class="amb-form-grid">
+                <div class="amb-field">
+                  <label class="amb-label" for="fMake">Make <span class="req">*</span></label>
+                  <input class="amb-input" id="fMake" placeholder="e.g. Ford" required>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Vehicle make is required.</div>
+                </div>
+                <div class="amb-field">
+                  <label class="amb-label" for="fModel">Model <span class="req">*</span></label>
+                  <input class="amb-input" id="fModel" placeholder="e.g. E-450" required>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Vehicle model is required.</div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Service Classification & Status -->
+            <div class="amb-form-section">
+              <div class="amb-form-section-title"><i class="fa-solid fa-notes-medical"></i> Service classification &amp; status</div>
+              <div class="amb-form-grid">
+                <div class="amb-field">
+                  <label class="amb-label" for="fServiceType">Ambulance service type <span class="req">*</span></label>
+                  <select class="amb-select-choice" id="fServiceType" required>
+                    <option value="">Select service type</option>
+                    <option value="BLS">Basic Life Support (BLS)</option>
+                    <option value="ALS">Advanced Life Support (ALS)</option>
+                    <option value="CCT">Critical Care Transport (CCT)</option>
+                    <option value="Neonatal">Neonatal / Pediatric Transport</option>
+                    <option value="Bariatric">Bariatric Transport</option>
+                    <option value="Non-Emergency">Non-Emergency Medical Transport</option>
+                  </select>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Select an ambulance service type.</div>
+                </div>
+                <div class="amb-field">
+                  <label class="amb-label" for="fStatus">Current status <span class="req">*</span></label>
+                  <select class="amb-select-choice" id="fStatus" required>
+                    <option value="available">Available</option>
+                    <option value="maintenance">Under maintenance</option>
+                    <option value="reserved">Reserved</option>
+                  </select>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Select the current status.</div>
+                </div>
+                <div class="amb-field">
+                  <label class="amb-label" for="fNextMaint">Next maintenance due</label>
+                  <div class="amb-date-wrap">
+                    <input class="amb-input" id="fNextMaint" placeholder="Select a date" autocomplete="off">
+                    <i class="fa-solid fa-calendar-days"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Emergency Contact & Dispatch -->
+            <div class="amb-form-section">
+              <div class="amb-form-section-title"><i class="fa-solid fa-phone-volume"></i> Emergency contact &amp; dispatch</div>
+              <div class="amb-form-grid">
+                <div class="amb-field">
+                  <label class="amb-label" for="fDispatchPhone">Dispatch / control room number <span class="req">*</span></label>
+                  <input class="amb-input" id="fDispatchPhone" type="tel" placeholder="e.g. (503) 555-0911" required>
+                  <div class="amb-error-msg"><i class="fa-solid fa-circle-exclamation"></i> Dispatch number is required.</div>
+                </div>
+                <div class="amb-field">
+                    <label class="amb-label" for="fAltContact">
+                        Alternate emergency contact
+                    </label>
+
+                    <input
+                        class="amb-input"
+                        id="fAltContact"
+                        type="tel"
+                        placeholder="e.g. (503) 555-0177"
+                    >
+
+                    <div class="amb-error-msg">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>Enter a valid alternative contact number.</span>
+                    </div>
+                </div>
+                <div class="amb-field full">
+                  <label class="amb-label" for="fNotes">Notes (optional)</label>
+                  <textarea class="amb-textarea" id="fNotes" placeholder="Equipment notes, restrictions, or anything dispatch should know…"></textarea>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="amb-modal-footer">
+            <button type="button" class="amb-btn amb-btn-outline" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="amb-btn amb-btn-primary" id="ambSaveBtn">
+              <i class="fa-solid fa-check"></i><span id="ambSaveBtnLabel">Register Ambulance</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONFIRM DEACTIVATE / DELETE MODAL ============ -->
+  <div class="modal fade" id="ambConfirmModal" tabindex="-1" aria-labelledby="ambConfirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="amb-modal-body amb-confirm-body">
+          <div class="amb-confirm-icon" id="ambConfirmIcon"><i class="fa-solid fa-ban"></i></div>
+          <h3 class="amb-modal-title" id="ambConfirmTitle">Deactivate this ambulance?</h3>
+          <p id="ambConfirmText">This will mark <b id="ambConfirmUnit">AMB-104</b> as <b>Out of Service</b>. You can reactivate it later from the fleet list.</p>
+        </div>
+        <div class="amb-modal-footer">
+          <button type="button" class="amb-btn amb-btn-outline" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="amb-btn amb-btn-primary" id="ambConfirmActionBtn">Yes, deactivate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+
+{{ ambulances|json_script:"initial-ambulances-data" }}
+
+<script>
+    window.INITIAL_AMBULANCES = JSON.parse(
+        document.getElementById("initial-ambulances-data").textContent
+    );
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<script src="{% static 'js/Alan/ambulance_services.js' %}"></script>
+
+{% endblock %}

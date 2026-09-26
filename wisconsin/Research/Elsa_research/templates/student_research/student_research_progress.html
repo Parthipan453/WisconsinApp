@@ -1,0 +1,491 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Research Progress{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_progress %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/student_research/stu_research_progress.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="rp-page" data-research-id="{{ research.research_id|default:'' }}">
+
+    <!-- Header -->
+    <div class="rp-header">
+        <div>
+            <h1><i data-lucide="chart-line"></i> Research Progress</h1>
+            <p>Track your assigned research milestones and submit progress reports.</p>
+        </div>
+
+        <div class="rp-selector-group">
+            <label>Select Research</label>
+            <form method="GET">
+                <select name="research_id" class="rp-input" id="researchSelect" onchange="this.form.submit()">
+                    <option value="">-- Select Research --</option>
+                    {% for r in researches %}
+                    <option value="{{ r.research_id }}" {% if research and research.research_id == r.research_id %}selected{% endif %}>
+                        {{ r.title }}
+                    </option>          
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    {% if research %}
+
+    <!-- Tabs -->
+    <div class="rp-tabs" id="rpTabs">
+        <div class="rp-tab active" data-target="rp-tab-overview" data-tab="overview">Overview</div>
+        <div class="rp-tab" data-target="rp-tab-milestones" data-tab="milestones">Milestones</div>
+        <div class="rp-tab" data-target="rp-tab-reports" data-tab="reports">Reports</div>
+        <div class="rp-tab" data-target="rp-tab-feedback" data-tab="feedback">Feedback</div>
+    </div>
+
+<!-- ============ OVERVIEW ============ -->
+<div id="tabContent">
+<div class="rp-card rp-tab-panel" id="rp-tab-overview">
+    <h2><i data-lucide="file-text"></i> Research Overview</h2>
+    <p>{{ research.description }}</p>
+
+    <!-- Project Information -->
+    <div class="rp-overview-block">
+        <h3><i data-lucide="info"></i> Project Information</h3>
+        <div class="rp-meta-grid">
+            <div class="rp-info-box">
+                <span>Title</span>
+                <b>{{ research.title }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Research ID</span>
+                <b>{{ research.research_id }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Department</span>
+                <b>{{ research.department.department_name|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Category</span>
+                <b>{{ research.category|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Status</span>
+                <b>
+                    <span class="rp-status
+                        {% if research.project_status == 'APPROVED' %}rp-status-active
+                        {% elif research.project_status == 'ONGOING' %}rp-status-progress
+                        {% elif research.project_status == 'PENDING' %}rp-status-progress
+                        {% elif research.project_status == 'COMPLETED' %}rp-status-completed
+                        {% elif research.project_status == 'REJECTED' or research.project_status == 'CANCELLED' %}rp-status-closed
+                        {% else %}rp-status-draft{% endif %}">
+                        {{ research.get_project_status_display }}
+                    </span>
+                </b>
+            </div>
+            <div class="rp-info-box">
+                <span>Current Phase</span>
+                <b>{{ current_phase }}</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="rp-overview-block">
+        <h3><i data-lucide="calendar"></i> Timeline</h3>
+        <div class="rp-meta-grid">
+            <div class="rp-info-box">
+                <span>Start Date</span>
+                <b>{{ research.start_date|date:"d M Y"|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Expected Completion Date</span>
+                <b>{{ research.end_date|date:"d M Y"|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Days Remaining</span>
+                <b>
+                    {% if days_remaining is not None %}
+                        {% if days_remaining >= 0 %}{{ days_remaining }} Days{% else %}Overdue{% endif %}
+                    {% else %}--{% endif %}
+                </b>
+            </div>
+            <div class="rp-info-box">
+                <span>My Completed Milestones</span>
+                <b id="statCompletedCount">{{ completed_count }} / {{ total_milestones }}</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Progress -->
+    <div class="rp-overview-block">
+        <h3><i data-lucide="trending-up"></i> My Overall Progress</h3>
+        <div class="rp-progress-bar">
+            <div class="rp-progress-fill" id="overallProgressFill" style="width:{{ overall_progress }}%;">{{ overall_progress }}%</div>
+        </div>
+    </div>
+
+    <!-- Team Information -->
+    <div class="rp-overview-block">
+        <h3><i data-lucide="users"></i> Team Information</h3>
+
+        <div class="rp-team-overview">
+            <div class="rp-team-stat">
+                <span class="rp-team-stat-label">Team Name</span>
+                <span class="rp-team-stat-value">
+                    {% if team.team_name %}
+                        {{ team.team_name }}
+                    {% else %}
+                        <span class="rp-empty"><i data-lucide="users"></i> No Team Assigned</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="rp-team-stat">
+                <span class="rp-team-stat-label">Mentor</span>
+                <span class="rp-team-stat-value">
+                    {% if research.faculty %}
+                        {{ research.faculty.user.get_full_name }}
+                    {% else %}
+                        <span class="rp-empty"><i data-lucide="user-x"></i> No Mentor Assigned</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="rp-team-stat">
+                <span class="rp-team-stat-label">Total Students</span>
+                <span class="rp-team-stat-value">{{ student_member_count }}</span>
+            </div>
+            <div class="rp-team-stat">
+                <span class="rp-team-stat-label">Faculty Members</span>
+                <span class="rp-team-stat-value">{{ faculty_member_count }}</span>
+            </div>
+        </div>
+
+        <div class="rp-team-members">
+            <span class="rp-team-members-label">Team Members</span>
+            <div class="rp-team-member-list">
+                {% for member in team_members %}
+                <div class="rp-team-member">
+                    <div class="rp-team-avatar {% if member.student %}rp-avatar-student{% else %}rp-avatar-faculty{% endif %}">
+                        {% if member.student %}
+                            <i data-lucide="graduation-cap"></i>
+                        {% else %}
+                            <i data-lucide="user-round"></i>
+                        {% endif %}
+                    </div>
+                    <div class="rp-team-member-info">
+                        <b>
+                            {% if member.student %}{{ member.student.user.get_full_name }}{% else %}{{ member.faculty.user.get_full_name }}{% endif %}
+                        </b>
+                        <span>{{ member.get_role_display }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="rp-team-empty">No team members assigned</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+    <!-- ============ MILESTONES ============ -->
+    <div class="rp-card rp-tab-panel" id="rp-tab-milestones" style="display:none;">
+        <h2><i data-lucide="flag"></i> My Milestones</h2>
+
+        {% for item in assignments %}
+        <div class="rp-milestone" data-assignment-id="{{ item.assignment_id }}" data-milestone-title="{{ item.milestone.title|escapejs }}">
+            <div class="rp-milestone-top">
+                <h3>{{ item.milestone.title }}</h3>
+                <span class="rp-status
+                    {% if item.status == 'completed' %}rp-status-completed
+                    {% elif item.status == 'submitted' %}rp-status-progress
+                    {% elif item.status == 'working' %}rp-status-active
+                    {% else %}rp-status-draft{% endif %}">
+                    {{ item.get_status_display }}
+                </span>
+            </div>
+
+            <p><i data-lucide="file-text"></i> {{ item.milestone.description }}</p>
+
+            <div class="rp-review">
+                <p><i data-lucide="calendar"></i> Deadline: {{ item.milestone.deadline|date:"d M Y" }}</p>
+                <p><i data-lucide="chart-line"></i> Expected Contribution: {{ item.milestone.expected_percentage }}%</p>
+            </div>
+
+            <div class="rp-progress-bar rp-progress-bar-sm">
+                <div class="rp-progress-fill" style="width:{{ item.student_progress }}%;">{{ item.student_progress }}%</div>
+            </div>
+            {% if item.milestone.status == 'completed' %}
+                <button class="rp-btn rp-btn-completed" type="button" disabled
+                        title="This milestone is already completed">
+                    <i data-lucide="check"></i>
+                    Milestone Completed
+                </button>
+            {% elif item.status == 'assigned' %}
+                {% if item.milestone.status == 'in_progress' %}
+                    <button class="rp-btn rp-btn-primary"
+                            onclick="startWorking(this, '{{ item.assignment_id }}')">
+                        <i data-lucide="play"></i>
+                        Start Working
+                    </button>
+                {% else %}
+                    <button class="rp-btn rp-btn-warning" type="button" disabled
+                            title="Mentor hasn't started this milestone yet">
+                        <i data-lucide="clock"></i>
+                        Yet to start
+                    </button>
+                {% endif %}
+            {% else %}
+                <button class="rp-btn rp-btn-primary"
+                        onclick="openReportModal('{{ item.assignment_id }}', '{{ item.milestone.title|escapejs }}')">
+                    <i data-lucide="upload"></i>
+                    Submit Report
+                </button>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="rp-empty-message" id="milestonesEmptyMsg">
+            <i data-lucide="info"></i> No milestones assigned.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ============ REPORTS ============ -->
+    <div class="rp-card rp-tab-panel" id="rp-tab-reports" style="display:none;">
+        <h2><i data-lucide="clipboard-list"></i> My Submitted Reports</h2>
+
+        {% for report in reports %}
+        <div class="rp-report-item rp-clickable"
+            data-report-id="{{ report.report_id }}"
+            onclick="openReportDetailModal({
+                milestone: '{{ report.assignment.milestone.title|escapejs }}',
+                title: '{{ report.title|escapejs }}',
+                description: '{{ report.description|escapejs }}',
+                status: '{{ report.get_status_display|escapejs }}',
+                submitted: '{{ report.submitted_date|date:"d M Y" }}',
+                progress: '{{ report.progress_percentage }}',
+                feedback: '{{ report.faculty_feedback|default:""|escapejs }}',
+                reviewed: '{{ report.reviewed_date|date:"d M Y"|default:"" }}'
+            })">
+            <div class="rp-report-top">
+                <b>{{ report.assignment.milestone.title }}</b>
+                <span class="rp-status
+                    {% if report.status == 'approved' %}rp-status-completed
+                    {% elif report.status == 'under_review' %}rp-status-progress
+                    {% elif report.status == 'revision' or report.status == 'rejected' %}rp-status-closed
+                    {% else %}rp-status-active{% endif %}">
+                    {{ report.get_status_display }}
+                </span>
+            </div>
+            <p>Report: {{ report.title }}</p>
+            <p>Submitted: {{ report.submitted_date|date:"d M Y" }}</p>
+            <p>Progress: {{ report.progress_percentage }}%</p>
+
+            {% for attachment in report.attachments.all %}
+                <a href="{{ attachment.file.url }}" class="rp-file-link" target="_blank">
+                    <i data-lucide="file"></i> {{ attachment.file.name|slice:"-30:" }}
+                </a>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="rp-empty-message" id="feedbackEmptyMsg">
+            <i data-lucide="info"></i> No reports submitted yet.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ============ FEEDBACK ============ -->
+    <div class="rp-card rp-tab-panel" id="rp-tab-feedback" style="display:none;">
+        <h2><i data-lucide="message-square"></i> Faculty Review</h2>
+
+        {% for report in feedback_reports %}
+            {% if report.faculty_feedback %}
+            <div class="rp-feedback-item rp-clickable"
+                data-report-id="{{ report.report_id }}"
+                onclick="openReportDetailModal({
+                    milestone: '{{ report.assignment.milestone.title|escapejs }}',
+                    title: '{{ report.title|escapejs }}',
+                    description: '{{ report.description|escapejs }}',
+                    status: '{{ report.get_status_display|escapejs }}',
+                    submitted: '{{ report.submitted_date|date:"d M Y" }}',
+                    progress: '{{ report.progress_percentage }}',
+                    feedback: '{{ report.faculty_feedback|escapejs }}',
+                    reviewed: '{{ report.reviewed_date|date:"d M Y"|default:"" }}'
+                })">
+                <div class="rp-report-top">
+                    <b>{{ report.assignment.milestone.title  }}</b>
+                    <span class="rp-status
+                        {% if report.status == 'revision' %}rp-status-closed
+                        {% elif report.status == 'approved' %}rp-status-completed
+                        {% else %}rp-status-progress{% endif %}">
+                        {{ report.get_status_display }}
+                    </span>
+                </div>
+                <p class="rp-feedback-report-title">Report: {{ report.title }}</p>
+                <p class="rp-feedback-text">"{{ report.faculty_feedback }}"</p>
+                <p>Reviewed: {{ report.reviewed_date|date:"d M Y"|default:"--" }}</p>
+                {% if report.status == 'revision' %}
+                    {% if report.is_latest_for_assignment %}
+                    <button class="rp-btn rp-btn-primary"
+                            data-assignment-id="{{ report.assignment.assignment_id }}"
+                            onclick="event.stopPropagation(); openReportModal('{{ report.assignment.assignment_id }}', '{{ report.assignment.milestone.title|escapejs }}')">
+                        <i data-lucide="upload"></i> Upload Revised Report
+                    </button>
+                    {% else %}
+                    <button class="rp-btn rp-btn-reset" type="button" disabled>
+                        <i data-lucide="check"></i> Revised Report Submitted
+                    </button>
+                    {% endif %}
+                {% endif %}
+                </div>
+            {% endif %}
+        {% empty %}
+        <div class="rp-empty-message">
+            <i data-lucide="info"></i> No feedback yet.
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="rp-no-opportunity">
+        <div class="rp-empty-accent"></div>
+        <div class="rp-empty-content">
+            <div class="rp-empty-icon">
+                <i data-lucide="search"></i>
+            </div>
+            <span class="rp-empty-eyebrow">
+                Research Progress
+            </span>
+            <h2>No Research Selected</h2>
+            <p>
+                Select a research from the dropdown above to view its
+                milestones, submit progress reports, and check faculty feedback.
+            </p>
+            <div class="rp-empty-divider"></div>
+            <div class="rp-empty-status">
+                <span class="rp-status-dot"></span>
+                No research currently selected
+            </div>
+        </div>
+        <div class="rp-empty-decoration rp-decoration-one"></div>
+        <div class="rp-empty-decoration rp-decoration-two"></div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Submit Report Modal -->
+<div class="rp-modal-overlay" id="reportModal">
+    <div class="rp-modal">
+        <div class="rp-modal-header">
+            <h3><i data-lucide="upload"></i> Submit Milestone Report</h3>
+            <button class="rp-close" type="button" onclick="closeReportModal()">&times;</button>
+        </div>
+
+        <form method="POST" id="reportForm" enctype="multipart/form-data"
+            action="{% url 'Elsa_research:submit_student_report' uuid=uuid assignment_id=0 %}">
+            {% csrf_token %}
+
+            <div class="rp-modal-body">
+                <div class="rp-form-group">
+                    <label>Milestone</label>
+                    <input type="text" class="rp-input" id="reportMilestoneLabel" readonly>
+                </div>
+
+                <div class="rp-form-group">
+                    <label>Report Title <span>*</span></label>
+                    <input type="text" name="title" id="reportTitle" class="rp-input" required>
+                    <div class="rp-error" id="err-title"></div>
+                </div>
+
+                <div class="rp-form-group">
+                    <label>Description <span>*</span></label>
+                    <textarea name="description" id="reportDescription" class="rp-input" rows="4" required></textarea>
+                    <div class="rp-error" id="err-description"></div>
+                </div>
+
+                <div class="rp-form-group">
+                    <label>Progress Completed % <span>*</span></label>
+                    <input type="number" name="progress_percentage" id="reportProgress" class="rp-input" min="1" max="100" required>
+                    <div class="rp-error" id="err-progress_percentage"></div>
+                </div>
+
+                <div class="rp-form-group">
+                    <label>Upload Document(s) <span>*</span></label>
+                    <input type="file" name="files" id="reportFiles" class="rp-input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip" required>
+                    <small class="rp-hint">Allowed: PDF, DOC, DOCX, XLS, XLSX (max 20MB), ZIP (max 500MB)</small>
+                    <div class="rp-error" id="err-files"></div>
+                </div>
+            </div>
+
+            <div class="rp-modal-footer">
+                <button type="button" class="rp-btn rp-btn-reset" onclick="closeReportModal()">Cancel</button>
+                <button type="submit" class="rp-btn rp-btn-primary" id="submitReportBtn">
+                    <i data-lucide="send"></i> Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Report Detail Modal -->
+<div class="rp-modal-overlay" id="reportDetailModal">
+    <div class="rp-modal">
+        <div class="rp-modal-header">
+            <h3><i data-lucide="file-text"></i> Report Details</h3>
+            <button class="rp-close" type="button" onclick="closeReportDetailModal()">&times;</button>
+        </div>
+        <div class="rp-modal-body">
+            <div class="rp-info-box" style="margin-bottom:12px;">
+                <span>Milestone</span>
+                <b id="detailMilestone"></b>
+            </div>
+            <div class="rp-info-box" style="margin-bottom:12px;">
+                <span>Report Title</span>
+                <b id="detailTitle"></b>
+            </div>
+            <div class="rp-info-box" style="margin-bottom:12px;">
+                <span>Description</span>
+                <b id="detailDescription"></b>
+            </div>
+            <div class="rp-meta-grid" style="margin-bottom:12px;">
+                <div class="rp-info-box">
+                    <span>Status</span>
+                    <b id="detailStatus"></b>
+                </div>
+                <div class="rp-info-box">
+                    <span>Submitted</span>
+                    <b id="detailSubmitted"></b>
+                </div>
+                <div class="rp-info-box">
+                    <span>Progress</span>
+                    <b id="detailProgress"></b>
+                </div>
+            </div>
+            <div id="detailFeedbackBlock" style="display:none;">
+                <div class="rp-overview-block">
+                    <h3><i data-lucide="message-square"></i> Faculty Feedback</h3>
+                    <p class="rp-feedback-text" id="detailFeedback"></p>
+                    <p>Reviewed: <span id="detailReviewed"></span></p>
+                </div>
+            </div>
+        </div>
+        <div class="rp-modal-footer">
+            <button type="button" class="rp-btn rp-btn-reset" onclick="closeReportDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.uuid = "{{ uuid }}";
+window.startWorkingUrlTemplate = "{% url 'Elsa_research:start_milestone_work' uuid=uuid assignment_id=0 %}";
+</script>
+<script src="{% static 'script/student_research/stu_research_progress.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+{% endblock %}

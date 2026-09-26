@@ -1,0 +1,1086 @@
+
+
+<!--*********************** Rixie Code start  **************************-->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}View Timetable — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/scheduling.css' %}" />
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+<style>
+  .cs-main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .fd-widget { width: 100%; }
+  .fd-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fd-table { width: 100%; border-collapse: collapse; }
+
+  /* Search and Filter Styles - Responsive */
+  .search-filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  
+  .search-box {
+    flex: 1 1 200px;
+    min-width: 120px;
+    position: relative;
+  }
+  
+  .search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    border: 1px solid var(--border-color, #d0d0d0);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+  }
+  
+  .search-box input:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+  
+  .search-box .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 14px;
+  }
+  
+  .filter-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 0 1 auto;
+  }
+  
+  .filter-controls select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #d0d0d0);
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    min-width: 120px;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  
+  .filter-controls select:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+  
+  .clear-filters-btn {
+    padding: 8px 14px;
+    background: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    color: #555;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+  
+  .clear-filters-btn:hover {
+    background: #e0e0e0;
+  }
+  
+  .clear-filters-btn i {
+    font-size: 14px;
+  }
+
+  /* Pagination Styles - HORIZONTAL & RESPONSIVE */
+  .pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    margin-top: 12px;
+    width: 100%;
+  }
+  
+  .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+  }
+  
+  .pagination-info {
+    color: #666;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .entries-per-page {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #666;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .entries-per-page select {
+    padding: 4px 6px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+    cursor: pointer;
+  }
+  
+  .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .pagination-controls {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .pagination-controls button,
+  .pagination-controls .page-link {
+    padding: 4px 10px;
+    border: 1px solid #d0d0d0;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    min-width: 32px;
+    text-align: center;
+    color: #333;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    height: 30px;
+    box-sizing: border-box;
+  }
+  
+  .pagination-controls button:hover:not(:disabled),
+  .pagination-controls .page-link:hover:not(.active) {
+    background: #f0f0f0;
+    border-color: #b0b0b0;
+  }
+  
+  .pagination-controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .pagination-controls .page-link.active {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+    font-weight: 600;
+  }
+  
+  .pagination-controls .page-link.active:hover {
+    background: #0052a3;
+  }
+  
+  .pagination-ellipsis {
+    padding: 0 2px;
+    color: #666;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Empty state for no results */
+  .no-results {
+    text-align: center;
+    padding: 30px 16px;
+    color: #888;
+  }
+  
+  .no-results i {
+    font-size: 36px;
+    color: #ccc;
+    margin-bottom: 12px;
+    display: block;
+  }
+  
+  .no-results p {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* ============================================ */
+  /* RESPONSIVE BREAKPOINTS FOR ALL DEVICES */
+  /* ============================================ */
+
+  /* 1. LAPTOP (1200px and above) */
+  @media screen and (min-width: 1200px) {
+    .search-filter-container {
+      gap: 16px;
+      padding: 16px 0;
+    }
+    .search-box {
+      flex: 1 1 300px;
+    }
+    .filter-controls select {
+      min-width: 150px;
+    }
+    .pagination-container {
+      gap: 16px;
+    }
+  }
+
+  /* 2. SMALL LAPTOP (992px - 1199px) */
+  @media screen and (min-width: 992px) and (max-width: 1199px) {
+    .search-filter-container {
+      gap: 14px;
+    }
+    .search-box {
+      flex: 1 1 250px;
+    }
+    .filter-controls select {
+      min-width: 130px;
+    }
+  }
+
+  /* 3. TABLETS (768px - 991px) */
+  @media screen and (min-width: 768px) and (max-width: 991px) {
+    .search-filter-container {
+      gap: 12px;
+      padding: 14px 0;
+    }
+    .search-box {
+      flex: 1 1 200px;
+      min-width: 160px;
+    }
+    .filter-controls {
+      flex: 1 1 100%;
+    }
+    .filter-controls select {
+      min-width: 120px;
+      flex: 1 1 auto;
+    }
+    .pagination-container {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .pagination-left {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+    .pagination-right {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+  }
+
+  /* 4. ANDROID & iPHONES (480px - 767px) */
+  @media screen and (min-width: 481px) and (max-width: 767px) {
+    .sc-page-header { 
+      flex-direction: column; 
+      align-items: flex-start; 
+      gap: 10px; 
+    }
+    .sc-header-actions { 
+      width: 100%; 
+    }
+    .sc-header-actions .fd-btn { 
+      width: 100%; 
+      justify-content: center; 
+    }
+    .fd-table { 
+      min-width: 500px; 
+    }
+    
+    .search-filter-container {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      padding: 12px 0;
+    }
+    .search-box {
+      flex: 1 1 auto;
+      min-width: 100%;
+    }
+    .filter-controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .filter-controls select {
+      width: 100%;
+      min-width: unset;
+    }
+    .clear-filters-btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .pagination-container {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .pagination-left {
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .pagination-right {
+      justify-content: center;
+    }
+    .pagination-controls {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pagination-info {
+      white-space: normal;
+      text-align: center;
+    }
+    .entries-per-page {
+      white-space: normal;
+    }
+  }
+
+  /* 5. SMALL PHONES (321px - 480px) */
+  @media screen and (min-width: 321px) and (max-width: 480px) {
+    .sc-page-header h1 {
+      font-size: 20px;
+    }
+    .sc-page-header p {
+      font-size: 13px;
+    }
+    
+    .search-filter-container {
+      gap: 8px;
+      padding: 10px 0;
+    }
+    .search-box input {
+      font-size: 13px;
+      padding: 6px 10px 6px 28px;
+    }
+    .search-box .search-icon {
+      font-size: 12px;
+      left: 8px;
+    }
+    .filter-controls select {
+      font-size: 13px;
+      padding: 6px 10px;
+    }
+    .clear-filters-btn {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    
+    .pagination-container {
+      gap: 8px;
+      padding: 10px 0;
+    }
+    .pagination-info {
+      font-size: 12px;
+    }
+    .entries-per-page {
+      font-size: 12px;
+    }
+    .entries-per-page select {
+      font-size: 12px;
+      padding: 3px 5px;
+    }
+    .pagination-controls button,
+    .pagination-controls .page-link {
+      font-size: 12px;
+      padding: 3px 8px;
+      min-width: 28px;
+      height: 26px;
+    }
+    .pagination-ellipsis {
+      font-size: 12px;
+    }
+    .fd-widget-title {
+      font-size: 16px;
+    }
+  }
+
+  /* 6. EXTREMELY SMALL SCREENS (170px - 320px) */
+  @media screen and (max-width: 320px) {
+    .sc-page-header h1 {
+      font-size: 17px;
+      margin: 0;
+    }
+    .sc-page-header p {
+      font-size: 11px;
+      margin: 4px 0;
+    }
+    .sc-header-actions .fd-btn {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+    .sc-header-actions .fd-btn i {
+      font-size: 14px;
+    }
+    
+    .fd-widget-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    .fd-widget-title {
+      font-size: 14px;
+    }
+    .fd-widget-link {
+      font-size: 12px;
+    }
+    
+    .search-filter-container {
+      gap: 6px;
+      padding: 8px 0;
+      margin-bottom: 8px;
+    }
+    .search-box {
+      min-width: 100%;
+    }
+    .search-box input {
+      font-size: 11px;
+      padding: 5px 8px 5px 24px;
+      border-radius: 4px;
+    }
+    .search-box .search-icon {
+      font-size: 11px;
+      left: 6px;
+    }
+    .filter-controls {
+      gap: 5px;
+    }
+    .filter-controls select {
+      font-size: 11px;
+      padding: 5px 8px;
+      min-width: 100%;
+      border-radius: 4px;
+    }
+    .clear-filters-btn {
+      font-size: 11px;
+      padding: 5px 10px;
+      width: 100%;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    .clear-filters-btn i {
+      font-size: 12px;
+    }
+    
+    .fd-table {
+      font-size: 11px;
+      min-width: 400px;
+    }
+    .fd-table th,
+    .fd-table td {
+      padding: 4px 6px;
+    }
+    .fd-form-title {
+      font-size: 11px;
+    }
+    .fd-form-id {
+      font-size: 10px;
+    }
+    .fd-version {
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+    .fd-status {
+      font-size: 10px;
+      padding: 2px 8px;
+    }
+    .fd-dept {
+      font-size: 11px;
+    }
+    
+    .pagination-container {
+      gap: 6px;
+      padding: 8px 0;
+      margin-top: 8px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .pagination-left {
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .pagination-info {
+      font-size: 10px;
+      text-align: center;
+      white-space: normal;
+    }
+    .entries-per-page {
+      font-size: 10px;
+      white-space: normal;
+    }
+    .entries-per-page select {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+    .pagination-right {
+      justify-content: center;
+    }
+    .pagination-controls {
+      gap: 2px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pagination-controls button,
+    .pagination-controls .page-link {
+      font-size: 10px;
+      padding: 2px 6px;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 3px;
+    }
+    .pagination-ellipsis {
+      font-size: 10px;
+      padding: 0 1px;
+    }
+    .pagination-controls button i {
+      font-size: 10px;
+    }
+    
+    .no-results {
+      padding: 20px 10px;
+    }
+    .no-results i {
+      font-size: 28px;
+    }
+    .no-results p {
+      font-size: 12px;
+    }
+    .no-results button {
+      font-size: 11px !important;
+      padding: 6px 14px !important;
+    }
+  }
+
+  /* 7. EXACTLY 170px - Special handling */
+  @media screen and (max-width: 170px) {
+    /* Hide non-essential elements to save space */
+    .sc-page-header p {
+      display: none;
+    }
+    .fd-widget-link {
+      display: none;
+    }
+    .pagination-info .entry-text {
+      display: none;
+    }
+    
+    .sc-page-header h1 {
+      font-size: 14px;
+    }
+    .fd-widget-title {
+      font-size: 12px;
+    }
+    .fd-widget-title i {
+      font-size: 12px;
+    }
+    
+    .search-box input {
+      font-size: 10px;
+      padding: 4px 6px 4px 20px;
+    }
+    .search-box .search-icon {
+      font-size: 10px;
+      left: 4px;
+    }
+    .filter-controls select {
+      font-size: 10px;
+      padding: 4px 6px;
+      min-width: 100%;
+    }
+    .clear-filters-btn {
+      font-size: 10px;
+      padding: 4px 8px;
+    }
+    .clear-filters-btn i {
+      font-size: 10px;
+    }
+    
+    .fd-table {
+      font-size: 9px;
+      min-width: 300px;
+    }
+    .fd-table th,
+    .fd-table td {
+      padding: 3px 4px;
+    }
+    .fd-form-title {
+      font-size: 9px;
+    }
+    .fd-form-id {
+      font-size: 8px;
+    }
+    .fd-version {
+      font-size: 9px;
+      padding: 1px 4px;
+    }
+    .fd-status {
+      font-size: 8px;
+      padding: 1px 5px;
+    }
+    .fd-dept {
+      font-size: 9px;
+    }
+    
+    .pagination-info {
+      font-size: 9px;
+    }
+    .entries-per-page {
+      font-size: 9px;
+    }
+    .entries-per-page select {
+      font-size: 9px;
+      padding: 1px 3px;
+    }
+    .pagination-controls button,
+    .pagination-controls .page-link {
+      font-size: 9px;
+      padding: 1px 4px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 2px;
+    }
+    .pagination-ellipsis {
+      font-size: 9px;
+    }
+    .pagination-controls button i {
+      font-size: 8px;
+    }
+    
+    .no-results i {
+      font-size: 20px;
+    }
+    .no-results p {
+      font-size: 10px;
+    }
+    .no-results button {
+      font-size: 9px !important;
+      padding: 4px 10px !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_scheduling %}active{% endblock %}
+
+{% block content %}
+
+<div class="sc-page-header">
+  <div>
+    <h1>View Timetable</h1>
+    <p>View all scheduled courses, sections, faculty, and room allocation.</p>
+  </div>
+  <div class="sc-header-actions">
+    <a href="{% url 'staff_scheduling' uuid=user.uuid %}" class="fd-btn fd-btn-ghost" style="text-decoration: none;">
+      <i class="ti ti-arrow-left"></i><span>Back to Scheduling</span>
+    </a>
+  </div>
+</div>
+
+<div class="cs-main-container">
+
+  <!-- Timetable Entries -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-calendar-event"></i> All Timetable Entries</div>
+      <span class="fd-widget-link" id="totalCount">{{ schedules|length }} total</span>
+    </div>
+
+    <!-- Search and Filter Controls -->
+    <div class="search-filter-container">
+      <div class="search-box">
+        <i class="ti ti-search search-icon"></i>
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Search..." 
+          onkeyup="filterTable()"
+        >
+      </div>
+      
+      <div class="filter-controls">
+        <select id="statusFilter" onchange="filterTable()">
+          <option value="">All Statuses</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="PENDING">Pending</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+        
+        <button class="clear-filters-btn" onclick="clearFilters()">
+          <i class="ti ti-x"></i> Clear
+        </button>
+      </div>
+    </div>
+
+    <div class="fd-table-wrap">
+      <table class="fd-table" id="timetableTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)" style="cursor:pointer;">
+              Course <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(1)" style="cursor:pointer;">
+              Section <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(2)" style="cursor:pointer;">
+              Faculty <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(3)" style="cursor:pointer;">
+              Room <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(4)" style="cursor:pointer;">
+              Building <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(5)" style="cursor:pointer;">
+              Capacity <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(6)" style="cursor:pointer;">
+              Status <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          {% for item in schedules %}
+          <tr data-status="{{ item.status }}">
+            <td>
+              <div class="fd-form-title course-name">{{ item.course.course_name }}</div>
+              <div class="fd-form-id course-code">{{ item.course.course_code }}</div>
+            </td>
+            <td><span class="fd-version">{{ item.section_number }}</span></td>
+            <td class="faculty-name">
+              {% if item.faculty_name != "Not Assigned" %}
+                <div class="fd-form-title">{{ item.faculty_name }}</div>
+              {% else %}
+                <span style="color:#888;">Not Assigned</span>
+              {% endif %}
+            </td>
+            <td class="room-number">{% if item.display_room %}{{ item.display_room }}{% elif item.room_number %}{{ item.room_number }}{% else %}Not Assigned{% endif %}</td>
+            <td class="building-name">{% if item.display_building %}{{ item.display_building }}{% elif item.building_name %}{{ item.building_name }}{% else %}-{% endif %}</td>
+            <td><span class="fd-dept">{{ item.capacity }}</span></td>
+            <td>
+              <span class="fd-status
+                {% if item.status == 'CONFIRMED' %}active
+                {% elif item.status == 'PENDING' %}pending
+                {% else %}archived{% endif %}">
+                {{ item.status }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align:center;padding:24px;color:#888;">No timetable records found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-container">
+      <div class="pagination-left">
+        <div class="pagination-info">
+          <span class="entry-text">Showing </span><span id="startEntry">1</span> - <span id="endEntry">10</span> <span class="entry-text">of </span><span id="totalEntries">{{ schedules|length }}</span> <span class="entry-text">entries</span>
+        </div>
+        
+        <div class="entries-per-page">
+          <label for="entriesPerPage">Show:</label>
+          <select id="entriesPerPage" onchange="changeEntriesPerPage()">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="pagination-right">
+        <div class="pagination-controls" id="paginationControls">
+          <button onclick="goToPage('prev')" id="prevPage" disabled>
+            <i class="ti ti-chevron-left"></i>
+          </button>
+          <div id="pageNumbers" style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;"></div>
+          <button onclick="goToPage('next')" id="nextPage">
+            <i class="ti ti-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Global variables for pagination
+  let currentPage = 1;
+  let entriesPerPage = 25;
+  let filteredData = [];
+  let allData = [];
+
+  // Initialize data
+  document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('#tableBody tr');
+    allData = Array.from(rows);
+    filteredData = [...allData];
+    updatePagination();
+    updateTotalCount();
+  });
+
+  // Filter function
+  function filterTable() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    filteredData = Array.from(rows).filter(row => {
+      if (row.querySelector('td[colspan]')) return false;
+      
+      const courseName = row.querySelector('.course-name')?.textContent.toLowerCase() || '';
+      const courseCode = row.querySelector('.course-code')?.textContent.toLowerCase() || '';
+      const faculty = row.querySelector('.faculty-name')?.textContent.toLowerCase() || '';
+      const room = row.querySelector('.room-number')?.textContent.toLowerCase() || '';
+      const building = row.querySelector('.building-name')?.textContent.toLowerCase() || '';
+      const status = row.dataset.status || '';
+      
+      const searchMatch = courseName.includes(searchInput) || 
+                         courseCode.includes(searchInput) || 
+                         faculty.includes(searchInput) || 
+                         room.includes(searchInput) ||
+                         building.includes(searchInput);
+      
+      const statusMatch = statusFilter === '' || status === statusFilter;
+      
+      return searchMatch && statusMatch;
+    });
+    
+    currentPage = 1;
+    updatePagination();
+    updateTotalCount();
+    
+    const tbody = document.getElementById('tableBody');
+    let noResultsRow = tbody.querySelector('.no-results-row');
+    
+    if (filteredData.length === 0 && tbody.querySelectorAll('tr').length > 0) {
+      if (!noResultsRow) {
+        noResultsRow = document.createElement('tr');
+        noResultsRow.className = 'no-results-row';
+        noResultsRow.innerHTML = `
+          <td colspan="7">
+            <div class="no-results">
+              <i class="ti ti-search"></i>
+              <p>No results found</p>
+              <button onclick="clearFilters()" style="margin-top:8px;padding:6px 16px;background:#0066cc;color:white;border:none;border-radius:4px;cursor:pointer;font-size:13px;">
+                Clear Filters
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(noResultsRow);
+      }
+    } else if (noResultsRow) {
+      noResultsRow.remove();
+    }
+  }
+
+  // Sorting function
+  let sortDirection = {};
+  
+  function sortTable(columnIndex) {
+    const tbody = document.getElementById('tableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr:not(.no-results-row)'));
+    
+    if (!sortDirection[columnIndex]) {
+      sortDirection[columnIndex] = 'asc';
+    } else if (sortDirection[columnIndex] === 'asc') {
+      sortDirection[columnIndex] = 'desc';
+    } else {
+      sortDirection[columnIndex] = 'asc';
+    }
+    
+    const direction = sortDirection[columnIndex];
+    
+    rows.sort((a, b) => {
+      let aVal = a.querySelectorAll('td')[columnIndex]?.textContent.trim() || '';
+      let bVal = b.querySelectorAll('td')[columnIndex]?.textContent.trim() || '';
+      
+      if (columnIndex === 5) {
+        aVal = parseInt(aVal) || 0;
+        bVal = parseInt(bVal) || 0;
+        return direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+    
+    const noResultsRow = tbody.querySelector('.no-results-row');
+    if (noResultsRow) {
+      tbody.appendChild(noResultsRow);
+    }
+    
+    filteredData = rows;
+    currentPage = 1;
+    updatePagination();
+  }
+
+  // Pagination functions
+  function updatePagination() {
+    const totalEntries = filteredData.length;
+    const totalPages = Math.ceil(totalEntries / entriesPerPage) || 1;
+    
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    
+    const start = (currentPage - 1) * entriesPerPage;
+    const end = Math.min(start + entriesPerPage, totalEntries);
+    
+    const allRows = document.querySelectorAll('#tableBody tr');
+    allRows.forEach(row => {
+      if (row.classList.contains('no-results-row')) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    
+    filteredData.forEach((row, index) => {
+      if (index >= start && index < end) {
+        row.style.display = '';
+      }
+    });
+    
+    document.getElementById('startEntry').textContent = totalEntries > 0 ? start + 1 : 0;
+    document.getElementById('endEntry').textContent = end;
+    document.getElementById('totalEntries').textContent = totalEntries;
+    
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+    
+    const pageNumbersContainer = document.getElementById('pageNumbers');
+    pageNumbersContainer.innerHTML = '';
+    
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (endPage - startPage < 4) {
+      if (startPage === 1) {
+        endPage = Math.min(totalPages, startPage + 4);
+      } else if (endPage === totalPages) {
+        startPage = Math.max(1, endPage - 4);
+      }
+    }
+    
+    if (startPage > 1) {
+      const firstBtn = document.createElement('button');
+      firstBtn.textContent = '1';
+      firstBtn.className = 'page-link';
+      firstBtn.onclick = () => goToPage(1);
+      pageNumbersContainer.appendChild(firstBtn);
+      
+      if (startPage > 2) {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '…';
+        ellipsis.className = 'pagination-ellipsis';
+        pageNumbersContainer.appendChild(ellipsis);
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = 'page-link' + (i === currentPage ? ' active' : '');
+      btn.onclick = () => goToPage(i);
+      pageNumbersContainer.appendChild(btn);
+    }
+    
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '…';
+        ellipsis.className = 'pagination-ellipsis';
+        pageNumbersContainer.appendChild(ellipsis);
+      }
+      
+      const lastBtn = document.createElement('button');
+      lastBtn.textContent = totalPages;
+      lastBtn.className = 'page-link';
+      lastBtn.onclick = () => goToPage(totalPages);
+      pageNumbersContainer.appendChild(lastBtn);
+    }
+  }
+
+  function goToPage(page) {
+    if (page === 'prev') {
+      currentPage = Math.max(1, currentPage - 1);
+    } else if (page === 'next') {
+      const totalPages = Math.ceil(filteredData.length / entriesPerPage);
+      currentPage = Math.min(totalPages, currentPage + 1);
+    } else {
+      currentPage = page;
+    }
+    updatePagination();
+  }
+
+  function changeEntriesPerPage() {
+    entriesPerPage = parseInt(document.getElementById('entriesPerPage').value);
+    currentPage = 1;
+    updatePagination();
+  }
+
+  function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    filterTable();
+  }
+
+  function updateTotalCount() {
+    const visibleRows = filteredData.length;
+    document.getElementById('totalCount').textContent = visibleRows + ' total';
+  }
+</script>
+
+{% endblock %}
+
+<!--*********************** Rixie Code start  **************************-->

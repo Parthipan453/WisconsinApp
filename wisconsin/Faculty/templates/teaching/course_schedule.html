@@ -1,0 +1,393 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+
+{% block title %}Course Schedule{% endblock %}
+
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rupa/teaching/course_schedule.css' %}">
+{% endblock %}
+
+{% block content %}
+
+
+
+<div class="schedule-container">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Course Schedule</h1>
+            <p>View and manage your weekly teaching schedule</p>
+        </div>
+    </div>
+
+
+
+   <!-- Stats Cards -->
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="icon red">
+            <i class="ti ti-calendar-event"></i>
+        </div>
+
+        <div>
+            <h3>{{ total_weekly_classes }}</h3>
+            <span>Total Weekly Classes</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="icon green">
+            <i class="ti ti-clock"></i>
+        </div>
+
+        <div>
+            <h3>{{ teaching_hours }} hrs</h3>
+            <span>Teaching Hours</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="icon blue">
+            <i class="ti ti-book"></i>
+        </div>
+
+        <div>
+            <h3>{{ total_courses }}</h3>
+            <span>Assigned Courses</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="icon orange">
+            <i class="ti ti-map-pin"></i>
+        </div>
+
+        <div>
+            <h3>{{ total_rooms }}</h3>
+            <span>Classrooms</span>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Teaching Progress -->
+
+<div class="card progress-card">
+
+    <div class="card-header">
+        <h3>Weekly Teaching Load</h3>
+    </div>
+
+    <div class="progress-info">
+        <span>{{ teaching_hours }} / 24 Hours</span>
+
+        <span>
+            {% widthratio teaching_hours 24 100 %}%
+        </span>
+    </div>
+
+    <div class="progress-bar">
+
+        <div
+            class="progress-fill"
+            style="width:{% widthratio teaching_hours 24 100 %}%;">
+        </div>
+
+    </div>
+
+</div>
+
+
+    <!-- Timetable / Calendar -->
+
+    <div class="card timetable-card">
+
+        <div class="timetable-header">
+
+            <h3>{% if view_mode == 'weekly' %}Weekly Timetable{% else %}Monthly Calendar{% endif %}</h3>
+
+            <div class="timetable-controls">
+
+                <div class="view-toggle">
+                    <a href="?view=weekly" class="toggle-btn {% if view_mode == 'weekly' %}active{% endif %}">Weekly</a>
+                    <a href="?view=monthly" class="toggle-btn {% if view_mode == 'monthly' %}active{% endif %}">Monthly</a>
+                </div>
+
+                <div class="period-nav">
+                    <a href="?view={{ view_mode }}&date={{ prev_ref }}" class="nav-btn" aria-label="Previous">
+                        <i class="ti ti-chevron-left"></i>
+                    </a>
+                    <span class="period-label">{{ period_label }}</span>
+                    <a href="?view={{ view_mode }}&date={{ next_ref }}" class="nav-btn" aria-label="Next">
+                        <i class="ti ti-chevron-right"></i>
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+
+        {% if view_mode == 'weekly' %}
+
+        <div class="table-wrapper">
+
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                    <th class="time-col">Time</th>
+                    {% for day in days %}
+                        <th>
+                            {{ day }}
+                            <span class="day-date">{{ week_dates|get_item:day|date:"M j" }}</span>
+                        </th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for time_slot, day_map in timetable.items %}
+                    <tr>
+                    <td class="time-col">{{ time_labels|get_item:time_slot }}</td>
+                    {% for day in days %}
+                    <td>
+                        {% with item=day_map|get_item:day %}
+                            {% if item %}
+                                <div class="course course-{{ item.color }}">
+
+                                    <strong>
+                                        {{ item.course_code }}
+                                    </strong>
+
+                                    <span class="course-name">
+                                        {{ item.course_name }}
+                                    </span>
+
+                                    <span class="course-meta">
+                                        🏫 {{ item.building }}
+                                    </span>
+
+                                    <span class="course-meta">
+                                        📍 Room {{ item.room }}
+                                    </span>
+
+                                </div>
+                            {% else %}
+                                <span class="empty-slot">&mdash;</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="empty-week">No classes scheduled this week.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <div class="month-wrapper">
+
+            <div class="month-grid">
+
+                {% for day in days %}<div class="month-day-header">{{ day }}</div>{% endfor %}
+                <div class="month-day-header">SUN</div>
+
+                {% for week in calendar_weeks %}
+                    {% for cell in week %}
+                        <div class="month-cell {% if not cell.in_month %}out-of-month{% endif %} {% if cell.is_today %}is-today{% endif %}">
+                            <span class="month-date-num">{{ cell.day_num }}</span>
+
+                            {% for cls in cell.classes %}
+                                <div class="month-class-chip chip-{{ cls.color }}">
+                                    <strong>{{ cls.course_code }}</strong>
+
+                                    <span class="month-course-name">
+                                        {{ cls.course_name }}
+                                    </span>
+
+                                    <span class="month-class-meta">
+                                        🕒 {{ cls.start_time }}
+                                    </span>
+
+                                    <span class="month-class-meta">
+                                        🏫 {{ cls.building }}
+                                    </span>
+
+                                    <span class="month-class-meta">
+                                        📍 Room {{ cls.room }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- Info Cards Row: Next Class / Today's Classes / Upcoming Classes -->
+
+    <div class="info-cards-grid">
+
+        <!-- Next Class -->
+
+        <div class="card info-card">
+
+            <div class="card-header">
+                <h3>Next Class</h3>
+            </div>
+
+            <div class="info-card-body">
+
+                {% if next_class %}
+
+                <div class="class-item">
+
+                    <h4>{{ next_class.course_code }}</h4>
+
+                    <p>{{ next_class.course_name }}</p>
+
+                    <p>
+                        🕒 {{ next_class.start_time }} - {{ next_class.end_time }}
+                    </p>
+
+                    {% if next_class.is_online %}
+                        <p>💻 Online Class</p>
+                    {% else %}
+                        <p>🏫 {{ next_class.building }} - Room {{ next_class.room }}</p>
+                    {% endif %}
+
+                    <p>Section {{ next_class.section }}</p>
+
+                    <span class="status">
+                        {{ next_class.status }}
+                    </span>
+
+                </div>
+
+                {% else %}
+
+                <div class="class-item">
+                    <h4>🎉 No More Classes</h4>
+                    <p>Your teaching schedule is finished for today.</p>
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        <!-- Today's Classes -->
+
+        <div class="card info-card">
+
+            <div class="card-header">
+                <h3>Today's Classes</h3>
+            </div>
+
+            <div class="info-card-body">
+
+                {% for cls in today_classes %}
+
+                <div class="class-item">
+
+                    <h4>{{ cls.course_code }}</h4>
+
+                    <p>{{ cls.course_name }}</p>
+
+                    <p>
+                        🕒 {{ cls.start_time }} - {{ cls.end_time }}
+                    </p>
+
+                    {% if cls.is_online %}
+                        <p>💻 Online Class</p>
+                    {% else %}
+                        <p>🏫 {{ cls.building }} - Room {{ cls.room }}</p>
+                    {% endif %}
+
+                    <p>Section {{ cls.section }}</p>
+
+                    <span class="status {{ cls.status_class }}">
+                        {{ cls.status }}
+                    </span>
+
+                </div>
+
+                {% empty %}
+
+                <p>No classes scheduled today.</p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+        <!-- Upcoming Classes -->
+
+        <div class="card info-card">
+
+            <div class="card-header">
+                <h3>Upcoming Classes</h3>
+            </div>
+
+            <div class="info-card-body">
+
+                {% for cls in upcoming_classes %}
+
+                <div class="class-item">
+
+                    <h4>{{ cls.course_code }}</h4>
+
+                    <p>{{ cls.course_name }}</p>
+
+                    <p>📅 {{ cls.date }} ({{ cls.day }})</p>
+
+                    <p>🕒 {{ cls.start_time }} - {{ cls.end_time }}</p>
+
+                    {% if cls.is_online %}
+                        <p>💻 Online Class</p>
+                    {% else %}
+                        <p>🏫 {{ cls.building }} - Room {{ cls.room }}</p>
+                    {% endif %}
+
+                    <p>Section {{ cls.section }}</p>
+
+                </div>
+
+                {% empty %}
+
+                <p>No upcoming classes.</p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+{% endblock %}

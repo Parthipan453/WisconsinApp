@@ -1,0 +1,1909 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}
+Borrow Requests
+{% endblock %}
+
+{% block extra_css %}
+
+<link
+rel="stylesheet"
+href="{% static 'css/library_admin/borrow_requests.css' %}">
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="borrow-request-page">
+
+    <!-- ========================= -->
+    <!-- PAGE HEADER -->
+    <!-- ========================= -->
+
+
+<div class="borrow-header">
+
+    <div class="borrow-header-left">
+
+        <h2>Borrow Requests</h2>
+
+        <div class="borrow-breadcrumb">
+
+            <a href="{% url 'library_dashboard' request.user.uuid %}">Dashboard</a>
+
+            <span>›</span>
+
+            <a href="{% url 'library_list' %}">Library</a>
+
+            <span>›</span>
+
+            <span class="borrow-active">
+
+                Borrow Requests
+
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+    <!-- ========================= -->
+    <!-- STATISTICS -->
+    <!-- ========================= -->
+
+<div class="borrow-request-stats" role="list" aria-label="Borrow request statistics">
+
+    <!-- Total Requests -->
+
+    <div class="borrow-request-stat-card" role="listitem">
+
+        <div class="borrow-request-stat-card__icon borrow-request-stat-card__icon--total">
+
+            <i class="fa-solid fa-file-lines"></i>
+
+        </div>
+
+        <div class="borrow-request-stat-card__body">
+
+            <p class="borrow-request-stat-card__label">
+                Total Requests
+            </p>
+
+            <p class="borrow-request-stat-card__value" id="total_requests">
+                {{ total_requests }}
+            </p>
+
+            <p class="borrow-request-stat-card__delta borrow-request-stat-card__delta--up">
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+                Borrow Requests
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Pending Requests -->
+
+    <div class="borrow-request-stat-card" role="listitem">
+
+        <div class="borrow-request-stat-card__icon borrow-request-stat-card__icon--pending">
+
+            <i class="fa-solid fa-hourglass-half"></i>
+
+        </div>
+
+        <div class="borrow-request-stat-card__body">
+
+            <p class="borrow-request-stat-card__label">
+                Pending Requests
+            </p>
+
+            <p class="borrow-request-stat-card__value" id="pending_requests">
+                {{ pending_requests }}
+            </p>
+
+            <p class="borrow-request-stat-card__delta borrow-request-stat-card__delta--pending">
+
+                <i class="fa-solid fa-clock"></i>
+
+                Awaiting Approval
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Approved Requests -->
+
+    <div class="borrow-request-stat-card" role="listitem">
+
+        <div class="borrow-request-stat-card__icon borrow-request-stat-card__icon--approved">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+        </div>
+
+        <div class="borrow-request-stat-card__body">
+
+            <p class="borrow-request-stat-card__label">
+                Approved Requests
+            </p>
+
+            <p class="borrow-request-stat-card__value" id="approved_requests">
+                {{ approved_requests }}
+            </p>
+
+            <p class="borrow-request-stat-card__delta borrow-request-stat-card__delta--approved">
+
+                <i class="fa-solid fa-check"></i>
+
+                Successfully Approved
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Rejected Requests -->
+
+    <div class="borrow-request-stat-card" role="listitem">
+
+        <div class="borrow-request-stat-card__icon borrow-request-stat-card__icon--rejected">
+
+            <i class="fa-solid fa-circle-xmark"></i>
+
+        </div>
+
+        <div class="borrow-request-stat-card__body">
+
+            <p class="borrow-request-stat-card__label">
+                Rejected Requests
+            </p>
+
+            <p class="borrow-request-stat-card__value" id="rejected_requests">
+                {{ rejected_requests }}
+            </p>
+
+            <p class="borrow-request-stat-card__delta borrow-request-stat-card__delta--rejected">
+
+                <i class="fa-solid fa-xmark"></i>
+
+                Request Declined
+
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+    <!-- ========================= -->
+    <!-- FILTERS -->
+    <!-- ========================= -->
+
+
+<div class="borrow-toolbar">
+
+    <form id="searchForm" method="GET" class="search-form">
+
+        <div class="search-box">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            <input
+
+                type="text"
+
+                name="q"
+
+                id="borrow-search"
+
+                placeholder="Search by user, user ID or book title..."
+
+                value="{{ search_query }}"
+
+                autocomplete="off"
+
+            >
+
+        </div>
+
+    </form>
+
+
+    <div class="toolbar-buttons">
+
+        <button
+
+            type="button"
+
+            class="filter-btn"
+
+            id="toggleFilter">
+
+            <i class="fa-solid fa-filter"></i>
+
+            Filter
+
+        </button>
+
+
+        <!-- <a
+
+            href="javascript:void(0);"
+
+            class="pending-btn"
+
+            id="pendingOnly">
+
+            <i class="fa-solid fa-hourglass-half"></i>
+
+            Pending Requests
+
+        </a> -->
+
+
+        <a
+
+            href="javascript:void(0);"
+
+            class="reset-btn"
+
+            id="resetFilters">
+
+            <i class="fa-solid fa-rotate-left"></i>
+
+            Reset
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+<!-- =================================== -->
+<!-- Filter Card -->
+<!-- =================================== -->
+
+<div class="filter-card" id="filterCard">
+
+    <div class="row g-3">
+
+        <!-- Status -->
+
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+
+                Status
+
+            </label>
+
+            <select
+
+                id="statusFilter"
+
+                class="form-select library-choice">
+
+                <option value="">All Status</option>
+
+                {% for value,label in status_choices %}
+
+                    <option value="{{ value }}">
+
+                        {{ label }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+
+        <!-- Library -->
+
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+
+                Library
+
+            </label>
+
+            <select
+
+                id="libraryFilter"
+
+                class="form-select library-choice">
+
+                <option value="">All Libraries</option>
+
+                {% for library in libraries %}
+
+                    <option value="{{ library.id }}">
+
+                        {{ library.library_name }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+
+        <!-- User Type -->
+
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+
+                User Type
+
+            </label>
+
+            <select
+
+                id="userTypeFilter"
+
+                class="form-select library-choice">
+
+                <option value="">All Users</option>
+
+                {% for value,label in user_types %}
+
+                    <option value="{{ value }}">
+
+                        {{ label }}
+
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+
+        <!-- Request Date -->
+
+        <div class="col-xl-3 col-lg-4 col-md-6">
+
+            <label class="filter-label">
+
+                Request Date
+
+            </label>
+
+            <input
+
+                type="date"
+
+                id="requestDateFilter"
+
+                class="form-control"
+
+            >
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =================================== -->
+<!-- Borrow Request Table -->
+<!-- =================================== -->
+
+<div class="table-card">
+
+    <div class="table-responsive">
+
+        <table class="table borrow-table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th style="width:45px;">#</th>
+
+                        <th>User</th>
+
+                        <th>Book</th>
+
+                        <th>Library</th>
+
+                        <th>Request Date</th>
+
+                        <th>Status</th>
+
+                        <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="borrow-table-body">
+
+            {% for request in borrow_requests %}
+
+                <tr>
+
+                    <td>
+
+                        {{ forloop.counter }}
+
+                    </td>
+
+                    <!-- USER -->
+
+                    <td>
+
+    <div class="borrow-user-info">
+
+       <div class="borrow-user-avatar">
+
+    {% if request.library_user.user.profile_image %}
+
+        <img
+            src="{{ request.library_user.user.profile_image.url }}"
+            alt="User">
+
+    {% else %}
+
+        {{ request.library_user.user.username|slice:":1"|upper }}
+
+    {% endif %}
+
+</div>
+
+        <div class="borrow-user-details">
+
+            <h6>
+
+    {% if request.library_user.user.first_name or request.library_user.user.last_name %}
+
+        {{ request.library_user.user.get_full_name }}
+
+    {% else %}
+
+        {{ request.library_user.user.username }}
+
+    {% endif %}
+
+</h6>
+            <span>
+
+                {{ request.library_user.get_user_type_display }}
+
+                •
+
+                {{ request.library_user.user.username }}
+
+            </span>
+
+        </div>
+
+    </div>
+
+</td>
+                    <!-- BOOK -->
+
+                    <td>
+
+    <div class="borrow-book-info">
+
+        <div class="borrow-book-avatar">
+
+            <i class="fa-solid fa-book"></i>
+
+        </div>
+
+        <div class="borrow-book-details">
+
+            <h6>
+
+                {{ request.resource.title }}
+
+            </h6>
+
+            <span>
+
+                {{ request.resource.author }}
+
+            </span>
+
+        </div>
+
+    </div>
+
+</td>
+                
+                    <!-- Library -->
+
+
+                    <td>
+
+                        <div class="library-info">
+
+                            <div class="library-avatar">
+
+                                <i class="fa-solid fa-building-columns"></i>
+
+                            </div>
+
+                            <div class="library-details">
+
+                                <h6>
+
+                                    {{ request.resource.library.library_name }}
+
+                                </h6>
+
+                                <span>
+
+                                    {{ request.resource.library.library_code }}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <!-- DATE -->
+
+                    <td>
+
+                        {{ request.request_date|date:"d M Y" }}
+
+                    </td>
+
+                    <!-- STATUS -->
+
+                    <td>
+    {% if request.status == "PENDING" %}
+
+        <span class="borrow-status borrow-status-pending">
+            <span class="borrow-status-text">PENDING</span>
+            <span class="borrow-status-icon">
+                <i data-lucide="clock-3"></i>
+            </span>
+        </span>
+
+    {% elif request.status == "APPROVED" %}
+
+        <span class="borrow-status borrow-status-approved">
+            <span class="borrow-status-text">APPROVED</span>
+            <span class="borrow-status-icon">
+                <i data-lucide="shield-check"></i>
+            </span>
+        </span>
+
+    {% elif request.status == "REJECTED" %}
+
+        <span class="borrow-status borrow-status-rejected">
+            <span class="borrow-status-text">REJECTED</span>
+            <span class="borrow-status-icon">
+                <i data-lucide="shield-x"></i>
+            </span>
+        </span>
+
+    {% elif request.status == "CANCELLED" %}
+
+        <span class="borrow-status borrow-status-cancelled">
+            <span class="borrow-status-text">CANCELLED</span>
+            <span class="borrow-status-icon">
+                <i data-lucide="ban"></i>
+            </span>
+        </span>
+
+    {% endif %}
+</td>
+
+                    <!-- ACTION -->
+
+                    <td>
+
+    <div class="table-actions">
+
+        <a
+
+            href="{% url 'borrow_request_details' request.uuid %}"
+
+            class="borrow-view-btn"
+
+            title="View">
+
+            <i class="fa-regular fa-eye"></i>
+
+            View
+
+        </a>
+
+    </div>
+
+</td>
+                </tr>
+
+            {% empty %}
+
+                <tr>
+
+                    <td colspan="6" class="text-center py-5">
+
+                        <i class="fa-solid fa-book-open fa-2x text-secondary mb-3"></i>
+
+                        <h5>No Borrow Requests Found</h5>
+
+                        <p>
+
+                            There are currently no borrow requests.
+
+                        </p>
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <!-- =================================== -->
+    <!-- TABLE FOOTER -->
+    <!-- =================================== -->
+
+    <div class="table-footer">
+
+        <div class="table-info">
+
+            Showing
+
+            <strong id="startIndex">
+                {{ page_obj.start_index }}
+            </strong>
+
+            to
+
+            <strong id="endIndex">
+                {{ page_obj.end_index }}
+            </strong>
+
+            of
+
+            <strong id="totalRequests">
+                {{ page_obj.paginator.count }}
+            </strong>
+
+            request{{ page_obj.paginator.count|pluralize }}
+
+        </div>
+
+
+        <div class="borrow-pagination-wrapper">
+
+    <ul
+        class="borrow-pagination"
+        id="pagination"
+    ></ul>
+
+</div>
+
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+// ==========================================================
+// BORROW REQUEST AJAX
+// PART 1 - INITIALIZATION
+// ==========================================================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    bindSearch();
+
+    bindFilters();
+
+    bindButtons();
+
+    loadBorrowRequests(1);
+
+});
+
+
+// ==========================================================
+// SEARCH
+// ==========================================================
+
+function bindSearch(){
+
+    const searchInput = document.getElementById("borrow-search");
+
+    if(!searchInput){
+
+        return;
+
+    }
+
+    let timer;
+
+    searchInput.addEventListener("keyup", function(){
+
+        clearTimeout(timer);
+
+        timer = setTimeout(function(){
+
+            loadBorrowRequests(1);
+
+        },400);
+
+    });
+
+}
+
+
+// ==========================================================
+// FILTERS
+// ==========================================================
+
+function bindFilters(){
+
+    const filters = [
+
+        "libraryFilter",
+
+        "statusFilter",
+
+        "userTypeFilter",
+
+        "requestDateFilter"
+
+    ];
+
+    filters.forEach(function(id){
+
+        const element = document.getElementById(id);
+
+        if(!element){
+
+            return;
+
+        }
+
+        element.addEventListener("change", function(){
+
+            loadBorrowRequests(1);
+
+        });
+
+    });
+
+}
+
+
+// ==========================================================
+// BUTTONS
+// ==========================================================
+
+function bindButtons(){
+
+    //---------------------------------------
+    // Filter Toggle
+    //---------------------------------------
+
+    const filterBtn = document.getElementById("toggleFilter");
+
+    const filterCard = document.getElementById("filterCard");
+
+    if(filterBtn && filterCard){
+
+        filterBtn.addEventListener("click", function(){
+
+            filterCard.classList.toggle("show");
+
+        });
+
+    }
+
+    //---------------------------------------
+    // Pending Button
+    //---------------------------------------
+
+    const pendingBtn = document.getElementById("pendingOnly");
+
+    if(pendingBtn){
+
+        pendingBtn.addEventListener("click", function(){
+
+            document.getElementById("statusFilter").value="PENDING";
+
+            loadBorrowRequests(1);
+
+        });
+
+    }
+
+    //---------------------------------------
+    // Reset Button
+    //---------------------------------------
+
+    const resetBtn = document.getElementById("resetFilters");
+
+    if(resetBtn){
+
+        resetBtn.addEventListener("click", function(e){
+
+    e.preventDefault();
+
+    document.getElementById("borrow-search").value = "";
+
+    document.getElementById("libraryFilter").value = "";
+
+    document.getElementById("statusFilter").value = "";
+
+    document.getElementById("userTypeFilter").value = "";
+
+    document.getElementById("requestDateFilter").value = "";
+
+    loadBorrowRequests(1);
+
+    });
+
+    }
+
+}
+// ==========================================================
+// LOAD BORROW REQUESTS
+// ==========================================================
+
+function loadBorrowRequests(page = 1){
+
+    // --------------------------------------
+    // Collect Values
+    // --------------------------------------
+
+    const search =
+        document.getElementById("borrow-search").value.trim();
+
+    const library =
+        document.getElementById("libraryFilter").value;
+
+    const status =
+        document.getElementById("statusFilter").value;
+
+    const userType =
+        document.getElementById("userTypeFilter").value;
+
+    const requestDate =
+        document.getElementById("requestDateFilter").value;
+
+    // --------------------------------------
+    // Build URL
+    // --------------------------------------
+
+    const params = new URLSearchParams({
+
+        q: search,
+
+        library: library,
+
+        status: status,
+
+        user_type: userType,
+
+        request_date: requestDate,
+
+        page: page
+
+    });
+
+    const url =
+        window.location.pathname + "?" + params.toString();
+
+    // --------------------------------------
+    // Loading
+    // --------------------------------------
+
+    showLoading();
+
+    // --------------------------------------
+    // AJAX Request
+    // --------------------------------------
+
+    fetch(url,{
+
+        method:"GET",
+
+        headers:{
+
+            "X-Requested-With":"XMLHttpRequest"
+
+        }
+
+    })
+
+    .then(function(response){
+
+        if(!response.ok){
+
+            throw new Error(
+
+                "Unable to load borrow requests."
+
+            );
+
+        }
+
+        return response.json();
+
+    })
+
+    .then(function(data){
+
+        renderBorrowRequests(
+            data.borrow_requests,
+            data.start
+        );
+
+        renderPagination(
+            data.page,
+            data.pages,
+            data.has_previous,
+            data.has_next
+        );
+
+        updateStatistics(data);
+
+        updateFooter(data);
+
+        applyBorrowTableUI();
+
+        // ============================================
+        // RE-INITIALIZE LUCIDE ICONS
+        // ============================================
+
+        if (typeof lucide !== "undefined") {
+
+            lucide.createIcons();
+
+        }
+
+    })
+    .catch(function(error){
+
+        console.error(error);
+
+        showError(
+
+            "Failed to load borrow requests."
+
+        );
+
+    });
+
+}
+// =====================================================
+// APPLY TABLE UI
+// =====================================================
+
+function applyBorrowTableUI(){
+
+    //--------------------------------------------------
+    // User Avatar Images
+    //--------------------------------------------------
+
+    document
+
+    .querySelectorAll(".borrow-user-image")
+
+    .forEach(function(img){
+
+        img.style.width="100%";
+
+        img.style.height="100%";
+
+        img.style.objectFit="cover";
+
+        img.style.borderRadius="50%";
+
+    });
+
+    //--------------------------------------------------
+    // User Avatar
+    //--------------------------------------------------
+
+    document
+
+    .querySelectorAll(".borrow-user-avatar")
+
+    .forEach(function(item){
+
+        item.style.display="flex";
+
+        item.style.alignItems="center";
+
+        item.style.justifyContent="center";
+
+    });
+
+}
+// ==========================================================
+// RENDER BORROW REQUESTS
+// ==========================================================
+
+function renderBorrowRequests(requests, startIndex){
+
+    const tbody = document.getElementById("borrow-table-body");
+
+    tbody.innerHTML = "";
+
+    // ======================================================
+    // EMPTY STATE
+    // ======================================================
+
+    if(requests.length === 0){
+
+        tbody.innerHTML = `
+
+            <tr>
+
+                <td colspan="7" class="text-center py-5">
+
+                    <i class="fa-solid fa-inbox fa-3x text-secondary mb-3"></i>
+
+                    <h5>No Borrow Requests Found</h5>
+
+                    <p>No matching records found.</p>
+
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+    // ======================================================
+    // LOOP
+    // ======================================================
+
+    requests.forEach(function(item,index){
+
+        // ==================================================
+        // USER AVATAR
+        // ==================================================
+
+        let avatarHTML = "";
+
+        if (item.profile_image) {
+
+            avatarHTML = `
+            <img
+            src="${item.profile_image}"
+            alt="User"
+            >
+           `;
+
+        } else {
+
+            avatarHTML = item.username.charAt(0).toUpperCase();
+
+        }
+
+        // ==================================================
+        // STATUS
+        // ==================================================
+
+        let statusBadge = "";
+
+        switch (item.status) {
+
+            case "PENDING":
+
+                statusBadge = `
+                    <span class="borrow-status borrow-status-pending">
+
+                        <span class="borrow-status-text">
+                            PENDING
+                        </span>
+
+                        <span class="borrow-status-icon">
+                            <i data-lucide="clock-3"></i>
+                        </span>
+
+                    </span>
+                `;
+
+                break;
+
+
+            case "APPROVED":
+
+                statusBadge = `
+                    <span class="borrow-status borrow-status-approved">
+
+                        <span class="borrow-status-text">
+                            APPROVED
+                        </span>
+
+                        <span class="borrow-status-icon">
+                            <i data-lucide="shield-check"></i>
+                        </span>
+
+                    </span>
+                `;
+
+                break;
+
+
+            case "REJECTED":
+
+                statusBadge = `
+                    <span class="borrow-status borrow-status-rejected">
+
+                        <span class="borrow-status-text">
+                            REJECTED
+                        </span>
+
+                        <span class="borrow-status-icon">
+                            <i data-lucide="shield-x"></i>
+                        </span>
+
+                    </span>
+                `;
+
+                break;
+
+
+            case "CANCELLED":
+
+                statusBadge = `
+                    <span class="borrow-status borrow-status-cancelled">
+
+                        <span class="borrow-status-text">
+                            CANCELLED
+                        </span>
+
+                        <span class="borrow-status-icon">
+                            <i data-lucide="ban"></i>
+                        </span>
+
+                    </span>
+                `;
+
+                break;
+
+
+            default:
+
+                statusBadge = `
+                    <span class="borrow-status borrow-status-cancelled">
+
+                        <span class="borrow-status-text">
+                            ${item.status || "UNKNOWN"}
+                        </span>
+
+                        <span class="borrow-status-icon">
+                            <i data-lucide="circle-help"></i>
+                        </span>
+
+                    </span>
+                `;
+
+        }
+
+        // ==================================================
+        // TABLE ROW
+        // ==================================================
+
+        let row = `
+
+        <tr>
+
+            <!-- Number -->
+
+            <td>
+
+                ${startIndex + index}
+
+            </td>
+
+            <!-- User -->
+
+            <td>
+
+                <div class="borrow-user-info">
+
+                    <div class="borrow-user-avatar">
+
+                        ${avatarHTML}
+
+                    </div>
+
+                    <div class="borrow-user-details">
+
+                        <h6>
+
+                           ${
+                             item.full_name &&
+                             item.full_name.trim() &&
+                             item.full_name.trim() !== "None None"
+                             ? item.full_name
+                             : item.username
+                            }
+
+                        </h6>
+
+                        <span>
+
+                            ${item.user_type}
+
+                            •
+
+                            ${item.username}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </td>
+
+            <!-- Book -->
+
+            <td>
+
+                <div class="borrow-book-info">
+
+                    <div class="borrow-book-avatar">
+
+                        <i class="fa-solid fa-book"></i>
+
+                    </div>
+
+                    <div class="borrow-book-details">
+
+                        <h6>
+
+                            ${item.book || "-"}
+
+                        </h6>
+
+                        <span>
+
+                            ${item.author || "-"}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </td>
+
+            <!-- Library -->
+
+            <td>
+
+                <div class="library-info">
+
+                    <div class="library-avatar">
+
+                        <i class="fa-solid fa-building-columns"></i>
+
+                    </div>
+
+                    <div class="library-details">
+
+                        <h6>
+
+                            ${item.library || "-"}
+
+                        </h6>
+
+                        <span>
+
+                            ${item.library_code || ""}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </td>
+
+            <!-- Request Date -->
+
+            <td>
+
+                ${item.request_date || "-"}
+
+            </td>
+
+            <!-- Status -->
+
+            <td>
+
+                ${statusBadge}
+
+            </td>
+
+            <!-- Action -->
+
+            <td>
+
+                <div class="table-actions">
+
+                    <a
+    href="/library/borrow-request/${item.uuid}/"
+    class="borrow-view-btn"
+    title="View"
+>
+    <i class="fa-regular fa-eye"></i>
+    View
+</a>
+                </div>
+
+            </td>
+
+        </tr>
+
+        `;
+
+        tbody.insertAdjacentHTML(
+
+            "beforeend",
+
+            row
+
+        );
+
+    });
+
+}
+// ==========================================================
+// RENDER PAGINATION
+// ==========================================================
+
+// ==========================================================
+// BORROW REQUEST PAGINATION
+// ==========================================================
+
+function renderPagination(
+    currentPage,
+    totalPages,
+    hasPrevious,
+    hasNext
+) {
+
+    const pagination =
+        document.getElementById(
+            "pagination"
+        );
+
+
+    if (!pagination) {
+        return;
+    }
+
+
+    pagination.innerHTML = "";
+
+
+    // =====================================================
+    // PREVIOUS
+    // =====================================================
+
+    const previousItem =
+        document.createElement("li");
+
+
+    if (hasPrevious) {
+
+        previousItem.innerHTML = `
+
+            <button
+                type="button"
+                class="borrow-pagination-btn"
+            >
+                Previous
+            </button>
+
+        `;
+
+
+        previousItem
+            .querySelector("button")
+            .addEventListener(
+                "click",
+                function () {
+
+                    loadBorrowRequests(
+                        currentPage - 1
+                    );
+
+                }
+            );
+
+    } else {
+
+        previousItem.innerHTML = `
+
+            <button
+                type="button"
+                class="borrow-pagination-btn disabled"
+                disabled
+            >
+                Previous
+            </button>
+
+        `;
+
+    }
+
+
+    pagination.appendChild(
+        previousItem
+    );
+
+
+    // =====================================================
+    // PAGE BUTTON
+    // =====================================================
+
+    function createPageButton(pageNumber) {
+
+        const item =
+            document.createElement("li");
+
+
+        const button =
+            document.createElement("button");
+
+
+        button.type =
+            "button";
+
+
+        button.className =
+            "borrow-page-number";
+
+
+        if (
+            pageNumber === currentPage
+        ) {
+
+            button.classList.add(
+                "active"
+            );
+
+        }
+
+
+        button.textContent =
+            pageNumber;
+
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                loadBorrowRequests(
+                    pageNumber
+                );
+
+            }
+        );
+
+
+        item.appendChild(button);
+
+
+        pagination.appendChild(item);
+
+    }
+
+
+    // =====================================================
+    // ELLIPSIS
+    // =====================================================
+
+    function createEllipsis() {
+
+        const item =
+            document.createElement("li");
+
+
+        item.className =
+            "borrow-pagination-ellipsis";
+
+
+        item.textContent =
+            "...";
+
+
+        pagination.appendChild(item);
+
+    }
+
+
+    // =====================================================
+    // PAGE LOGIC
+    // =====================================================
+
+    if (totalPages <= 4) {
+
+        for (
+            let page = 1;
+            page <= totalPages;
+            page++
+        ) {
+
+            createPageButton(page);
+
+        }
+
+    }
+
+
+    else if (currentPage <= 2) {
+
+        // 1 2 ... 10
+
+        createPageButton(1);
+
+        createPageButton(2);
+
+        createEllipsis();
+
+        createPageButton(totalPages);
+
+    }
+
+
+    else if (
+        currentPage >= totalPages - 1
+    ) {
+
+        // 1 ... 9 10
+
+        createPageButton(1);
+
+        createEllipsis();
+
+        createPageButton(
+            totalPages - 1
+        );
+
+        createPageButton(totalPages);
+
+    }
+
+
+    else {
+
+        // 1 ... 5 ... 10
+
+        createPageButton(1);
+
+        createEllipsis();
+
+        createPageButton(currentPage);
+
+        createEllipsis();
+
+        createPageButton(totalPages);
+
+    }
+
+
+    // =====================================================
+    // NEXT
+    // =====================================================
+
+    const nextItem =
+        document.createElement("li");
+
+
+    if (hasNext) {
+
+        nextItem.innerHTML = `
+
+            <button
+                type="button"
+                class="borrow-pagination-btn"
+            >
+                Next
+            </button>
+
+        `;
+
+
+        nextItem
+            .querySelector("button")
+            .addEventListener(
+                "click",
+                function () {
+
+                    loadBorrowRequests(
+                        currentPage + 1
+                    );
+
+                }
+            );
+
+    } else {
+
+        nextItem.innerHTML = `
+
+            <button
+                type="button"
+                class="borrow-pagination-btn disabled"
+                disabled
+            >
+                Next
+            </button>
+
+        `;
+
+    }
+
+
+    pagination.appendChild(
+        nextItem
+    );
+
+}
+// ==========================================================
+// UPDATE TABLE FOOTER
+// ==========================================================
+
+function updateFooter(data){
+
+    const start =
+        document.getElementById("startIndex");
+
+    const end =
+        document.getElementById("endIndex");
+
+    const total =
+        document.getElementById("totalRequests");
+
+    if(start){
+
+        start.innerHTML =
+            data.start;
+
+    }
+
+    if(end){
+
+        end.innerHTML =
+            data.end;
+
+    }
+
+    if(total){
+
+        total.innerHTML =
+            data.total;
+
+    }
+
+}
+// ==========================================================
+// UPDATE STATISTICS
+// ==========================================================
+
+function updateStatistics(data){
+
+    const total =
+        document.getElementById("total_requests");
+
+    const pending =
+        document.getElementById("pending_requests");
+
+    const approved =
+        document.getElementById("approved_requests");
+
+    const rejected =
+        document.getElementById("rejected_requests");
+
+    if(total){
+
+        total.textContent =
+            data.total_requests;
+
+    }
+
+    if(pending){
+
+        pending.textContent =
+            data.pending_requests;
+
+    }
+
+    if(approved){
+
+        approved.textContent =
+            data.approved_requests;
+
+    }
+
+    if(rejected){
+
+        rejected.textContent =
+            data.rejected_requests;
+
+    }
+
+}
+
+
+
+// ==========================================================
+// SHOW LOADING
+// ==========================================================
+
+function showLoading(){
+
+    const tbody =
+        document.getElementById("borrow-table-body");
+
+    if(!tbody){
+
+        return;
+
+    }
+
+    tbody.innerHTML = `
+
+        <tr>
+
+            <td colspan="7" class="text-center py-5">
+
+                <i class="fa-solid fa-spinner fa-spin"></i>
+
+                Loading Borrow Requests...
+
+            </td>
+
+        </tr>
+
+    `;
+
+}
+
+
+
+// ==========================================================
+// SHOW ERROR
+// ==========================================================
+
+function showError(message){
+
+    const tbody =
+        document.getElementById("borrow-table-body");
+
+    if(!tbody){
+
+        return;
+
+    }
+
+    tbody.innerHTML = `
+
+        <tr>
+
+            <td colspan="7" class="text-center py-5 text-danger">
+
+                <i class="fa-solid fa-circle-exclamation me-2"></i>
+
+                ${message}
+
+            </td>
+
+        </tr>
+
+    `;
+
+}
+
+
+
+// ==========================================================
+// VIEW BORROW REQUEST
+// ==========================================================
+
+function viewBorrowRequest(id){
+
+    console.log("Borrow Request :",id);
+
+    // Later replace with your details page
+
+    // window.location.href =
+    // "/library/borrow-request/" + id + "/";
+
+}
+
+
+
+// ==========================================================
+// REFRESH CURRENT PAGE
+// ==========================================================
+
+function refreshBorrowRequests(){
+
+    setTimeout(function(){
+
+    loadBorrowRequests(1);
+
+    },100);
+
+}
+
+
+
+// ==========================================================
+// OPTIONAL
+// PRESS ENTER TO SEARCH
+// ==========================================================
+
+const searchBox =
+    document.getElementById("borrow-search");
+
+if(searchBox){
+
+    searchBox.addEventListener("keypress",function(e){
+
+        if(e.key==="Enter"){
+
+            e.preventDefault();
+
+            loadBorrowRequests(1);
+
+        }
+
+    });
+
+}
+
+lucide.createIcons();
+</script>
+
+{% endblock %}

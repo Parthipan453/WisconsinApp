@@ -1,0 +1,855 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Medical | Book Appointment{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2.6.0/dist/slimselect.min.css">
+    <link rel="stylesheet" href="{% static 'css/Jack/medical_appointment.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.1/tabler-icons.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="mbp-wrapper">
+    <div class="mbp-container">
+        <div class="mbp-decorative-side">
+            <div class="mbp-decorative-content">
+                <div class="mbp-deco-animated-bg"></div>
+                <div class="mbp-deco-icon">
+                    <i class="ti ti-heart-pulse"></i>
+                </div>
+                <h3>Medical Appointment</h3>
+                <p class="mbp-deco-subtitle">Quality healthcare at your fingertips</p>
+
+                <div class="mbp-deco-stats">
+                    <div class="mbp-deco-stat">
+                        <span class="mbp-stat-number">500+</span>
+                        <span class="mbp-stat-label">Happy Patients</span>
+                    </div>
+                    <div class="mbp-deco-stat">
+                        <span class="mbp-stat-number">98%</span>
+                        <span class="mbp-stat-label">Satisfaction Rate</span>
+                    </div>
+                    <div class="mbp-deco-stat">
+                        <span class="mbp-stat-number">24/7</span>
+                        <span class="mbp-stat-label">Emergency Support</span>
+                    </div>
+                </div>
+
+                <div class="mbp-deco-features">
+                    <div class="mbp-deco-feature">
+                        <i class="ti ti-clock"></i>
+                        <span>Quick scheduling</span>
+                    </div>
+                    <div class="mbp-deco-feature">
+                        <i class="ti ti-shield-check"></i>
+                        <span>Secure & private</span>
+                    </div>
+                    <div class="mbp-deco-feature">
+                        <i class="ti ti-users"></i>
+                        <span>Expert doctors</span>
+                    </div>
+                    <div class="mbp-deco-feature">
+                        <i class="ti ti-phone"></i>
+                        <span>24/7 Support</span>
+                    </div>
+                    <div class="mbp-deco-feature">
+                        <i class="ti ti-file-text"></i>
+                        <span>Digital records</span>
+                    </div>
+                    <div class="mbp-deco-feature">
+                        <i class="ti ti-ambulance"></i>
+                        <span>Emergency care</span>
+                    </div>
+                </div>
+
+                <div class="mbp-deco-quote">
+                    <i class="ti ti-quote"></i>
+                    <p>"Your health is our priority. Book your appointment today."</p>
+                </div>
+
+                <div class="mbp-deco-quote">
+                    <i class="ti ti-stethoscope"></i>
+                    <p>Our experienced healthcare professionals are committed to providing compassionate, high-quality medical care for every patient.</p>
+                </div>
+
+                <div class="mbp-deco-quote">
+                    <i class="ti ti-calendar-check"></i>
+                    <p>Book appointments online in minutes, receive timely care, and securely access your medical records anytime.</p>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="mbp-form-side">
+            <div class="mbp-form-card">
+                <div class="mbp-form-header">
+                    <div class="mbp-header-badge">
+                        <i class="ti ti-calendar-plus"></i>
+                        New Appointment
+                    </div>
+                    <h2 class="mbp-form-title">Book Your Visit</h2>
+                    <p class="mbp-form-subtitle">Fill in the details below to schedule your appointment</p>
+                </div>
+
+                <form method="post" class="mbp-form" id="appointmentForm" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mbp-form-group">
+                        <label for="id_patient" class="mbp-label">
+                            <i class="ti ti-user"></i> Patient <span class="mbp-required">*</span>
+                        </label>
+                        <div class="mbp-patient-display">
+                            <div class="mbp-patient-avatar">
+                                <i class="ti ti-user-circle"></i>
+                            </div>
+                            <div class="mbp-patient-info">
+                                <div class="mbp-patient-name">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="mbp-patient-id">
+                                        SSN: {{ user.ssn_number|default:"User don't have SSN No" }}
+                                </div>
+                            </div>
+                            <div class="mbp-patient-badge">
+                                <i class="ti ti-check"></i> Verified
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mbp-row">
+                        <div class="mbp-col">
+                            <div class="mbp-form-group">
+                                <label for="id_hospital" class="mbp-label">
+                                    <i class="ti ti-building-hospital"></i> Hospital <span class="mbp-required">*</span>
+                                </label>
+                                <select name="hospital" id="id_hospital" class="mbp-select" required>
+                                    <option value="">Select Hospital</option>
+                                    {% for hospital in hospitals %}
+                                        <option value="{{ hospital.uuid }}" {% if form.hospital.value|stringformat:"s" == hospital.uuid|stringformat:"s" %}selected{% endif %}>
+                                            {{ hospital.hospital_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="mbp-error-message" id="hospitalError"></div>
+                                {% if form.hospital.errors %}
+                                    <div class="mbp-error-message">{{ form.hospital.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mbp-col">
+                            <div class="mbp-form-group">
+                                <label class="mbp-label">
+                                    <i class="ti ti-calendar"></i> Date <span class="mbp-required">*</span>
+                                </label>
+
+                                <div class="mbp-custom-date">
+                                    <div class="mbp-date-display" id="dateDisplay" tabindex="0">
+                                        <span class="mbp-date-value" id="selectedDate">{{ form.appointment_date.value|default:"Select Date" }}</span>
+                                        <span class="mbp-dropdown-arrow">
+                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="mbp-date-dropdown" id="dateDropdown">
+                                        <div class="mbp-date-header">
+                                            <button type="button" class="mbp-date-nav" onclick="changeMonth(-1)">‹</button>
+                                            <span class="mbp-date-month-year" id="currentMonthYear">January 2026</span>
+                                            <button type="button" class="mbp-date-nav" onclick="changeMonth(1)">›</button>
+                                        </div>
+                                        <div class="mbp-date-weekdays">
+                                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                                        </div>
+                                        <div class="mbp-date-grid" id="dateGrid"></div>
+                                        <div class="mbp-date-footer">
+                                            <button type="button" class="mbp-date-today" onclick="selectToday()">Today</button>
+                                            <button type="button" class="mbp-date-close" onclick="closeDateDropdown()">Close</button>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="appointment_date" id="id_appointment_date" value="{{ form.appointment_date.value|default:'' }}" required>
+                                </div>
+
+                                <div class="mbp-error-message" id="appointmentDateError"></div>
+
+                                {% if form.appointment_date.errors %}
+                                    <div class="mbp-error-message">{{ form.appointment_date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mbp-row">
+                        <div class="mbp-col">
+                            <div class="mbp-form-group">
+                                <label for="id_medical_staff" class="mbp-label">
+                                    <i class="ti ti-user-circle"></i> Staff <span class="mbp-required">*</span>
+                                </label>
+                                <select name="medical_staff" id="id_medical_staff" class="mbp-select" required>
+                                    <option value="">Select hospital and date first</option>
+                                </select>
+                                <div id="staffError" class="staff-msg-err">
+                                    <i class="ti ti-alert-circle"></i> <span id="staffErrorMessage"></span>
+                                </div>
+
+                                <div class="mbp-error-message" id="staffReqError"></div>
+
+                                {% if form.medical_staff.errors %}
+                                    <div class="mbp-error-message">{{ form.medical_staff.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mbp-col">
+                            <div class="mbp-form-group">
+                                <label for="id_service" class="mbp-label">
+                                    <i class="ti ti-stethoscope"></i> Service <span class="mbp-required">*</span>
+                                </label>
+
+                                <div class="mbp-service-wrapper">
+                                    <select name="service" id="id_service" class="mbp-select" required>
+                                        <option value="">Select service</option>
+                                        <option value="General Consultation">General Consultation</option>
+                                        <option value="Cardiology">Cardiology</option>
+                                        <option value="Dermatology">Dermatology</option>
+                                        <option value="Orthopedics">Orthopedics</option>
+                                        {% if has_athlete_profile %}
+                                            <option value="Sports">Sports</option>
+                                        {% endif %}
+                                        <option value="Physiotherapy">Physiotherapy</option>
+                                        <option value="Neurology">Neurology</option>
+                                        <option value="Pediatrics">Pediatrics</option>
+                                        <option value="Gynecology">Gynecology</option>
+                                        <option value="ENT">ENT</option>
+                                        <option value="Ophthalmology">Ophthalmology</option>
+                                        <option value="Dentistry">Dentistry</option>
+                                        <option value="Psychology">Psychology</option>
+                                        <option value="Emergency Care">Emergency Care</option>
+                                        <option value="OTHER">Other (Please specify)</option>
+                                    </select>
+                                    <input type="text" 
+                                           name="service_other" 
+                                           id="id_service_other" 
+                                           class="mbp-input mbp-service-input" 
+                                           placeholder="Please specify your service"
+                                        >
+                                </div>
+
+                                <div class="mbp-error-message" id="serviceError"></div>
+
+                                {% if form.service.errors %}
+                                    <div class="mbp-error-message">{{ form.service.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mbp-form-group">
+                        <label class="mbp-label">
+                            <i class="ti ti-flag"></i> Priority
+                        </label>
+                        <div class="mbp-priority-options">
+                            <label class="mbp-priority-option">
+                                <input type="radio" name="priority" value="LOW" {% if form.priority.value == "LOW" %}checked{% endif %}>
+                                <span class="mbp-priority-label low">Low</span>
+                            </label>
+                            <label class="mbp-priority-option">
+                                <input type="radio" name="priority" value="NORMAL" {% if form.priority.value == "NORMAL" or not form.priority.value %}checked{% endif %}>
+                                <span class="mbp-priority-label normal">Normal</span>
+                            </label>
+                            <label class="mbp-priority-option">
+                                <input type="radio" name="priority" value="HIGH" {% if form.priority.value == "HIGH" %}checked{% endif %}>
+                                <span class="mbp-priority-label high">High</span>
+                            </label>
+                            <label class="mbp-priority-option">
+                                <input type="radio" name="priority" value="EMERGENCY" {% if form.priority.value == "EMERGENCY" %}checked{% endif %}>
+                                <span class="mbp-priority-label emergency">Emergency</span>
+                            </label>
+                        </div>
+                        {% if form.priority.errors %}
+                            <div class="mbp-error-message">{{ form.priority.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mbp-form-group">
+                        <label for="id_reason" class="mbp-label">
+                            <i class="ti ti-notes"></i> Reason <span class="mbp-required">*</span>
+                        </label>
+                        <textarea name="reason" id="id_reason" class="mbp-textarea" rows="3" placeholder="Briefly describe the reason for your appointment..." required minlength="10" maxlength="500">{{ form.reason.value|default:'' }}</textarea>
+                        
+                        <div class="mbp-error-message" id="reasonError"></div>
+                        
+                        {% if form.reason.errors %}
+                            <div class="mbp-error-message">{{ form.reason.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mbp-form-actions">
+                        <button type="submit" class="mbp-btn mbp-btn-primary" id="submitBtn">
+                            <i class="ti ti-calendar-check"></i> Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2.6.0/dist/slimselect.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+ 
+    function closeOpenSlimSelects() {
+        [slimHospital, slimStaff, slimService].forEach(function (instance) {
+            if (instance && typeof instance.close === 'function') {
+                instance.close();
+            }
+        });
+    }
+ 
+    let scrollTimeout;
+    function onPageScroll(e) {
+        const t = e && e.target;
+        if (t && t.closest) {
+            if (t.closest('.ss-content') || t.closest('.mbp-date-dropdown')) {
+                return;
+            }
+        }
+        if (scrollTimeout) {
+            window.cancelAnimationFrame(scrollTimeout);
+        }
+        scrollTimeout = window.requestAnimationFrame(closeOpenSlimSelects);
+    }
+ 
+    document.addEventListener('scroll', onPageScroll, { capture: true, passive: true });
+    window.addEventListener('scroll', onPageScroll, { passive: true });
+
+    function initSlimSelect(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return null;
+       
+        return new SlimSelect({
+            select: select,
+            placeholder: 'Select option',
+            allowDeselect: true,
+            deselectLabel: '✕',
+            showSearch: false,
+        });
+    }
+ 
+    const slimHospital = initSlimSelect('id_hospital');
+    let slimStaff = initSlimSelect('id_medical_staff');
+    const slimService = initSlimSelect('id_service');
+   
+    const serviceSelect = document.getElementById('id_service');
+    const serviceOther = document.getElementById('id_service_other');
+ 
+    if (serviceSelect && serviceOther) {
+        serviceSelect.addEventListener('change', function() {
+            if (this.value === 'OTHER') {
+                serviceOther.style.display = 'block';
+                serviceOther.required = true;
+                serviceOther.focus();
+                this.required = false;
+            } else {
+                serviceOther.style.display = 'none';
+                serviceOther.required = false;
+                serviceOther.value = '';
+                this.required = true;
+            }
+        });
+ 
+        if (serviceSelect.value === 'OTHER') {
+            serviceOther.style.display = 'block';
+            serviceOther.required = true;
+            serviceSelect.required = false;
+        }
+    }
+ 
+ 
+    let currentDate = new Date();
+    let selectedDate = null;
+ 
+    const dateDisplay = document.getElementById('dateDisplay');
+    const dateDropdown = document.getElementById('dateDropdown');
+    const dateGrid = document.getElementById('dateGrid');
+    const currentMonthYear = document.getElementById('currentMonthYear');
+    const selectedDateSpan = document.getElementById('selectedDate');
+    const dateHiddenInput = document.getElementById('id_appointment_date');
+ 
+    function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+ 
+        currentMonthYear.textContent = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+ 
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+ 
+        const startDay = firstDay === 0 ? 6 : firstDay - 1;
+ 
+        let html = '';
+        for (let i = startDay - 1; i >= 0; i--) {
+            const day = daysInPrevMonth - i;
+            html += `<span class="mbp-date-cell other-month" data-date="${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}">${day}</span>`;
+        }
+ 
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+       
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateObj = new Date(year, month, i);
+            const isToday = dateObj.toDateString() === today.toDateString();
+            const isSelected = selectedDate && dateObj.toDateString() === selectedDate.toDateString();
+            const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            let className = 'mbp-date-cell';
+            if (isToday) className += ' today';
+            if (isSelected) className += ' selected';
+            if (isPast) className += ' past';
+            const clickAttr = isPast ? '' : `onclick="selectDate('${dateStr}')"`;
+            html += `<span class="${className}" data-date="${dateStr}" ${clickAttr}>${i}</span>`;
+        }
+ 
+        const totalCells = startDay + daysInMonth;
+        const remainingCells = (7 - (totalCells % 7)) % 7;
+        for (let i = 1; i <= remainingCells; i++) {
+            html += `<span class="mbp-date-cell other-month" data-date="${year}-${String(month + 2).padStart(2, '0')}-${String(i).padStart(2, '0')}">${i}</span>`;
+        }
+ 
+        dateGrid.innerHTML = html;
+    }
+ 
+    window.changeMonth = function(delta) {
+        currentDate.setMonth(currentDate.getMonth() + delta);
+        renderCalendar();
+    };
+ 
+    window.selectDate = function(dateStr) {
+        const dateParts = dateStr.split('-');
+        selectedDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        selectedDateSpan.textContent = selectedDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+        dateHiddenInput.value = dateStr;
+        dateDisplay.classList.add('selected');
+        closeDateDropdown();
+        renderCalendar();
+
+        dateHiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+ 
+    window.selectToday = function() {
+        const today = new Date();
+        currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        selectDate(todayStr);
+    };
+ 
+    if (dateDisplay) {
+        dateDisplay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = dateDropdown.classList.contains('open');
+            if (isOpen) {
+                closeDateDropdown();
+            } else {
+                dateDropdown.classList.add('open');
+                dateDisplay.classList.add('open');
+                renderCalendar();
+            }
+        });
+    }
+ 
+    window.closeDateDropdown = function() {
+        if (dateDropdown) dateDropdown.classList.remove('open');
+        if (dateDisplay) dateDisplay.classList.remove('open');
+    };
+ 
+    document.addEventListener('click', function(e) {
+        const dateContainer = document.querySelector('.mbp-custom-date');
+        if (dateContainer && !dateContainer.contains(e.target)) {
+            closeDateDropdown();
+        }
+    });
+ 
+    if (!dateHiddenInput.value) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const defaultDateStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        selectDate(defaultDateStr);
+    }
+ 
+ 
+    const hospitalSelect = document.getElementById("id_hospital");
+    const staffSelect = document.getElementById("id_medical_staff");
+    const staffError = document.getElementById("staffError");
+    const staffErrorMessage = document.getElementById("staffErrorMessage");
+ 
+    if (!hospitalSelect || !dateHiddenInput || !staffSelect) {
+        console.error("Appointment fields not found.");
+        return;
+    }
+ 
+    function loadMedicalStaff() {
+        const hospital = hospitalSelect.value;
+        const date = dateHiddenInput.value;
+ 
+        staffSelect.innerHTML = "";
+        staffError.style.display = "none";
+ 
+        if (!hospital || !date) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "Select hospital and date first";
+            staffSelect.appendChild(option);
+            staffSelect.disabled = true;
+           
+            if (slimStaff) {
+                slimStaff.destroy();
+            }
+            slimStaff = new SlimSelect({
+                select: staffSelect,
+                placeholder: 'Select hospital and date first',
+                allowDeselect: true,
+                deselectLabel: '✕',
+                showSearch: false,
+            });
+            slimStaff.disable();
+            return;
+        }
+ 
+        staffSelect.disabled = true;
+        if (slimStaff) {
+            slimStaff.disable();
+        }
+ 
+        const url = "/student/get-available-medical-staff/" +
+            "?hospital=" + encodeURIComponent(hospital) +
+            "&date=" + encodeURIComponent(date);
+ 
+        console.log("Fetching staff from:", url);
+ 
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                staffSelect.innerHTML = "";
+ 
+                console.log("Staff data received:", data);
+ 
+                if (!data.success) {
+                    staffError.style.display = "block";
+                    staffErrorMessage.textContent = data.message || "Failed to load staff";
+                    staffSelect.disabled = true;
+                   
+                    if (slimStaff) {
+                        slimStaff.destroy();
+                    }
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "Error loading staff";
+                    staffSelect.appendChild(option);
+                    slimStaff = new SlimSelect({
+                        select: staffSelect,
+                        placeholder: 'Error loading staff',
+                        allowDeselect: true,
+                        deselectLabel: '✕',
+                        showSearch: false,
+                    });
+                    slimStaff.disable();
+                    return;
+                }
+ 
+                if (data.staff.length === 0) {
+                    staffSelect.disabled = true;
+                   
+                    if (slimStaff) {
+                        slimStaff.destroy();
+                    }
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "No staff available for this date";
+                    staffSelect.appendChild(option);
+                    slimStaff = new SlimSelect({
+                        select: staffSelect,
+                        placeholder: 'No staff available',
+                        allowDeselect: true,
+                        deselectLabel: '✕',
+                        showSearch: false,
+                    });
+                    slimStaff.disable();
+                    return;
+                }
+ 
+                const defaultOption = document.createElement("option");
+                defaultOption.value = "";
+                defaultOption.textContent = "Select Medical Staff";
+                staffSelect.appendChild(defaultOption);
+               
+                data.staff.forEach(function (staff) {
+                    const option = document.createElement("option");
+                    option.value = staff.uuid;
+                    option.textContent = staff.name + " — " + staff.department;
+                    staffSelect.appendChild(option);
+                });
+ 
+                staffSelect.disabled = false;
+               
+                if (slimStaff) {
+                    slimStaff.destroy();
+                }
+               
+                slimStaff = new SlimSelect({
+                    select: staffSelect,
+                    placeholder: 'Select Medical Staff',
+                    allowDeselect: true,
+                    deselectLabel: '✕',
+                    showSearch: false,
+                });
+               
+                slimStaff.enable();
+ 
+                const previousValue = staffSelect.getAttribute('data-selected-value');
+                if (previousValue) {
+                    slimStaff.setValue(previousValue);
+                }
+ 
+            })
+            .catch(error => {
+                console.error("Error loading medical staff:", error);
+                staffSelect.innerHTML = "";
+               
+                staffError.style.display = "block";
+                staffErrorMessage.textContent = "Unable to load medical staff. Please try again.";
+               
+                staffSelect.disabled = true;
+               
+                if (slimStaff) {
+                    slimStaff.destroy();
+                }
+                const option = document.createElement("option");
+                option.value = "";
+                option.textContent = "Unable to load medical staff";
+                staffSelect.appendChild(option);
+                slimStaff = new SlimSelect({
+                    select: staffSelect,
+                    placeholder: 'Unable to load medical staff',
+                    allowDeselect: true,
+                    deselectLabel: '✕',
+                    showSearch: false,
+                });
+                slimStaff.disable();
+            });
+    }
+ 
+    hospitalSelect.addEventListener("change", loadMedicalStaff);
+ 
+    dateHiddenInput.addEventListener("change", loadMedicalStaff);
+ 
+    const initialOption = document.createElement("option");
+    initialOption.value = "";
+    initialOption.textContent = "Select hospital and date first";
+    staffSelect.appendChild(initialOption);
+    staffSelect.disabled = true;
+    if (slimStaff) {
+        slimStaff.disable();
+    }
+ 
+ 
+    const reasonField = document.getElementById('id_reason');
+    const charCount = document.getElementById('charCount');
+   
+    if (reasonField && charCount) {
+        reasonField.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            if (count > 500) {
+                charCount.style.color = 'red';
+            } else {
+                charCount.style.color = '';
+            }
+        });
+        charCount.textContent = reasonField.value.length;
+    }
+ 
+ 
+    document.querySelectorAll('.mbp-priority-option input').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('.mbp-priority-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            if (this.checked) {
+                this.closest('.mbp-priority-option').classList.add('selected');
+            }
+        });
+       
+        if (radio.checked) {
+            radio.closest('.mbp-priority-option').classList.add('selected');
+        }
+    });
+ 
+ 
+    const form = document.getElementById('appointmentForm');
+    const submitBtn = document.getElementById('submitBtn');
+ 
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+           
+            if (!hospitalSelect.value) {
+                hospitalSelect.style.borderColor = '#dc2626';
+                hospitalSelect.closest('.mbp-form-group').classList.add('has-error');
+
+                document.getElementById('hospitalError').textContent =
+                    'Please select a hospital.';
+
+                document.getElementById('hospitalError').style.display = 'block';
+
+                isValid = false;
+            } else {
+                hospitalSelect.style.borderColor = '';
+                hospitalSelect.closest('.mbp-form-group').classList.remove('has-error');
+
+                document.getElementById('hospitalError').textContent = '';
+                document.getElementById('hospitalError').style.display = 'none';
+            }
+ 
+            if (!dateHiddenInput.value) {
+                dateDisplay.style.borderColor = '#dc2626';
+                dateDisplay.closest('.mbp-form-group').classList.add('has-error');
+
+                document.getElementById('appointmentDateError').textContent =
+                    'Please select a Date.';
+
+                document.getElementById('appointmentDateError').style.display = 'block';
+
+                isValid = false;
+            } else {
+                dateDisplay.style.borderColor = '';
+                dateDisplay.closest('.mbp-form-group').classList.remove('has-error');
+
+                document.getElementById('appointmentDateError').textContent = '';
+                document.getElementById('appointmentDateError').style.display = 'none';
+            }
+ 
+            if (!staffSelect.value) {
+                staffSelect.style.borderColor = '#dc2626';
+                staffSelect.closest('.mbp-form-group').classList.add('has-error');
+
+                document.getElementById('staffReqError').textContent =
+                    'Please select a Staff.';
+
+                document.getElementById('staffReqError').style.display = 'block';
+
+                isValid = false;
+            } else {
+                staffSelect.style.borderColor = '';
+                staffSelect.closest('.mbp-form-group').classList.remove('has-error');
+
+                document.getElementById('staffReqError').textContent = '';
+                document.getElementById('staffReqError').style.display = 'none';
+            }
+ 
+            const serviceVal = serviceSelect.value;
+            const serviceOtherVal = serviceOther.value.trim();
+           
+            if (serviceVal === 'OTHER') {
+                if (!serviceOtherVal) {
+                    serviceOther.style.borderColor = '#dc2626';
+                    serviceOther.closest('.mbp-form-group').classList.add('has-error');
+
+                    document.getElementById('serviceError').textContent =
+                    'Please select a Service.';
+
+                    document.getElementById('serviceError').style.display = 'block';
+
+                    isValid = false;
+                } else {
+                    serviceOther.style.borderColor = '';
+                    serviceOther.closest('.mbp-form-group').classList.remove('has-error');
+
+                    document.getElementById('serviceError').textContent = '';
+                    document.getElementById('serviceError').style.display = 'none';
+                }
+            } else if (!serviceVal) {
+                serviceSelect.style.borderColor = '#dc2626';
+                serviceSelect.closest('.mbp-form-group').classList.add('has-error');
+
+                document.getElementById('serviceError').textContent =
+                    'Please select a Service.';
+
+                document.getElementById('serviceError').style.display = 'block';
+
+                isValid = false;
+            } else {
+                serviceSelect.style.borderColor = '';
+                serviceSelect.closest('.mbp-form-group').classList.remove('has-error');
+
+                document.getElementById('serviceError').textContent = '';
+                document.getElementById('serviceError').style.display = 'none';
+            }
+ 
+            const reason = document.getElementById('id_reason');
+
+            const reasonValue = reason.value.trim();
+
+            if (!reason.value.trim() || reason.value.trim().length < 10) {
+                reason.style.borderColor = '#dc2626';
+                reason.closest('.mbp-form-group').classList.add('has-error');
+
+                document.getElementById('reasonError').textContent =
+                    'Reason must be at least 10 characters..';
+
+                    document.getElementById('reasonError').style.display = 'block';
+                isValid = false;
+
+            } else {
+                reason.style.borderColor = '';
+                reason.closest('.mbp-form-group').classList.remove('has-error');
+
+                document.getElementById('reasonError').textContent = '';
+                document.getElementById('reasonError').style.display = 'none';
+            }
+ 
+            if (!isValid) {
+                e.preventDefault();
+                const firstError = form.querySelector('.has-error');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+ 
+            if (serviceSelect.value === 'OTHER' && serviceOtherVal) {
+                
+                let customInput = form.querySelector('input[name="service_custom"]');
+                if (!customInput) {
+                    customInput = document.createElement('input');
+                    customInput.type = 'hidden';
+                    customInput.name = 'service_custom';
+                    form.appendChild(customInput);
+                }
+                customInput.value = serviceOtherVal;
+            }
+ 
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="ti ti-loader"></i> Processing...';
+        });
+ 
+        form.querySelectorAll('input, select, textarea').forEach(element => {
+            element.addEventListener('focus', function() {
+                this.style.borderColor = '';
+                this.closest('.mbp-form-group').classList.remove('has-error');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

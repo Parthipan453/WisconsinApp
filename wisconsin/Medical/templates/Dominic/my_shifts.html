@@ -1,0 +1,277 @@
+{% extends 'medical_base.html' %}
+{% load static %}
+
+{% block title %}My Shifts{% endblock %}
+{% block page_title %}My Shifts{% endblock %}
+
+{% block extra_css %}
+    <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/Dominic/my_shifts.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="sched-page">
+        <form id="noteCsrfForm" hidden>{% csrf_token %}</form>
+
+        <div class="sched-hero">
+            <div class="sched-hero__left">
+                <span class="sched-hero__icon"><i data-lucide="calendar-clock"></i></span>
+                <div>
+                    <h1>My Shifts</h1>
+                    <p>Your assigned shifts{% if staff_profile.department %} in {{ staff_profile.department.department_name }}{% endif %}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="sched-toolbar">
+            <div class="sched-toolbar__nav">
+                <a href="?year={{ prev_month_year }}&month={{ prev_month_month }}&view={{ view_mode }}" class="sched-nav-btn"><i data-lucide="chevron-left"></i></a>
+                <h2>{{ month_name }}</h2>
+                <a href="?year={{ next_month_year }}&month={{ next_month_month }}&view={{ view_mode }}" class="sched-nav-btn"><i data-lucide="chevron-right"></i></a>
+                <a href="?view={{ view_mode }}" class="sched-today-btn">Today</a>
+            </div>
+            <div class="sched-toolbar__toggle">
+                <a href="?year={{ current_year }}&month={{ current_month }}&view=calendar" class="sched-view-btn {% if view_mode == 'calendar' %}is-active{% endif %}">
+                    <i data-lucide="layout-grid"></i> Calendar
+                </a>
+                <a href="?year={{ current_year }}&month={{ current_month }}&view=list" class="sched-view-btn {% if view_mode == 'list' %}is-active{% endif %}">
+                    <i data-lucide="list"></i> List
+                </a>
+            </div>
+        </div>
+
+        {% if view_mode == 'calendar' %}
+
+            <div class="sched-calendar">
+                <div class="sched-calendar__scroll">
+                    <div class="sched-calendar__weekdays">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                    <div class="sched-calendar__grid">
+                        {% for day in calendar_days %}
+                            <div class="sched-day {% if not day.in_month %}sched-day--muted{% endif %} {% if day.is_today %}sched-day--today{% endif %} {% if day.entries %}sched-day--has-shifts sched-day--{{ day.entries.0.color_class|default:'red' }}{% endif %}">
+                                <div class="sched-day__head">
+                                    <span class="sched-day__weekday">{{ day.date|date:"D" }}</span>
+                                    <span class="sched-day__num">{{ day.date.day }}</span>
+                                    {% if day.in_month and not day.note and not day.is_past %}
+                                        <button type="button"
+                                                class="sched-day__note-btn"
+                                                data-note-toggle
+                                                data-date="{{ day.date|date:'Y-m-d' }}"
+                                                aria-haspopup="dialog"
+                                                aria-expanded="false"
+                                                aria-label="Add note for {{ day.date|date:'M d' }}">
+                                            <i data-lucide="plus"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="sched-day__body">
+                                    {% if day.entries %}
+                                        <button type="button" class="sched-day__stack" data-day-toggle aria-haspopup="dialog" aria-expanded="false">
+                                            <span class="sched-day__dot sched-day__dot--{{ day.entries.0.color_class|default:'red' }}"></span>
+                                            <span class="sched-day__stack-label">
+                                                {% if day.entries|length == 1 %}{{ day.entries.0.shift_label }}{% else %}{{ day.entries|length }} shifts{% endif %}
+                                            </span>
+                                        </button>
+                                        <div class="sched-day-popover" data-day-popover role="dialog" aria-label="Your shift on {{ day.date|date:'M d, Y' }}" hidden>
+                                            <div class="sched-day-popover__header">
+                                                <strong>{{ day.date|date:"D, M j" }}</strong>
+                                                <button type="button" class="sched-day-popover__close" data-day-popover-close aria-label="Close shift details"><i data-lucide="x"></i></button>
+                                            </div>
+                                            <div class="sched-day-popover__list">
+                                                {% for entry in day.entries %}
+                                                    <div class="sched-day-popover__row" data-legend-label="{{ entry.get_shift_display }}" data-legend-color="{{ entry.color_class }}">
+                                                        <span class="sched-chip__dot sched-chip__dot--{{ entry.color_class }}"></span>
+                                                        <span class="sched-day-popover__info">
+                                                            <strong>{{ entry.get_shift_display }}</strong>
+                                                            <small>{{ entry.start_time|time:'h:i A' }}–{{ entry.end_time|time:'h:i A' }} · {{ entry.department.department_name }} · Hospital {{ entry.hospital }} {% if entry.room_number %} · Room {{ entry.room_number }}{% endif %}</small>
+                                                        </span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    <div class="sched-day__note-slot">
+                                        {% if day.note %}
+                                            <button type="button" class="sched-day__note-chip" data-note-toggle
+                                                    data-date="{{ day.date|date:'Y-m-d' }}"
+                                                    aria-haspopup="dialog" aria-expanded="false"
+                                                    aria-label="Edit note for {{ day.date|date:'M d' }}">
+                                                <span class="sched-day__note-chip-icon"><i data-lucide="sticky-note"></i></span>
+                                                <span class="sched-day__note-chip-label">{{ day.note.note_text|truncatechars:26 }}</span>
+                                                {% if day.note.reminder_offset_minutes %}<i data-lucide="bell" class="sched-day__note-chip-bell"></i>{% endif %}
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                    {% if not day.entries and not day.note %}
+                                        <span class="sched-day__empty">No shifts</span>
+                                    {% endif %}
+                                </div>
+                                {% if day.in_month %}
+                                    <div class="sched-note-popover" data-note-popover role="dialog" aria-label="Note for {{ day.date|date:'M d, Y' }}" hidden>
+                                        <form class="sched-note-form" data-note-form
+                                            data-date="{{ day.date|date:'Y-m-d' }}"
+                                            data-note-id="{% if day.note %}{{ day.note.id }}{% endif %}">
+                                            <div class="sched-day-popover__header">
+                                                <strong>{{ day.date|date:"D, M j" }} · Note</strong>
+                                                <button type="button" class="sched-day-popover__close" data-note-popover-close aria-label="Close note"><i data-lucide="x"></i></button>
+                                            </div>
+                                            <textarea class="sched-note-textarea" name="note_text" maxlength="500" rows="3"
+                                                    placeholder="Add a note for this day…" required>{% if day.note %}{{ day.note.note_text }}{% endif %}</textarea>
+
+                                            <label class="sched-note-reminder-toggle">
+                                                <input type="checkbox" data-reminder-toggle {% if day.note.reminder_offset_minutes %}checked{% endif %}>
+                                                <span>Set a reminder</span>
+                                            </label>
+
+                                            <div class="sched-note-reminder-fields" data-reminder-fields {% if not day.note.reminder_offset_minutes %}hidden{% endif %}>
+                                                <label class="sched-note-field">
+                                                    <span class="sched-note-field__label">Event time</span>
+                                                    <input type="time" class="sched-note-time" name="event_time" data-event-time
+                                                        value="{% if day.note.event_time %}{{ day.note.event_time|time:'H:i' }}{% endif %}">
+                                                </label>
+                                                <label class="sched-note-field">
+                                                    <span class="sched-note-field__label">
+                                                        Remind me
+                                                    </span>
+                                                    <div class="sched-note-dropdown" data-reminder-dropdown>
+                                                        <input type="hidden" name="reminder_offset_minutes" value="{% if day.note.reminder_offset_minutes %}{{ day.note.reminder_offset_minutes }}{% else %}10{% endif %}" data-reminder-value data-reminder-offset>
+
+                                                        <button type="button" class="sched-note-dropdown__trigger" data-reminder-trigger aria-haspopup="listbox" aria-expanded="false">
+                                                            <span class="sched-note-dropdown__selected" data-reminder-selected>
+                                                                {% if day.note.reminder_offset_minutes == 5 %}
+                                                                    5 minutes before
+                                                                {% elif day.note.reminder_offset_minutes == 15 %}
+                                                                    15 minutes before
+                                                                {% elif day.note.reminder_offset_minutes == 30 %}
+                                                                    30 minutes before
+                                                                {% else %}
+                                                                    10 minutes before
+                                                                {% endif %}
+                                                            </span>
+                                                            <span class="sched-note-dropdown__arrow">
+                                                                <i class="bi bi-chevron-down"></i>
+                                                            </span>
+                                                        </button>
+
+                                                        <div class="sched-note-dropdown__menu" data-reminder-menu role="listbox">
+
+                                                            <button type="button" class="sched-note-dropdown__option {% if day.note.reminder_offset_minutes == 5 %}is-selected{% endif %}" data-value="5" role="option" aria-selected="{% if day.note.reminder_offset_minutes == 5 %}true{% else %}false{% endif %}">
+                                                                <span class="sched-note-dropdown__option-text">
+                                                                    5 minutes before
+                                                                </span>
+                                                                <span class="sched-note-dropdown__check">
+                                                                    <i class="bi bi-check"></i>
+                                                                </span>
+                                                            </button>
+
+                                                            <button type="button" class="sched-note-dropdown__option {% if day.note.reminder_offset_minutes == 10 or not day.note.reminder_offset_minutes %}is-selected{% endif %}" data-value="10" role="option" aria-selected="{% if day.note.reminder_offset_minutes == 10 or not day.note.reminder_offset_minutes %}true{% else %}false{% endif %}">
+                                                                <span class="sched-note-dropdown__option-text">
+                                                                    10 minutes before
+                                                                </span>
+                                                                <span class="sched-note-dropdown__check">
+                                                                    <i class="bi bi-check"></i>
+                                                                </span>
+                                                            </button>
+
+                                                            <button type="button" class="sched-note-dropdown__option {% if day.note.reminder_offset_minutes == 15 %}is-selected{% endif %}" data-value="15" role="option" aria-selected="{% if day.note.reminder_offset_minutes == 15 %}true{% else %}false{% endif %}">
+                                                                <span class="sched-note-dropdown__option-text">
+                                                                    15 minutes before
+                                                                </span>
+                                                                <span class="sched-note-dropdown__check">
+                                                                    <i class="bi bi-check"></i>
+                                                                </span>
+                                                            </button>
+
+                                                            <button type="button" class="sched-note-dropdown__option {% if day.note.reminder_offset_minutes == 30 %}is-selected{% endif %}" data-value="30" role="option" aria-selected="{% if day.note.reminder_offset_minutes == 30 %}true{% else %}false{% endif %}">
+                                                                <span class="sched-note-dropdown__option-text">
+                                                                    30 minutes before
+                                                                </span>
+                                                                <span class="sched-note-dropdown__check">
+                                                                    <i class="bi bi-check"></i>
+                                                                </span>
+                                                            </button>
+
+                                                        </div>
+
+                                                    </div>
+                                                </label>
+                                            </div>
+
+                                            <div class="sched-note-actions">
+                                                {% if day.note %}
+                                                    <button type="button" class="sched-note-btn sched-note-btn--delete" data-note-delete data-note-id="{{ day.note.id }}">
+                                                        <i data-lucide="trash-2"></i> Delete
+                                                    </button>
+                                                {% endif %}
+                                                <button type="submit" class="sched-note-btn sched-note-btn--save">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+        {% else %}
+            <div class="sched-list">
+                <p class="sched-list__hint"><i data-lucide="info"></i> This is a read-only view of your assigned shifts.</p>
+                <div class="table-responsive med-table-wrap">
+                    <table class="table med-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Department</th>
+                                <th>Shift</th>
+                                <th>Time</th>
+                                <th>Room</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day_date, entry in list_entries %}
+                                <tr>
+                                    <td data-label="Date">{{ day_date|date:"M d, Y" }}</td>
+                                    <td data-label="Department">{{ entry.department.department_name }}</td>
+                                    <td data-label="Shift">
+                                        <span class="med-badge shiftmgmt-label shiftmgmt-label--{{ entry.color_class }}">{{ entry.get_shift_display }}</span>
+                                    </td>
+                                    <td data-label="Time">{{ entry.start_time|time:"h:i A" }} – {{ entry.end_time|time:"h:i A" }}</td>
+                                    <td data-label="Room">{{ entry.room_number|default:"—" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr class="sched-empty-row"><td colspan="5"><div class="sched-empty-state"><i data-lucide="calendar-x"></i><p>No shifts scheduled this month.</p></div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        window.myShiftsConfig = {
+            saveNoteUrl: "{% url 'Medical:daily_note_save' %}",
+            deleteNoteUrlTemplate: "{% url 'Medical:daily_note_delete' 0 %}".replace('0', '__ID__'),
+            dueRemindersUrl: "{% url 'Medical:due_reminders' %}"
+        };
+    </script>
+    <script src="{% static 'js/Dominic/staff_schedule.js' %}"></script>
+    <script src="{% static 'js/Dominic/my_shifts_notes.js' %}"></script>
+    <script src="{% static 'js/Dominic/my_shifts.js' %}"></script>
+    <script src="{% static 'js/Dominic/push_subscribe.js' %}"></script> 
+    <script>
+        if (typeof window.renderLucideIcons === 'function') {
+            window.renderLucideIcons();
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof window.renderLucideIcons === 'function') {
+                window.renderLucideIcons();
+            }
+        });
+    </script>
+{% endblock %}

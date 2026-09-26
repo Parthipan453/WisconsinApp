@@ -1,0 +1,74 @@
+{% comment %}
+Staff review materials — five focused categories: transcript, essays,
+test scores, application fee, and high school grades.
+Expects `review_materials` (list of group dicts from build_review_materials).
+{% endcomment %}
+
+<div class="prm-card">
+  <div class="prm-card__head">
+    <i class="ti ti-package"></i>
+    <span class="prm-card__title">Review materials</span>
+    <span class="prm-card__sub">{{ review_materials|length }} categories</span>
+  </div>
+
+  <div class="prm-materials">
+    {% for group in review_materials %}
+    <div class="prm-mat">
+      <div class="prm-mat__head">
+        <span class="prm-mat__icon"><i class="{{ group.icon }}"></i></span>
+        <b class="prm-mat__title">{{ group.title }}</b>
+        {% if group.received %}
+        <span class="prm-chip prm-chip--green" style="margin-left:auto;"><i class="ti ti-circle-check"></i> Received</span>
+        {% else %}
+        <span class="prm-chip prm-chip--orange" style="margin-left:auto;"><i class="ti ti-circle-x"></i> Missing</span>
+        {% if group.sent_requests %}
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-left:8px;align-items:center;">
+          {% for sr in group.sent_requests %}
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#555;background:#e8f5e9;border-radius:4px;padding:3px 8px;">
+            <i class="ti ti-mail-check" style="color:#2e7d32;"></i>
+            Email sent {{ sr.requested_at|date:"M d, g:i A" }}{% if sr.requested_by %} by {{ sr.requested_by.get_full_name|default:sr.requested_by.username }}{% endif %}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <form method="post" action="{% url 'request_material' request.user.uuid app.application_id %}" style="margin-left:8px;">
+          {% csrf_token %}
+          <input type="hidden" name="category" value="{{ group.key }}">
+          <input type="hidden" name="message" value="Please provide the missing {{ group.title }} to complete your application.">
+          <button type="submit" class="prm-btn prm-btn--primary prm-btn--sm" data-uw-loading-text="Sending&hellip;"><i class="ti ti-mail"></i> Request by email</button>
+        </form>
+        {% endif %}
+        {% endif %}
+      </div>
+      <div class="prm-mat__body">
+        {% if group.items %}
+        {% for item in group.items %}
+        <div class="prm-mat__row">
+          <div class="prm-mat__rowtop">
+            <span class="prm-mat__label">{{ item.label }}</span>
+            {% if item.verified == False %}
+            <span class="prm-chip prm-chip--orange prm-mat__badge">Not verified</span>
+            {% elif item.verified and item.url %}
+            <span class="prm-chip prm-chip--green prm-mat__badge">Verified</span>
+            {% endif %}
+          </div>
+          {% if item.value %}
+          <div class="prm-mat__value">
+            {% if item.url %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener"><i class="ti ti-file"></i> {{ item.value }}</a>
+            {% else %}{{ item.value }}{% endif %}
+          </div>
+          {% endif %}
+          {% if item.meta %}
+          <div class="prm-mat__meta">{{ item.meta }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="prm-mat__note"><i class="ti ti-info-circle"></i>{{ group.missing_note }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

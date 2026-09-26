@@ -1,0 +1,717 @@
+<!-- templates/student_research/application.html -->
+
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Research Application - Wisconsin University{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_opportunity %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student_research/application.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            Research Project Application
+        </h1>
+        <p class="text-muted">
+            {% if is_readonly %}View your submitted application{% else %}Submit your research project proposal{% endif %}
+        </p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'Elsa_research:student_research_opportunity' uuid %}" class="btn-back">
+            <i class="ti ti-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="message {% if message.tags %}{{ message.tags }}{% endif %}">
+        {% if 'error' in message.tags %}
+        <i class="ti ti-alert-circle"></i>
+        {% elif 'success' in message.tags %}
+        <i class="ti ti-check-circle"></i>
+        {% else %}
+        <i class="ti ti-info-circle"></i>
+        {% endif %}
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Form Container -->
+<div class="form-container">
+
+    {% if is_readonly %}
+    <!-- Read-only View -->
+    <div class="submitted-banner">
+        <div class="banner-icon">
+            <i class="ti ti-check"></i>
+        </div>
+        <div class="banner-content">
+            <h3>Application Submitted</h3>
+            <p>Submitted on {{ application.submitted_at|date:"F d, Y H:i" }}</p>
+            <p class="reference">Reference: <strong>{{ application.reference_number }}</strong></p>
+            <p>Status: <span class="status-badge {{ application.status }}">{{ application.get_status_display }}</span></p>
+        </div>
+    </div>
+
+    <div class="readonly-view">
+        <!-- Personal Information -->
+        <div class="readonly-section">
+            <h3><i class="ti ti-user-circle"></i> Personal Information</h3>
+            <div class="readonly-grid">
+                <div class="readonly-item">
+                    <label>Full Name</label>
+                    <span>{{ student.user.get_full_name }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Email</label>
+                    <span>{{ student.user.email }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Phone</label>
+                    <span>{{ student.user.mobile_number|default:'Not provided' }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Department</label>
+                    <span>{{ department_name|default:'Not Assigned' }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Student ID</label>
+                    <span>{{ student.student_number }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Program</label>
+                    <span>{{ program_name|default:'Not Assigned' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Details -->
+        <div class="readonly-section">
+            <h3><i class="ti ti-file-text"></i> Project Details</h3>
+            <div class="readonly-grid">
+                <div class="readonly-item full-width">
+                    <label>Motivation</label>
+                    <span>{{ application.motivation|linebreaks }}</span>
+                </div>
+                <div class="readonly-item full-width">
+                    <label>Skills Contribution</label>
+                    <span>{{ application.skills_contribution|linebreaks }}</span>
+                </div>
+                <div class="readonly-item full-width">
+                    <label>Prior Experience</label>
+                    <span>{{ application.prior_experience|default:'Not provided'|linebreaks }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Time Commitment</label>
+                    <span>{{ application.get_time_commitment_display }}</span>
+                </div>
+                <div class="readonly-item">
+                    <label>Availability</label>
+                    <span>{{ application.get_availability_display }}</span>
+                </div>
+                <div class="readonly-item full-width">
+                    <label>Additional Info</label>
+                    <span>{{ application.additional_info|default:'Not provided'|linebreaks }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents -->
+        <div class="readonly-section">
+            <h3><i class="ti ti-file"></i> Documents</h3>
+            <div class="readonly-grid">
+                <div class="readonly-item full-width">
+                    <label>Resume/CV</label>
+                    <span>
+                        {% if application.resume %}
+                        <a href="{{ application.resume.url }}" target="_blank" class="file-link">
+                            <i class="ti ti-file"></i> {{ application.resume.name|cut:"applications/resumes/" }}
+                        </a>
+                        {% else %}Not uploaded{% endif %}
+                    </span>
+                </div>
+                <div class="readonly-item full-width">
+                    <label>Statement of Interest</label>
+                    <span>
+                        {% if application.statement_of_interest %}
+                        <a href="{{ application.statement_of_interest.url }}" target="_blank" class="file-link">
+                            <i class="ti ti-file-text"></i> {{ application.statement_of_interest.name|cut:"applications/statements/" }}
+                        </a>
+                        {% else %}Not uploaded{% endif %}
+                    </span>
+                </div>
+                <div class="readonly-item full-width">
+                    <label>Academic Transcript</label>
+                    <span>
+                        {% if application.academic_transcript %}
+                        <a href="{{ application.academic_transcript.url }}" target="_blank" class="file-link">
+                            <i class="ti ti-file-analytics"></i> {{ application.academic_transcript.name|cut:"applications/transcripts/" }}
+                        </a>
+                        {% else %}Not uploaded{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Comments -->
+        {% if application.review_comments %}
+        <div class="readonly-section review-comments">
+            <h3><i class="ti ti-message"></i> Review Comments</h3>
+            <div class="readonly-item full-width">
+                <span>{{ application.review_comments|linebreaks }}</span>
+                <small>Reviewed on: {{ application.reviewed_at|date:"F d, Y H:i" }}</small>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="readonly-actions">
+            {% if application.status == 'submitted' or application.status == 'under_review' %}
+            <button type="button" class="btn-withdraw" onclick="showWithdrawModal({{ application.application_id }})">
+                <i class="ti ti-arrow-back"></i> Withdraw
+            </button>
+            {% endif %}
+            <a href="{% url 'Elsa_research:student_research_opportunity' uuid %}" class="btn-secondary">
+                <i class="ti ti-arrow-left"></i> Back to Opportunities
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Active Form -->
+    <form method="POST" enctype="multipart/form-data" id="applicationForm" novalidate>
+        {% csrf_token %}
+
+        <!-- Project Title -->
+        <div class="project-title">
+            <i class="ti ti-file-text"></i>
+            <span>Project: {{ opportunity.title }}</span>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="form-progress">
+            <div class="progress-step active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-label">Personal Info</div>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-label">Project Details</div>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-label">Documents</div>
+            </div>
+            <div class="progress-line"></div>
+            <div class="progress-step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-label">Review</div>
+            </div>
+        </div>
+
+        <!-- Form Steps -->
+        <div class="form-steps">
+            <!-- Step 1: Personal Information -->
+            <div class="form-step active" data-step="1">
+                <div class="step-header">
+                    <h3><i class="ti ti-user-circle"></i> Personal Information</h3>
+                    <p>Please provide your personal and contact details</p>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-groups">
+                        <label>Full Name <span class="required">*</span></label>
+                        <input type="text" name="full_name" class="filter-input" 
+                               value="{{ student.user.get_full_name }}" readonly>
+                    </div>
+                    <div class="form-groups">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" name="email" class="filter-input" 
+                               value="{{ student.user.email }}" readonly>
+                    </div>
+                    <div class="form-groups">
+                        <label>Phone <span class="required">*</span></label>
+                        <input type="tel" name="phone" class="filter-input" 
+                               value="{{ phone|default:'' }}" placeholder="Enter phone number" readonly>
+                    </div>
+                    <div class="form-groups">
+                        <label>Department <span class="required">*</span></label>
+                        <input type="text" name="department" class="filter-input" 
+                               value="{{ department_name|default:'Not Assigned' }}" readonly>
+                    </div>
+                    <div class="form-groups">
+                        <label>Student ID <span class="required">*</span></label>
+                        <input type="text" name="id_number" class="filter-input" 
+                               value="{{ student.student_number }}" readonly>
+                    </div>
+                    <div class="form-groups">
+                        <label>Program <span class="required">*</span></label>
+                        <input type="text" name="program" class="filter-input" 
+                               value="{{ program_name|default:'Not Assigned' }}" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Project Details -->
+            <div class="form-step" data-step="2">
+                <div class="step-header">
+                    <h3><i class="ti ti-file-text"></i> Project Details</h3>
+                    <p>Provide detailed information about your research project</p>
+                </div>
+                
+                <div class="form-grid">
+                    <!-- Motivation -->
+                    <div class="form-groups full-width {% if form.motivation.errors %}has-error{% endif %}">
+                        <label for="id_motivation">Motivation <span class="required">*</span></label>
+                        {{ form.motivation }}
+                        {% if form.motivation.errors %}
+                        <div class="error-container">
+                            {% for error in form.motivation.errors %}
+                            <div class="error-message">
+                                <i class="ti ti-alert-circle"></i> {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="help-text">{{ form.motivation.help_text }}</small>
+                    </div>
+                    
+                    <!-- Skills Contribution -->
+                    <div class="form-groups full-width {% if form.skills_contribution.errors %}has-error{% endif %}">
+                        <label for="id_skills_contribution">Skills Contribution <span class="required">*</span></label>
+                        {{ form.skills_contribution }}
+                        {% if form.skills_contribution.errors %}
+                        <div class="error-container">
+                            {% for error in form.skills_contribution.errors %}
+                            <div class="error-message">
+                                <i class="ti ti-alert-circle"></i> {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="help-text">{{ form.skills_contribution.help_text }}</small>
+                    </div>
+                    
+                    <!-- Prior Experience -->
+                    <div class="form-groups full-width {% if form.prior_experience.errors %}has-error{% endif %}">
+                        <label for="id_prior_experience">Prior Research Experience</label>
+                        {{ form.prior_experience }}
+                        {% if form.prior_experience.errors %}
+                        <div class="error-container">
+                            {% for error in form.prior_experience.errors %}
+                            <div class="error-message">
+                                <i class="ti ti-alert-circle"></i> {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Time Commitment -->
+                    <div class="form-groups {% if form.time_commitment.errors %}has-error{% endif %}">
+                        <label for="id_time_commitment">Time Commitment <span class="required">*</span></label>
+                        {{ form.time_commitment }}
+                        {% if form.time_commitment.errors %}
+                        <div class="error-container">
+                            {% for error in form.time_commitment.errors %}
+                            <div class="error-message">
+                                <i class="ti ti-alert-circle"></i> {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="help-text">{{ form.time_commitment.help_text }}</small>
+                    </div>
+
+                    <!-- Availability -->
+                    <div class="form-groups {% if form.availability.errors %}has-error{% endif %}">
+                        <label for="id_availability">Availability <span class="required">*</span></label>
+                        {{ form.availability }}
+                        {% if form.availability.errors %}
+                        <div class="error-container">
+                            {% for error in form.availability.errors %}
+                            <div class="error-message">
+                                <i class="ti ti-alert-circle"></i> {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="help-text">{{ form.availability.help_text }}</small>
+                    </div>
+                    
+                    <!-- Additional Info -->
+                    <div class="form-groups full-width {% if form.additional_info.errors %}has-error{% endif %}">
+                        <label for="id_additional_info">Additional Information</label>
+                        {{ form.additional_info }}
+                        {% if form.additional_info.errors %}
+                        <div class="error-container">
+                            {% for error in form.additional_info.errors %}
+                            <div class="error-message">
+                                <i class="ti ti-alert-circle"></i> {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Documents -->
+            <div class="form-step" data-step="3">
+                <div class="step-header">
+                    <h3><i class="ti ti-file"></i> Document Upload</h3>
+                    <p>Upload the required documents for your application</p>
+                </div>
+                
+                <div class="form-grid">
+                    <!-- Resume -->
+                    <div class="form-groups full-width {% if form.resume.errors %}has-error{% endif %}">
+                        <label for="id_resume">Resume/CV <span class="required">*</span></label>
+                        <div class="file-upload-wrapper">
+                            <div class="file-upload" onclick="document.getElementById('id_resume').click()">
+                                <i class="ti ti-file"></i>
+                                <div>
+                                    <p class="upload-text">Click to upload Resume/CV</p>
+                                    <p class="upload-hint">{{ form.resume.help_text }}</p>
+                                </div>
+                            </div>
+                            {{ form.resume }}
+                            <div class="file-preview" id="resumePreview" style="display:none;">
+                                <i class="ti ti-file"></i>
+                                <span id="resumeFileName">No file selected</span>
+                                <button type="button" class="file-remove" onclick="removeFile('id_resume', 'resumePreview', 'resumeFileName')">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            </div>
+                            {% if form.resume.errors %}
+                            <div class="error-container">
+                                {% for error in form.resume.errors %}
+                                <div class="error-message">
+                                    <i class="ti ti-alert-circle"></i> {{ error }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Statement of Interest -->
+                    <div class="form-groups full-width {% if form.statement_of_interest.errors %}has-error{% endif %}">
+                        <label for="id_statement_of_interest">Statement of Interest <span class="required">*</span></label>
+                        <div class="file-upload-wrapper">
+                            <div class="file-upload" onclick="document.getElementById('id_statement_of_interest').click()">
+                                <i class="ti ti-file-text"></i>
+                                <div>
+                                    <p class="upload-text">Click to upload Statement of Interest</p>
+                                    <p class="upload-hint">{{ form.statement_of_interest.help_text }}</p>
+                                </div>
+                            </div>
+                            {{ form.statement_of_interest }}
+                            <div class="file-preview" id="sopPreview" style="display:none;">
+                                <i class="ti ti-file-text"></i>
+                                <span id="sopFileName">No file selected</span>
+                                <button type="button" class="file-remove" onclick="removeFile('id_statement_of_interest', 'sopPreview', 'sopFileName')">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            </div>
+                            {% if form.statement_of_interest.errors %}
+                            <div class="error-container">
+                                {% for error in form.statement_of_interest.errors %}
+                                <div class="error-message">
+                                    <i class="ti ti-alert-circle"></i> {{ error }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Academic Transcript -->
+                    <div class="form-groups full-width {% if form.academic_transcript.errors %}has-error{% endif %}">
+                        <label for="id_academic_transcript">Academic Transcript <span class="required">*</span></label>
+                        <div class="file-upload-wrapper">
+                            <div class="file-upload" onclick="document.getElementById('id_academic_transcript').click()">
+                                <i class="ti ti-file-analytics"></i>
+                                <div>
+                                    <p class="upload-text">Click to upload Academic Transcript</p>
+                                    <p class="upload-hint">{{ form.academic_transcript.help_text }}</p>
+                                </div>
+                            </div>
+                            {{ form.academic_transcript }}
+                            <div class="file-preview" id="transcriptPreview" style="display:none;">
+                                <i class="ti ti-file-analytics"></i>
+                                <span id="transcriptFileName">No file selected</span>
+                                <button type="button" class="file-remove" onclick="removeFile('id_academic_transcript', 'transcriptPreview', 'transcriptFileName')">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            </div>
+                            {% if form.academic_transcript.errors %}
+                            <div class="error-container">
+                                {% for error in form.academic_transcript.errors %}
+                                <div class="error-message">
+                                    <i class="ti ti-alert-circle"></i> {{ error }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Review -->
+            <div class="form-step" data-step="4">
+                <div class="step-header">
+                    <h3><i class="ti ti-check-circle"></i> Review & Submit</h3>
+                    <p>Please review your application before submitting</p>
+                </div>
+                
+                <!-- Non-field errors -->
+                {% if form.non_field_errors %}
+                <div class="error-container non-field-errors">
+                    {% for error in form.non_field_errors %}
+                    <div class="error-message">
+                        <i class="ti ti-alert-circle"></i> {{ error }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="review-section">
+                    <div class="review-item">
+                        <h4><i class="ti ti-user"></i> Personal Information</h4>
+                        <div class="review-content" id="reviewPersonal">
+                            <p><strong>Name:</strong> <span id="reviewName">{{ student.user.get_full_name }}</span></p>
+                            <p><strong>Email:</strong> <span id="reviewEmail">{{ student.user.email }}</span></p>
+                            <p><strong>Phone:</strong> <span id="reviewPhone">{{ student.user.mobile_number|default:'Not provided' }}</span></p>
+                            <p><strong>Department:</strong> <span id="reviewDepartment">{{ department_name|default:'Not Assigned' }}</span></p>
+                            <p><strong>Student ID:</strong> <span id="reviewId">{{ student.student_number }}</span></p>
+                            <p><strong>Program:</strong> <span id="reviewProgram">{{ program_name|default:'Not Assigned' }}</span></p>
+                        </div>
+                        <button type="button" class="review-edit" onclick="goToStep(1)">
+                            <i class="ti ti-edit"></i> Edit
+                        </button>
+                    </div>
+                    
+                    <div class="review-item">
+                        <h4><i class="ti ti-file-text"></i> Project Details</h4>
+                        <div class="review-content" id="reviewProject">
+                            <p><strong>Motivation:</strong> <span id="reviewMotivation">-</span></p>
+                            <p><strong>Skills:</strong> <span id="reviewSkills">-</span></p>
+                            <p><strong>Prior Experience:</strong> <span id="reviewExperience">-</span></p>
+                            <p><strong>Time Commitment:</strong> <span id="reviewTime">-</span></p>
+                            <p><strong>Availability:</strong> <span id="reviewAvailability">-</span></p>
+                            <p><strong>Additional Info:</strong> <span id="reviewAdditional">-</span></p>
+                        </div>
+                        <button type="button" class="review-edit" onclick="goToStep(2)">
+                            <i class="ti ti-edit"></i> Edit
+                        </button>
+                    </div>
+                    
+                    <div class="review-item">
+                        <h4><i class="ti ti-file"></i> Documents</h4>
+                        <div class="review-content" id="reviewDocuments">
+                            <p><strong>Resume:</strong> <span id="reviewResume">-</span></p>
+                            <p><strong>Statement of Interest:</strong> <span id="reviewSOP">-</span></p>
+                            <p><strong>Academic Transcript:</strong> <span id="reviewTranscript">-</span></p>
+                        </div>
+                        <button type="button" class="review-edit" onclick="goToStep(3)">
+                            <i class="ti ti-edit"></i> Edit
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Terms and Conditions -->
+                <div class="form-checkbox" id="terms-group">
+                    <div class="checkbox-wrapper">
+                        {{ form.confirm_terms }}
+                        <label for="id_confirm_terms">
+                            {{ form.confirm_terms.label }}
+                            <span class="required">*</span>
+                        </label>
+                    </div>
+                    <!-- Error container for checkbox -->
+                    <div class="error-container" id="id_confirm_terms-error">
+                        {% if form.confirm_terms.errors %}
+                        {% for error in form.confirm_terms.errors %}
+                        <div class="error-message">
+                            <i class="ti ti-alert-circle"></i> {{ error }}
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="submission-warning">
+                    <i class="ti ti-alert-circle"></i>
+                    <p>Once you submit, you cannot edit this application. Please review carefully.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Navigation -->
+        <div class="form-navigation">
+            <button type="button" class="btn-prev" id="prevBtn" onclick="prevStep()">
+                <i class="ti ti-arrow-left"></i> Previous
+            </button>
+            <button type="button" class="btn-next" id="nextBtn" onclick="nextStep()">
+                Next <i class="ti ti-arrow-right"></i>
+            </button>
+            <button type="button" class="btn-submit" id="submitBtn" style="display:none;" onclick="showConfirmModal()">
+                <i class="ti ti-send"></i> Submit Application
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal-container confirm-modal">
+        <div class="confirm-icon">
+            <i class="ti ti-alert-triangle"></i>
+        </div>
+        <h2>Confirm Submission</h2>
+        <p>Are you sure you want to submit this application?</p>
+        <div class="confirm-warning">
+            <i class="ti ti-info-circle"></i>
+            <span>Once you submit, you cannot edit this application.</span>
+        </div>
+        <div class="confirm-actions">
+            <button class="btn-cancel" onclick="closeConfirmModal()">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button class="btn-confirm" onclick="submitApplication()">
+                <i class="ti ti-check"></i> Yes, Submit
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Withdraw Modal -->
+<div class="modal-overlay" id="withdrawModal" style="display:none;">
+    <div class="modal-container withdraw-modal">
+        <div class="withdraw-icon">
+            <i class="ti ti-alert-circle"></i>
+        </div>
+        <h2>Withdraw Application</h2>
+        <p>Are you sure you want to withdraw this application?</p>
+        <div class="withdraw-warning">
+            <i class="ti ti-info-circle"></i>
+            <span>This action cannot be undone. You will not be able to recover this application.</span>
+        </div>
+        <div class="withdraw-actions">
+            <button class="btn-cancel" onclick="closeWithdrawModal()">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <form id="withdrawForm" method="POST" action="{% url 'Elsa_research:withdraw_application' application_id=0 uuid=uuid %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-withdraw-confirm">
+                    <i class="ti ti-arrow-back"></i> Yes, Withdraw
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" id="successModal" style="display:none;">
+    <div class="modal-container success-modal">
+        <div class="success-icon-wrapper">
+            <div class="success-icon">
+                <i class="ti ti-check-circle"></i>
+            </div>
+            <div class="success-ring"></div>
+        </div>
+        
+        <div class="success-content">
+            <h2>🎉 Application Submitted Successfully!</h2>
+            <p class="success-message">Your research project application has been received and is being processed by the review committee.</p>
+            
+            <div class="success-details">
+                <div class="detail-item">
+                    <span class="detail-label">
+                        <i class="ti ti-file-text"></i> Reference Number
+                    </span>
+                    <span class="detail-value" id="refNumber">
+                        {% if application %}
+                            {{ application.reference_number }}
+                        {% else %}
+                            #RSP-2026-0001
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">
+                        <i class="ti ti-calendar"></i> Submission Date
+                    </span>
+                    <span class="detail-value" id="submissionDate">
+                        {% if application and application.submitted_at %}
+                            {{ application.submitted_at|date:"F d, Y H:i" }}
+                        {% else %}
+                            Today
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">
+                        <i class="ti ti-clock"></i> Status
+                    </span>
+                    <span class="status-badge submitted">Submitted</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">
+                        <i class="ti ti-mail"></i> Notification
+                    </span>
+                    <span class="detail-value">Email sent to your registered email</span>
+                </div>
+            </div>
+            
+            <div class="success-next-steps">
+                <h4><i class="ti ti-info-circle"></i> What happens next?</h4>
+                <ul>
+                    <li><i class="ti ti-check"></i> Review committee will evaluate your application</li>
+                    <li><i class="ti ti-check"></i> You'll receive updates via email</li>
+                    <li><i class="ti ti-check"></i> Check your application status anytime</li>
+                </ul>
+            </div>
+            
+            <div class="success-actions">
+                <button class="btn-primary" onclick="window.location.href='{% url 'Elsa_research:student_research_opportunity' uuid %}'">
+                    <i class="ti ti-arrow-left"></i> Back to Opportunities
+                </button>
+                <button class="btn-secondary" onclick="window.location.reload()">
+                    <i class="ti ti-eye"></i> View Application
+                </button>
+            </div>
+        </div>
+        
+        <button class="success-close" onclick="closeSuccessModal()">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+<script src="{% static 'script/application.js' %}"></script>
+{% endblock %}

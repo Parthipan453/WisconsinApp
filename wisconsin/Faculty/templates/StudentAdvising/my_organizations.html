@@ -1,0 +1,467 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+{% block title %}My Organizations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/StudentAdvising/faculty_org_catalog.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="faculty-org-split-layout">
+
+  <div class="faculty-org-left">
+    <div class="faculty-org-header">
+      <div class="faculty-org-title"><i class="ti ti-users-group"></i> My Organizations</div>
+      <div class="faculty-org-sub">Organizations you advise — manage members and chat with the group.</div>
+    </div>
+
+    <div class="faculty-orgs-grid">
+      {% for org in orgs %}
+        <div class="faculty-org-card" id="faculty-org-card-{{ org.id }}">
+          <div class="faculty-org-cover"
+              style="{% if org.cover_image %}background-image: url('{{ org.cover_image.url }}');{% endif %}">
+              <div class="faculty-org-cover-overlay">
+                  <div class="faculty-org-cover-name" title="{{ org.organization_name }}">
+                      {{ org.organization_name }}
+                  </div>
+                  {% if org.motto %}
+                      <div class="faculty-org-cover-motto" title="{{ org.motto }}">
+                          "{{ org.motto }}"
+                      </div>
+                  {% endif %}
+              </div>
+          </div>
+
+          <div class="faculty-org-body">
+            {% if not org.cover_image %}
+              <div class="faculty-org-name-noimg" title="{{ org.organization_name }}">{{ org.organization_name }}</div>
+              {% if org.motto %}<div class="faculty-org-motto-noimg" title="{{ org.motto }}">"{{ org.motto }}"</div>{% endif %}
+            {% endif %}
+
+            <div class="faculty-org-meta-row">
+              <i class="ti ti-school"></i>
+              <span>{{ org.school.school_name|default:"No school assigned" }}</span>
+            </div>
+            {% if org.department %}
+              <div class="faculty-org-meta-row">
+                <i class="ti ti-building"></i>
+                <span>{{ org.department.department_name }}</span>
+              </div>
+            {% endif %}
+
+            <div class="faculty-org-members-badge">
+              <i class="ti ti-users"></i>
+              {{ org.active_member_count }}{% if org.max_members %} / {{ org.max_members }}{% endif %} members
+            </div>
+
+            <div class="faculty-org-actions">
+              <button class="faculty-org-btn-members" onclick="openFacultyMembersModal({{ org.id }}, '{{ org.organization_name|escapejs }}')">
+                <i class="ti ti-users"></i> Members
+              </button>
+              <button class="faculty-org-btn-message" id="msg-btn-{{ org.id }}" onclick="selectChatOrg({{ org.id }}, '{{ org.organization_name|escapejs }}')">
+                <i class="ti ti-message-circle"></i> Message
+              </button>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="faculty-org-empty">
+          <i class="ti ti-users-group"></i>
+          <div class="faculty-org-empty-title">No organizations assigned</div>
+          <div class="faculty-org-empty-sub">You are not currently listed as the advisor for any student organization.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="faculty-chat-panel">
+    <div class="faculty-chat-panel-header" id="chatPanelHeader">
+      <i class="ti ti-message-circle"></i>
+      <span id="chatPanelOrgName">Select an organization</span>
+    </div>
+
+    <div class="faculty-chat-panel-body" id="chatPanelBody">
+      <div class="faculty-chat-placeholder">
+        <i class="ti ti-messages"></i>
+        <div class="faculty-chat-placeholder-title">No conversation selected</div>
+        <div class="faculty-chat-placeholder-sub">Click a club or organization's "Message" button to start chatting.</div>
+      </div>
+    </div>
+
+    <div class="faculty-chat-input-row" id="chatInputRow" style="display:none;">
+      <textarea id="broadcastMessageText" class="faculty-chat-input" maxlength="1000" placeholder="Message the group..." rows="1" oninput="autoGrowChatInput(this)"></textarea>
+      <button class="faculty-chat-send-btn" id="broadcastSendBtn" onclick="sendBroadcastMessage()">
+        <i class="ti ti-send"></i>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="faculty-modal-overlay" id="facultyMembersModalOverlay" style="display:none;" onclick="closeFacultyMembersModal(event)">
+  <div class="faculty-modal" onclick="event.stopPropagation()">
+    <div class="faculty-modal-header">
+      <h3><i class="ti ti-users"></i> Members — <span id="facultyMembersOrgName"></span></h3>
+      <button onclick="closeFacultyMembersModal()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="faculty-members-search-block">
+      <label>Add a Student</label>
+      <div class="faculty-search-input-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" id="facultyMemberSearchInput" class="faculty-member-search-input" placeholder="Search by name or email..." oninput="facultySearchStudents()">
+      </div>
+      <div id="facultyStudentSearchResults" class="faculty-search-results-list"></div>
+    </div>
+
+    <div class="faculty-members-current-block">
+      <label>Current Members <span id="facultyCurrentMembersCount" class="faculty-count-badge"></span></label>
+      <div id="facultyCurrentMembersList" class="faculty-current-members-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="faculty-modal-overlay faculty-confirm-overlay" id="facultyConfirmModalOverlay" style="display:none;">
+  <div class="faculty-confirm-modal">
+    <div class="faculty-confirm-icon"><i class="ti ti-user-x"></i></div>
+    <div class="faculty-confirm-title" id="facultyConfirmModalTitle">Remove member?</div>
+    <div class="faculty-confirm-message" id="facultyConfirmModalMessage"></div>
+    <div class="faculty-confirm-actions">
+      <button class="faculty-confirm-btn-cancel" onclick="closeFacultyConfirmModal()">Cancel</button>
+      <button class="faculty-confirm-btn-danger" id="facultyConfirmModalOkBtn">Remove</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCsrf() {
+  let v = null;
+  document.cookie.split(';').forEach(c => {
+    c = c.trim();
+    if (c.startsWith('csrftoken=')) v = decodeURIComponent(c.substring(10));
+  });
+  return v;
+}
+
+const FACULTY_ORG_BASE = "/faculty/{{ request.user.uuid }}/organizations/";
+
+let facultyConfirmCallback = null;
+
+function showFacultyConfirmModal(title, message, onConfirm, confirmLabel = 'Remove') {
+  document.getElementById('facultyConfirmModalTitle').textContent = title;
+  document.getElementById('facultyConfirmModalMessage').textContent = message;
+  const okBtn = document.getElementById('facultyConfirmModalOkBtn');
+  okBtn.textContent = confirmLabel;
+  facultyConfirmCallback = onConfirm;
+  document.getElementById('facultyConfirmModalOverlay').style.display = 'flex';
+}
+
+function closeFacultyConfirmModal() {
+  document.getElementById('facultyConfirmModalOverlay').style.display = 'none';
+  facultyConfirmCallback = null;
+}
+
+document.getElementById('facultyConfirmModalOkBtn').addEventListener('click', function () {
+  if (facultyConfirmCallback) facultyConfirmCallback();
+  closeFacultyConfirmModal();
+});
+
+let currentFacultyOrgId = null;
+
+function openFacultyMembersModal(orgId, orgName) {
+  currentFacultyOrgId = orgId;
+  const nameEl = document.getElementById('facultyMembersOrgName');
+  nameEl.textContent = orgName;
+  nameEl.title = orgName;
+  document.getElementById('facultyMemberSearchInput').value = '';
+  document.getElementById('facultyStudentSearchResults').innerHTML = '';
+  document.getElementById('facultyStudentSearchResults').classList.remove('has-results');
+  loadFacultyCurrentMembers();
+  document.getElementById('facultyMembersModalOverlay').style.display = 'flex';
+}
+
+function closeFacultyMembersModal(e) {
+  if (e && e.target !== document.getElementById('facultyMembersModalOverlay')) return;
+  document.getElementById('facultyMembersModalOverlay').style.display = 'none';
+}
+
+function loadFacultyCurrentMembers() {
+  fetch(`${FACULTY_ORG_BASE}${currentFacultyOrgId}/members/`)
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById('facultyCurrentMembersList');
+      document.getElementById('facultyCurrentMembersCount').textContent = data.members.length;
+      if (!data.members.length) {
+        list.innerHTML = '<div class="faculty-empty-hint"><i class="ti ti-users-group"></i> No members yet.</div>';
+        return;
+      }
+      list.innerHTML = data.members.map(m => `
+        <div class="faculty-member-row">
+          <div class="faculty-member-avatar">${m.name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div>
+          <div class="faculty-member-info">
+            <div class="faculty-member-name" title="${m.name}">${m.name}</div>
+            <div class="faculty-member-email">${m.email} • <span class="faculty-member-status ${m.status.toLowerCase()}">${m.status}</span></div>
+          </div>
+          <button class="faculty-btn-remove" onclick="facultyRemoveMember(${m.membership_id})" title="Remove"><i class="ti ti-x"></i></button>
+        </div>
+      `).join('');
+    });
+}
+
+function facultySearchStudents() {
+  const q = document.getElementById('facultyMemberSearchInput').value;
+  const box = document.getElementById('facultyStudentSearchResults');
+  if (q.length < 2) {
+    box.innerHTML = '';
+    box.classList.remove('has-results');
+    return;
+  }
+  fetch(`${FACULTY_ORG_BASE}${currentFacultyOrgId}/search-students/?q=${encodeURIComponent(q)}`)
+    .then(res => res.json())
+    .then(data => {
+      box.classList.add('has-results');
+      if (!data.students.length) {
+        box.innerHTML = '<div class="faculty-empty-hint">No matching students found.</div>';
+        return;
+      }
+      box.innerHTML = data.students.map(s => `
+        <div class="faculty-member-row">
+          <div class="faculty-member-avatar">${s.name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div>
+          <div class="faculty-member-info">
+            <div class="faculty-member-name" title="${s.name}">${s.name}</div>
+            <div class="faculty-member-email">${s.email}</div>
+          </div>
+          <button class="faculty-btn-add" onclick="facultyAddMember(${s.id})"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      `).join('');
+    });
+}
+
+function facultyAddMember(studentId) {
+  const formData = new FormData();
+  formData.append('student_id', studentId);
+  fetch(`${FACULTY_ORG_BASE}${currentFacultyOrgId}/members/add/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+    body: formData,
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        toastSuccess(data.message);
+        document.getElementById('facultyMemberSearchInput').value = '';
+        const resultsBox = document.getElementById('facultyStudentSearchResults');
+        resultsBox.innerHTML = '';
+        resultsBox.classList.remove('has-results');
+
+        setTimeout(() => {
+          loadFacultyCurrentMembers();
+          refreshOrgCardMemberCount(currentFacultyOrgId);
+        }, 150);
+      } else {
+        toastError(data.error);
+      }
+    })
+    .catch(() => toastError('Something went wrong. Please try again.'));
+}
+
+function facultyRemoveMember(membershipId) {
+  showFacultyConfirmModal(
+    'Remove Member?',
+    'Are you sure you want to remove this member from the organization?',
+    function () {
+      fetch(`${FACULTY_ORG_BASE}members/${membershipId}/remove/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            toastSuccess(data.message);
+            loadFacultyCurrentMembers();
+            refreshOrgCardMemberCount(currentFacultyOrgId);
+          } else {
+            toastError(data.error);
+          }
+        });
+    },
+    'Remove'
+  );
+}
+
+
+function refreshOrgCardMemberCount(orgId) {
+  fetch(`${FACULTY_ORG_BASE}${orgId}/members/`)
+    .then(res => res.json())
+    .then(data => {
+      const card = document.getElementById(`faculty-org-card-${orgId}`);
+      if (!card) return;
+      const badge = card.querySelector('.faculty-org-members-badge');
+      if (badge) {
+        const activeCount = data.members.filter(m => m.status === 'ACTIVE').length;
+        const maxPart = badge.textContent.includes('/') ? badge.textContent.split('/')[1].trim().split(' ')[0] : null;
+        badge.innerHTML = `<i class="ti ti-users"></i> ${activeCount}${maxPart ? ' / ' + maxPart : ''} members`;
+      }
+    });
+}
+
+/* ── Persistent Chat Panel ── */
+let currentBroadcastOrgId = null;
+let chatPollInterval = null;
+
+function selectChatOrg(orgId, orgName) {
+  currentBroadcastOrgId = orgId;
+
+  document.getElementById('chatPanelOrgName').textContent = orgName;
+  document.getElementById('chatPanelOrgName').title = orgName;
+  document.getElementById('chatInputRow').style.display = 'flex';
+  document.getElementById('broadcastMessageText').value = '';
+
+  document.querySelectorAll('.faculty-org-btn-message').forEach(b => b.classList.remove('active-chat'));
+  const activeBtn = document.getElementById(`msg-btn-${orgId}`);
+  if (activeBtn) activeBtn.classList.add('active-chat');
+
+  document.getElementById('chatPanelBody').innerHTML =
+    '<div class="faculty-empty-hint"><i class="ti ti-messages"></i> Loading messages...</div>';
+
+  loadChatMessages();
+
+  clearInterval(chatPollInterval);
+  chatPollInterval = setInterval(loadChatMessages, 4000);
+}
+
+function loadChatMessages() {
+  if (!currentBroadcastOrgId) return;
+  fetch(`${FACULTY_ORG_BASE}${currentBroadcastOrgId}/chat/messages/`)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      if (!data.success) return;
+      const feed = document.getElementById('chatPanelBody');
+      const wasAtBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 30;
+
+      if (!data.messages.length) {
+        feed.innerHTML = '<div class="faculty-empty-hint"><i class="ti ti-messages"></i> No messages yet. Say hello!</div>';
+        return;
+      }
+
+      feed.innerHTML = data.messages.map(m => `
+        <div class="faculty-chat-bubble-row ${m.is_me ? 'me' : 'them'}">
+          ${!m.is_me ? `<div class="faculty-chat-avatar">${m.sender_photo ? `<img src="${m.sender_photo}">` : m.sender_name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div>` : ''}
+          <div class="faculty-chat-bubble">
+            ${!m.is_me ? `<div class="faculty-chat-sender">${m.sender_name}</div>` : ''}
+            <div class="faculty-chat-text">${m.body}</div>
+            <div class="faculty-chat-time">${new Date(m.sent_at).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</div>
+          </div>
+        </div>
+      `).join('');
+
+      if (wasAtBottom) {
+        feed.scrollTop = feed.scrollHeight;
+      }
+    })
+    .catch(err => {
+      console.error('Chat load failed:', err);
+      document.getElementById('chatPanelBody').innerHTML =
+        `<div class="faculty-empty-hint"><i class="ti ti-alert-triangle"></i> Couldn't load messages. (${err.message})</div>`;
+    });
+}
+
+function autoGrowChatInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function sendBroadcastMessage() {
+  if (!currentBroadcastOrgId) return;
+  const textarea = document.getElementById('broadcastMessageText');
+  const body = textarea.value.trim();
+  if (!body) return;
+
+  const sendBtn = document.getElementById('broadcastSendBtn');
+  sendBtn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('body', body);
+
+  fetch(`${FACULTY_ORG_BASE}${currentBroadcastOrgId}/chat/send/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+    body: formData,
+  })
+    .then(res => res.json())
+    .then(data => {
+      sendBtn.disabled = false;
+      if (data.success) {
+        textarea.value = '';
+        textarea.style.height = 'auto';
+        loadChatMessages();
+      } else {
+        toastError(data.error);
+      }
+    })
+    .catch(() => {
+      sendBtn.disabled = false;
+      toastError('Something went wrong. Please try again.');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const chatInput = document.getElementById('broadcastMessageText');
+  if (chatInput) {
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBroadcastMessage();
+      }
+    });
+  }
+});
+
+
+function showFacultyToast(title, msg, type = 'success') {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+
+  const iconMap = {
+    success: '<i class="ti ti-circle-check"></i>',
+    error:   '<i class="ti ti-circle-x"></i>',
+    warning: '<i class="ti ti-alert-triangle"></i>',
+    info:    '<i class="ti ti-info-circle"></i>',
+  };
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <div class="toast-icon">${iconMap[type] || iconMap.success}</div>
+    <div class="toast-txt">
+      <b>${title}</b>
+      <small>${msg}</small>
+    </div>
+    <span class="toast-close" onclick="this.closest('.toast').remove()">
+      <i class="ti ti-x"></i>
+    </span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(function () {
+    toast.style.animation = 'toastFadeOut 0.35s ease forwards';
+    setTimeout(() => toast.remove(), 350);
+  }, 4000);
+}
+
+function toastSuccess(msg) {
+  showFacultyToast('Success', msg, 'success');
+}
+
+function toastError(msg) {
+  showFacultyToast('Error', msg, 'error');
+}
+
+console.log('Toast system loaded in faculty base!');
+
+</script>
+{% endblock %}

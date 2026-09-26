@@ -1,0 +1,823 @@
+<!-- /* ******************************************** Arun Code ********************************************************** */ -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Communications — Staff Portal{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Administrator/communications.css' %}">{% endblock %}
+
+{% block nav_admin_open %}open{% endblock %}
+{% block nav_admin_submenu %}open{% endblock %}
+{% block nav_comms %}active{% endblock %}
+
+{% block content %}
+<!-- ══════════════════════════
+     PAGE HEADER
+══════════════════════════ -->
+<div class="cm-page-header" data-aos="fade-down"> 
+  <div>
+    <h1>Communications</h1>
+    <p>Send, receive, and manage all internal university communications and announcements.</p>
+  </div>
+  <div class="cm-header-actions">
+    <button class="cm-btn cm-btn-ghost">
+      <i class="ti ti-filter"></i>
+      <span>Filter</span>
+    </button>
+    <button class="cm-btn cm-btn-ghost" onclick="jumpToArchivedTab()">
+      <i class="ti ti-archive"></i>
+      <span>Archive</span>
+    </button>
+    <button class="cm-btn cm-btn-primary" onclick="openComposeModal()">
+      <i class="ti ti-pencil-plus"></i>
+      <span>Compose</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     KPI STRIP  
+══════════════════════════ -->
+<div class="cm-kpi-strip" data-aos="fade-up" data-aos-delay="50">
+
+  <div class="cm-kpi-card">
+    <div class="cm-kpi-top">
+      <span class="cm-kpi-icon blue"><i class="ti ti-inbox"></i></span>
+      <span class="cm-kpi-label">Inbox</span>
+    </div>
+    <div class="cm-kpi-value counter">{{ kpi_inbox }}</div>
+    <div class="cm-kpi-sub"><span class="neutral">Total conversations</span></div>
+  </div>
+
+  <div class="cm-kpi-card">
+    <div class="cm-kpi-top">
+      <span class="cm-kpi-icon orange"><i class="ti ti-mail-opened"></i></span>
+      <span class="cm-kpi-label">Unread</span>
+    </div>
+    <div class="cm-kpi-value counter">{{ kpi_unread }}</div>
+    <div class="cm-kpi-sub"><span class="neutral">needs attention</span></div>
+  </div>
+
+  <div class="cm-kpi-card">
+    <div class="cm-kpi-top">
+      <span class="cm-kpi-icon green"><i class="ti ti-send"></i></span>
+      <span class="cm-kpi-label">Sent This Week</span>
+    </div>
+    <div class="cm-kpi-value counter">{{ kpi_sent_week }}</div>
+    <div class="cm-kpi-sub"><span class="neutral">—</span></div>
+  </div>
+
+  <div class="cm-kpi-card">
+    <div class="cm-kpi-top">
+      <span class="cm-kpi-icon red"><i class="ti ti-speakerphone"></i></span>
+      <span class="cm-kpi-label">Announcements</span>
+    </div>
+    <div class="cm-kpi-value counter">{{ kpi_announcements }}</div>
+    <div class="cm-kpi-sub"><span class="neutral">—</span> active university-wide</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════
+     MAIN TWO-COLUMN LAYOUT
+══════════════════════════ -->
+<div class="cm-layout">
+
+  <div class="cm-inbox-panel">
+
+    <div class="cm-inbox-toolbar">
+      <div class="cm-inbox-tabs">
+        <button class="cm-inbox-tab active" onclick="switchInboxTab(this,'all')">All</button>
+        <button class="cm-inbox-tab" onclick="switchInboxTab(this,'unread')">Unread <span class="cm-unread-badge">{{ kpi_unread }}</span></button>
+        <button class="cm-inbox-tab" onclick="switchInboxTab(this,'sent')">Sent</button>
+        <button class="cm-inbox-tab" onclick="switchInboxTab(this,'announcements')">Alerts</button>
+        <button class="cm-inbox-tab" onclick="switchInboxTab(this,'archived')" id="cmArchivedTabBtn">Archived</button>
+      </div>
+      <div class="cm-inbox-search">
+        <i class="ti ti-search"></i>
+        <input type="text" id="cmSearchInput" placeholder="Search…" />
+      </div>
+    </div>
+
+    <div class="cm-message-list" id="cmMessageList">
+
+      {% for row in thread_rows %}
+      <div class="cm-message-item {% if row.unread %}unread{% endif %}"
+           data-type="{{ row.kind }}"
+           data-thread-id="{{ row.thread_id }}"
+           onclick="showMessage(this, {{ row.thread_id }})">
+        <div class="cm-msg-avatar">
+            {% if row.avatar_photo %}
+                <img src="{{ row.avatar_photo }}" alt="{{ row.sender_display }}">
+            {% else %}
+                <div style="background:{{ row.avatar_bg }}">
+                    {{ row.avatar_letter }}
+                </div>
+            {% endif %}
+        </div>
+        <div class="cm-msg-body">
+          <div class="cm-msg-header">
+            <span class="cm-msg-sender">{{ row.sender_display }}</span>
+            <span class="cm-msg-time">{{ row.time }}</span>
+          </div>
+          <div class="cm-msg-subject">{{ row.subject }}</div>
+          <div class="cm-msg-preview">{{ row.preview }}</div>
+        </div>
+        {% if row.unread %}<div class="cm-msg-unread-dot"></div>{% endif %}
+        {% if row.is_sent %}<div class="cm-msg-sent-icon"><i class="ti ti-send"></i></div>{% endif %}
+      </div>
+      {% empty %}
+      <div style="padding:40px 20px; text-align:center; color:var(--text-muted); font-size:13px;">
+        No messages yet. Click <strong>Compose</strong> to start a conversation.
+      </div>
+      {% endfor %}
+
+      {% for a in announcements %}
+      <div class="cm-message-item" data-type="announcements" data-announcement-id="{{ a.id }}" onclick="showAnnouncement(this, {{ a.id }})">
+        <div class="cm-msg-avatar red"><i class="ti ti-speakerphone"></i></div>
+        <div class="cm-msg-body">
+          <div class="cm-msg-header">
+            <span class="cm-msg-sender">University-Wide</span>
+            <span class="cm-msg-time">{{ a.posted_at|date:"M d" }}</span>
+          </div>
+          <div class="cm-msg-subject">{{ a.title }}</div>
+          <div class="cm-msg-preview">{{ a.body|truncatechars:120 }}</div>
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+
+  <div class="cm-detail-panel">
+
+    <div class="cm-empty-state" id="cmEmptyState">
+      <div class="cm-empty-icon"><i class="ti ti-message-dots"></i></div>
+      <div class="cm-empty-title">Select a message to read</div>
+      <div class="cm-empty-sub">Choose from your inbox on the left to view the full message.</div>
+    </div>
+
+    <div class="cm-detail-view" id="cmDetailView" style="display:none;">
+      <div class="cm-detail-header">
+        <div class="cm-detail-subject" id="cmDetailSubject"></div>
+        <div class="cm-detail-meta">
+          <div class="cm-detail-from">
+            <div class="cm-detail-avatar" id="cmDetailAvatar"></div>
+            <div>
+              <div class="cm-detail-sender" id="cmDetailSender"></div>
+              <div class="cm-detail-role" id="cmDetailRole"></div>
+            </div>
+          </div>
+          <div class="cm-detail-time" id="cmDetailTime"></div>
+        </div>
+      </div>
+
+      <div class="cm-detail-body" id="cmDetailBody">
+
+      </div>
+
+      <div class="cm-reply-box" id="cmReplyBox" style="padding:14px 22px; border-top:1px solid var(--border-color); display:none;">
+        <textarea id="cmReplyText" rows="3" placeholder="Write a reply…" style="width:100%; border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; font-family:inherit; font-size:13.5px; resize:vertical;"></textarea>
+
+        <div class="cm-attach-wrap" style="margin-top:10px;">
+          <label class="cm-attach-btn" for="cmReplyAttachInput">
+            <i class="ti ti-paperclip"></i>
+            <span>Choose files</span>
+          </label>
+          <input type="file" id="cmReplyAttachInput" class="cm-attach-input" multiple
+                accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf" />
+        </div>
+        <div class="cm-attach-hint">Images, videos, or PDFs · up to 25MB each · max 5 files</div>
+        <div class="cm-attach-error" id="cmReplyAttachError"></div>
+        <div class="cm-attach-preview" id="cmReplyAttachPreview"></div>
+
+        <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+          <button class="cm-btn cm-btn-primary" onclick="sendReply()"><i class="ti ti-send"></i> <span>Send Reply</span></button>
+        </div>
+      </div>
+
+      <div class="cm-detail-actions">
+        <button class="cm-detail-btn primary" onclick="toggleReplyBox()"><i class="ti ti-arrow-back-up"></i> Reply</button>
+        <button class="cm-detail-btn" id="cmArchiveActionBtn" onclick="handleArchiveAction()"><i class="ti ti-archive"></i> <span id="cmArchiveActionLabel">Archive</span></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     BOTTOM GRID
+══════════════════════════ -->
+<div class="cm-bottom-grid">
+
+  <div class="cm-widget">
+    <div class="cm-widget-header">
+      <span class="cm-widget-title"><i class="ti ti-speakerphone"></i> Active Announcements</span>
+      <a class="cm-widget-link" href="#">View all</a>
+    </div>
+    <div class="cm-announce-list">
+      {% for a in announcements %}
+      <div class="cm-announce-item">
+        <div class="cm-announce-dot {% if a.priority == 'URGENT' %}red{% elif a.priority == 'INFO' %}blue{% else %}green{% endif %}"></div>
+        <div class="cm-announce-body">
+          <div class="cm-announce-title">{{ a.title }}</div>
+          <div class="cm-announce-meta">
+            {% if a.department_id %}Department-Specific{% else %}University-Wide{% endif %}
+            {% if a.expires_at %} · Expires {{ a.expires_at|date:"M d" }}{% endif %}
+          </div>
+        </div>
+        <span class="cm-announce-badge {% if a.priority == 'URGENT' %}urgent{% elif a.priority == 'INFO' %}info{% else %}notice{% endif %}">
+          {{ a.get_priority_display }}
+        </span>
+      </div>
+      {% empty %}
+      <div style="color:var(--text-muted); font-size:12.5px;">No active announcements.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="cm-widget">
+    <div class="cm-widget-header">
+      <span class="cm-widget-title"><i class="ti ti-chart-bar"></i> Message Volume (This Week)</span>
+    </div>
+    <div class="cm-vol-list" id="cmVolumeList">
+      <div style="color:var(--text-muted); font-size:12px;">Loading…</div>
+    </div>
+  </div>
+
+  <div class="cm-widget">
+    <div class="cm-widget-header">
+      <span class="cm-widget-title"><i class="ti ti-address-book"></i> Quick Contacts</span>
+      <a class="cm-widget-link" href="{% url 'staff_directory' uuid=uuid %}">Directory</a>
+    </div>
+    <div class="cm-contact-list" id="cmQuickContacts">
+      <div style="color:var(--text-muted); font-size:12px;">
+        Search for a person in Compose to start a conversation.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════
+     COMPOSE MODAL
+══════════════════════════ -->
+<div class="cm-modal-overlay" id="cmModal" onclick="closeComposeModal(event)">
+  <div class="cm-modal">
+    <div class="cm-modal-header">
+      <span class="cm-modal-title"><i class="ti ti-pencil-plus"></i> New Message</span>
+      <button class="cm-modal-close" onclick="closeComposeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="cm-modal-body">
+      <div class="cm-modal-field" style="position:relative;">
+        <label>To</label>
+        <input type="text" id="cmToInput" placeholder="Type a name or email…" autocomplete="off" />
+        <input type="hidden" id="cmToRecipientId" />
+        <div id="cmToResults" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid var(--border-color); border-radius:8px; margin-top:4px; max-height:180px; overflow-y:auto; z-index:20; box-shadow:0 4px 14px rgba(0,0,0,.1);"></div>
+      </div>
+      <div class="cm-modal-field">
+        <label>Subject</label>
+        <input type="text" id="cmSubjectInput" placeholder="Message subject…" />
+      </div>
+      <div class="cm-modal-field">
+        <label>Message</label>
+        <textarea id="cmBodyInput" placeholder="Write your message here…" rows="6"></textarea>
+      </div>
+      <div class="cm-modal-field">
+        <label>Attachments</label>
+        <div class="cm-attach-wrap">
+          <label class="cm-attach-btn" for="cmAttachInput">
+            <i class="ti ti-paperclip"></i>
+            <span>Choose files</span>
+          </label>
+          <input type="file" id="cmAttachInput" class="cm-attach-input" multiple
+                accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf" />
+        </div>
+        <div class="cm-attach-hint">Images, videos, or PDFs · up to 25MB each · max 5 files</div>
+        <div class="cm-attach-error" id="cmAttachError"></div>
+        <div class="cm-attach-preview" id="cmAttachPreview"></div>
+      </div>
+      <div id="cmComposeError" style="display:none; color:#dc2626; font-size:12.5px;"></div>
+    </div>
+    <div class="cm-modal-footer">
+      <button class="cm-btn cm-btn-ghost" onclick="closeComposeModal()">Cancel</button>
+      <button class="cm-btn cm-btn-primary" onclick="submitCompose()"><i class="ti ti-send"></i> Send</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const STAFF_UUID = "{{ uuid }}";
+const URLS = {
+  threadDetail: (id) => `/staff/${STAFF_UUID}/communications/thread/${id}/`,
+  archiveThread: (id) => `/staff/${STAFF_UUID}/communications/thread/${id}/archive/`,
+  unarchiveThread: (id) => `/staff/${STAFF_UUID}/communications/thread/${id}/unarchive/`,
+  searchRecipients: `/staff/communications/search-recipients/`,
+  sendMessage: `/staff/communications/send/`,
+  replyMessage: `/staff/communications/reply/`,
+  volume: `/staff/${STAFF_UUID}/communications/volume/`,
+};
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return '';
+}
+const CSRF_TOKEN = getCookie('csrftoken');
+
+let currentThreadId = null;
+let currentReplyToId = null;
+let currentThreadIsArchived = false;
+
+// ── Attachment validation state ──
+const ATTACH_LIMITS = {
+  maxSizeMB: 25,
+  maxFiles: 5,
+  allowedTypes: [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'video/mp4', 'video/webm', 'video/quicktime',
+    'application/pdf',
+  ],
+};
+let composeFiles = [];
+let replyFiles = [];
+
+function fmtSize(bytes) {
+  return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+}
+
+function validateAndCollect(fileList, existing, errorEl) {
+  errorEl.style.display = 'none';
+  errorEl.textContent = '';
+
+  const incoming = [...fileList];
+  const combined = [...existing];
+  const problems = [];
+
+  for (const f of incoming) {
+    if (combined.length >= ATTACH_LIMITS.maxFiles) {
+      problems.push(`Only ${ATTACH_LIMITS.maxFiles} files allowed per message.`);
+      break;
+    }
+    if (f.size > ATTACH_LIMITS.maxSizeMB * 1024 * 1024) {
+      problems.push(`"${f.name}" is ${fmtSize(f.size)} — max is ${ATTACH_LIMITS.maxSizeMB}MB.`);
+      continue;
+    }
+    if (!ATTACH_LIMITS.allowedTypes.includes(f.type)) {
+      problems.push(`"${f.name}" isn't a supported file type.`);
+      continue;
+    }
+    if (combined.some(c => c.name === f.name && c.size === f.size)) {
+      continue;
+    }
+    combined.push(f);
+  }
+
+  if (problems.length) {
+    errorEl.innerHTML = problems.join('<br>');
+    errorEl.style.display = 'block';
+  }
+
+  return combined;
+}
+
+function renderAttachChips(files, previewEl, onRemove) {
+  previewEl.innerHTML = files.map((f, i) => `
+    <div class="cm-attach-chip">
+      <i class="ti ${f.type.startsWith('image/') ? 'ti-photo' : f.type.startsWith('video/') ? 'ti-video' : 'ti-file'}"></i>
+      <span class="name">${f.name}</span>
+      <span style="color:var(--text-muted);">${fmtSize(f.size)}</span>
+      <span class="remove" data-idx="${i}">&times;</span>
+    </div>
+  `).join('');
+
+  previewEl.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      onRemove(idx);
+    });
+  });
+}
+
+function filesToDataTransfer(files) {
+  const dt = new DataTransfer();
+  files.forEach(f => dt.items.add(f));
+  return dt.files;
+}
+
+function renderComposePreview() {
+  renderAttachChips(composeFiles, document.getElementById('cmAttachPreview'), (idx) => {
+    composeFiles.splice(idx, 1);
+    document.getElementById('cmAttachInput').files = filesToDataTransfer(composeFiles);
+    renderComposePreview();
+  });
+}
+
+function renderReplyPreview() {
+  renderAttachChips(replyFiles, document.getElementById('cmReplyAttachPreview'), (idx) => {
+    replyFiles.splice(idx, 1);
+    document.getElementById('cmReplyAttachInput').files = filesToDataTransfer(replyFiles);
+    renderReplyPreview();
+  });
+}
+
+document.getElementById('cmAttachInput').addEventListener('change', function () {
+  const errorEl = document.getElementById('cmAttachError');
+  composeFiles = validateAndCollect(this.files, composeFiles, errorEl);
+  this.files = filesToDataTransfer(composeFiles);
+  renderComposePreview();
+});
+
+document.getElementById('cmReplyAttachInput').addEventListener('change', function () {
+  const errorEl = document.getElementById('cmReplyAttachError');
+  replyFiles = validateAndCollect(this.files, replyFiles, errorEl);
+  this.files = filesToDataTransfer(replyFiles);
+  renderReplyPreview();
+});
+
+// ── Thread viewing ──
+async function showMessage(el, threadId) {
+  document.querySelectorAll('.cm-message-item').forEach(i => i.classList.remove('active-msg'));
+  el.classList.add('active-msg');
+  el.classList.remove('unread');
+  const dot = el.querySelector('.cm-msg-unread-dot');
+  if (dot) dot.remove();
+
+  currentThreadIsArchived = el.dataset.type === 'archived';
+  updateArchiveButton();
+
+  try {
+    const res = await fetch(URLS.threadDetail(threadId));
+    const data = await res.json();
+    if (!data.success) return;
+
+    currentThreadId = data.thread_id;
+    currentReplyToId = data.reply_to_id;
+
+    document.getElementById('cmDetailSubject').textContent = data.subject;
+    document.getElementById('cmDetailSender').textContent = data.other_name;
+    document.getElementById('cmDetailRole').textContent = data.other_role;
+
+    const last = data.messages[data.messages.length - 1];
+    document.getElementById('cmDetailTime').textContent = last ? last.sent_at : '';
+
+    const av = document.getElementById('cmDetailAvatar');
+    if (data.other_avatar_photo) {
+        av.innerHTML = `<img src="${data.other_avatar_photo}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        av.style.background = "transparent";
+    } else {
+        av.innerHTML = data.other_avatar_letter;
+        av.style.background = data.other_avatar_bg;
+    }
+
+    const bodyEl = document.getElementById('cmDetailBody');
+    bodyEl.innerHTML = data.messages.map(m => `
+      <div style="margin-bottom:18px; padding-bottom:14px; border-bottom:1px dashed var(--border-color);">
+        <div style="font-size:12px; font-weight:600; color:${m.is_mine ? '#C5050C' : 'var(--text-primary)'}; margin-bottom:4px;">
+          ${m.is_mine ? 'You' : m.sender_name} <span style="font-weight:400; color:var(--text-muted);">· ${m.sent_at}</span>
+        </div>
+        <div>${m.body.replace(/\n/g, '<br>')}</div>
+        ${(m.attachments && m.attachments.length) ? `
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+            ${m.attachments.map(a => a.is_image
+              ? `<a href="${a.url}" target="_blank"><img src="${a.url}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border-color);"></a>`
+              : a.is_video
+                ? `<video src="${a.url}" controls style="width:180px;border-radius:8px;"></video>`
+                : `<a href="${a.url}" target="_blank" style="font-size:12px; padding:6px 10px; background:#f5f5f5; border-radius:6px; text-decoration:none;"><i class="ti ti-file"></i> ${a.name}</a>`
+            ).join('')}
+          </div>` : ''}
+      </div>
+    `).join('');
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+
+    document.getElementById('cmEmptyState').style.display = 'none';
+    document.getElementById('cmDetailView').style.display = 'flex';
+    document.getElementById('cmReplyBox').style.display = 'none';
+  } catch (e) {
+    console.error('Failed to load thread', e);
+  }
+}
+
+function showAnnouncement(el, id) {
+  document.querySelectorAll('.cm-message-item').forEach(i => i.classList.remove('active-msg'));
+  el.classList.add('active-msg');
+
+  const title = el.querySelector('.cm-msg-subject').textContent;
+  const preview = el.querySelector('.cm-msg-preview').textContent;
+
+  document.getElementById('cmDetailSubject').textContent = title;
+  document.getElementById('cmDetailSender').textContent = 'University-Wide';
+  document.getElementById('cmDetailRole').textContent = 'Announcement';
+  document.getElementById('cmDetailTime').textContent = '';
+  const av = document.getElementById('cmDetailAvatar');
+  av.textContent = 'UW';
+  av.style.background = '#C5050C';
+  document.getElementById('cmDetailBody').innerHTML = `<p>${preview}</p>`;
+
+  document.getElementById('cmEmptyState').style.display = 'none';
+  document.getElementById('cmDetailView').style.display = 'flex';
+  document.getElementById('cmReplyBox').style.display = 'none';
+  currentThreadId = null;
+}
+
+function toggleReplyBox() {
+  if (!currentThreadId) return;
+  const box = document.getElementById('cmReplyBox');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  if (box.style.display === 'block') document.getElementById('cmReplyText').focus();
+}
+
+async function sendReply() {
+  const body = document.getElementById('cmReplyText').value.trim();
+  const files = document.getElementById('cmReplyAttachInput').files;
+  if (!body && files.length === 0) return;
+  if (!currentThreadId || !currentReplyToId) return;
+
+  const fd = new FormData();
+  fd.append('thread_id', currentThreadId);
+  fd.append('recipient_id', currentReplyToId);
+  fd.append('body', body);
+  [...files].forEach(f => fd.append('attachments', f));
+
+  try {
+    const res = await fetch(URLS.replyMessage, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF_TOKEN },
+      body: fd,
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('cmReplyText').value = '';
+      document.getElementById('cmReplyAttachInput').value = '';
+      document.getElementById('cmReplyAttachError').style.display = 'none';
+      document.getElementById('cmReplyAttachPreview').innerHTML = '';
+      replyFiles = [];
+      document.getElementById('cmReplyBox').style.display = 'none';
+      const el = document.querySelector(`.cm-message-item[data-thread-id="${currentThreadId}"]`);
+      if (el) showMessage(el, currentThreadId);
+    } else {
+      alert(data.error || 'Could not send reply.');
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function updateArchiveButton() {
+  document.getElementById('cmArchiveActionLabel').textContent =
+    currentThreadIsArchived ? 'Move to Inbox' : 'Archive';
+}
+
+async function handleArchiveAction() {
+  if (!currentThreadId) return;
+  const url = currentThreadIsArchived
+    ? URLS.unarchiveThread(currentThreadId)
+    : URLS.archiveThread(currentThreadId);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF_TOKEN },
+    });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function switchInboxTab(el, type) {
+  document.querySelectorAll('.cm-inbox-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  document.querySelectorAll('.cm-message-item').forEach(item => {
+    if (type === 'all') {
+      item.style.display = (item.dataset.type === 'announcements' || item.dataset.type === 'archived') ? 'none' : '';
+      return;
+    }
+    item.style.display = item.dataset.type === type ? '' : 'none';
+  });
+}
+
+function jumpToArchivedTab() {
+  switchInboxTab(document.getElementById('cmArchivedTabBtn'), 'archived');
+}
+
+document.getElementById('cmSearchInput').addEventListener('input', function () {
+  const q = this.value.toLowerCase().trim();
+  let anyVisible = false;
+  document.querySelectorAll('.cm-message-item').forEach(item => {
+    const txt = item.textContent.toLowerCase();
+    const match = txt.includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) anyVisible = true;
+  });
+
+  let hint = document.getElementById('cmSearchNoMatchHint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'cmSearchNoMatchHint';
+    hint.style.cssText = 'padding:16px 20px; text-align:center; color:var(--text-muted); font-size:12.5px; cursor:pointer;';
+    document.getElementById('cmMessageList').appendChild(hint);
+  }
+  if (q && !anyVisible) {
+    hint.innerHTML = `No conversations match "<strong>${q}</strong>". <span style="color:#C5050C; font-weight:600;">Start a new message to "${q}" &rarr;</span>`;
+    hint.style.display = 'block';
+    hint.onclick = () => {
+      openComposeModal();
+      document.getElementById('cmToInput').value = q;
+      document.getElementById('cmToInput').dispatchEvent(new Event('input'));
+    };
+  } else {
+    hint.style.display = 'none';
+  }
+});
+
+function openComposeModal() {
+  document.getElementById('cmModal').classList.add('show');
+  document.getElementById('cmToInput').value = '';
+  document.getElementById('cmToRecipientId').value = '';
+  document.getElementById('cmSubjectInput').value = '';
+  document.getElementById('cmBodyInput').value = '';
+  document.getElementById('cmAttachInput').value = '';
+  document.getElementById('cmAttachError').style.display = 'none';
+  document.getElementById('cmAttachPreview').innerHTML = '';
+  composeFiles = [];
+  document.getElementById('cmComposeError').style.display = 'none';
+}
+
+function closeComposeModal(e) {
+  if (!e || e.target === document.getElementById('cmModal') ||
+      (e.currentTarget && (e.currentTarget.classList.contains('cm-modal-close') || e.currentTarget.classList.contains('cm-btn-ghost')))) {
+    document.getElementById('cmModal').classList.remove('show');
+  }
+}
+
+let toSearchTimer = null;
+
+async function runRecipientSearch(q) {
+  const box = document.getElementById('cmToResults');
+  box.innerHTML = `<div style="padding:10px 12px; font-size:12.5px; color:var(--text-muted);">Loading…</div>`;
+  box.style.display = 'block';
+  try {
+    const res = await fetch(`${URLS.searchRecipients}?q=${encodeURIComponent(q)}`);
+    if (!res.ok) {
+      box.innerHTML = `<div style="padding:10px 12px; font-size:12.5px; color:#dc2626;">Error ${res.status} loading users. Check that the URL/view is wired up.</div>`;
+      console.error('search-recipients request failed', res.status, await res.text());
+      return;
+    }
+    const data = await res.json();
+    if (!data.results || data.results.length === 0) {
+      box.innerHTML = `<div style="padding:10px 12px; font-size:12.5px; color:var(--text-muted);">No matches found.</div>`;
+      return;
+    }
+    box.innerHTML = data.results.map(r => `
+      <div class="cm-to-result" data-id="${r.id}" data-name="${r.name}"
+           style="padding:9px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid #f5f5f5;">
+        <div style="font-weight:600;">${r.name}</div>
+        <div style="font-size:11.5px; color:var(--text-muted);">${r.role} · ${r.email}</div>
+      </div>
+    `).join('');
+    box.querySelectorAll('.cm-to-result').forEach(row => {
+      row.addEventListener('click', () => {
+        document.getElementById('cmToInput').value = row.dataset.name;
+        document.getElementById('cmToRecipientId').value = row.dataset.id;
+        box.style.display = 'none';
+      });
+      row.addEventListener('mouseenter', () => row.style.background = '#fafafa');
+      row.addEventListener('mouseleave', () => row.style.background = '#fff');
+    });
+  } catch (e) {
+    box.innerHTML = `<div style="padding:10px 12px; font-size:12.5px; color:#dc2626;">Network error — see console.</div>`;
+    console.error('search-recipients fetch threw', e);
+  }
+}
+
+document.getElementById('cmToInput').addEventListener('focus', function () {
+  runRecipientSearch(this.value.trim());
+});
+
+document.getElementById('cmToInput').addEventListener('input', function () {
+  const q = this.value.trim();
+  document.getElementById('cmToRecipientId').value = '';
+  clearTimeout(toSearchTimer);
+  toSearchTimer = setTimeout(() => runRecipientSearch(q), 200);
+});
+
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('#cmToInput') && !e.target.closest('#cmToResults')) {
+    document.getElementById('cmToResults').style.display = 'none';
+  }
+});
+
+async function submitCompose() {
+  const recipientId = document.getElementById('cmToRecipientId').value;
+  const subject = document.getElementById('cmSubjectInput').value.trim();
+  const body = document.getElementById('cmBodyInput').value.trim();
+  const files = document.getElementById('cmAttachInput').files;
+  const errBox = document.getElementById('cmComposeError');
+
+  if (!recipientId) {
+    errBox.textContent = 'Please select a recipient from the dropdown.';
+    errBox.style.display = 'block';
+    return;
+  }
+  if (!body && files.length === 0) {
+    errBox.textContent = 'Add a message or an attachment.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('recipient_id', recipientId);
+  fd.append('subject', subject);
+  fd.append('body', body);
+  [...files].forEach(f => fd.append('attachments', f));
+
+  try {
+    const res = await fetch(URLS.sendMessage, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF_TOKEN },
+      body: fd,
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('cmModal').classList.remove('show');
+      location.reload();
+    } else {
+      errBox.textContent = data.error || 'Could not send message.';
+      errBox.style.display = 'block';
+    }
+  } catch (e) {
+    errBox.textContent = 'Network error — please try again.';
+    errBox.style.display = 'block';
+  }
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') document.getElementById('cmModal').classList.remove('show');
+});
+
+// ─────────────────────────────
+// Message volume widget
+// ─────────────────────────────
+(async function loadVolume() {
+  try {
+    const res = await fetch(URLS.volume);
+    const data = await res.json();
+    if (!data.success) return;
+    const maxCount = Math.max(...data.days.map(d => d.count), 1);
+    const rows = data.days.map(d => `
+      <div class="cm-vol-row">
+        <span class="cm-vol-label">${d.label}</span>
+        <div class="cm-vol-track"><div class="cm-vol-fill" style="width:${(d.count / maxCount) * 100}%"></div></div>
+        <span class="cm-vol-count">${d.count}</span>
+      </div>
+    `).join('');
+    document.getElementById('cmVolumeList').innerHTML = rows + `
+      <div class="cm-vol-divider"></div>
+      <div class="cm-vol-row total">
+        <span class="cm-vol-label">Total</span>
+        <div class="cm-vol-track"><div class="cm-vol-fill red" style="width:100%"></div></div>
+        <span class="cm-vol-count red">${data.total}</span>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById('cmVolumeList').innerHTML = `<div style="color:var(--text-muted); font-size:12px;">Couldn't load volume data.</div>`;
+  }
+})();
+
+// ─────────────────────────────
+// KPI counter animation
+// ─────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  const counters = document.querySelectorAll(".cm-kpi-value.counter");
+  counters.forEach(counter => {
+    const target = parseInt(counter.textContent.trim()) || 0;
+    let current = 0;
+    const duration = 1200;
+    const steps = 60;
+    const increment = target / steps || 1;
+    const interval = duration / steps;
+    counter.textContent = "0";
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        counter.textContent = target;
+        clearInterval(timer);
+      } else {
+        counter.textContent = Math.floor(current);
+      }
+    }, interval);
+  });
+});
+</script>
+{% endblock %}
+
+<!-- /* ******************************************** Arun Code ********************************************************** */ -->

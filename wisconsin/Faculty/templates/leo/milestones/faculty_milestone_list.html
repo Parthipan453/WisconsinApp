@@ -1,0 +1,387 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}PhD Milestones{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/milestones/faculty_milestone_list.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="milestone-page">
+        {% comment %} <nav class="milestone-breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'faculty_dashboard' uuid=faculty.user.uuid %}"
+               class="milestone-breadcrumb-link">
+                <i class="bi bi-grid-1x2-fill"></i>
+                <span>Dashboard</span>
+            </a>
+            <i class="bi bi-chevron-right milestone-breadcrumb-separator"></i>
+            <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}"
+               class="milestone-breadcrumb-link">
+                <i class="bi bi-mortarboard-fill"></i>
+                <span>PhD Management</span>
+            </a>
+            <i class="bi bi-chevron-right milestone-breadcrumb-separator"></i>
+            <span class="milestone-breadcrumb-current">
+                <i class="bi bi-signpost-2-fill"></i>
+                <span>PhD Milestones</span>
+            </span>
+        </nav> {% endcomment %}
+        <div class="milestone-page-header">
+            <div class="milestone-page-header-left">
+                <div class="milestone-page-icon">
+                    <i class="bi bi-signpost-2-fill"></i>
+                </div>
+                <div>
+                    <h1 class="milestone-page-title">PhD Milestones</h1>
+                    <p class="milestone-page-subtitle">
+                        {% if is_advisor %}
+                            Complete academic history and milestone progress of your advisees
+                        {% elif is_chair %}
+                            Complete academic history and milestone progress of assigned PhD students
+                        {% else %}
+                            Complete academic history and milestone progress of your committee students
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="milestone-page-role">
+                {% if is_advisor %}
+                    <i class="bi bi-person-check-fill"></i>
+                    Research Advisor
+                {% elif is_chair and is_committee_member %}
+                    <i class="bi bi-shield-check"></i>
+                    Chair & Committee Member
+                {% elif is_chair %}
+                    <i class="bi bi-person-badge"></i>
+                    Chair Faculty
+                {% else %}
+                    <i class="bi bi-people"></i>
+                    Committee Member
+                {% endif %}
+            </div>
+        </div>
+        <section class="milestone-filter-card">
+            <div class="milestone-filter-header">
+                <div class="milestone-filter-title">
+                    <i class="bi bi-sliders2"></i>
+                    <span>Filter Students</span>
+                </div>
+                <a href="{% url 'faculty_milestone_list' uuid=faculty.user.uuid %}"
+                   class="milestone-clear-filter">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    Clear Filters
+                </a>
+            </div>
+            <form method="get" class="milestone-filter-form">
+                <div class="milestone-filter-group milestone-search-group">
+                    <label for="milestone-search">Search Student</label>
+                    <div class="milestone-search-wrapper">
+                        <i class="bi bi-search"></i>
+                        <input type="text"
+                               id="milestone-search"
+                               name="search"
+                               value="{{ search_query }}"
+                               placeholder="Search by student name, ID or program..."
+                               autocomplete="off">
+                    </div>
+                </div>
+                <div class="milestone-filter-group milestone-status-group">
+                    <label for="milestone-status">Current Status</label>
+                    <select id="milestone-status" name="status" class="milestone-choice-select">
+                        <option value="">All Statuses</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}"
+                                    {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="milestone-filter-button">
+                    <i class="bi bi-funnel"></i>
+                    Apply Filter
+                </button>
+            </form>
+        </section>
+        <div class="milestone-results-header">
+            <div class="milestone-results-count">
+                Showing
+                <strong>{{ students|length }}</strong>
+                student histories
+            </div>
+            <div class="milestone-readonly-label">
+                <i class="bi bi-check-circle"></i>
+                Read-only academic history
+            </div>
+        </div>
+        {% if students %}
+            <div class="milestone-student-list">
+                {% for item in students %}
+                    <article class="milestone-student-card">
+                        <div class="milestone-card-accent"></div>
+                        <div class="milestone-card-header">
+                            <div class="milestone-student-main">
+                                <div class="milestone-student-avatar">
+                                    {% if item.student_name %}
+                                        {{ item.student_name|first|upper }}
+                                    {% else %}
+                                        S
+                                    {% endif %}
+                                </div>
+                                <div class="milestone-student-identity">
+                                    <h2 class="milestone-student-name">{{ item.student_name|default:"Student Name Not Available" }}</h2>
+                                    <div class="milestone-student-meta">
+                                        {% if item.student_id %}
+                                            <span>
+                                                <i class="bi bi-person-vcard"></i>
+                                                <strong>{{ item.student_id }}</strong>
+                                            </span>
+                                        {% endif %}
+                                        {% if item.student.cohort_year %}
+                                            <span>
+                                                <i class="bi bi-calendar3"></i>
+                                                Cohort {{ item.student.cohort_year }}
+                                            </span>
+                                        {% endif %}
+                                        <span class="milestone-current-status">
+                                            <i class="bi bi-circle-fill"></i>
+                                            {{ item.student.get_current_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="milestone-card-info">
+                                <div class="milestone-info-item">
+                                    <div class="milestone-info-label">PhD Program</div>
+                                    <div class="milestone-info-value" title="{{ item.student.phd_program }}">
+                                        {% if item.student.phd_program %}
+                                            {{ item.student.phd_program }}
+                                        {% else %}
+                                            <span class="milestone-not-assigned">Not Available</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="milestone-info-item">
+                                    <div class="milestone-info-label">Research Advisor</div>
+                                    <div class="milestone-info-value" title="{{ item.student.advisor }}">
+                                        {% if item.student.advisor %}
+                                            {{ item.student.advisor }}
+                                        {% else %}
+                                            <span class="milestone-not-assigned">Not Assigned</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="milestone-info-item">
+                                    <div class="milestone-info-label">Committee Chair</div>
+                                    <div class="milestone-info-value"
+                                         title="{{ item.committee.chair_faculty }}">
+                                        {% if item.committee and item.committee.chair_faculty %}
+                                            {{ item.committee.chair_faculty }}
+                                        {% else %}
+                                            <span class="milestone-not-assigned">Not Assigned</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="milestone-info-item">
+                                    <div class="milestone-info-label">Admission Date</div>
+                                    <div class="milestone-info-value">
+                                        {% if item.student.admission_date %}
+                                            {{ item.student.admission_date|date:"d M Y" }}
+                                        {% else %}
+                                            <span class="milestone-not-assigned">Not Recorded</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="milestone-card-action">
+                                <a href="{% url 'faculty_milestone_detail' uuid=faculty.user.uuid phd_student_id=item.student.phd_student_id %}"
+                                   class="milestone-view-btn"
+                                   aria-label="View complete academic history of {{ item.student_name }}">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>View Complete History</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="milestone-timeline-area">
+                            <div class="milestone-timeline-label">
+                                <div class="milestone-timeline-heading">
+                                    <i class="bi bi-signpost-2-fill"></i>
+                                    <span>Academic Milestone Timeline</span>
+                                </div>
+                                <div class="milestone-history-count">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>
+                                        {{ item.timeline_count }}
+                                        {% if item.timeline_count == 1 %}
+                                            event
+                                        {% else %}
+                                            events
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            {% if item.timeline %}
+                                <div class="milestone-timeline-scroll">
+                                    <div class="milestone-timeline">
+                                        <div class="milestone-timeline-track"></div>
+                                        {% for event in item.timeline %}
+                                            {% with status=event.status|upper %}
+                                                <div class="milestone-timeline-event milestone-event-{{ event.type }}"
+                                                     data-stage="{{ event.stage_order }}">
+                                                    <div class="milestone-event-marker">
+                                                        {% if "APPROVED" in status or "COMPLETED" in status or "PASSED" in status or "PASS" in status or "ACCEPTED" in status or "SATISFACTORY" in status or "ACTIVE" in status or "ASSIGNED" in status or "A+" in status %}
+                                                            <div class="milestone-event-dot completed">
+                                                                <i class="bi bi-check-lg"></i>
+                                                            </div>
+                                                        {% elif "PROGRESS" in status or "REVIEW" in status or "DRAFT" in status %}
+                                                            <div class="milestone-event-dot progress">
+                                                                <i class="bi bi-arrow-repeat"></i>
+                                                            </div>
+                                                        {% elif "HOLD" in status or "REJECT" in status or "FAIL" in status %}
+                                                            <div class="milestone-event-dot pending">
+                                                                <i class="bi bi-pause-fill"></i>
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="milestone-event-dot pending">
+                                                                <i class="bi bi-hourglass-split"></i>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="milestone-event-content">
+                                                        <div class="milestone-event-title" title="{{ event.title }}">{{ event.title }}</div>
+                                                        <div class="milestone-event-date">
+                                                            <i class="bi bi-calendar3"></i>
+                                                            {% if event.date %}
+                                                                {{ event.date|date:"d M Y" }}
+                                                            {% else %}
+                                                                Date not recorded
+                                                            {% endif %}
+                                                        </div>
+                                                        {% if event.status %}
+                                                            {% if "APPROVED" in status or "COMPLETED" in status or "PASSED" in status or "PASS" in status or "ACCEPTED" in status or "SATISFACTORY" in status or "ACTIVE" in status or "ASSIGNED" in status or "A+" in status %}
+                                                                <div class="milestone-event-status completed">
+                                                                    <i class="bi bi-check-circle-fill"></i>
+                                                                    <span>{{ event.status }}</span>
+                                                                </div>
+                                                            {% elif "PROGRESS" in status or "REVIEW" in status or "DRAFT" in status %}
+                                                                <div class="milestone-event-status progress">
+                                                                    <i class="bi bi-arrow-up-right-circle-fill"></i>
+                                                                    <span>{{ event.status }}</span>
+                                                                </div>
+                                                            {% elif "HOLD" in status or "REJECT" in status or "FAIL" in status %}
+                                                                <div class="milestone-event-status pending">
+                                                                    <i class="bi bi-pause-circle-fill"></i>
+                                                                    <span>{{ event.status }}</span>
+                                                                </div>
+                                                            {% else %}
+                                                                <div class="milestone-event-status pending">
+                                                                    <i class="bi bi-clock-fill"></i>
+                                                                    <span>{{ event.status }}</span>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="milestone-empty">
+                                    <div class="milestone-empty-icon">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <h3 class="milestone-empty-title">No milestone history available</h3>
+                                    <p class="milestone-empty-text">
+                                        There are currently no academic milestone records
+                                        available for this student.
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="milestone-no-results">
+                <div class="milestone-no-results-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <h2>No students found</h2>
+                <p>No PhD students match the selected search or status filters.</p>
+                <a href="{% url 'faculty_milestone_list' uuid=faculty.user.uuid %}"
+                   class="milestone-reset-btn">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    Clear Filters
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const select = document.getElementById("milestone-status");
+
+    if (select && typeof Choices !== "undefined") {
+
+        const statusChoices = new Choices(select, {
+            searchEnabled: true,
+            shouldSort: false,
+            itemSelectText: "",
+            searchPlaceholderValue: "Search status...",
+            noResultsText: "No status found",
+            noChoicesText: "No statuses available",
+            allowHTML: false,
+            removeItemButton: false,
+            placeholder: false,
+            searchChoices: true,
+            allowSearch: true
+        });
+
+        statusChoices.containerOuter.element.classList.add(
+            "milestone-choices"
+        );
+    }
+
+    const searchInput = document.getElementById("milestone-search");
+
+    if (searchInput) {
+
+        searchInput.addEventListener("keydown", function (event) {
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+                this.closest("form").submit();
+            }
+
+        });
+    }
+
+    const timelineScrolls = document.querySelectorAll(
+        ".milestone-timeline-scroll"
+    );
+
+    timelineScrolls.forEach(function (container) {
+
+        const timeline = container.querySelector(
+            ".milestone-timeline"
+        );
+
+        if (!timeline) {
+            return;
+        }
+
+        if (timeline.scrollWidth > container.clientWidth) {
+
+            container.classList.add(
+                "milestone-has-horizontal-scroll"
+            );
+        }
+    });
+
+});
+    </script>
+{% endblock content %}

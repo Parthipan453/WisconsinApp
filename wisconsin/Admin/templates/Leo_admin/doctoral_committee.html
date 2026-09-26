@@ -1,0 +1,1571 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% block title %}Doctoral Committee Management{% endblock title %}
+{% block page_title %}Doctoral Committee Management{% endblock page_title %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_red.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_admin/doctoral_committee.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="dcm-page"
+         data-has-active-phd-program="{{ has_active_phd_program|yesno:'true,false' }}"
+         data-has-phd-student="{{ has_phd_student|yesno:'true,false' }}"
+         data-has-active-phd-student="{{ has_active_phd_student|yesno:'true,false' }}"
+         data-has-mentor-assigned-student="{{ has_mentor_assigned_student|yesno:'true,false' }}"
+         data-has-eligible-committee-student="{{ has_eligible_committee_student|yesno:'true,false' }}">
+        <section class="dcm-hero">
+            <div class="dcm-hero-content">
+                <div class="dcm-hero-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <div class="dcm-hero-text">
+                    <span class="dcm-eyebrow">Committee Administration</span>
+                    <h1>Doctoral Committee Administration</h1>
+                    <p>Manage doctoral committee assignments, faculty roles, approval status, and supporting evidence.</p>
+                </div>
+            </div>
+    
+        </section>
+        <section class="dcm-stat-grid">
+            <div class="dcm-stat-card">
+                <div class="dcm-stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <strong>{{ total_committees }}</strong>
+                    <span>Total Committees</span>
+                </div>
+            </div>
+            <div class="dcm-stat-card dcm-stat-approved">
+                <div class="dcm-stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div>
+                    <strong>{{ approved_committees }}</strong>
+                    <span>Approved</span>
+                </div>
+            </div>
+            <div class="dcm-stat-card dcm-stat-pending">
+                <div class="dcm-stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <strong>{{ pending_committees }}</strong>
+                    <span>Pending Review</span>
+                </div>
+            </div>
+            <div class="dcm-stat-card dcm-stat-rejected">
+                <div class="dcm-stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div>
+                    <strong>{{ rejected_committees }}</strong>
+                    <span>Rejected</span>
+                </div>
+            </div>
+        </section>
+        <section class="dcm-toolbar">
+            <div class="dcm-toolbar-actions">
+                <button type="button" class="dcm-btn dcm-btn-primary add-committee-btn">
+                    {% comment %} <i class="fas fa-plus"></i> {% endcomment %}
+                    <span>Assign Committee to Doctoral Student</span>
+                </button>
+                {% comment %} <a href="{% url 'doctoral_committee_export' %}"
+                   class="dcm-btn dcm-btn-success">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Export</span>
+                </a>
+                <a href="{% url 'doctoral_committee_print' %}"
+                   class="dcm-btn dcm-btn-secondary"
+                   target="_blank">
+                    <i class="fas fa-print"></i>
+                    <span>Print</span>
+                </a> {% endcomment %}
+            </div>
+<div class="dcm-filter-wrap">
+    <select id="approvalStatusFilter">
+        <option value="">All Status</option>
+        <option value="APPROVED" {% if approval_status == "APPROVED" %}selected{% endif %}>
+            Approved
+        </option>
+        <option value="PENDING" {% if approval_status == "PENDING" %}selected{% endif %}>
+            Pending
+        </option>
+        <option value="REJECTED" {% if approval_status == "REJECTED" %}selected{% endif %}>
+            Rejected
+        </option>
+    </select>
+</div>
+            <div class="dcm-search-wrap">
+                <div class="dcm-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text"
+                           id="searchInput"
+                           value="{{ search }}"
+                           placeholder="Search student, advisor, chair...">
+                </div>
+                <button type="button" class="dcm-search-btn" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </section>
+        <section class="dcm-section">
+            <div class="dcm-section-heading">
+                <div>
+                    <span class="dcm-section-kicker">Committee Roster</span>
+                    <h2>Doctoral Committee Roster</h2>
+                </div>
+                <span class="dcm-result-count">{{ total_committees }} Records</span>
+            </div>
+            <div class="dcm-card-grid" id="committeeCardGrid">
+                {% for committee in committees %}
+                    <article class="dcm-card" data-committee-id="{{ committee.committee_id }}">
+                        <div class="dcm-card-top">
+                            <div class="dcm-card-identity">
+                                <div class="dcm-card-symbol">
+                                    <i class="fas fa-users-cog"></i>
+                                </div>
+                                <div>
+                                    <span>Committee Assignment</span>
+                                    <strong>#{{ committee.committee_id }}</strong>
+                                </div>
+                            </div>
+                            <span class="dcm-status dcm-status-{{ committee.approval_status|lower }}">
+                                <i class="fas fa-circle"></i>
+                                {{ committee.get_approval_status_display }}
+                            </span>
+                        </div>
+                        <div class="dcm-card-body">
+                            <div class="dcm-student-panel">
+                                <div class="dcm-panel-icon">
+                                    <i class="fas fa-user-graduate"></i>
+                                </div>
+                                <div class="dcm-panel-content">
+                                    <span>Doctoral Student</span>
+                                    <strong>{{ committee.phd_student }}</strong>
+                                    <small>
+                                        <i class="fas fa-id-card"></i>
+                                        {{ committee.phd_student.student.student_number }}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="dcm-program-panel">
+                                <div class="dcm-field-label">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    Doctoral Program
+                                </div>
+                                <strong>{{ committee.phd_student.phd_program }}</strong>
+                            </div>
+                            <div class="dcm-info-grid">
+                                <div class="dcm-info-box">
+                                    <span class="dcm-field-label">
+                                        <i class="fas fa-user-tie"></i>
+                                        Research Advisor
+                                    </span>
+                                    <strong>{{ committee.phd_student.advisor|default:"Not Assigned" }}</strong>
+                                    <small>Research Advisor</small>
+                                </div>
+                                <div class="dcm-info-box">
+                                    <span class="dcm-field-label">
+                                        <i class="fas fa-user-shield"></i>
+                                        Chair Faculty
+                                    </span>
+                                    <strong>{{ committee.chair_faculty }}</strong>
+                                    <small>Committee Chair</small>
+                                </div>
+                            </div>
+                            <div class="dcm-date-box">
+                                <div class="dcm-date-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div>
+                                    <span>Formation Date</span>
+                                    <strong>{{ committee.formation_date|date:"d M Y" }}</strong>
+                                </div>
+                            </div>
+                            <div class="dcm-video-panel">
+                                <div class="dcm-video-heading">
+                                    <div class="dcm-video-title">
+                                        <div class="dcm-video-icon">
+                                            <i class="fas fa-video"></i>
+                                        </div>
+                                        <div>
+                                            <span>Video Evidence</span>
+                                            <strong>Committee Assignment</strong>
+                                        </div>
+                                    </div>
+                                    <span class="dcm-video-status"
+                                          data-video-status="{{ committee.committee_id }}">
+                                        <i class="fas fa-circle"></i>
+                                        Loading
+                                    </span>
+                                </div>
+                                <div class="dcm-video-actions">
+                                    <button type="button"
+                                            class="dcm-video-btn dcm-video-view"
+                                            data-committee-id="{{ committee.committee_id }}">
+                                        <i class="fas fa-play-circle"></i>
+                                        <span>View Video</span>
+                                    </button>
+                                    <button type="button"
+                                            class="dcm-video-btn dcm-video-manage edit-committee-btn"
+                                            data-committee-id="{{ committee.committee_id }}">
+                                        <i class="fas fa-video"></i>
+                                        <span>Manage</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dcm-card-footer">
+                            <div class="dcm-footer-status">
+                                <span>Approval</span>
+                                <strong>{{ committee.get_approval_status_display }}</strong>
+                            </div>
+                            <div class="dcm-card-actions">
+                                <button type="button"
+                                        class="dcm-icon-btn dcm-view-btn view-committee-btn"
+                                        data-committee-id="{{ committee.committee_id }}"
+                                        title="View Committee">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button"
+                                        class="dcm-icon-btn dcm-edit-btn edit-committee-btn"
+                                        data-committee-id="{{ committee.committee_id }}"
+                                        title="Edit Committee">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button type="button"
+                                        class="dcm-icon-btn dcm-delete-btn delete-committee-btn"
+                                        data-committee-id="{{ committee.committee_id }}"
+                                        title="Delete Committee">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="dcm-empty">
+                        <div class="dcm-empty-icon">
+                            <i class="fas fa-users-slash"></i>
+                        </div>
+                        <h3>No Doctoral Committees Found</h3>
+                        <p>Create a doctoral committee to begin managing committee assignments.</p>
+                        <button type="button" class="dcm-btn dcm-btn-primary add-committee-btn">
+                            {% comment %} <i class="fas fa-plus"></i> {% endcomment %}
+                            Add Committee
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if committees.paginator.num_pages > 1 %}
+                <nav class="dcm-pagination">
+                    <ul>
+                        {% if committees.has_previous %}
+                            <li>
+                                <a href="?page={{ committees.previous_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Previous
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% for page_num in committees.paginator.page_range %}
+                            <li class="{% if committees.number == page_num %}active{% endif %}">
+                                <a href="?page={{ page_num }}{% if search %}&search={{ search|urlencode }}{% endif %}">{{ page_num }}</a>
+                            </li>
+                        {% endfor %}
+                        {% if committees.has_next %}
+                            <li>
+                                <a href="?page={{ committees.next_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}">
+                                    Next
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        </section>
+        <section class="dcm-guidance">
+            <div class="dcm-guidance-card">
+                <div class="dcm-guidance-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div>
+                    <strong>Committee Rules</strong>
+                    <p>Each PhD student can have only one doctoral committee, and the Chair Faculty cannot be the student's research advisor.</p>
+                </div>
+            </div>
+            <div class="dcm-guidance-card">
+                <div class="dcm-guidance-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div>
+                    <strong>Video Evidence</strong>
+                    <p>Upload committee assignment proof using MP4, WebM, MOV, or M4V video files up to 200 MB.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock content %}
+{% block global_modal %}
+    <div class="modal fade dcm-modal"
+         id="committeeModal"
+         tabindex="-1"
+         aria-hidden="true"
+         data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header dcm-modal-header">
+                    <div class="dcm-modal-heading">
+                        <div class="dcm-modal-heading-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div>
+                            <span id="committeeModalKicker">Doctoral Committee</span>
+                            <h5 id="committeeModalLabel">Add Doctoral Committee</h5>
+                            <p id="committeeModalSubtitle">Create a new committee assignment with supporting evidence.</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body dcm-modal-body" id="committeeModalBody">
+                    <div class="dcm-loading">
+                        <div class="dcm-loading-spinner"></div>
+                        <span>Loading committee form...</span>
+                    </div>
+                </div>
+                <div class="modal-footer dcm-modal-footer">
+                    <button type="button"
+                            class="dcm-btn dcm-btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="dcm-btn dcm-btn-primary" id="saveCommitteeBtn">
+                        {% comment %} <i class="fas fa-save"></i> {% endcomment %}
+                        <span>Save Committee</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade dcm-modal"
+         id="viewCommitteeModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header dcm-modal-header">
+                    <div class="dcm-modal-heading">
+                        <div class="dcm-modal-heading-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div>
+                            <span>Committee Details</span>
+                            <h5>Doctoral Committee Overview</h5>
+                            <p>Review committee assignment information and video evidence.</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body dcm-view-body" id="viewCommitteeBody">
+                    <div class="dcm-loading">
+                        <div class="dcm-loading-spinner"></div>
+                        <span>Loading committee details...</span>
+                    </div>
+                </div>
+                <div class="modal-footer dcm-modal-footer">
+                    <button type="button"
+                            class="dcm-btn dcm-btn-secondary"
+                            data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade dcm-modal"
+         id="videoModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header dcm-modal-header">
+                    <div class="dcm-modal-heading">
+                        <div class="dcm-modal-heading-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div>
+                            <span>Evidence Viewer</span>
+                            <h5>Committee Assignment Video</h5>
+                            <p>Review the uploaded committee assignment evidence.</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body dcm-video-viewer-body" id="videoModalBody">
+                    <div class="dcm-video-empty">
+                        <div class="dcm-video-empty-icon">
+                            <i class="fas fa-video-slash"></i>
+                        </div>
+                        <h4>No Video Evidence</h4>
+                        <p>No committee assignment video has been uploaded.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade dcm-modal"
+         id="deleteModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header dcm-modal-header">
+                    <div class="dcm-modal-heading">
+                        <div class="dcm-modal-heading-icon dcm-danger-icon">
+                            <i class="fas fa-trash"></i>
+                        </div>
+                        <div>
+                            <span>Confirmation</span>
+                            <h5>Delete Committee</h5>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body dcm-delete-body">
+                    <div class="dcm-delete-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h4>Delete this committee?</h4>
+                    <p>This will permanently remove the doctoral committee and its associated video evidence.</p>
+                </div>
+                <div class="modal-footer dcm-modal-footer">
+                    <button type="button"
+                            class="dcm-btn dcm-btn-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="dcm-btn dcm-btn-danger" id="confirmDeleteBtn">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock global_modal %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrV+cXK/BmnVDxM+D2scQbITxI"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const modalElement = document.getElementById("committeeModal");
+    const viewModalElement = document.getElementById("viewCommitteeModal");
+    const videoModalElement = document.getElementById("videoModal");
+    const deleteModalElement = document.getElementById("deleteModal");
+    const modalBody = document.getElementById("committeeModalBody");
+    const viewBody = document.getElementById("viewCommitteeBody");
+    const videoBody = document.getElementById("videoModalBody");
+    const saveButton = document.getElementById("saveCommitteeBtn");
+    const confirmDeleteButton = document.getElementById("confirmDeleteBtn");
+    const searchInput = document.getElementById("searchInput");
+    const searchButton = document.getElementById("searchBtn");
+    const approvalStatusFilter = document.getElementById("approvalStatusFilter");
+
+    const committeeModal = modalElement
+        ? new bootstrap.Modal(modalElement)
+        : null;
+
+    const viewModal = viewModalElement
+        ? new bootstrap.Modal(viewModalElement)
+        : null;
+
+    const videoModal = videoModalElement
+        ? new bootstrap.Modal(videoModalElement)
+        : null;
+
+    const deleteModal = deleteModalElement
+        ? new bootstrap.Modal(deleteModalElement)
+        : null;
+
+    let approvalStatusChoices = null;
+    let currentCommitteeId = null;
+    let currentFormMode = "create";
+    let currentChoices = [];
+
+    function initializeApprovalStatusFilter() {
+        if (!approvalStatusFilter) {
+            return;
+        }
+
+        if (typeof Choices === "undefined") {
+            console.error("Choices.js failed to load.");
+            return;
+        }
+
+        if (approvalStatusChoices) {
+            approvalStatusChoices.destroy();
+            approvalStatusChoices = null;
+        }
+
+        approvalStatusChoices = new Choices(approvalStatusFilter, {
+            searchEnabled: false,
+            shouldSort: false,
+            itemSelectText: "",
+            allowHTML: false,
+            removeItemButton: false,
+            placeholder: false,
+            searchChoices: false
+        });
+
+        approvalStatusFilter.addEventListener("change", function () {
+            const url = new URL(window.location.href);
+            const value = this.value;
+
+            if (value) {
+                url.searchParams.set("approval_status", value);
+            } else {
+                url.searchParams.delete("approval_status");
+            }
+
+            url.searchParams.delete("page");
+            window.location.href = url.toString();
+        });
+    }
+
+    initializeApprovalStatusFilter();
+
+    function csrfToken() {
+        const tokenInput = document.querySelector(
+            "#committeeModalBody input[name='csrfmiddlewaretoken']"
+        );
+
+        return tokenInput
+            ? tokenInput.value
+            : document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+    }
+
+    function destroyChoices() {
+        currentChoices.forEach(function (instance) {
+            if (instance && typeof instance.destroy === "function") {
+                instance.destroy();
+            }
+        });
+
+        currentChoices = [];
+    }
+
+    function initializeChoices() {
+        if (typeof Choices === "undefined") {
+            console.error("Choices.js failed to load.");
+            return;
+        }
+
+        destroyChoices();
+
+        document.querySelectorAll("#committeeModalBody select").forEach(function (select) {
+            if (
+                select.id === "id_phd_student" ||
+                select.id === "id_chair_faculty" ||
+                select.id === "id_approval_status"
+            ) {
+                const instance = new Choices(select, {
+                    searchEnabled: true,
+                    searchPlaceholderValue: "Search...",
+                    shouldSort: false,
+                    itemSelectText: "",
+                    allowHTML: false,
+                    removeItemButton: false,
+                    placeholder: true,
+                    placeholderValue:
+                        select.id === "id_phd_student"
+                            ? "Select PhD student"
+                            : select.id === "id_chair_faculty"
+                                ? "Select Chair Faculty"
+                                : "Select approval status"
+                });
+
+                currentChoices.push(instance);
+            }
+        });
+    }
+
+    function initializeFlatpickr() {
+        if (typeof flatpickr === "undefined") {
+            return;
+        }
+
+        document.querySelectorAll("#committeeModalBody input").forEach(function (input) {
+            const isDateField =
+                input.classList.contains("flatpickr-date") ||
+                input.classList.contains("assignment-date") ||
+                input.type === "date" ||
+                input.name === "formation_date";
+
+            if (!isDateField) {
+                return;
+            }
+
+            if (input._flatpickr) {
+                input._flatpickr.destroy();
+            }
+
+            const wrapper =
+                input.closest(".dcm-form-field") ||
+                input.parentElement;
+
+            flatpickr(input, {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "d M Y",
+                allowInput: false,
+                appendTo: wrapper,
+                disableMobile: true,
+                maxDate: "today"
+            });
+        });
+    }
+
+    function initializeStudentAdvisorFilter() {
+        const studentSelect = document.getElementById("id_phd_student");
+        const chairSelect = document.getElementById("id_chair_faculty");
+
+        if (!studentSelect || !chairSelect) {
+            return;
+        }
+
+        function filterChair() {
+            const selectedOption =
+                studentSelect.options[studentSelect.selectedIndex];
+
+            if (!selectedOption) {
+                return;
+            }
+
+            const advisorId =
+                selectedOption.getAttribute("data-advisor-id");
+
+            const chairChoices = currentChoices.find(function (instance) {
+                return (
+                    instance.passedElement.element === chairSelect
+                );
+            });
+
+            if (!chairChoices) {
+                return;
+            }
+
+            const currentValue = chairSelect.value;
+
+            const choices = Array.from(chairSelect.options)
+                .filter(function (option) {
+                    return (
+                        !advisorId ||
+                        option.value !== advisorId
+                    );
+                })
+                .map(function (option) {
+                    return {
+                        value: option.value,
+                        label: option.textContent.trim(),
+                        disabled: option.disabled,
+                        selected:
+                            option.value === currentValue &&
+                            option.value !== advisorId
+                    };
+                });
+
+            const currentIsAdvisor =
+                currentValue &&
+                currentValue === advisorId;
+
+            chairChoices.removeActiveItems();
+            chairChoices.clearChoices();
+
+            chairChoices.setChoices(
+                choices,
+                "value",
+                "label",
+                true
+            );
+
+            if (currentIsAdvisor) {
+                chairChoices.removeActiveItems();
+                chairChoices.setChoiceByValue("");
+            }
+        }
+
+        studentSelect.addEventListener("change", filterChair);
+        filterChair();
+    }
+
+    function initializeFormControls() {
+        initializeChoices();
+        initializeFlatpickr();
+        initializeStudentAdvisorFilter();
+    }
+
+    function setLoading() {
+        modalBody.innerHTML = `
+            <div class="dcm-loading">
+                <div class="dcm-loading-spinner"></div>
+                <span>Loading committee form...</span>
+            </div>
+        `;
+    }
+
+    function openCreateModal() {
+        currentCommitteeId = null;
+        currentFormMode = "create";
+
+        document.getElementById("committeeModalKicker").textContent =
+            "New Assignment";
+
+        document.getElementById("committeeModalLabel").textContent =
+            "Add Doctoral Committee";
+
+        document.getElementById("committeeModalSubtitle").textContent =
+            "Create a new committee assignment with supporting video evidence.";
+
+        saveButton.innerHTML =
+            '<span>Create Committee</span>';
+
+        setLoading();
+
+        if (committeeModal) {
+            committeeModal.show();
+        }
+
+        fetch("{% url 'doctoral_committee_get_form' %}", {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            if (!data.success) {
+                throw new Error(
+                    data.message || "Unable to load form."
+                );
+            }
+
+            modalBody.innerHTML = data.html;
+            initializeFormControls();
+        })
+        .catch(function (error) {
+            modalBody.innerHTML = `
+                <div class="dcm-form-error-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h4>Unable to Load Form</h4>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+    }
+
+    function openEditModal(committeeId) {
+        currentCommitteeId = committeeId;
+        currentFormMode = "edit";
+
+        document.getElementById("committeeModalKicker").textContent =
+            "Existing Assignment";
+
+        document.getElementById("committeeModalLabel").textContent =
+            "Edit Doctoral Committee";
+
+        document.getElementById("committeeModalSubtitle").textContent =
+            "Update committee information and manage assignment video evidence.";
+
+        saveButton.innerHTML =
+            '<span>Update Committee</span>';
+
+        setLoading();
+
+        if (committeeModal) {
+            committeeModal.show();
+        }
+
+        const url =
+            "{% url 'doctoral_committee_get_form' %}?committee_id=" +
+            encodeURIComponent(committeeId);
+
+        fetch(url, {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            if (!data.success) {
+                throw new Error(
+                    data.message || "Unable to load committee."
+                );
+            }
+
+            modalBody.innerHTML = data.html;
+            initializeFormControls();
+        })
+        .catch(function (error) {
+            modalBody.innerHTML = `
+                <div class="dcm-form-error-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h4>Unable to Load Committee</h4>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+    }
+
+    function collectErrors(data) {
+        document
+            .querySelectorAll(
+                "#committeeModalBody .dcm-field-error"
+            )
+            .forEach(function (element) {
+                element.remove();
+            });
+
+        document
+            .querySelectorAll(
+                "#committeeModalBody .is-invalid"
+            )
+            .forEach(function (element) {
+                element.classList.remove("is-invalid");
+            });
+
+        if (!data.errors) {
+            return;
+        }
+
+        Object.keys(data.errors).forEach(function (field) {
+            const input = document.querySelector(
+                "#committeeModalBody [name='" + field + "']"
+            );
+
+            if (!input) {
+                return;
+            }
+
+            input.classList.add("is-invalid");
+
+            const wrapper =
+                input.closest(".dcm-form-field") ||
+                input.parentElement;
+
+            if (wrapper) {
+                const error =
+                    document.createElement("div");
+
+                error.className = "dcm-field-error";
+                error.textContent =
+                    data.errors[field].join(" ");
+
+                wrapper.appendChild(error);
+            }
+        });
+    }
+
+    function saveCommittee() {
+        const form =
+            document.getElementById("committeeForm");
+
+        if (!form) {
+            return;
+        }
+
+        const formData = new FormData(form);
+
+        saveButton.disabled = true;
+
+        saveButton.innerHTML =
+            '<span class="dcm-button-spinner"></span><span>Saving...</span>';
+
+        fetch(form.action, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return {
+                    ok: response.ok,
+                    data: data
+                };
+            });
+        })
+        .then(function (result) {
+            if (
+                !result.ok ||
+                !result.data.success
+            ) {
+                collectErrors(result.data);
+
+                throw new Error(
+                    result.data.message ||
+                    "Unable to save committee."
+                );
+            }
+
+            if (committeeModal) {
+                committeeModal.hide();
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: "Success",
+                text: result.data.message,
+                confirmButtonColor: "#c5050c"
+            }).then(function () {
+                window.location.reload();
+            });
+        })
+        .catch(function (error) {
+            if (error.message) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Unable to Save",
+                    text: error.message,
+                    confirmButtonColor: "#c5050c"
+                });
+            }
+        })
+        .finally(function () {
+            saveButton.disabled = false;
+
+            saveButton.innerHTML =
+                currentFormMode === "edit"
+                    ? '<span>Update Committee</span>'
+                    : '<span>Create Committee</span>';
+        });
+    }
+
+    function openDeleteModal(committeeId) {
+        currentCommitteeId = committeeId;
+
+        if (deleteModal) {
+            deleteModal.show();
+        }
+    }
+
+    function deleteCommittee() {
+        if (!currentCommitteeId) {
+            return;
+        }
+
+        confirmDeleteButton.disabled = true;
+
+        confirmDeleteButton.innerHTML =
+            '<span class="dcm-button-spinner"></span><span>Deleting...</span>';
+
+        const formData = new FormData();
+
+        formData.append(
+            "csrfmiddlewaretoken",
+            csrfToken()
+        );
+
+        fetch(
+            "{% url 'doctoral_committee_delete' 0 %}"
+                .replace(
+                    "/0/",
+                    "/" + currentCommitteeId + "/"
+                ),
+            {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        )
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return {
+                    ok: response.ok,
+                    data: data
+                };
+            });
+        })
+        .then(function (result) {
+            if (
+                !result.ok ||
+                !result.data.success
+            ) {
+                throw new Error(
+                    result.data.message ||
+                    "Unable to delete committee."
+                );
+            }
+
+            if (deleteModal) {
+                deleteModal.hide();
+            }
+
+            Swal.fire({
+                icon: "success",
+                title: "Deleted",
+                text: result.data.message,
+                confirmButtonColor: "#c5050c"
+            }).then(function () {
+                window.location.reload();
+            });
+        })
+        .catch(function (error) {
+            Swal.fire({
+                icon: "error",
+                title: "Delete Failed",
+                text: error.message,
+                confirmButtonColor: "#c5050c"
+            });
+        })
+        .finally(function () {
+            confirmDeleteButton.disabled = false;
+
+            confirmDeleteButton.innerHTML =
+                '<i class="fas fa-trash"></i> Delete';
+        });
+    }
+
+    function loadCommitteeDetails(committeeId) {
+        viewBody.innerHTML = `
+            <div class="dcm-loading">
+                <div class="dcm-loading-spinner"></div>
+                <span>Loading committee details...</span>
+            </div>
+        `;
+
+        if (viewModal) {
+            viewModal.show();
+        }
+
+        fetch(
+            "{% url 'doctoral_committee_list' %}?page=1",
+            {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        )
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            const committee =
+                data.results.find(function (item) {
+                    return (
+                        String(item.committee_id) ===
+                        String(committeeId)
+                    );
+                });
+
+            if (!committee) {
+                throw new Error(
+                    "Committee details could not be found."
+                );
+            }
+
+            const video =
+                committee.video_evidence &&
+                committee.video_evidence.length
+                    ? committee.video_evidence[0]
+                    : null;
+
+            viewBody.innerHTML = `
+                <div class="dcm-view-grid">
+                    <div class="dcm-view-summary">
+                        <div class="dcm-view-avatar">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+
+                        <div>
+                            <span>Committee #${committee.committee_id}</span>
+                            <h3>${committee.phd_student}</h3>
+                            <small>${committee.student_number}</small>
+                        </div>
+                    </div>
+
+                    <div class="dcm-view-status dcm-status-${committee.approval_status.toLowerCase()}">
+                        <i class="fas fa-circle"></i>
+                        ${committee.approval_status_display}
+                    </div>
+                </div>
+
+                <div class="dcm-view-info-grid">
+                    <div class="dcm-view-info">
+                        <span>PhD Program</span>
+                        <strong>${committee.program}</strong>
+                    </div>
+
+                    <div class="dcm-view-info">
+                        <span>Research Advisor</span>
+                        <strong>${committee.advisor}</strong>
+                    </div>
+
+                    <div class="dcm-view-info">
+                        <span>Chair Faculty</span>
+                        <strong>${committee.chair_faculty}</strong>
+                    </div>
+
+                    <div class="dcm-view-info">
+                        <span>Formation Date</span>
+                        <strong>${committee.formation_date_display}</strong>
+                    </div>
+
+                    <div class="dcm-view-info">
+                        <span>Cohort Year</span>
+                        <strong>${committee.cohort_year || "Not Available"}</strong>
+                    </div>
+
+                    <div class="dcm-view-info">
+                        <span>Current Status</span>
+                        <strong>${committee.current_status}</strong>
+                    </div>
+                </div>
+
+                <div class="dcm-view-video">
+                    <div class="dcm-view-video-heading">
+                        <div>
+                            <span>Assignment Evidence</span>
+                            <h4>Committee Assignment Video</h4>
+                        </div>
+
+                        <span class="dcm-video-count">
+                            ${video ? "Evidence Available" : "No Evidence"}
+                        </span>
+                    </div>
+
+                    ${
+                        video
+                            ? `
+                                <div class="dcm-view-video-card">
+                                    <div class="dcm-view-video-icon">
+                                        <i class="fas fa-file-video"></i>
+                                    </div>
+
+                                    <div class="dcm-view-video-file">
+                                        <strong>${video.filename}</strong>
+                                        <small>${video.uploaded_at || "Uploaded evidence"}</small>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="dcm-btn dcm-btn-primary dcm-inline-video-btn"
+                                        data-video-url="${video.url}">
+                                        <i class="fas fa-play"></i>
+                                        Play
+                                    </button>
+                                </div>
+                            `
+                            : `
+                                <div class="dcm-video-empty">
+                                    <div class="dcm-video-empty-icon">
+                                        <i class="fas fa-video-slash"></i>
+                                    </div>
+
+                                    <h4>No Video Evidence</h4>
+
+                                    <p>
+                                        No committee assignment video has been uploaded.
+                                    </p>
+                                </div>
+                            `
+                    }
+                </div>
+            `;
+        })
+        .catch(function (error) {
+            viewBody.innerHTML = `
+                <div class="dcm-form-error-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h4>Unable to Load Details</h4>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        });
+    }
+
+    function openVideoModal(videoUrl, filename) {
+        if (!videoUrl) {
+            videoBody.innerHTML = `
+                <div class="dcm-video-empty">
+                    <div class="dcm-video-empty-icon">
+                        <i class="fas fa-video-slash"></i>
+                    </div>
+
+                    <h4>No Video Evidence</h4>
+
+                    <p>
+                        No committee assignment video has been uploaded.
+                    </p>
+                </div>
+            `;
+        } else {
+            videoBody.innerHTML = `
+                <div class="dcm-video-player-wrap">
+                    <div class="dcm-video-file-title">
+                        <i class="fas fa-file-video"></i>
+                        <span>
+                            ${filename || "Committee Assignment Video"}
+                        </span>
+                    </div>
+
+                    <video
+                        class="dcm-video-player"
+                        controls
+                        preload="metadata"
+                        src="${videoUrl}">
+                        Your browser does not support video playback.
+                    </video>
+                </div>
+            `;
+        }
+
+        if (videoModal) {
+            videoModal.show();
+        }
+    }
+
+    function loadVideoForCommittee(committeeId) {
+        fetch(
+            "{% url 'doctoral_committee_list' %}?page=1",
+            {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        )
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            const committee =
+                data.results.find(function (item) {
+                    return (
+                        String(item.committee_id) ===
+                        String(committeeId)
+                    );
+                });
+
+            const statusElement =
+                document.querySelector(
+                    '[data-video-status="' +
+                    committeeId +
+                    '"]'
+                );
+
+            if (!statusElement) {
+                return;
+            }
+
+            if (
+                committee &&
+                committee.has_video_evidence
+            ) {
+                statusElement.className =
+                    "dcm-video-status available";
+
+                statusElement.innerHTML =
+                    '<i class="fas fa-check-circle"></i> Available';
+            } else {
+                statusElement.className =
+                    "dcm-video-status unavailable";
+
+                statusElement.innerHTML =
+                    '<i class="fas fa-minus-circle"></i> Not Added';
+            }
+        })
+        .catch(function () {
+            const statusElement =
+                document.querySelector(
+                    '[data-video-status="' +
+                    committeeId +
+                    '"]'
+                );
+
+            if (statusElement) {
+                statusElement.className =
+                    "dcm-video-status unavailable";
+
+                statusElement.innerHTML =
+                    '<i class="fas fa-minus-circle"></i> Not Added';
+            }
+        });
+    }
+
+    document
+        .querySelectorAll(".add-committee-btn")
+        .forEach(function (button) {
+            button.addEventListener(
+                "click",
+                openCreateModal
+            );
+        });
+
+    document
+        .querySelectorAll(".edit-committee-btn")
+        .forEach(function (button) {
+            button.addEventListener(
+                "click",
+                function () {
+                    openEditModal(
+                        this.dataset.committeeId
+                    );
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(".view-committee-btn")
+        .forEach(function (button) {
+            button.addEventListener(
+                "click",
+                function () {
+                    loadCommitteeDetails(
+                        this.dataset.committeeId
+                    );
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(".delete-committee-btn")
+        .forEach(function (button) {
+            button.addEventListener(
+                "click",
+                function () {
+                    openDeleteModal(
+                        this.dataset.committeeId
+                    );
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(".dcm-video-view")
+        .forEach(function (button) {
+            button.addEventListener(
+                "click",
+                function () {
+                    const committeeId =
+                        this.dataset.committeeId;
+
+                    fetch(
+                        "{% url 'doctoral_committee_list' %}?page=1",
+                        {
+                            headers: {
+                                "X-Requested-With":
+                                    "XMLHttpRequest"
+                            }
+                        }
+                    )
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        const committee =
+                            data.results.find(
+                                function (item) {
+                                    return (
+                                        String(
+                                            item.committee_id
+                                        ) ===
+                                        String(
+                                            committeeId
+                                        )
+                                    );
+                                }
+                            );
+
+                        const video =
+                            committee &&
+                            committee.video_evidence &&
+                            committee.video_evidence.length
+                                ? committee.video_evidence[0]
+                                : null;
+
+                        openVideoModal(
+                            video
+                                ? video.url
+                                : "",
+                            video
+                                ? video.filename
+                                : ""
+                        );
+                    });
+                }
+            );
+        });
+
+    viewBody.addEventListener(
+        "click",
+        function (event) {
+            const button =
+                event.target.closest(
+                    ".dcm-inline-video-btn"
+                );
+
+            if (!button) {
+                return;
+            }
+
+            openVideoModal(
+                button.dataset.videoUrl,
+                "Committee Assignment Video"
+            );
+        }
+    );
+
+    if (saveButton) {
+        saveButton.addEventListener(
+            "click",
+            saveCommittee
+        );
+    }
+
+    if (confirmDeleteButton) {
+        confirmDeleteButton.addEventListener(
+            "click",
+            deleteCommittee
+        );
+    }
+
+    if (searchInput) {
+    let searchTimeout = null;
+    let searchController = null;
+
+    searchInput.addEventListener("input", function () {
+        const value = this.value.trim();
+
+        clearTimeout(searchTimeout);
+
+        if (searchController) {
+            searchController.abort();
+        }
+
+        searchTimeout = setTimeout(function () {
+            searchController = new AbortController();
+
+            const url = new URL(window.location.href);
+
+            if (value) {
+                url.searchParams.set("search", value);
+            } else {
+                url.searchParams.delete("search");
+            }
+
+            url.searchParams.delete("page");
+
+            fetch(url.toString(), {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                signal: searchController.signal
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("Search request failed.");
+                    }
+
+                    return response.json();
+                })
+                .then(function (data) {
+                    const cardGrid =
+                        document.getElementById("committeeCardGrid");
+
+                    if (!cardGrid) {
+                        return;
+                    }
+
+                    const currentUrl =
+                        new URL(window.location.href);
+
+                    if (value) {
+                        currentUrl.searchParams.set("search", value);
+                    } else {
+                        currentUrl.searchParams.delete("search");
+                    }
+
+                    currentUrl.searchParams.delete("page");
+
+                    window.history.replaceState(
+                        {},
+                        "",
+                        currentUrl.toString()
+                    );
+
+                    window.location.reload();
+                })
+                .catch(function (error) {
+                    if (error.name !== "AbortError") {
+                        console.error(error);
+                    }
+                });
+        }, 400);
+    });
+}
+
+    document
+        .querySelectorAll(".dcm-card")
+        .forEach(function (card) {
+            loadVideoForCommittee(
+                card.dataset.committeeId
+            );
+        });
+});
+
+document.addEventListener(
+    "shown.bs.modal",
+    function () {
+        document.documentElement.classList.add(
+            "modal-open"
+        );
+
+        document.body.classList.add(
+            "modal-open"
+        );
+    }
+);
+
+document.addEventListener(
+    "hidden.bs.modal",
+    function () {
+        if (!document.querySelector(".modal.show")) {
+            document.documentElement.classList.remove(
+                "modal-open"
+            );
+
+            document.body.classList.remove(
+                "modal-open"
+            );
+        }
+    }
+);
+    </script>
+{% endblock extra_js %}

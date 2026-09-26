@@ -1,0 +1,334 @@
+<!-- kali's code  -->
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Olympic Athlete{% else %}Add Olympic Athlete{% endif %}{% endblock %}
+{% block page_title %}{% if is_edit %}Edit Olympic Athlete{% else %}Add Olympic Athlete{% endif %}{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet" href="{% static 'css/olympicathlete.css' %}">
+    <link rel="stylesheet" href="{% static 'css/olympic_athlete_add.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="oly-page">
+
+    <nav class="oly-breadcrumb" aria-label="breadcrumb" data-aos="fade-down">
+        <ol>
+            <li><a href="{% url 'admin_dashboard' request.user.uuid %}">Dashboard</a></li>
+            <li>SportHub</li>
+            <li>Olympics</li>
+            <li><a href="{% url 'olympic_athlete_page' %}">Olympic Athletes</a></li>
+            <li class="active">{% if is_edit %}Edit Athlete{% else %}Add Athlete{% endif %}</li>
+        </ol>
+    </nav>
+
+    <section class="oly-hero oly-hero--compact" data-aos="fade-up">
+        <div class="oly-hero__rings" aria-hidden="true">
+            <svg viewBox="0 0 400 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="90" cy="70" r="46" stroke="#0081C8" stroke-width="12"/>
+                <circle cx="180" cy="70" r="46" stroke="#1c1c1e" stroke-width="12"/>
+                <circle cx="270" cy="70" r="46" stroke="#ff0000" stroke-width="12"/>
+                <circle cx="135" cy="120" r="46" stroke="#F4C744" stroke-width="12"/>
+                <circle cx="225" cy="120" r="46" stroke="#0bd46d" stroke-width="12"/>
+            </svg>
+        </div>
+        <div class="oly-hero__content">
+            <span class="oly-hero__badge">
+                <i data-lucide="{% if is_edit %}pencil{% else %}user-plus{% endif %}"></i>
+                SportHub · Olympics
+            </span>
+            <h1 class="oly-hero__title">
+                {% if is_edit %}Edit Olympic <span>Athlete</span>{% else %}Register Olympic <span>Athlete</span>{% endif %}
+            </h1>
+            <p class="oly-hero__subtitle">
+                {% if is_edit %}
+                    Update qualification details, ranking and event information for this Olympic-bound athlete.
+                {% else %}
+                    Add a new Olympic-bound athlete profile — qualification details, ranking and
+                    event information all in one place.
+                {% endif %}
+            </p>
+        </div>
+    </section>
+
+    <form id="olyAddAthleteForm" class="oly-form" novalidate autocomplete="off">
+        {% csrf_token %}
+
+        <div class="row g-4">
+
+            
+            <div class="col-lg-8">
+
+                
+                <div class="oly-card oly-form-card" data-aos="fade-up" data-aos-delay="50">
+                    <h4 class="oly-panel__title"><i data-lucide="dumbbell"></i> Sport &amp; Support Staff</h4>
+                    <div class="oly-form-grid oly-form-grid--3">
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olySport">
+                                Sport <span class="oly-required">*</span>
+                            </label>
+                            <select class="oly-select oly-select--block" id="olySport" name="sport" required>
+                                <option value="">Select sport...</option>
+                                {% for sport in sports %}
+                                    <option value="{{ sport.id }}" {% if is_edit and athlete_obj.sport_id == sport.id %}selected{% endif %}>{{ sport }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="oly-field__error" id="err-sport"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyTeam">Team</label>
+                            <select class="oly-select oly-select--block" id="olyTeam" name="team">
+                                <option value="">— Not assigned —</option>
+                                {% for team in teams %}
+                                    <option value="{{ team.id }}" {% if is_edit and athlete_obj.team_id == team.id %}selected{% endif %}>{{ team }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyCoach">Coach</label>
+                            <select class="oly-select oly-select--block" id="olyCoach" name="coach">
+                                <option value="">— Not assigned —</option>
+                                {% for coach in coaches %}
+                                    <option value="{{ coach.id }}" {% if is_edit and athlete_obj.coach_id == coach.id %}selected{% endif %}>{{ coach }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+               
+                <div class="oly-card oly-form-card" data-aos="fade-up" data-aos-delay="100">
+                    <h4 class="oly-panel__title"><i data-lucide="flag"></i> Olympic Information</h4>
+                    <div class="oly-form-grid oly-form-grid--2">
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyTargetOlympics">
+                                Target Olympics <span class="oly-required">*</span>
+                            </label>
+                            <input type="text" class="oly-input" id="olyTargetOlympics" name="target_olympics"
+                                   placeholder="e.g. Paris 2028" maxlength="100" required
+                                   value="{% if is_edit %}{{ athlete_obj.target_olympics }}{% endif %}">
+                            <div class="oly-field__error" id="err-target_olympics"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyEventName">
+                                Event <span class="oly-required">*</span>
+                            </label>
+                            <input type="text" class="oly-input" id="olyEventName" name="event_name"
+                                   placeholder="e.g. 100m Freestyle" maxlength="150" required
+                                   value="{% if is_edit %}{{ athlete_obj.event_name }}{% endif %}">
+                            <div class="oly-field__error" id="err-event_name"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label">
+                                Event Category <span class="oly-required">*</span>
+                            </label>
+                            <div class="oly-radio-group">
+                                <label class="oly-radio">
+                                    <input type="radio" name="event_category" value="INDIVIDUAL"
+                                           {% if not is_edit or athlete_obj.event_category == "INDIVIDUAL" %}checked{% endif %}>
+                                    <span>Individual</span>
+                                </label>
+                                <label class="oly-radio">
+                                    <input type="radio" name="event_category" value="TEAM"
+                                           {% if is_edit and athlete_obj.event_category == "TEAM" %}checked{% endif %}>
+                                    <span>Team</span>
+                                </label>
+                            </div>
+                            <div class="oly-field__error" id="err-event_category"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyGoverningBody">
+                                Governing Body <span class="oly-required">*</span>
+                            </label>
+                            <input type="text" class="oly-input" id="olyGoverningBody" name="governing_body"
+                                   placeholder="e.g. World Athletics" maxlength="150" required
+                                   value="{% if is_edit %}{{ athlete_obj.governing_body }}{% endif %}">
+                            <div class="oly-field__error" id="err-governing_body"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyWorldRanking">World Ranking</label>
+                            <input type="number" class="oly-input" id="olyWorldRanking" name="world_ranking"
+                                   placeholder="e.g. 4" min="1" step="1"
+                                   value="{% if is_edit and athlete_obj.world_ranking %}{{ athlete_obj.world_ranking }}{% endif %}">
+                            <div class="oly-field__error" id="err-world_ranking"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyOlympicStatus">
+                                Olympic Status <span class="oly-required">*</span>
+                            </label>
+                            <select class="oly-select oly-select--block" id="olyOlympicStatus" name="olympic_status" required>
+                                {% for value, label in olympic_status_choices %}
+                                    <option value="{{ value }}" {% if value == selected_olympic_status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="oly-field__error" id="err-olympic_status"></div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="oly-card oly-form-card" data-aos="fade-up" data-aos-delay="150">
+                    <h4 class="oly-panel__title"><i data-lucide="target"></i> Qualification Information</h4>
+                    <div class="oly-form-grid oly-form-grid--2">
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyQualDate">Qualification Date</label>
+                            <input type="text" class="oly-input oly-input--datepicker" id="olyQualDate" name="qualification_date" placeholder="Select qualification date" readonly
+                                max="{% now 'Y-m-d' %}"
+                                value="{% if is_edit and athlete_obj.qualification_date %}{{ athlete_obj.qualification_date|date:'Y-m-d' }}{% endif %}">
+                            <div class="oly-field__error" id="err-qualification_date"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyQualScore">Score / Time</label>
+                            <input type="text" class="oly-input" id="olyQualScore" name="qualification_score"
+                                   placeholder="e.g. 9.82s" maxlength="100"
+                                   value="{% if is_edit and athlete_obj.qualification_score %}{{ athlete_obj.qualification_score }}{% endif %}">
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyQualStandard">Standard</label>
+                            <input type="text" class="oly-input" id="olyQualStandard" name="qualification_standard"
+                                   placeholder="e.g. Olympic 'A' Standard" maxlength="100"
+                                   value="{% if is_edit and athlete_obj.qualification_standard %}{{ athlete_obj.qualification_standard }}{% endif %}">
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyQualStatus">
+                                Qualification Status <span class="oly-required">*</span>
+                            </label>
+                            <select class="oly-select oly-select--block" id="olyQualStatus" name="qualification_status" required>
+                                {% for value, label in qualification_status_choices %}
+                                    <option value="{{ value }}" {% if value == selected_qualification_status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="oly-field__error" id="err-qualification_status"></div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="oly-card oly-form-card" data-aos="fade-up" data-aos-delay="200">
+                    <h4 class="oly-panel__title"><i data-lucide="trophy"></i> Performance Summary</h4>
+                    <div class="oly-form-grid oly-form-grid--2">
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyPersonalBest">Personal Best</label>
+                            <input type="text" class="oly-input" id="olyPersonalBest" name="personal_best"
+                                   placeholder="e.g. 9.79s" maxlength="100"
+                                   value="{% if is_edit and athlete_obj.personal_best %}{{ athlete_obj.personal_best }}{% endif %}">
+                        </div>
+                    </div>
+                    <div class="oly-field">
+                        <label class="oly-field__label" for="olyBiography">Biography</label>
+                        <textarea class="oly-textarea" id="olyBiography" name="biography" rows="4"
+                                  placeholder="Short athlete biography...">{% if is_edit %}{{ athlete_obj.biography }}{% endif %}</textarea>
+                    </div>
+                </div>
+
+            </div>
+
+            
+            <div class="col-lg-4">
+                <div class="oly-athlete-picker" data-aos="fade-up">
+
+                    <div class="oly-card oly-form-card">
+                        <h4 class="oly-panel__title"><i data-lucide="user"></i> Athlete Identity</h4>
+
+                        <div class="oly-form-preview">
+                            <img id="olyAddPreviewPhoto" class="oly-form-preview__avatar"
+                                 src="{% if is_edit %}{{ current_athlete_photo }}{% else %}https://ui-avatars.com/api/?name=Select+Athlete&background=e7e9f0&color=6b7280&size=128{% endif %}"
+                                 alt="Athlete preview">
+                            <div class="oly-form-preview__name" id="olyAddPreviewName">{% if is_edit %}{{ current_athlete_name }}{% else %}No athlete selected{% endif %}</div>
+                            <p class="oly-form-preview__hint">
+                                <i data-lucide="info"></i> Profile photo is pulled automatically from the
+                                selected user's account photo.
+                            </p>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyAthleteSelect">
+                                Athlete (User) <span class="oly-required">*</span>
+                            </label>
+                            <select class="oly-select oly-select--block" id="olyAthleteSelect" name="athlete" required>
+                                <option value="">Select athlete...</option>
+                                {% for opt in athlete_options %}
+                                    <option value="{{ opt.id }}" data-photo="{{ opt.photo }}" data-name="{{ opt.name }}"
+                                        {% if is_edit and athlete_obj.athlete_id == opt.id %}selected{% endif %}>{{ opt.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="oly-field__error" id="err-athlete"></div>
+                        </div> 
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyAthleteNumber">
+                                Olympic Athlete ID
+                            </label>
+                            <input type="text" class="oly-input oly-input--readonly" id="olyAthleteNumber" name="athlete_number"
+                                   value="{{ next_athlete_number }}" readonly tabindex="-1" aria-readonly="true">
+                            <div class="oly-field__error" id="err-athlete_number"></div>
+                        </div>
+
+                        <div class="oly-field">
+                            <label class="oly-field__label" for="olyNationality">
+                                Nationality <span class="oly-required">*</span>
+                            </label>
+                            <select class="oly-select oly-select--block" id="olyNationality" name="nationality" required>
+                                <option value="">Select nationality...</option>
+                                {% for country in countries %}
+                                    <option value="{{ country }}" {% if is_edit and athlete_obj.nationality == country %}selected{% endif %}>{{ country }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="oly-field__error" id="err-nationality"></div>
+                        </div>
+                    </div>
+
+                    <div class="oly-form-actions" data-aos="fade-up" data-aos-delay="50">
+                        <button type="button" class="oly-btn oly-btn--light" id="olyCancelBtn">
+                            <i data-lucide="x"></i> Cancel
+                        </button>
+                        <button type="submit" class="oly-btn oly-btn--primary" id="olySaveAthleteBtn">
+                            <i data-lucide="{% if is_edit %}check{% else %}save{% endif %}"></i>
+                            <span id="olySaveBtnLabel">{% if is_edit %}Update Athlete{% else %}Save Athlete{% endif %}</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.AOS) {
+                AOS.init({ duration: 650, once: true, offset: 40 });
+            }
+        });
+    </script>
+    <script>
+        window.OLY_ADD_ATHLETE_URL = "{% url 'olympic_athlete_create_json' %}";
+        window.OLY_ATHLETE_LIST_URL = "{% url 'olympic_athlete_page' %}";
+        window.OLY_IS_EDIT = {% if is_edit %}true{% else %}false{% endif %};
+        {% if is_edit %}
+        window.OLY_UPDATE_ATHLETE_URL = "{% url 'olympic_athlete_update_json' uuid=athlete_obj.olympic_uuid %}";
+        {% endif %}
+    </script>
+    <script src="{% static 'script/olympic_athlete_add.js' %}"></script>
+{% endblock %}

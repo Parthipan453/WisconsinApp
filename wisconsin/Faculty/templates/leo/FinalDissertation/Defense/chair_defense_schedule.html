@@ -1,0 +1,852 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Schedule Dissertation Defense{% endblock %}
+{% block extra_css %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/FinalDissertation/Defense/chair_defense_schedule.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="ds-page">
+        <div class="ds-shell">
+            <section class="ds-hero">
+                {% comment %} <div class="ds-breadcrumb">
+                    <span>PhD Management</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Final Dissertation</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <strong>Defense Scheduling</strong>
+                </div> {% endcomment %}
+                <div class="ds-hero-content">
+                    <div class="ds-title-group">
+                        <div class="ds-title-icon">
+                            <i class="ti ti-calendar-plus"></i>
+                        </div>
+                        <div>
+                            <div class="ds-kicker">Chair Faculty Workspace</div>
+                            <h1>
+                                {% if is_update %}
+                                    Update Defense Schedule
+                                {% else %}
+                                    Schedule Dissertation Defense
+                                {% endif %}
+                            </h1>
+                            <p>Set the official defense date, time, and location for the approved final dissertation.</p>
+                        </div>
+                    </div>
+                    <div class="ds-status">
+                        <span></span>
+                        Chair Authorization Active
+                    </div>
+                </div>
+            </section>
+            <div class="ds-main-grid">
+                <section class="ds-card ds-form-card">
+                    <div class="ds-card-header">
+                        <div class="ds-card-heading">
+                            <div class="ds-card-icon">
+                                <i class="ti ti-calendar-event"></i>
+                            </div>
+                            <div>
+                                <h2>
+                                    {% if is_update %}
+                                        Defense Schedule
+                                    {% else %}
+                                        Defense Details
+                                    {% endif %}
+                                </h2>
+                                <p>Provide the official schedule information for this defense.</p>
+                            </div>
+                        </div>
+                        <span class="ds-required">All fields required</span>
+                    </div>
+                    <form method="post" id="defenseScheduleForm" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden"
+                               name="{{ form.phd_student.html_name }}"
+                               value="{{ phd_student.pk }}"
+                               id="id_phd_student">
+                        {% if form.non_field_errors %}
+                            <div class="ds-error-box">
+                                <i class="ti ti-alert-circle"></i>
+                                <div>
+                                    {% for error in form.non_field_errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="ds-section">
+                            <div class="ds-section-label">
+                                <span></span>
+                                Approved Candidate
+                            </div>
+                            <div class="ds-candidate-card">
+                                <div class="ds-candidate-left">
+                                    <div class="ds-avatar">
+                                        {% if phd_student.student.user.first_name %}
+                                            {{ phd_student.student.user.first_name|first|upper }}
+                                        {% else %}
+                                            P
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h3>{{ phd_student.student.user.get_full_name|default:"PhD Candidate" }}</h3>
+                                        <p>{{ phd_student.student.student_number|default:"Student record" }}</p>
+                                    </div>
+                                </div>
+                                <div class="ds-approved">
+                                    <i class="ti ti-circle-check"></i>
+                                    Dissertation Approved
+                                </div>
+                            </div>
+                            {% if form.phd_student.errors %}
+                                <div class="ds-field-error">{{ form.phd_student.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="ds-section">
+                            <div class="ds-section-label">
+                                <span></span>
+                                Defense Schedule
+                            </div>
+                            <div class="ds-form-grid">
+                                <div class="ds-field">
+                                    <label for="{{ form.defense_date.id_for_label }}">
+                                        Defense Date <b>*</b>
+                                    </label>
+                                    <div class="ds-input-wrap ds-picker-wrap">
+                                        {{ form.defense_date }}
+                                       
+                                    </div>
+                                    <small>Select a future date for the formal dissertation defense.</small>
+                                    {% if form.defense_date.errors %}
+                                        <div class="ds-field-error">{{ form.defense_date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="ds-field">
+                                    <label for="{{ form.defense_time.id_for_label }}">
+                                        Defense Time <b>*</b>
+                                    </label>
+                                    <div class="ds-input-wrap ds-picker-wrap">
+                                        {{ form.defense_time }}
+                                        
+                                    </div>
+                                    <small>Select a future time for the scheduled defense.</small>
+                                    {% if form.defense_time.errors %}
+                                        <div class="ds-field-error">{{ form.defense_time.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="ds-field ds-field-full">
+                                    <div class="ds-location-heading">
+                                        <label for="{{ form.location.id_for_label }}">
+                                            Defense Location <b>*</b>
+                                        </label>
+                                        <button type="button"
+                                                class="ds-add-location"
+                                                id="addLocationButton"
+                                                data-url="{% url 'chair_add_defense_location' uuid=faculty.user.uuid %}">
+                                            <i class="ti ti-plus"></i>
+                                            Add Location
+                                        </button>
+                                    </div>
+                                    <div class="ds-input-wrap">
+                                        {{ form.location }}
+                                        <i class="ti ti-map-pin ds-input-icon"></i>
+                                    </div>
+                                    <small>Select an existing official location or add a new defense location.</small>
+                                    <div class="ds-location-panel">
+                                        <div class="ds-location-header">
+                                            <div>
+                                                <h4>Available Defense Locations</h4>
+                                                <p>Select a saved location to use it for this defense.</p>
+                                            </div>
+                                            <span id="locationCount" class="ds-location-count">{{ defense_locations|length }}</span>
+                                        </div>
+                                        <div class="ds-location-grid" id="defenseLocationList">
+                                            {% for location in defense_locations %}
+                                                <button type="button"
+                                                        class="ds-location-option"
+                                                        data-location="{{ location.name }}">
+                                                    <span class="ds-location-icon">
+                                                        <i class="ti ti-map-pin"></i>
+                                                    </span>
+                                                    <span class="ds-location-content">
+                                                        <strong>{{ location.name }}</strong>
+                                                        <small>Available for scheduling</small>
+                                                    </span>
+                                                    <i class="ti ti-arrow-up-right ds-location-arrow"></i>
+                                                </button>
+                                            {% empty %}
+                                                <div class="ds-location-empty" id="locationEmptyState">
+                                                    <div class="ds-empty-icon">
+                                                        <i class="ti ti-map-pin-off"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong>No saved locations yet</strong>
+                                                        <span>Add an official defense location to get started.</span>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% if form.location.errors %}
+                                        <div class="ds-field-error">{{ form.location.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ds-verification">
+                            <div class="ds-verification-item">
+                                <div class="ds-verification-icon">
+                                    <i class="ti ti-shield-check"></i>
+                                </div>
+                                <div>
+                                    <strong>Committee Verified</strong>
+                                    <span>The doctoral committee is approved and ready for scheduling.</span>
+                                </div>
+                            </div>
+                            <div class="ds-verification-divider"></div>
+                            <div class="ds-verification-item">
+                                <div class="ds-verification-icon">
+                                    <i class="ti ti-file-check"></i>
+                                </div>
+                                <div>
+                                    <strong>Dissertation Approved</strong>
+                                    <span>This candidate has an approved final dissertation submission.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ds-actions">
+                            <a href="{% url 'faculty_dissertation_defense_list' uuid=faculty.user.uuid %}"
+                               class="ds-back-button">
+                                <i class="ti ti-arrow-left"></i>
+                                Back to Defense
+                            </a>
+                            <button type="submit" class="ds-submit-button" id="scheduleSubmit">
+                                <i class="ti ti-calendar-check"></i>
+                                <span>
+                                    {% if is_update %}
+                                        Update Defense Schedule
+                                    {% else %}
+                                        Schedule Defense
+                                    {% endif %}
+                                </span>
+                                <i class="ti ti-arrow-up-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+                <aside class="ds-sidebar">
+                    <section class="ds-card ds-profile-card">
+                        <div class="ds-profile-header">
+                            <div class="ds-profile-avatar">
+                                {% if phd_student.student.user.first_name %}
+                                    {{ phd_student.student.user.first_name|first|upper }}
+                                {% else %}
+                                    P
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3>{{ phd_student.student.user.get_full_name|default:"PhD Candidate" }}</h3>
+                                <p>{{ phd_student.student.student_number|default:"Student record" }}</p>
+                            </div>
+                        </div>
+                        <div class="ds-detail-list">
+                            <div class="ds-detail-row">
+                                <span>Program</span>
+                                <strong>{{ phd_student.phd_program.program_name|default:"Not available" }}</strong>
+                            </div>
+                            <div class="ds-detail-row">
+                                <span>Department</span>
+                                <strong>{{ phd_student.phd_program.department|default:"Not available" }}</strong>
+                            </div>
+                            <div class="ds-detail-row">
+                                <span>Advisor</span>
+                                <strong>{{ phd_student.advisor.user.get_full_name|default:"Not assigned" }}</strong>
+                            </div>
+                            <div class="ds-detail-row">
+                                <span>Candidate Status</span>
+                                <strong>{{ phd_student.get_current_status_display|default:"Active" }}</strong>
+                            </div>
+                        </div>
+                        <div class="ds-eligibility">
+                            <div class="ds-eligibility-title">
+                                <i class="ti ti-circle-check"></i>
+                                Eligible for Scheduling
+                            </div>
+                            <p>Committee approval and final dissertation approval have been confirmed by the workflow.</p>
+                        </div>
+                    </section>
+                    <section class="ds-card ds-mini-card">
+                        <div class="ds-mini-header">
+                            <div class="ds-mini-icon">
+                                <i class="ti ti-users-group"></i>
+                            </div>
+                            <div>
+                                <h3>Doctoral Committee</h3>
+                                <p>Approved committee members</p>
+                            </div>
+                        </div>
+                        <div class="ds-member-list">
+                            {% for member in committee.committee_members.all %}
+                                <div class="ds-member">
+                                    <div class="ds-member-number">{{ forloop.counter|stringformat:"02d" }}</div>
+                                    <div>
+                                        <strong>{{ member.faculty.user.get_full_name|default:"Committee Faculty" }}</strong>
+                                        <span>
+                                            {{ member.get_role_display|default:"Committee Member" }}
+                                            {% if member.department %}
+                                                · {{ member.department }}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="ds-member">
+                                    <div class="ds-member-number">!</div>
+                                    <div>
+                                        <strong>No committee members listed</strong>
+                                        <span>At least one committee member is required before scheduling.</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+                    <section class="ds-card ds-mini-card">
+                        <div class="ds-mini-header">
+                            <div class="ds-mini-icon">
+                                <i class="ti ti-bulb"></i>
+                            </div>
+                            <div>
+                                <h3>Scheduling Tips</h3>
+                                <p>Before confirming the defense</p>
+                            </div>
+                        </div>
+                        <div class="ds-tip-list">
+                            <div class="ds-tip">
+                                <span>01</span>
+                                <div>
+                                    <strong>Choose a future slot</strong>
+                                    <p>Confirm that the selected date and time are in the future.</p>
+                                </div>
+                            </div>
+                            <div class="ds-tip">
+                                <span>02</span>
+                                <div>
+                                    <strong>Check committee availability</strong>
+                                    <p>Make sure the required committee members can attend.</p>
+                                </div>
+                            </div>
+                            <div class="ds-tip">
+                                <span>03</span>
+                                <div>
+                                    <strong>Use an official location</strong>
+                                    <p>Select a saved room, hall, or approved virtual location.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+            <div class="ds-faq-grid">
+                <section class="ds-card ds-faq-card">
+                    <div class="ds-card-header">
+                        <div class="ds-card-heading">
+                            <div class="ds-card-icon">
+                                <i class="ti ti-help-circle"></i>
+                            </div>
+                            <div>
+                                <h2>Defense Scheduling FAQ</h2>
+                                <p>Quick answers for Chair Faculty.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ds-faq-list">
+                        <div class="ds-faq-item">
+                            <button type="button" class="ds-faq-question">
+                                <span>Who can schedule a dissertation defense?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="ds-faq-answer">
+                                Only the Chair Faculty associated with the student's approved doctoral committee can schedule the dissertation defense.
+                            </div>
+                        </div>
+                        <div class="ds-faq-item">
+                            <button type="button" class="ds-faq-question">
+                                <span>Which students are eligible?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="ds-faq-answer">
+                                Only active PhD candidates with an approved doctoral committee and an approved final dissertation submission can reach this scheduling workflow.
+                            </div>
+                        </div>
+                        <div class="ds-faq-item">
+                            <button type="button" class="ds-faq-question">
+                                <span>Can I select a past date?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="ds-faq-answer">
+                                No. The defense date must be today or later, and the combined defense date and time must be in the future.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="ds-card ds-faq-card">
+                    <div class="ds-card-header">
+                        <div class="ds-card-heading">
+                            <div class="ds-card-icon">
+                                <i class="ti ti-alert-circle"></i>
+                            </div>
+                            <div>
+                                <h2>Important Before Saving</h2>
+                                <p>Keep the defense workflow clean and conflict-free.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ds-faq-list">
+                        <div class="ds-faq-item">
+                            <button type="button" class="ds-faq-question">
+                                <span>What if another defense uses the same slot?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="ds-faq-answer">
+                                The schedule will be rejected when another dissertation defense is already scheduled for the same date and time.
+                            </div>
+                        </div>
+                        <div class="ds-faq-item">
+                            <button type="button" class="ds-faq-question">
+                                <span>Can a finalized defense be rescheduled?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="ds-faq-answer">No. Once the defense has been finalized, the workflow prevents further rescheduling.</div>
+                        </div>
+                        <div class="ds-faq-item">
+                            <button type="button" class="ds-faq-question">
+                                <span>What happens after scheduling?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="ds-faq-answer">
+                                The defense is saved as pending and the workflow continues to the defense detail workspace for evaluation and finalization.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="ds-footer">
+                <span>
+                    <strong>Defense Workflow</strong> · Chair Faculty scheduling workspace
+                </span>
+                <span>University of Wisconsin–Madison · PhD Management</span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("defenseScheduleForm");
+    const dateInput = document.getElementById("id_defense_date");
+    const timeInput = document.getElementById("id_defense_time");
+    const locationInput = document.getElementById("id_location");
+    const submitButton = document.getElementById("scheduleSubmit");
+    const addLocationButton = document.getElementById("addLocationButton");
+    const locationList = document.getElementById("defenseLocationList");
+    const locationCount = document.getElementById("locationCount");
+
+    let datePicker = null;
+    let timePicker = null;
+
+    function getToday() {
+        const now = new Date();
+        return new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+        );
+    }
+
+    function getSelectedDate() {
+        if (!dateInput || !dateInput.value) {
+            return null;
+        }
+        const parts = dateInput.value.split("-");
+        if (parts.length !== 3) {
+            return null;
+        }
+        const year = Number(parts[0]);
+        const month = Number(parts[1]) - 1;
+        const day = Number(parts[2]);
+        const selectedDate = new Date(year, month, day);
+        if (
+            selectedDate.getFullYear() !== year ||
+            selectedDate.getMonth() !== month ||
+            selectedDate.getDate() !== day
+        ) {
+            return null;
+        }
+        return selectedDate;
+    }
+
+    function isToday(date) {
+        const today = getToday();
+        return (
+            date.getFullYear() === today.getFullYear() &&
+            date.getMonth() === today.getMonth() &&
+            date.getDate() === today.getDate()
+        );
+    }
+
+    function getMinimumTime() {
+        const now = new Date();
+        const nextMinute = Math.ceil(now.getMinutes() / 15) * 15;
+        const minimumDate = new Date(now);
+        minimumDate.setSeconds(0, 0);
+        minimumDate.setMinutes(nextMinute);
+        if (minimumDate.getMinutes() >= 60) {
+            minimumDate.setHours(minimumDate.getHours() + 1);
+            minimumDate.setMinutes(0);
+        }
+        return (
+            String(minimumDate.getHours()).padStart(2, "0") +
+            ":" +
+            String(minimumDate.getMinutes()).padStart(2, "0")
+        );
+    }
+
+    function updateTimeMinimum() {
+        if (!timePicker) {
+            return;
+        }
+        const selectedDate = getSelectedDate();
+        if (!selectedDate || !isToday(selectedDate)) {
+            timePicker.set("minTime", null);
+            return;
+        }
+        const minimumTime = getMinimumTime();
+        timePicker.set("minTime", minimumTime);
+        if (timeInput && timeInput.value) {
+            const selectedParts = timeInput.value.split(":");
+            if (selectedParts.length === 2) {
+                const selectedMinutes =
+                    Number(selectedParts[0]) * 60 +
+                    Number(selectedParts[1]);
+                const minimumParts = minimumTime.split(":");
+                const minimumMinutes =
+                    Number(minimumParts[0]) * 60 +
+                    Number(minimumParts[1]);
+                if (selectedMinutes < minimumMinutes) {
+                    timePicker.clear();
+                }
+            }
+        }
+    }
+
+    if (typeof flatpickr !== "undefined" && dateInput) {
+    datePicker = flatpickr(dateInput, {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "F j, Y",
+        minDate: "today",
+        disable: [
+            function (date) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const currentDate = new Date(
+                    date.getFullYear(),
+                    date.getMonth(),
+                    date.getDate()
+                );
+
+                return currentDate < today;
+            }
+        ],
+        disableMobile: true,
+        allowInput: false,
+        clickOpens: true,
+        static: true,
+        appendTo: dateInput.closest(".ds-picker-wrap"),
+        positionElement: dateInput,
+        monthSelectorType: "static",
+        onReady: function () {
+            updateTimeMinimum();
+        },
+        onOpen: function () {
+            updateTimeMinimum();
+        },
+        onChange: function () {
+            updateTimeMinimum();
+
+            if (timePicker) {
+                timePicker.clear();
+            }
+        }
+    });
+}
+
+    if (typeof flatpickr !== "undefined" && timeInput) {
+        timePicker = flatpickr(timeInput, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            disableMobile: true,
+            allowInput: false,
+            clickOpens: true,
+            static: true,
+            appendTo: timeInput.closest(".ds-picker-wrap"),
+            positionElement: timeInput,
+            minTime: null,
+            time_24hr: true,
+            minuteIncrement: 15
+        });
+    }
+
+    function selectLocation(button) {
+        if (!locationInput) {
+            return;
+        }
+        const location = button.dataset.location || "";
+        locationInput.value = location;
+        document.querySelectorAll(".ds-location-option").forEach(function (item) {
+            item.classList.remove("active");
+        });
+        button.classList.add("active");
+    }
+
+    document.querySelectorAll(".ds-location-option").forEach(function (button) {
+        button.addEventListener("click", function () {
+            selectLocation(button);
+        });
+    });
+
+    if (locationInput) {
+        locationInput.addEventListener("input", function () {
+            document.querySelectorAll(".ds-location-option").forEach(function (button) {
+                const location = button.dataset.location || "";
+                button.classList.toggle(
+                    "active",
+                    location.toLowerCase() ===
+                    locationInput.value.trim().toLowerCase()
+                );
+            });
+        });
+    }
+
+    function refreshLocationCount() {
+        if (!locationCount || !locationList) {
+            return;
+        }
+        locationCount.textContent =
+            locationList.querySelectorAll(".ds-location-option").length;
+    }
+
+    function addLocationCard(name) {
+        if (!locationList) {
+            return null;
+        }
+        const emptyState = document.getElementById("locationEmptyState");
+        if (emptyState) {
+            emptyState.remove();
+        }
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "ds-location-option";
+        button.dataset.location = name;
+        button.innerHTML = `
+            <span class="ds-location-icon">
+                <i class="ti ti-map-pin"></i>
+            </span>
+            <span class="ds-location-content">
+                <strong></strong>
+                <small>Available for scheduling</small>
+            </span>
+            <i class="ti ti-arrow-up-right ds-location-arrow"></i>
+        `;
+        button.querySelector("strong").textContent = name;
+        button.addEventListener("click", function () {
+            selectLocation(button);
+        });
+        locationList.appendChild(button);
+        refreshLocationCount();
+        return button;
+    }
+
+    async function handleAddLocation() {
+        if (!addLocationButton) {
+            return;
+        }
+        const endpoint = addLocationButton.dataset.url;
+        if (!endpoint) {
+            return;
+        }
+        const result = await Swal.fire({
+            title: "Add Defense Location",
+            html: `
+                <div class="swal-location-form">
+                    <label class="swal-location-label" for="swalLocationInput">
+                        Location Name
+                    </label>
+                    <input id="swalLocationInput" class="swal-location-input" type="text" maxlength="255" autocomplete="off" placeholder="Example: Grainger Hall 212">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Add Location",
+            cancelButtonText: "Cancel",
+            focusConfirm: false,
+            reverseButtons: true,
+            preConfirm: function () {
+                const input = document.getElementById("swalLocationInput");
+                const value = input ? input.value.trim() : "";
+                if (!value) {
+                    Swal.showValidationMessage(
+                        "Please enter a location name."
+                    );
+                    return false;
+                }
+                return value;
+            }
+        });
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+        const csrfInput = form
+            ? form.querySelector("input[name='csrfmiddlewaretoken']")
+            : null;
+        const csrfToken = csrfInput ? csrfInput.value : "";
+        const body = new URLSearchParams();
+        body.append("name", result.value);
+        body.append("csrfmiddlewaretoken", csrfToken);
+        addLocationButton.disabled = true;
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type":
+                        "application/x-www-form-urlencoded; charset=UTF-8"
+                },
+                body: body.toString()
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message ||
+                    "Unable to add the defense location."
+                );
+            }
+            const existing = Array.from(
+                document.querySelectorAll(".ds-location-option")
+            ).find(function (button) {
+                return (
+                    (button.dataset.location || "").toLowerCase() ===
+                    result.value.toLowerCase()
+                );
+            });
+            let selectedButton = existing;
+            if (!selectedButton) {
+                selectedButton = addLocationCard(
+                    data.name || result.value
+                );
+            }
+            if (selectedButton) {
+                selectLocation(selectedButton);
+            }
+            await Swal.fire({
+                icon: "success",
+                title: "Location Added",
+                text:
+                    data.message ||
+                    "Defense location added successfully.",
+                confirmButtonText: "Done"
+            });
+        } catch (error) {
+            await Swal.fire({
+                icon: "error",
+                title: "Unable to Add Location",
+                text:
+                    error.message ||
+                    "Something went wrong.",
+                confirmButtonText: "Close"
+            });
+        } finally {
+            addLocationButton.disabled = false;
+        }
+    }
+
+    if (addLocationButton) {
+        addLocationButton.addEventListener(
+            "click",
+            handleAddLocation
+        );
+    }
+
+    document.querySelectorAll(".ds-faq-question").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const item = button.closest(".ds-faq-item");
+            if (!item) {
+                return;
+            }
+            document.querySelectorAll(".ds-faq-item").forEach(function (other) {
+                if (other !== item) {
+                    other.classList.remove("active");
+                }
+            });
+            item.classList.toggle("active");
+        });
+    });
+
+    if (form) {
+        form.addEventListener("submit", function () {
+            const selectedDate = getSelectedDate();
+            if (!selectedDate || selectedDate < getToday()) {
+                if (datePicker) {
+                    datePicker.open();
+                }
+                return;
+            }
+            if (selectedDate && isToday(selectedDate)) {
+                updateTimeMinimum();
+                if (
+                    timeInput &&
+                    timeInput.value &&
+                    timePicker
+                ) {
+                    const selectedParts =
+                        timeInput.value.split(":");
+                    if (selectedParts.length === 2) {
+                        const selectedMinutes =
+                            Number(selectedParts[0]) * 60 +
+                            Number(selectedParts[1]);
+                        const minimumTime =
+                            getMinimumTime().split(":");
+                        const minimumMinutes =
+                            Number(minimumTime[0]) * 60 +
+                            Number(minimumTime[1]);
+                        if (
+                            selectedMinutes <
+                            minimumMinutes
+                        ) {
+                            timePicker.open();
+                            return;
+                        }
+                    }
+                }
+            }
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add("is-loading");
+            }
+        });
+    }
+
+    updateTimeMinimum();
+});
+    </script>
+{% endblock %}

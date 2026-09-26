@@ -1,0 +1,634 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Preliminary / Qualifying Examination Details{% endblock %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-LN+7fdVzj6u52u30KpM6KTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/PreliminaryExam/exam_detail.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="exam-page">
+        <section class="exam-hero">
+            <div class="hero-main">
+                <div class="hero-icon">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div class="hero-copy">
+                    <div class="hero-eyebrow">Preliminary / Qualifying Examination</div>
+                    <h1>{{ examination.title|default:"Examination Details" }}</h1>
+                    <p>Complete examination overview, committee status and workflow progress.</p>
+                    {% comment %} <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb exam-breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">Faculty</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">PhD Management</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'faculty_preliminary_exam_list' uuid=request.user.uuid %}">Preliminary Examination</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Details</li>
+                        </ol>
+                    </nav> {% endcomment %}
+                </div>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'faculty_preliminary_exam_list' uuid=request.user.uuid %}"
+                   class="action-btn action-light"><i class="bi bi-arrow-left"></i><span>Back</span></a>
+                {% if is_chair %}
+                    {% if examination.status != 'COMPLETED' and examination.status != 'CANCELLED' %}
+                        <a href="{% url 'faculty_preliminary_exam_update' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}"
+                           class="action-btn action-outline"><i class="bi bi-pencil"></i><span>Edit</span></a>
+                    {% endif %}
+                    {% if can_publish %}
+                        <button class="action-btn action-success"
+                                data-bs-toggle="modal"
+                                data-bs-target="#publishModal"><i class="bi bi-megaphone"></i><span>Publish</span></button>
+                    {% endif %}
+                    {% if can_enter_result and examination.result == 'PENDING' %}
+                        <a href="{% url 'faculty_preliminary_exam_result' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}"
+                           class="action-btn action-info"><i class="bi bi-clipboard-check"></i><span>Declare Result</span></a>
+                    {% endif %}
+                    {% if not examination.is_published and examination.status != 'COMPLETED' %}
+                        <button class="action-btn action-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteModal"><i class="bi bi-trash"></i><span>Delete</span></button>
+                    {% endif %}
+                {% endif %}
+                {% if can_evaluate %}
+                    {% if examination.is_published and examination.status == "SCHEDULED" and examination.result == "PENDING" %}
+                        {% if my_evaluation and my_evaluation.is_submitted %}
+                            <a href="{% url 'faculty_view_preliminary_evaluation' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}"
+                               class="action-btn action-success"><i class="bi bi-eye"></i><span>View Evaluation</span></a>
+                        {% else %}
+                            <a href="{% url 'faculty_submit_preliminary_evaluation' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}"
+                               class="action-btn action-warning"><i class="bi bi-pencil-square"></i><span>Evaluate</span></a>
+                        {% endif %}
+                    {% elif can_view_evaluation %}
+                        <a href="{% url 'faculty_view_preliminary_evaluation' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}"
+                           class="action-btn action-success"><i class="bi bi-eye"></i><span>View Evaluation</span></a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </section>
+        <section class="status-strip">
+            <div class="status-main">
+                <span class="status-icon"><i class="bi bi-activity"></i></span>
+                <div>
+                    <span class="status-label">Current examination status</span>
+                    <strong>
+                        {% if examination.status == 'SCHEDULED' %}
+                            Scheduled
+                        {% elif examination.status == 'COMPLETED' %}
+                            Completed
+                        {% elif examination.status == 'CANCELLED' %}
+                            Cancelled
+                        {% elif examination.status == 'DRAFT' %}
+                            Draft
+                        {% else %}
+                            {{ examination.get_status_display }}
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+            <div class="status-pills">
+                <span class="status-pill"><i class="bi bi-calendar3"></i>{{ examination.exam_date|date:"M d, Y" }}</span>
+                <span class="status-pill"><i class="bi bi-clock"></i>{{ examination.start_time|time:"g:i A" }} – {{ examination.end_time|time:"g:i A" }}</span>
+                <span class="status-pill"><i class="bi bi-geo-alt"></i>{{ examination.venue|default:"Venue not specified" }}</span>
+            <span class="status-pill {% if examination.is_published %}pill-success{% else %}pill-warning{% endif %}"><i class="bi bi-broadcast"></i>
+            {% if examination.is_published %}
+                Published
+            {% else %}
+                Unpublished
+            {% endif %}
+        </span>
+    </div>
+</section>
+<section class="metric-grid">
+    <div class="metric-card metric-red">
+        <span class="metric-icon"><i class="bi bi-clipboard-check"></i></span>
+        <div><span>Total Evaluations</span><strong>{{ total_evaluations }}</strong></div>
+    </div>
+    <div class="metric-card metric-green">
+        <span class="metric-icon"><i class="bi bi-check2-circle"></i></span>
+        <div><span>Submitted</span><strong>{{ total_evaluations }}</strong></div>
+    </div>
+    <div class="metric-card metric-blue">
+        <span class="metric-icon"><i class="bi bi-lightbulb"></i></span>
+        <div><span>Knowledge Avg.</span><strong>{{ knowledge_avg|floatformat:1|default:"—" }}</strong></div>
+    </div>
+    <div class="metric-card metric-purple">
+        <span class="metric-icon"><i class="bi bi-award"></i></span>
+        <div><span>Technical Avg.</span><strong>{{ technical_avg|floatformat:1|default:"—" }}</strong></div>
+    </div>
+</section>
+<div id="formAlertContainer" class="mb-3"></div>
+<section class="dashboard-grid">
+    <main class="main-column">
+        <article class="info-card">
+            <div class="section-head">
+                <div>
+                    <span class="section-icon red"><i class="bi bi-info-circle"></i></span>
+                    <div>
+                        <h2>Examination Information</h2>
+                        <p>Core details of this examination</p>
+                    </div>
+                </div>
+                <span class="mini-status">
+                    {% if examination.status == 'SCHEDULED' %}
+                        Scheduled
+                    {% elif examination.status == 'COMPLETED' %}
+                        Completed
+                    {% elif examination.status == 'CANCELLED' %}
+                        Cancelled
+                    {% elif examination.status == 'DRAFT' %}
+                        Draft
+                    {% else %}
+                        {{ examination.get_status_display }}
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-grid">
+                <div class="info-item"><span>Exam Type</span><strong>{{ examination.get_exam_type_display }}</strong></div>
+                <div class="info-item"><span>Title</span><strong>{{ examination.title|default:"—" }}</strong></div>
+                <div class="info-item info-wide"><span>Description</span><strong class="normal">{{ examination.description|default:"No description provided." }}</strong></div>
+                <div class="info-item"><span>Exam Date</span><strong>{{ examination.exam_date|date:"l, M d, Y" }}</strong></div>
+                <div class="info-item"><span>Time</span><strong>{{ examination.start_time|time:"g:i A" }} – {{ examination.end_time|time:"g:i A" }}</strong></div>
+                <div class="info-item"><span>Venue</span><strong>{{ examination.venue|default:"—" }}</strong></div>
+                <div class="info-item">
+                    <span>Published</span><strong>
+                        {% if examination.is_published %}
+                            <span class="inline-badge success"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                        {% else %}
+                            <span class="inline-badge warning"><i class="bi bi-clock"></i> No</span>
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="info-item">
+                    <span>Result</span><strong>
+                        {% if examination.result == 'PASS' %}
+                            <span class="inline-badge success">Pass</span>
+                        {% elif examination.result == 'FAIL' %}
+                            <span class="inline-badge danger">Fail</span>
+                        {% else %}
+                            <span class="inline-badge warning">Pending</span>
+                        {% endif %}
+                    </strong>
+                </div>
+                {% if examination.remarks %}
+                    <div class="info-item info-wide"><span>Remarks</span><strong class="normal">{{ examination.remarks }}</strong></div>
+                {% endif %}
+            </div>
+        </article>
+        <article class="info-card video-evidence-card">
+            <div class="section-head">
+                <div>
+                    <span class="section-icon video">
+                        <i class="bi bi-camera-video-fill"></i>
+                    </span>
+                    <div>
+                        <h2>Video Evidence</h2>
+                        <p>Recorded evidence for this preliminary examination</p>
+                    </div>
+                </div>
+                {% if video_evidence %}
+                    <span class="video-status available">
+                        <i class="bi bi-check-circle-fill"></i> Available
+                    </span>
+                {% else %}
+                    <span class="video-status pending">
+                        <i class="bi bi-clock"></i> Not Uploaded
+                    </span>
+                {% endif %}
+            </div>
+            <div class="video-evidence-body">
+                {% if video_evidence %}
+                    <div class="video-preview">
+                        <video controls preload="metadata">
+                            <source src="{{ video_evidence.video.url }}">
+                            Your browser does not support the video element.
+                        </video>
+                    </div>
+                    <div class="video-evidence-meta">
+                        <div class="video-file-info">
+                            <div class="video-file-icon">
+                                <i class="bi bi-file-earmark-play-fill"></i>
+                            </div>
+                            <div>
+                                <strong>{{ video_evidence.video.name|cut:"phd/video_evidence/" }}</strong>
+                                <span>
+                                    Uploaded
+                                    {% if video_evidence.uploaded_at %}
+                                        {{ video_evidence.uploaded_at|date:"M d, Y · g:i A" }}
+                                    {% endif %}
+                                    {% if video_evidence.uploaded_by %}
+                                        · {{ video_evidence.uploaded_by.get_full_name|default:video_evidence.uploaded_by.username }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="video-actions">
+                            <a href="{{ video_evidence.video.url }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="video-action-btn primary">
+                                <i class="bi bi-play-circle"></i>
+                                <span>Open Video</span>
+                            </a>
+                            <a href="{{ video_evidence.video.url }}"
+                               download
+                               class="video-action-btn secondary">
+                                <i class="bi bi-download"></i>
+                                <span>Download</span>
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="video-empty-state">
+                        <div class="video-empty-icon">
+                            <i class="bi bi-camera-video"></i>
+                        </div>
+                        <div class="video-empty-content">
+                            <h3>No video evidence available</h3>
+                            <p>No video evidence has been uploaded for this preliminary examination yet.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </article>
+        <article class="info-card">
+            <div class="section-head">
+                <div>
+                    <span class="section-icon blue"><i class="bi bi-person-vcard"></i></span>
+                    <div>
+                        <h2>Student Information</h2>
+                        <p>Doctoral student assigned to this examination</p>
+                    </div>
+                </div>
+                <span class="student-avatar">{{ examination.phd_student.student.user.get_full_name|default:"S"|slice:":1"|upper }}</span>
+            </div>
+            <div class="student-panel">
+                <div class="student-identity">
+                    <div class="large-avatar">{{ examination.phd_student.student.user.get_full_name|default:"Student"|slice:":1"|upper }}</div>
+                    <div>
+                        <h3>{{ examination.phd_student.student.user.get_full_name }}</h3>
+                        <span>{{ examination.phd_student.student.student_number|default:"Registration unavailable" }}</span>
+                    </div>
+                </div>
+                <div class="student-details">
+                    <div><span>Program</span><strong>{{ examination.phd_student.phd_program.program_name|default:"—" }}</strong></div>
+                    <div><span>Advisor</span><strong>{{ examination.phd_student.advisor.user.get_full_name|default:"—" }}</strong></div>
+                    <div><span>Chair Faculty</span><strong>{{ examination.phd_student.doctoral_committee.chair_faculty.user.get_full_name|default:"—" }}</strong></div>
+                    <div>
+                        <span>Status</span><strong>
+                            {% if examination.phd_student.current_status == 'ACTIVE' %}
+                                <span class="inline-badge success">Active</span>
+                            {% elif examination.phd_student.current_status == 'ON_HOLD' %}
+                                <span class="inline-badge warning">On Hold</span>
+                            {% elif examination.phd_student.current_status == 'COMPLETED' %}
+                                <span class="inline-badge info">Completed</span>
+                            {% elif examination.phd_student.current_status == 'WITHDRAWN' %}
+                                <span class="inline-badge danger">Withdrawn</span>
+                            {% else %}
+                                <span class="inline-badge neutral">{{ examination.phd_student.current_status|default:"—" }}</span>
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </article>
+        <article class="info-card">
+            <div class="section-head">
+                <div>
+                    <span class="section-icon purple"><i class="bi bi-people"></i></span>
+                    <div>
+                        <h2>Committee Members</h2>
+                        <p>Faculty participating in the examination</p>
+                    </div>
+                </div>
+                <span class="member-count">{{ committee_members|length|add:"2" }}</span>
+            </div>
+            <div class="committee-list">
+                <div class="committee-row chair-row">
+                    <div class="member-avatar red">{{ examination.phd_student.doctoral_committee.chair_faculty.user.get_full_name|default:"C"|slice:":1"|upper }}</div>
+                    <div class="member-info"><strong>{{ examination.phd_student.doctoral_committee.chair_faculty.user.get_full_name }}</strong><span>{{ examination.phd_student.doctoral_committee.chair_faculty.department.department_name|default:"Department not specified" }}</span></div>
+                    <span class="role-badge chair">Chair
+                        {% if examination.phd_student.doctoral_committee.chair_faculty == faculty %} · You{% endif %}
+                    </span>
+                </div>
+                <div class="committee-row">
+                    <div class="member-avatar blue">{{ examination.phd_student.advisor.user.get_full_name|default:"A"|slice:":1"|upper }}</div>
+                    <div class="member-info"><strong>{{ examination.phd_student.advisor.user.get_full_name }}</strong><span>{{ examination.phd_student.advisor.department.department_name|default:"Department not specified" }}</span></div>
+                    <span class="role-badge advisor">Advisor
+                        {% if examination.phd_student.advisor == faculty %}· You{% endif %}
+                    </span>
+                </div>
+                {% for member in committee_members %}
+                    <div class="committee-row">
+                        <div class="member-avatar {% if member.role == 'CO_CHAIR' %}blue{% elif member.role == 'INTERNAL_MEMBER' %}green{% else %}amber{% endif %}">{{ member.faculty.user.get_full_name|default:"M"|slice:":1"|upper }}</div>
+                        <div class="member-info"><strong>{{ member.faculty.user.get_full_name }}</strong><span>{{ member.department.department_name|default:"Department not specified" }}</span></div>
+                        {% if member.role == 'CO_CHAIR' %}
+                            <span class="role-badge cochair">Co-Chair
+                                {% if member.faculty == faculty %}· You{% endif %}
+                            </span>
+                        {% elif member.role == 'INTERNAL_MEMBER' %}
+                            <span class="role-badge internal">Internal
+                                {% if member.faculty == faculty %}· You{% endif %}
+                            </span>
+                        {% elif member.role == 'EXTERNAL_MEMBER' %}
+                            <span class="role-badge external">External
+                                {% if member.faculty == faculty %}· You{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="role-badge neutral">{{ member.get_role_display }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </article>
+    </main>
+    <aside class="side-column">
+        <article class="side-card summary-panel">
+            <div class="side-head">
+                <div>
+                    <span class="side-kicker">EVALUATION</span>
+                    <h2>Performance Snapshot</h2>
+                </div>
+                <span class="side-head-icon"><i class="bi bi-bar-chart-line"></i></span>
+            </div>
+            <div class="score-list">
+                <div><span>Knowledge</span><strong>{{ knowledge_avg|floatformat:1|default:"—" }}</strong></div>
+                <div><span>Research Aptitude</span><strong>{{ research_aptitude_avg|floatformat:1|default:"—" }}</strong></div>
+                <div><span>Presentation</span><strong>{{ presentation_avg|floatformat:1|default:"—" }}</strong></div>
+                <div><span>Technical</span><strong>{{ technical_avg|floatformat:1|default:"—" }}</strong></div>
+            </div>
+        </article>
+        <article class="side-card workflow-panel">
+            <div class="side-head">
+                <div>
+                    <span class="side-kicker">LIFECYCLE</span>
+                    <h2>Workflow</h2>
+                </div>
+                {% if examination.status == 'COMPLETED' %}
+                    <span class="workflow-state done"><i class="bi bi-check-circle-fill"></i> Done</span>
+                {% elif examination.status == 'CANCELLED' %}
+                    <span class="workflow-state cancelled"><i class="bi bi-x-circle-fill"></i> Cancelled</span>
+                {% else %}
+                    <span class="workflow-state live"><i class="bi bi-broadcast-pin"></i> Live</span>
+                {% endif %}
+            </div>
+            <div class="workflow-progress">
+                <div class="progress-label">
+                    <span>Overall progress</span><strong>
+                        {% if examination.status == 'DRAFT' %}
+                            10%
+                        {% elif examination.status == 'SCHEDULED' and not examination.is_published %}
+                            25%
+                        {% elif examination.status == 'SCHEDULED' and examination.is_published %}
+                            50%
+                        {% elif examination.status == 'COMPLETED' and examination.result == 'PENDING' %}
+                            75%
+                        {% elif examination.status == 'COMPLETED' and examination.result != 'PENDING' %}
+                            100%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill"
+                         style="width:{% if examination.status == 'DRAFT' %}10%{% elif examination.status == 'SCHEDULED' and not examination.is_published %}25%{% elif examination.status == 'SCHEDULED' and examination.is_published %}50%{% elif examination.status == 'COMPLETED' and examination.result == 'PENDING' %}75%{% elif examination.status == 'COMPLETED' and examination.result != 'PENDING' %}100%{% else %}0%{% endif %}">
+                    </div>
+                </div>
+            </div>
+            <div class="workflow-list">
+                <div class="workflow-step {% if examination.status != 'DRAFT' %}complete{% else %}current{% endif %}">
+                    <span class="step-dot"><i class="bi bi-plus-circle"></i></span>
+                    <div><strong>Created</strong><small>{{ examination.created_at|date:"M d, Y · g:i A" }}</small></div>
+                </div>
+                <div class="workflow-step {% if examination.is_published %}complete{% elif examination.status == 'SCHEDULED' %}current{% endif %}">
+                    <span class="step-dot"><i class="bi bi-megaphone"></i></span>
+                    <div>
+                        <strong>Published</strong><small>
+                            {% if examination.is_published %}
+                                Visible to committee members
+                            {% else %}
+                                Waiting for publication
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="workflow-step {% if examination.is_published and examination.status == 'SCHEDULED' %}current complete{% endif %}">
+                    <span class="step-dot"><i class="bi bi-pencil-square"></i></span>
+                    <div>
+                        <strong>Evaluation Phase</strong><small>
+                            {% if examination.is_published %}
+                                Committee evaluations are active
+                            {% else %}
+                                Awaiting publication
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="workflow-step {% if examination.status == 'COMPLETED' %}complete{% else %}current{% endif %}">
+                    <span class="step-dot"><i class="bi bi-check2-square"></i></span>
+                    <div>
+                        <strong>Evaluations Submitted</strong><small>
+                            {% if examination.status == 'COMPLETED' %}
+                                Evaluation cycle completed
+                            {% else %}
+                                Pending committee submissions
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="workflow-step {% if examination.result != 'PENDING' %}complete{% else %}current{% endif %}">
+                    <span class="step-dot"><i class="bi bi-award"></i></span>
+                    <div>
+                        <strong>Result</strong><small>
+                            {% if examination.result == 'PASS' %}
+                                Passed
+                            {% elif examination.result == 'FAIL' %}
+                                Failed
+                            {% else %}
+                                Result declaration pending
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="workflow-step {% if examination.status == 'COMPLETED' and examination.result != 'PENDING' %}complete{% endif %}">
+                    <span class="step-dot"><i class="bi bi-check-circle"></i></span>
+                    <div>
+                        <strong>Workflow Finished</strong><small>
+                            {% if examination.status == 'COMPLETED' and examination.result != 'PENDING' %}
+                                Examination process completed
+                            {% else %}
+                                Pending completion
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="workflow-result">
+                <div><span>Result</span><strong class="{% if examination.result == 'PASS' %}pass{% elif examination.result == 'FAIL' %}fail{% else %}pending{% endif %}">{{ examination.get_result_display|default:"PENDING" }}</strong></div>
+                <div>
+                    <span>Visibility</span><strong>
+                        {% if examination.is_published %}
+                            Published
+                        {% else %}
+                            Private
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </article>
+    </aside>
+</section>
+</div>
+<div class="modal fade"
+     id="publishModal"
+     tabindex="-1"
+     aria-labelledby="publishModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modern-modal">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon success"><i class="bi bi-megaphone"></i></span>
+                    <h5 class="modal-title" id="publishModalLabel">Publish Examination</h5>
+                </div>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to publish <strong>{{ examination.title|default:"Untitled" }}</strong>?</p>
+                <p class="text-muted small mb-0">Once published, the examination will become visible to committee members and evaluators.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-light rounded-pill px-4"
+                        data-bs-dismiss="modal">Cancel</button>
+                <form method="post"
+                      action="{% url 'faculty_preliminary_exam_publish' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success rounded-pill px-4">Publish</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade"
+     id="deleteModal"
+     tabindex="-1"
+     aria-labelledby="deleteModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modern-modal">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-icon danger"><i class="bi bi-trash"></i></span>
+                    <h5 class="modal-title" id="deleteModalLabel">Delete Examination</h5>
+                </div>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ examination.title|default:"Untitled" }}</strong>?</p>
+                <p class="text-muted small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-light rounded-pill px-4"
+                        data-bs-dismiss="modal">Cancel</button>
+                <form method="post"
+                      action="{% url 'faculty_preliminary_exam_delete' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3 exam-toast-container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="toast align-items-center text-bg-{% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}primary{% endif %} border-0"
+                 role="alert"
+                 aria-live="assertive"
+                 aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">{{ message }}</div>
+                    <button type="button"
+                            class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast"
+                            aria-label="Close"></button>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".toast").forEach(function (toastEl) {
+        new bootstrap.Toast(toastEl, { delay: 5000 }).show();
+    });
+
+    document.querySelectorAll("[data-bs-toggle='tooltip']").forEach(function (element) {
+        new bootstrap.Tooltip(element);
+    });
+
+    const examDate = "{{ examination.exam_date|date:'Y-m-d' }}";
+    const examEndTime = "{{ examination.end_time|time:'H:i:s' }}";
+    const evaluationReadyUrl = "{% url 'faculty_preliminary_exam_evaluation_ready' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}";
+
+    const examEnd = new Date(`${examDate}T${examEndTime}`);
+    let evaluationReadyTriggered = false;
+
+    function triggerEvaluationReady() {
+        if (evaluationReadyTriggered) {
+            return;
+        }
+
+        evaluationReadyTriggered = true;
+
+        fetch(evaluationReadyUrl, {
+            method: "GET",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            credentials: "same-origin"
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            if (!data.ready) {
+                evaluationReadyTriggered = false;
+            }
+        })
+        .catch(function () {
+            evaluationReadyTriggered = false;
+        });
+    }
+
+    function checkExamEnd() {
+        if (new Date() >= examEnd) {
+            triggerEvaluationReady();
+            return;
+        }
+
+        const remaining = examEnd.getTime() - Date.now();
+
+        setTimeout(checkExamEnd, Math.min(remaining, 1000));
+    }
+
+    checkExamEnd();
+});
+    </script>
+{% endblock %}

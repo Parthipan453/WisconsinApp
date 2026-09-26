@@ -1,0 +1,612 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Course Requisite Types{% endblock %}
+{% block page_title %}Course Requisite Types{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/course/course_requirement.css' %}">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+
+{% endblock %}
+
+
+{% block content %}
+<div class="crt-page">
+
+    <!-- Page Header -->
+    <div class="crt-page-header-card">
+
+        <div class="crt-page-header-left">
+
+            <div class="crt-header-content">
+              
+                <h2 class="crt-heading">
+                    Course Requisite Types
+                </h2>
+
+
+                <p class="crt-sub">
+                    Manage requisite type categories used across all courses.
+                </p>
+
+                <nav class="dept-breadcrumb" aria-label="breadcrumb">
+
+                    <i data-lucide="home"></i>
+
+                    <a href="{% url 'admin_dashboard' request.user.uuid %}">
+                        Dashboard
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <a href="{% url 'department_dashboard' %}">
+                        Departments
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <span class="cur">
+                        Requisite Types
+                    </span>
+
+                </nav>
+
+
+
+            </div>
+
+        </div>
+
+
+        <div class="crt-page-header-right">
+
+            <button
+                class="btn-add"
+                data-bs-toggle="modal"
+                data-bs-target="#addModal">
+
+                <i data-lucide="plus"></i>
+
+                Add Requisite Type
+
+            </button>
+
+        </div>
+
+    </div>
+
+  {# ── Stat cards ── #}
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon red"><i data-lucide="list-checks"></i></div>
+      <div>
+        <div class="stat-label">Total Types</div>
+        <div class="stat-value">{{ total }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i data-lucide="check-circle"></i></div>
+      <div>
+        <div class="stat-label">Active</div>
+        <div class="stat-value" style="color:#198754;">{{ active }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i data-lucide="circle-slash"></i></div>
+      <div>
+        <div class="stat-label">Inactive</div>
+        <div class="stat-value" style="color:#d97706;">{{ inactive }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Table card ── #}
+  <div class="crt-card">
+    <div class="crt-card__hd">
+      <div class="crt-card__title">
+        <i data-lucide="list-checks"></i>All Requisite Types
+      </div>
+    </div>
+
+    {# Tabs #}
+    <div class="crt-tabs">
+      <button class="crt-tab active" data-tab="all">
+        All <span class="text-muted fw-normal">({{ total }})</span>
+      </button>
+      <button class="crt-tab" data-tab="ACTIVE">
+        Active <span class="text-muted fw-normal">({{ active }})</span>
+      </button>
+      <button class="crt-tab" data-tab="INACTIVE">
+        Inactive <span class="text-muted fw-normal">({{ inactive }})</span>
+      </button>
+    </div>
+
+    {# Filter #}
+    <div class="crt-filter">
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="crtSearch" class="form-control"
+               placeholder="Search by name…" oninput="filterTable()">
+      </div>
+      <button class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+              onclick="resetFilters()"
+              style="font-size:12px;border-radius:8px;height:36px;padding:0 12px;white-space:nowrap;">
+        <i data-lucide="x" style="width:13px;height:13px;"></i>Reset
+      </button>
+    </div>
+
+    {# Table #}
+    <div class="table-responsive">
+      <table class="crt-tbl" aria-label="Course requirement types">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th class="col-desc">Description</th>
+            <th style="text-align:center;">Usage</th>
+            <th>Status</th>
+            <th class="col-date">Created</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="crtTbody">
+          {% for rt in requirement_types %}
+          <tr data-name="{{ rt.name|lower }}" data-status="{{ rt.status }}">
+            <td>
+              <div class="rt-name">{{ rt.name }}</div>
+            </td>
+            <td class="col-desc">
+              {% if rt.description %}
+                <div class="rt-desc">{{ rt.description }}</div>
+              {% else %}
+                <span style="font-size:12px;color:#adb5bd;font-style:italic;">No description</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="usage-pill">
+                <i class="fa-solid fa-link"></i>{{ rt.usage_count }}
+              </span>
+            </td>
+            <td>
+              {% if rt.status == 'ACTIVE' %}
+                <span class="b-active">Active</span>
+              {% else %}
+                <span class="b-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="col-date" style="font-size:12px;color:#6c757d;">
+              {{ rt.created_at|date:"M d, Y" }}
+            </td>
+            <td>
+              <div class="act-btns">
+                <button
+    class="act-btn"
+    title="View"
+    data-id="{{ rt.pk }}"
+    data-name="{{ rt.name|escapejs }}"
+    data-description="{{ rt.description|default_if_none:''|escapejs }}"
+    data-status="{{ rt.status }}"
+    data-created="{{ rt.created_at|date:'M d, Y h:i A' }}"
+    data-updated="{{ rt.updated_at|date:'M d, Y h:i A' }}"
+    onclick="openViewModal(this)">
+    <i class="fa-regular fa-eye"></i>
+</button>
+                {# Edit — passes data into modal via JS #}
+                <button
+                    class="act-btn"
+                    title="Edit"
+                    data-id="{{ rt.requirement_type_id }}"
+                    data-name="{{ rt.name|escapejs }}"
+                    data-description="{{ rt.description|default_if_none:''|escapejs }}"
+                    data-status="{{ rt.status }}"
+                    onclick="openEditModal(this)">
+                  <i class="fa-regular fa-pen-to-square"></i>
+                </button>
+                {# Inactive #}
+                {% if rt.status == 'ACTIVE' %}
+           <button class="act-btn danger"
+        title="Mark Inactive"
+        data-id="{{ rt.requirement_type_id }}"
+        data-name="{{ rt.name|escapejs }}"
+        onclick="showInactiveModal(this)">
+    <i class="fa-solid fa-ban"></i>
+</button>
+                {% else %}
+                  <button class="act-btn" disabled title="Already Inactive"
+                          style="opacity:.4;cursor:not-allowed;">
+                    <i class="fa-solid fa-ban"></i>
+                  </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="crt-empty">
+                <i data-lucide="inbox"></i>
+                <p>No requisite types yet.</p>
+                <button class="btn-add" data-bs-toggle="modal" data-bs-target="#addModal"
+                        style="font-size:12px;padding:6px 14px;">
+                  <i data-lucide="plus"></i>Add first type
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# No results placeholder #}
+    <div id="noResults" style="display:none;">
+      <div class="crt-empty">
+        <i data-lucide="search-x"></i>
+        <p>No requisite types match your search.</p>
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()"
+                style="font-size:12px;border-radius:8px;">Clear filters</button>
+      </div>
+    </div>
+
+  </div>{# /crt-card #}
+
+</div>
+{% endblock %}
+
+
+{% block global_modal %}
+
+<div class="modal fade" id="viewModal" tabindex="-1"
+     aria-labelledby="viewModalLabel" aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content view-modal">
+
+            <!-- Header -->
+            <div class="modal-header view-modal-header">
+
+                <div class="view-title-wrap">
+
+                    <div class="view-title-icon">
+                        <i data-lucide="eye"></i>
+                    </div>
+
+                    <h5 class="modal-title mb-0" id="viewModalLabel">
+                        Requirement Type Details
+                    </h5>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+
+                <div class="view-info-card">
+
+                    <div class="view-info-header">
+
+                        <div class="view-info-icon">
+                            <i data-lucide="git-branch"></i>
+                        </div>
+
+                        <h6 class="mb-0">
+                            Requirement Information
+                        </h6>
+
+                    </div>
+
+                    <div class="row g-4 mt-1">
+
+                        <div class="col-md-6">
+
+                            <div class="view-label">
+                                REQUIREMENT TYPE
+                            </div>
+
+                            <div id="view_name" class="view-value"></div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="view-label">
+                                STATUS
+                            </div>
+
+                            <div id="view_status"></div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="view-label">
+                                DESCRIPTION
+                            </div>
+
+                            <div id="view_description"
+                                 class="view-value">
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="view-label">
+                                LINKED COURSES
+                            </div>
+
+                            <div id="view_usage"
+                                 class="view-value">
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="view-label">
+                                CREATED ON
+                            </div>
+
+                            <div id="view_created"
+                                 class="view-value">
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <div class="view-label">
+                                LAST UPDATED
+                            </div>
+
+                            <div id="view_updated"
+                                 class="view-value">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer">
+
+                <button
+                    class="btn-view-close"
+                    data-bs-dismiss="modal">
+
+                    Close
+
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{# ══ ADD MODAL ══ #}
+<div class="modal fade" id="addModal" tabindex="-1"
+     aria-labelledby="addModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <div class="modal-content shadow">
+
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:36px;height:36px;background:#fff0f0;border-radius:8px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="list-checks" style="width:17px;height:17px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0" id="addModalLabel">Add Requirement Type</h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+     <form method="POST"
+      action="{% url 'course_requirement_type_add' %}"
+      id="addForm">
+    {% csrf_token %}
+        <div class="modal-body" style="padding-top:.85rem;">
+          <div class="mb-3">
+            <label class="modal-form-label" for="id_name_add">
+              {{ add_form.name.label }} <span class="modal-req">*</span>
+            </label>
+            {# Render widget but override id to avoid clash with edit modal #}
+           <input type="text"
+       name="name"
+       id="id_name_add"
+       class="form-control {% if add_form.name.errors %}is-invalid{% endif %}"
+       placeholder="e.g. Prerequisite"
+       maxlength="100"
+       value="{{ add_form.name.value|default:'' }}">
+       
+            {% if add_form.name.errors %}
+<div class="modal-field-err show">
+    <i data-lucide="alert-circle"></i>
+    <span>{{ add_form.name.errors.0 }}</span>
+</div>
+{% else %}
+<div class="modal-field-err" id="err_add_name">
+    <i data-lucide="alert-circle"></i>
+    <span>Name is required.</span>
+</div>
+{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="modal-form-label" for="id_description_add">
+              {{ add_form.description.label }}
+            </label>
+            <textarea name="description"
+                      id="id_description_add"
+                      class="form-control"
+                      rows="3"
+                      placeholder="Brief description of this requirement type…"
+                      style="resize:vertical;min-height:80px;"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+                  data-bs-dismiss="modal"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;">
+            Cancel
+          </button>
+          <button type="submit" class="btn-modal-save">
+            <i data-lucide="save"></i>Save
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+
+{# ══ EDIT MODAL ══ #}
+<div class="modal fade" id="editModal" tabindex="-1"
+     aria-labelledby="editModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+    <div class="modal-content shadow">
+
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:36px;height:36px;background:#eff6ff;border-radius:8px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="pencil" style="width:17px;height:17px;color:#2563eb;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0" id="editModalLabel">Edit Requirement Type</h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <form method="POST" id="editForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body" style="padding-top:.85rem;">
+          <div class="mb-3">
+            <label class="modal-form-label" for="id_name_edit">
+              Requirement Type <span class="modal-req">*</span>
+            </label>
+            <input type="text"
+                   name="name"
+                   id="id_name_edit"
+                   class="form-control"
+                   placeholder="e.g. Prerequisite"
+                   maxlength="100">
+            <div class="modal-field-err" id="err_edit_name">
+              <i data-lucide="alert-circle"></i><span>Name is required.</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="modal-form-label" for="id_description_edit">Description</label>
+            <textarea name="description"
+                      id="id_description_edit"
+                      class="form-control"
+                      rows="3"
+                      placeholder="Brief description…"
+                      style="resize:vertical;min-height:80px;"></textarea>
+          </div>
+          <div>
+            <label class="modal-form-label">Status</label>
+            {# Styled select matching your form widget #}
+            <select name="status" id="id_status_edit" class="form-select">
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+                  data-bs-dismiss="modal"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;">
+            Cancel
+          </button>
+          <button type="submit" class="btn-modal-save">
+            <i data-lucide="save"></i>Update
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+
+{# ══ INACTIVE CONFIRM MODAL ══ #}
+<div class="modal fade" id="inactiveModal" tabindex="-1"
+     aria-labelledby="inactiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content shadow">
+
+      <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:38px;height:38px;background:#fff0f0;border-radius:9px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="shield-alert" style="width:18px;height:18px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0" id="inactiveModalLabel">Mark as Inactive?</h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body" style="font-size:13px;color:#495057;padding-top:.85rem;">
+        <p style="margin-bottom:.5rem;">
+          You are about to mark <strong id="inactiveTypeName"></strong> as
+          <strong style="color:#c5050c;">Inactive</strong>.
+        </p>
+        <ul style="margin:0;padding-left:1.1rem;font-size:12.5px;color:#6c757d;line-height:1.8;">
+          <li>This type won't appear when adding new course requirements.</li>
+          <li>Existing requirements using this type are not affected.</li>
+          <li>You can reactivate it at any time via Edit.</li>
+        </ul>
+      </div>
+
+      <div class="modal-footer" style="border-top:none;padding-top:0;gap:.5rem;">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-dismiss="modal"
+                style="font-size:13px;border-radius:8px;padding:6px 16px;">
+          Cancel
+        </button>
+        <form id="inactiveForm" method="POST" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;
+                         background:#c5050c;color:#fff;border:none;font-weight:600;">
+            <i data-lucide="ban" style="width:13px;height:13px;"></i>
+            Yes, Mark Inactive
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script src="{% static 'script/course_requirement.js' %}"></script>
+
+{% if show_add_modal %}
+<script>
+window.addEventListener('load', function () {
+    const modal = new bootstrap.Modal(
+        document.getElementById('addModal')
+    );
+    modal.show();
+});
+</script>
+{% endif %}
+{% endblock %}

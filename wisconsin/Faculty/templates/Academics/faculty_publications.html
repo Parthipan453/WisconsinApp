@@ -1,0 +1,302 @@
+
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Faculty Publications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Academics/academics.css' %}">
+<link rel="stylesheet" href="{% static 'css/Academics/faculty_publications.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Faculty Publications</h1>
+        <p class="page-sub">
+            View and manage publication records, publication types, venues, and DOI information.
+        </p>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="stat-grid">
+
+    <div class="stat-card">
+        <div class="stat-icon si-red">
+            <i class="ti ti-books"></i>
+        </div>
+        <div>
+            <div class="stat-label">Total Publications</div>
+            <div class="stat-value">{{ total_publications }}</div>
+            <div class="stat-trend neutral">Publication Records</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon si-green">
+            <i class="ti ti-link"></i>
+        </div>
+        <div>
+            <div class="stat-label">Publications With DOI</div>
+            <div class="stat-value">{{ publications_with_doi }}</div>
+            <div class="stat-trend">DOI Available</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon si-blue">
+            <i class="ti ti-category"></i>
+        </div>
+        <div>
+            <div class="stat-label">Publication Types</div>
+            <div class="stat-value">{{ publication_types_count }}</div>
+            <div class="stat-trend neutral">
+                Categories Available
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon si-purple">
+            <i class="ti ti-calendar-event"></i>
+        </div>
+        <div>
+            <div class="stat-label">Latest Publication</div>
+            <div class="stat-value sm">
+                {% if latest_publication %}
+                    {{ latest_publication.publication_date|date:"M Y" }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+            <div class="stat-trend neutral">Most Recent Record</div>
+        </div>
+    </div>
+
+</div>
+
+    <!-- Search & Filters -->
+    <form method="GET" class="card research-toolbar" id="researchForm">
+
+        <div class="search-wrapper">
+            <i class="ti ti-search"></i>
+
+            <input
+                type="text"
+                id="searchInput"
+                name="search"
+                value="{{ request.GET.search }}"
+                placeholder="Search by title, journal, conference or DOI..."
+            >
+
+            <button
+                type="button"
+                class="clear-search"
+                id="clearSearchBtn"
+                onclick="clearSearchBox()">
+
+                <i class="ti ti-x"></i>
+
+            </button>
+
+        </div>
+
+        <div class="toolbar-filters">
+
+            <div class="filter-group">
+
+                <select
+                    name="type"
+                    data-filter
+                    id="typeFilter"
+                    onchange="this.form.submit()">
+
+                    <option value="">All Types</option>
+
+                    {% for value, label in publication_type_choices %}
+
+                        <option
+                            value="{{ value }}"
+                            {% if request.GET.type == value %}
+                                selected
+                            {% endif %}
+                        >
+
+                            {{ label }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div class="filter-group">
+
+                <select
+                    name="sort"
+                    data-sort
+                    data-default-sort="-publication_date"
+                    id="sortFilter"
+                    onchange="this.form.submit()">
+
+                    <option
+                        value="-publication_date"
+                        {% if request.GET.sort == "-publication_date" or not request.GET.sort %}
+                            selected
+                        {% endif %}
+                    >
+                        Newest First
+                    </option>
+
+                    <option
+                        value="publication_date"
+                        {% if request.GET.sort == "publication_date" %}
+                            selected
+                        {% endif %}
+                    >
+                        Oldest First
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <button type="submit" hidden></button>
+
+    </form>
+
+<!-- Publications Directory -->
+<div class="card publications-table-card">
+
+    <div class="card-header">
+        <div class="card-title">Publication Directory</div>
+    </div>
+
+    <div class="publication-directory">
+
+        {% for publication in publications %}
+
+            <div class="publication-directory-card">
+
+                <div class="publication-directory-header">
+                    <h3>{{ publication.title }}</h3>
+                </div>
+
+                <div class="directory-field">
+
+                    <span class="pub-badge
+
+                        {% if publication.publication_type == 'JOURNAL_ARTICLE' %}
+                            journal-badge
+                        {% elif publication.publication_type == 'CONFERENCE_PAPER' %}
+                            conference-badge
+                        {% elif publication.publication_type == 'BOOK' %}
+                            book-badge
+                        {% elif publication.publication_type == 'BOOK_CHAPTER' %}
+                            chapter-badge
+                        {% elif publication.publication_type == 'PATENT' %}
+                            patent-badge
+                        {% endif %}
+
+                    ">
+
+                        {{ publication.get_publication_type_display }}
+
+                    </span>
+
+                </div>
+
+                <div class="directory-field">
+                    <span class="field-label">
+                        Journal / Conference
+                    </span>
+
+                    <span class="field-value">
+                        {{ publication.journal_or_conference|default:"—" }}
+                    </span>
+                </div>
+
+                <div class="directory-field">
+
+                    <span class="field-label">
+                        Publication Date
+                    </span>
+
+                    <span class="field-value">
+                        {{ publication.publication_date|date:"d M Y"|default:"—" }}
+                    </span>
+
+                </div>
+
+                <div class="directory-field">
+
+                    <span class="field-label">
+                        DOI
+                    </span>
+
+                    <span class="field-value">
+                        {{ publication.doi|default:"—" }}
+                    </span>
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <div class="empty-state">
+                No publications found.
+            </div>
+
+        {% endfor %}
+
+    </div>
+    
+    {% comment %} Pagination {% endcomment %}
+    <div class="pagination-wrapper">
+
+        {% if publications.has_previous %}
+            <a
+                href="?page={{ publications.previous_page_number }}&search={{ request.GET.search }}&status={{ request.GET.status }}&sort={{ request.GET.sort }}"
+                class="page-btn"
+            >
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        {% endif %}
+
+        {% for page in publications.paginator.page_range %}
+
+            <a
+                href="?page={{ page }}&search={{ request.GET.search }}&status={{ request.GET.status }}&sort={{ request.GET.sort }}"
+                class="page-btn {% if publications.number == page %}active{% endif %}"
+            >
+                {{ page }}
+            </a>
+
+        {% endfor %}
+
+        {% if publications.has_next %}
+            <a
+                href="?page={{ publications.next_page_number }}&search={{ request.GET.search }}&status={{ request.GET.status }}&sort={{ request.GET.sort }}"
+                class="page-btn"
+            >
+                <i class="ti ti-chevron-right"></i>
+            </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Academics/academics.js' %}"></script>
+{% endblock %}

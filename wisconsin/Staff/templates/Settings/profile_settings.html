@@ -1,0 +1,702 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Profile Settings — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<!-- <link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" /> -->
+<link rel="stylesheet" href="{% static 'Settings/profile_settings.css' %}" />
+{% endblock %}
+
+{% block nav_settings_open %}open{% endblock %}
+{% block nav_settings_submenu %}open{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+
+<div class="settings-page">
+
+
+    <div class="settings-content">
+
+        <div class="profile-photo-container">
+            <div class="profile-photo-header">
+                <i class="ti ti-camera"></i>
+                <h3>Profile Photo</h3>
+                <span class="profile-photo-badge">Click to change</span>
+            </div>
+            
+            <div class="profile-photo-body">
+                <div class="profile-photo-left">
+                    <div class="profile-photo-avatar" id="profileAvatar">
+                        {% if user.profile_photo %}
+                            <img src="{{ user.profile_photo.url }}" alt="Profile Photo" id="profileAvatarImg">
+                        {% else %}
+                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="profile-photo-right">
+                    <div class="profile-photo-info">
+                        <div class="profile-photo-name">{{ user.get_full_name|default:"Staff User" }}</div>
+                        <div class="profile-photo-role">{{ staff.position|default:"Staff Member" }}</div>
+                        <div class="profile-photo-id">ID: {{ staff.employee_id|default:"STF2026001" }}</div>
+                    </div>
+                    
+                    <div class="profile-photo-actions">
+                        <button class="profile-photo-btn edit" onclick="document.getElementById('avatarUpload').click()">
+                            <i class="ti ti-camera"></i> Edit Photo
+                        </button>
+                        <input type="file" id="avatarUpload" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
+                        
+                        <button class="profile-photo-btn remove" onclick="removePhoto()">
+                            <i class="ti ti-trash"></i> Remove
+                        </button>
+                        
+                        <button class="profile-photo-btn save" onclick="savePhoto()" id="savePhotoBtn">
+                            <i class="ti ti-device-floppy"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="settings-section" id="section-profile">
+            <div class="settings-section-header">
+                <div class="icon-box"><i class="ti ti-user"></i></div>
+                <div>
+                    <h2>Personal Information</h2>
+                    <p>Update your personal details and contact information</p>
+                </div>
+            </div>
+
+            <form class="settings-form" id="profileForm">
+                {% csrf_token %}
+                
+                <div class="settings-form-row">
+                    <div class="settings-form-group">
+                        <label>First Name <span class="required">*</span></label>
+                        <input type="text" class="settings-input" id="firstName" 
+                               value="{{ user.first_name|default:'' }}" 
+                               placeholder="Enter first name" required>
+                    </div>
+                    <div class="settings-form-group">
+                        <label>Last Name <span class="required">*</span></label>
+                        <input type="text" class="settings-input" id="lastName" 
+                               value="{{ user.last_name|default:'' }}" 
+                               placeholder="Enter last name" required>
+                    </div>
+                </div>
+
+                <div class="settings-form-group">
+                    <label>Work Email</label>
+                    <input type="email" class="settings-input" id="workEmail" 
+                           value="{{ staff.work_email|default:'' }}" 
+                           placeholder="Enter work email">
+                </div>
+
+                <div class="settings-form-group">
+                    <label>Personal Email</label>
+                    <input type="email" class="settings-input" id="personalEmail" 
+                           value="{{ staff.personal_email|default:'' }}" 
+                           placeholder="Enter personal email">
+                </div>
+
+                <div class="settings-form-row">
+                    <div class="settings-form-group">
+                        <label>Preferred Name</label>
+                        <input type="text" class="settings-input" id="preferredName" 
+                               value="{{ staff.preferred_name|default:'' }}" 
+                               placeholder="Enter preferred name">
+                    </div>
+                    <div class="settings-form-group">
+                        <label>Office Phone</label>
+                        <input type="tel" class="settings-input" id="officePhone" 
+                               value="{{ staff.office_phone|default:'' }}" 
+                               placeholder="Enter office phone">
+                    </div>
+                </div>
+
+                <div class="settings-form-group">
+                    <label>Employee ID</label>
+                    <input type="text" class="settings-input" 
+                           value="{{ staff.employee_id|default:'STF2026001' }}" 
+                           disabled>
+                    <span class="settings-hint">Employee ID cannot be changed</span>
+                </div>
+
+                <div class="settings-form-actions">
+                    <button type="submit" class="settings-btn primary" id="profileSaveBtn">
+                        <i class="ti ti-device-floppy"></i> Save Changes
+                    </button>
+                    <button type="reset" class="settings-btn secondary">
+                        <i class="ti ti-rotate"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+
+
+        <div class="settings-section" id="section-security">
+            <div class="settings-section-header">
+                <div class="icon-box"><i class="ti ti-lock"></i></div>
+                <div>
+                    <h2>Account & Security</h2>
+                    <p>Manage your password and security settings</p>
+                </div>
+            </div>
+
+            <div class="settings-security-card">
+                <h3><i class="ti ti-key"></i> Change Password</h3>
+                <form class="settings-form" id="securityForm">
+                    {% csrf_token %}
+                    
+                    <div class="settings-form-group">
+                        <label>Current Password <span class="required">*</span></label>
+                        <div class="settings-password-wrapper">
+                            <input type="password" class="settings-input" id="currentPassword" 
+                                   placeholder="Enter current password" required>
+                            <button type="button" class="settings-password-toggle" 
+                                    onclick="togglePassword('currentPassword')">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-row">
+                        <div class="settings-form-group">
+                            <label>New Password <span class="required">*</span></label>
+                            <div class="settings-password-wrapper">
+                                <input type="password" class="settings-input" id="newPassword" 
+                                       placeholder="Enter new password" required
+                                       oninput="checkPasswordStrength(this.value)">
+                                <button type="button" class="settings-password-toggle" 
+                                        onclick="togglePassword('newPassword')">
+                                    <i class="ti ti-eye"></i>
+                                </button>
+                            </div>
+                            <div class="settings-password-strength">
+                                <div class="settings-strength-bar" id="strengthBar"></div>
+                            </div>
+                            <div class="settings-password-requirements">
+                                <span id="reqLength"><i class="ti ti-circle"></i> 8+ characters</span>
+                                <span id="reqUpper"><i class="ti ti-circle"></i> Uppercase</span>
+                                <span id="reqLower"><i class="ti ti-circle"></i> Lowercase</span>
+                                <span id="reqDigit"><i class="ti ti-circle"></i> Number</span>
+                                <span id="reqSpecial"><i class="ti ti-circle"></i> Special char</span>
+                            </div>
+                        </div>
+                        <div class="settings-form-group">
+                            <label>Confirm Password <span class="required">*</span></label>
+                            <div class="settings-password-wrapper">
+                                <input type="password" class="settings-input" id="confirmPassword" 
+                                       placeholder="Confirm new password" required
+                                       oninput="checkPasswordMatch()">
+                                <button type="button" class="settings-password-toggle" 
+                                        onclick="togglePassword('confirmPassword')">
+                                    <i class="ti ti-eye"></i>
+                                </button>
+                            </div>
+                            <div class="settings-password-match" id="passwordMatchHint">
+                                <i class="ti ti-check"></i> Passwords match
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-actions">
+                        <button type="submit" class="settings-btn primary" id="securitySaveBtn">
+                            <i class="ti ti-lock-check"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- <div class="settings-section" id="section-preferences">
+            <div class="settings-section-header">
+                <div class="icon-box"><i class="ti ti-settings"></i></div>
+                <div>
+                    <h2>Preferences</h2>
+                    <p>Customize your dashboard experience</p>
+                </div>
+            </div>
+
+            <div class="settings-preferences">
+                <div class="settings-toggle-row">
+                    <div class="settings-toggle-info">
+                        <div class="settings-toggle-label">Dark Mode</div>
+                        <div class="settings-toggle-desc">Switch between light and dark theme</div>
+                    </div>
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="darkModeToggle">
+                        <span class="settings-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="settings-toggle-row">
+                    <div class="settings-toggle-info">
+                        <div class="settings-toggle-label">Compact View</div>
+                        <div class="settings-toggle-desc">Reduce spacing and font sizes</div>
+                    </div>
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="compactToggle">
+                        <span class="settings-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="settings-form-actions" style="padding-top:14px;">
+                    <button class="settings-btn primary" onclick="savePreferences()">
+                        <i class="ti ti-device-floppy"></i> Save Preferences
+                    </button>
+                </div>
+            </div>
+        </div> -->
+
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+
+const UUID = '{{ user.uuid }}';
+
+// ---------- CSRF ----------
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// ---------- INIT ----------
+document.addEventListener('DOMContentLoaded', function() {
+    setupProfileForm();
+    setupSecurityForm();
+    loadPreferences();
+});
+
+
+let selectedFile = null;
+let tempPhotoUrl = null;
+
+
+
+function uploadAvatar(input) {
+    if (!input.files || !input.files[0]) {
+        toastError('No file selected');
+        return;
+    }
+    
+    const file = input.files[0];
+    
+    // Check file type - Only images allowed
+    const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 
+        'image/webp', 'image/svg+xml', 'image/bmp'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+        toastError('Only image files are allowed (JPG, PNG, GIF, WEBP, SVG, BMP)');
+        input.value = '';
+        return;
+    }
+    
+    // Check file extension
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    
+    if (!allowedExtensions.includes(fileExt)) {
+        toastError(`Invalid file extension ".${fileExt}". Allowed: JPG, PNG, GIF, WEBP, SVG, BMP`);
+        input.value = '';
+        return;
+    }
+    
+    // Check file size (max 2MB)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+        toastError(`File is too large (${sizeMB}MB). Maximum size is 2MB`);
+        input.value = '';
+        return;
+    }
+    
+    // If all valid, proceed
+    selectedFile = file;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const avatar = document.getElementById('profileAvatar');
+        if (avatar) {
+            avatar.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        }
+        tempPhotoUrl = e.target.result;
+        
+        // Enable save button
+        const saveBtn = document.getElementById('savePhotoBtn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.style.opacity = '1';
+            saveBtn.style.cursor = 'pointer';
+        }
+    };
+    reader.readAsDataURL(file);
+    
+    toastInfo('Photo selected. Click Save to upload.');
+}
+
+function savePhoto() {
+    if (!selectedFile) {
+        toastError('Please select a photo first');
+        return;
+    }
+
+    const btn = document.getElementById('savePhotoBtn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Saving...';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('profile_photo', selectedFile);
+
+    fetch(`/staff/settings/${UUID}/staff-profile/update-ajax/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+
+        if (data.success) {
+            toastSuccess('Photo updated successfully!');
+            const avatar = document.getElementById('profileAvatar');
+            if (data.photo_url) {
+                const url = data.photo_url + '?t=' + Date.now();
+                avatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            }
+            selectedFile = null;
+            btn.disabled = true;
+        } else {
+            toastError(data.message || 'Failed to update photo');
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        toastError('Network error - please try again');
+    });
+}
+
+function removePhoto() {
+    if (!confirm('Are you sure you want to remove your profile photo?')) {
+        return;
+    }
+
+    const btn = document.querySelector('.profile-photo-btn.remove');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Removing...';
+    btn.disabled = true;
+
+    fetch(`/staff/settings/${UUID}/staff-profile/remove-photo-ajax/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ remove: true })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+
+        if (data.success) {
+            toastSuccess('Photo removed successfully!');
+            const initials = '{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}';
+            const text = initials || 'U';
+            
+            const avatar = document.getElementById('profileAvatar');
+            if (avatar) {
+                avatar.innerHTML = text;
+                avatar.style.background = '#c5050c';
+                avatar.style.color = '#fff';
+                avatar.style.display = 'flex';
+                avatar.style.alignItems = 'center';
+                avatar.style.justifyContent = 'center';
+                avatar.style.fontWeight = '700';
+                avatar.style.fontSize = '24px';
+            }
+            selectedFile = null;
+            document.getElementById('savePhotoBtn').disabled = true;
+
+        } else {
+            toastError(data.message || 'Failed to remove photo');
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        toastError('Network error - please try again');
+    });
+}
+
+
+function setupProfileForm() {
+    const form = document.getElementById('profileForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveProfile();
+        });
+    }
+}
+
+function saveProfile() {
+    const data = {
+        first_name: document.getElementById('firstName').value.trim(),
+        last_name: document.getElementById('lastName').value.trim(),
+        work_email: document.getElementById('workEmail').value.trim(),
+        personal_email: document.getElementById('personalEmail').value.trim(),
+        preferred_name: document.getElementById('preferredName').value.trim(),
+        office_phone: document.getElementById('officePhone').value.trim(),
+    };
+
+    const btn = document.getElementById('profileSaveBtn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Saving...';
+    btn.disabled = true;
+
+    fetch(`/staff/settings/${UUID}/staff-profile/update-ajax/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        
+        if (result.success) {
+            toastSuccess('Profile updated successfully!');
+            const nameEl = document.querySelector('.profile-photo-name');
+            if (nameEl && result.data) {
+                nameEl.textContent = result.data.full_name;
+            }
+        } else {
+            toastError(result.message || 'Failed to update');
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        toastError('Network error');
+    });
+}
+
+
+function setupSecurityForm() {
+    const form = document.getElementById('securityForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            changePassword();
+        });
+    }
+}
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.type = field.type === 'password' ? 'text' : 'password';
+    }
+}
+
+function checkPasswordStrength(password) {
+    const bar = document.getElementById('strengthBar');
+    const reqs = {
+        length: password.length >= 8,
+        upper: /[A-Z]/.test(password),
+        lower: /[a-z]/.test(password),
+        digit: /\d/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    ['length', 'upper', 'lower', 'digit', 'special'].forEach(key => {
+        const el = document.getElementById(`req${key.charAt(0).toUpperCase() + key.slice(1)}`);
+        if (el) {
+            const icon = el.querySelector('.ti');
+            if (icon) {
+                icon.className = `ti ti-${reqs[key] ? 'check' : 'circle'}`;
+                el.style.color = reqs[key] ? '#22c55e' : '';
+            }
+        }
+    });
+
+    let score = Object.values(reqs).filter(Boolean).length;
+    let className = '';
+    if (score >= 4) className = 'strong';
+    else if (score >= 3) className = 'good';
+    else if (score >= 2) className = 'fair';
+    else className = 'weak';
+    
+    if (bar) bar.className = 'settings-strength-bar ' + className;
+
+    checkPasswordMatch();
+}
+
+function checkPasswordMatch() {
+    const newPass = document.getElementById('newPassword');
+    const confirmPass = document.getElementById('confirmPassword');
+    const hint = document.getElementById('passwordMatchHint');
+
+    if (!newPass || !confirmPass || !hint) return;
+
+    if (confirmPass.value.length === 0) {
+        hint.classList.remove('visible', 'mismatch');
+        return;
+    }
+
+    if (newPass.value === confirmPass.value) {
+        hint.textContent = '✓ Passwords match';
+        hint.className = 'settings-password-match visible';
+    } else {
+        hint.textContent = '✗ Passwords do not match';
+        hint.className = 'settings-password-match visible mismatch';
+    }
+}
+
+function changePassword() {
+    const current = document.getElementById('currentPassword').value;
+    const newPass = document.getElementById('newPassword').value;
+    const confirm = document.getElementById('confirmPassword').value;
+
+    document.querySelectorAll('.settings-input').forEach(el => {
+        el.style.borderColor = '';
+    });
+
+    if (!current) {
+        document.getElementById('currentPassword').style.borderColor = '#dc2626';
+        toastError('Current password is required');
+        return;
+    }
+    if (!newPass) {
+        document.getElementById('newPassword').style.borderColor = '#dc2626';
+        toastError('New password is required');
+        return;
+    }
+    if (!confirm) {
+        document.getElementById('confirmPassword').style.borderColor = '#dc2626';
+        toastError('Please confirm your new password');
+        return;
+    }
+
+    if (newPass !== confirm) {
+        document.getElementById('confirmPassword').style.borderColor = '#dc2626';
+        toastError('Passwords do not match');
+        return;
+    }
+
+    if (newPass.length < 8) {
+        document.getElementById('newPassword').style.borderColor = '#dc2626';
+        toastError('Password must be at least 8 characters');
+        return;
+    }
+
+    const btn = document.getElementById('securitySaveBtn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Updating...';
+    btn.disabled = true;
+
+    fetch(`/staff/settings/${UUID}/staff-profile/change-password-ajax/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+            current_password: current,
+            new_password: newPass,
+            confirm_password: confirm
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        
+        if (result.success) {
+            toastSuccess('Password updated successfully!');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('strengthBar').className = 'settings-strength-bar';
+            document.getElementById('passwordMatchHint').classList.remove('visible', 'mismatch');
+            document.querySelectorAll('.settings-password-requirements span').forEach(el => {
+                const icon = el.querySelector('.ti');
+                if (icon) {
+                    icon.className = 'ti ti-circle';
+                }
+                el.style.color = '';
+            });
+        } else {
+            toastError(result.message || 'Failed to update password');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        toastError('Network error - please try again');
+    });
+}
+
+
+function loadPreferences() {
+    const darkMode = localStorage.getItem('settings_dark_mode') === 'true';
+    const compact = localStorage.getItem('settings_compact') === 'true';
+
+    const darkToggle = document.getElementById('darkModeToggle');
+    const compactToggle = document.getElementById('compactToggle');
+
+    if (darkToggle) darkToggle.checked = darkMode;
+    if (compactToggle) compactToggle.checked = compact;
+
+    if (darkMode) document.body.classList.add('dark-mode');
+    if (compact) document.body.classList.add('compact-view');
+}
+
+function savePreferences() {
+    const darkMode = document.getElementById('darkModeToggle').checked;
+    const compact = document.getElementById('compactToggle').checked;
+
+    localStorage.setItem('settings_dark_mode', darkMode);
+    localStorage.setItem('settings_compact', compact);
+
+    document.body.classList.toggle('dark-mode', darkMode);
+    document.body.classList.toggle('compact-view', compact);
+
+    toastSuccess('Preferences saved!');
+}
+
+</script>
+{% endblock %}

@@ -1,0 +1,443 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Applications - Mentor Dashboard{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_applications %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/jordan/student_application.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="application-page">
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <h1 class="page-title">
+                <i class="ti ti-file-inbox"></i> 
+                Research Applications
+            </h1>
+            <p class="text-muted">Manage and review student research applications</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="ti ti-files"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_applications }}</h3>
+                <span>Total Applications</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ pending_applications }}</h3>
+                <span>Pending Review</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="ti ti-user-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ accepted_applications }}</h3>
+                <span>Approved</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <i class="ti ti-user-x"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ rejected_applications }}</h3>
+                <span>Rejected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filter-section">
+        <div class="filter-body">
+            <form method="GET" action="" id="filterForm">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="ti ti-progress"></i> Status
+                        </label>
+                        <select name="status" id="statusFilter" class="filter-input" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Status</option>
+                            <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Pending</option>
+                            <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>Under Review</option>
+                            <option value="shortlisted" {% if status_filter == 'shortlisted' %}selected{% endif %}>Shortlisted</option>
+                            <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Accepted</option>
+                            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="ti ti-building"></i> Department
+                        </label>
+                        <select name="department" id="departmentFilter" class="filter-input" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Departments</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.slug }}" {% if department_filter == dept.slug %}selected{% endif %}>
+                                {{ dept.department_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Program Level Filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="ti ti-graduation-cap"></i> Program
+                        </label>
+                        <select name="program" id="programFilter" class="filter-input" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Programs</option>
+                            {% for program in program_options %}
+                            <option value="{{ program.value }}" {% if program_filter == program.value %}selected{% endif %}>
+                                {{ program.label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group search-group">
+                        <label class="filter-label">
+                            <i class="ti ti-search"></i> Search
+                        </label>
+                        <div class="search-wrapper">
+                            <input type="text" id="searchInput" name="search" value="{{ search_query }}" placeholder="Search by reference, student name..." class="filter-input">
+                            <button type="submit" class="search-btn">
+                                <i class="ti ti-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <button class="quick-filter-btn {% if quick_filter == 'all' %}active{% endif %}" onclick="window.location.href='?quick_filter=all{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                <i class="ti ti-apps"></i> All
+            </button>
+            <button class="quick-filter-btn {% if quick_filter == 'submitted' %}active{% endif %}" onclick="window.location.href='?quick_filter=submitted{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                <i class="ti ti-clock"></i> Pending
+            </button>
+            <button class="quick-filter-btn {% if quick_filter == 'under_review' %}active{% endif %}" onclick="window.location.href='?quick_filter=under_review{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                <i class="ti ti-progress"></i> Under Review
+            </button>
+            <button class="quick-filter-btn {% if quick_filter == 'accepted' %}active{% endif %}" onclick="window.location.href='?quick_filter=accepted{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                <i class="ti ti-check"></i> Accepted
+            </button>
+            <button class="quick-filter-btn {% if quick_filter == 'rejected' %}active{% endif %}" onclick="window.location.href='?quick_filter=rejected{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}'">
+                <i class="ti ti-x"></i> Rejected
+            </button>
+        </div>
+    </div>
+
+    <!-- Applications List -->
+    <div class="applications-section">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h3 class="section-title">
+                    <i class="ti ti-file-inbox"></i>
+                    Applications
+                </h3>
+                <span class="record-count">{{ applications|length }} applications</span>
+            </div>
+            <div class="section-header-right">
+                <button class="btn-filter" onclick="window.location.href='{{ request.path }}'">
+                    <i class="ti ti-filter-off"></i> Reset Filters
+                </button>
+            </div>
+        </div>
+
+        <div class="applications-grid" id="applicationsGrid">
+            {% for application in applications %}
+            <div class="application-card" onclick="openModal({{ application.application_id }})">
+                <div class="card-header">
+                    <span class="ref-number">{{ application.reference_number }}</span>
+                    <span class="status-badge {{ application.status }}">
+                        <i class="ti {% if application.status == 'submitted' %}ti-clock{% elif application.status == 'under_review' %}ti-progress{% elif application.status == 'shortlisted' %}ti-star{% elif application.status == 'accepted' %}ti-check-circle{% elif application.status == 'rejected' %}ti-x-circle{% else %}ti-file{% endif %}"></i>
+                        {{ application.get_status_display }}
+                    </span>
+                </div>
+                
+                <div class="student-info">
+                    <div class="student-avatar">{{ application.student.user.get_full_name|slice:":2"|upper }}</div>
+                    <div>
+                        <div class="student-name">{{ application.student.user.get_full_name }}</div>
+                        <div class="student-dept">
+                            {% if application.student.academic_profile.department %}
+                                {{ application.student.academic_profile.department.department_name }}
+                            {% else %}
+                                No Department
+                            {% endif %}
+                            • 
+                            {% if application.student.academic_level == 'UG' %}Undergraduate
+                            {% elif application.student.academic_level == 'PG' %}Postgraduate
+                            {% elif application.student.academic_level == 'MASTERS' %}Masters
+                            {% elif application.student.academic_level == 'PHD' %}PhD
+                            {% elif application.student.academic_level == 'DIPLOMA' %}Diploma
+                            {% else %}{{ application.student.academic_level|default:"Not specified" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="project-title">
+                    {% if application.research_opportunity %}
+                        {{ application.research_opportunity.title }}
+                    {% else %}
+                        No project assigned
+                    {% endif %}
+                </div>
+                
+                <div class="card-meta">
+                    <span><i class="ti ti-id"></i> {{ application.student.student_number }}</span>
+                    <span><i class="ti ti-mail"></i> {{ application.student.user.email }}</span>
+                </div>
+                
+                <div class="card-footer">
+                    <span class="submitted-date">
+                        <i class="ti ti-calendar"></i> 
+                        {% if application.submitted_at %}
+                            {{ application.submitted_at|date:"M d, Y" }}
+                        {% else %}
+                            Not submitted
+                        {% endif %}
+                    </span>
+                    <span class="view-btn">
+                        Review <i class="ti ti-chevron-right"></i>
+                    </span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="ti ti-file-inbox"></i>
+                <h3>No applications found</h3>
+                <p>Try adjusting your filters</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if applications.has_other_pages %}
+        <div class="pagination-section">
+            <div class="pagination-info">
+                Showing {{ applications.start_index }} to {{ applications.end_index }} of {{ applications.paginator.count }} entries
+            </div>
+            <div class="pagination-controls">
+                {% if applications.has_previous %}
+                <button class="page-link" onclick="window.location.href='?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if quick_filter != 'all' %}&quick_filter={{ quick_filter }}{% endif %}'">
+                    <i class="ti ti-chevrons-left"></i>
+                </button>
+                <button class="page-link" onclick="window.location.href='?page={{ applications.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if quick_filter != 'all' %}&quick_filter={{ quick_filter }}{% endif %}'">
+                    <i class="ti ti-chevron-left"></i>
+                </button>
+                {% else %}
+                <button class="page-link disabled"><i class="ti ti-chevrons-left"></i></button>
+                <button class="page-link disabled"><i class="ti ti-chevron-left"></i></button>
+                {% endif %}
+                
+                <span class="page-number">{{ applications.number }}</span>
+                
+                {% if applications.has_next %}
+                <button class="page-link" onclick="window.location.href='?page={{ applications.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if quick_filter != 'all' %}&quick_filter={{ quick_filter }}{% endif %}'">
+                    <i class="ti ti-chevron-right"></i>
+                </button>
+                <button class="page-link" onclick="window.location.href='?page={{ applications.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if program_filter %}&program={{ program_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if quick_filter != 'all' %}&quick_filter={{ quick_filter }}{% endif %}'">
+                    <i class="ti ti-chevrons-right"></i>
+                </button>
+                {% else %}
+                <button class="page-link disabled"><i class="ti ti-chevron-right"></i></button>
+                <button class="page-link disabled"><i class="ti ti-chevrons-right"></i></button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Application Details Modal -->
+<div class="modal-overlay" id="applicationModal" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <div class="modal-title">
+                <h3 id="modalReference">#RSP-2024-0001</h3>
+                <span class="modal-status" id="modalStatus">Pending</span>
+            </div>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Loading State -->
+            <div id="modalLoading" style="text-align:center; padding: 40px;">
+                <i class="ti ti-loader" style="font-size: 32px; animation: spin 1s linear infinite;"></i>
+                <p style="margin-top: 12px; color: var(--text-secondary);">Loading...</p>
+            </div>
+            
+            <!-- Content -->
+            <div id="modalContent" style="display: none;">
+                <!-- Student Info -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-user"></i> Student Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Name</label>
+                            <span id="modalStudentName">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <span id="modalStudentEmail">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Student ID</label>
+                            <span id="modalStudentId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Program</label>
+                            <span id="modalStudentProgram">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Department</label>
+                            <span id="modalStudentDept">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Phone</label>
+                            <span id="modalStudentPhone">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Details -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-file-text"></i> Project Details</h4>
+                    <div class="info-grid">
+                        <div class="info-item full-width">
+                            <label>Project Title</label>
+                            <span id="modalProjectTitle">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Motivation</label>
+                            <p id="modalMotivation">-</p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Skills Contribution</label>
+                            <p id="modalSkills">-</p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Prior Experience</label>
+                            <p id="modalExperience">-</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Time Commitment</label>
+                            <span id="modalTime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Availability</label>
+                            <span id="modalAvailability">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Additional Information</label>
+                            <p id="modalAdditional">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documents -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-file"></i> Documents</h4>
+                    <div class="documents-list" id="modalDocuments">
+                        <!-- Documents will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Review Section -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-clipboard"></i> Review</h4>
+                    <div class="review-actions" id="reviewActions">
+                        <button class="review-btn approve" onclick="updateStatus('accepted')">
+                            <i class="ti ti-check"></i> Approve
+                        </button>
+                        <button class="review-btn reject" onclick="updateStatus('rejected')">
+                            <i class="ti ti-x"></i> Reject
+                        </button>
+                        <button class="review-btn review" onclick="updateStatus('under_review')">
+                            <i class="ti ti-clock"></i> Under Review
+                        </button>
+                        <button class="review-btn shortlist" onclick="updateStatus('shortlisted')">
+                            <i class="ti ti-star"></i> Shortlist
+                        </button>
+                    </div>
+                    <div class="review-comment">
+                        <label>Comments <span class="required">*</span></label>
+                        <textarea id="reviewComment" rows="3" placeholder="Add your review comments..."></textarea>
+                        <small class="help-text" id="commentRequiredMsg" style="color: var(--primary-red); display: none;">Comments are required when accepting or rejecting an application.</small>
+                    </div>
+                    <button class="btn-save-review" onclick="saveReview()">
+                        <i class="ti ti-save"></i> Save Review
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Notification -->
+<div class="notification" id="successNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-check-circle notification-icon success"></i>
+        <span id="notificationMessage">Success!</span>
+        <button class="notification-close" onclick="closeNotification()">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Error Notification -->
+<div class="notification error" id="errorNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-exclamation-circle notification-icon error"></i>
+        <span id="errorMessage">Error!</span>
+        <button class="notification-close" onclick="closeErrorNotification()">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Warning Notification -->
+<div class="notification warning" id="warningNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-alert-circle notification-icon warning"></i>
+        <span id="warningMessage">Warning!</span>
+        <button class="notification-close" onclick="closeWarningNotification()">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+<script src="{% static 'script/jordan/student_application.js' %}"></script>
+{% endblock %}

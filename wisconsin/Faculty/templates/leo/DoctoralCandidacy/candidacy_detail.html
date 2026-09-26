@@ -1,0 +1,958 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Doctoral Candidacy Details{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/DoctoralCandidacy/candidacy_detail.css' %}">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+{% endblock %}
+{% block content %}
+    {% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+            <i class="ti ti-layout-dashboard"></i>
+            <span>Dashboard</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+            <i class="ti ti-school"></i>
+            <span>PhD Management</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        {% comment %} <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">
+        <i class="ti ti-file-description"></i>
+        <span>Dissertation Proposals</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <span class="common-breadcrumb-current">
+        <i class="ti ti-file-text"></i>
+        <span>Current Page</span>
+        </span> 
+    </nav> {% endcomment %}
+    <div class="dcd-page">
+        <div class="dcd-header">
+            <div class="dcd-header-left">
+                <a href="{% url 'faculty_doctoral_candidacy_list' uuid=faculty.user.uuid %}"
+                   class="dcd-back-btn">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div class="dcd-header-icon">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div class="dcd-header-content">
+                    <span class="dcd-eyebrow">PhD Management</span>
+                    <h1>Doctoral Candidacy</h1>
+                    <p>Review the complete doctoral candidacy record and academic progression.</p>
+                </div>
+            </div>
+            <div class="dcd-header-actions">
+                <div class="dcd-status-badge {% if candidacy.candidacy_status == 'APPROVED' %} approved {% elif candidacy.candidacy_status == 'REJECTED' %} rejected {% elif candidacy.candidacy_status == 'HOLD' %} hold {% else %} pending {% endif %} ">
+                    <span></span>
+                    {% if candidacy.candidacy_status == "APPROVED" %}
+                        Approved
+                    {% elif candidacy.candidacy_status == "REJECTED" %}
+                        Rejected
+                    {% elif candidacy.candidacy_status == "HOLD" %}
+                        On Hold
+                    {% else %}
+                        Pending
+                    {% endif %}
+                </div>
+                {% comment %} {% if candidacy.candidacy_status == "PENDING" %}
+                <a href="{% url 'faculty_doctoral_candidacy_update' uuid=faculty.user.uuid candidacy_id=candidacy.candidacy_id %}" class="dcd-header-edit">
+                    <i class="bi bi-pencil-square"></i>
+                    Edit
+                </a>
+                {% endif %} {% endcomment %}
+            </div>
+        </div>
+        <div class="dcd-layout">
+            <main class="dcd-main">
+                <section class="dcd-card dcd-hero-card">
+                    <div class="dcd-hero-top">
+                        <div class="dcd-student">
+                            <div class="dcd-avatar">{{ phd_student.student.user.first_name|default:"P"|slice:":1"|upper }}</div>
+                            <div class="dcd-student-info">
+                                <span>PhD Scholar</span>
+                                <h2>{{ phd_student.student.user.get_full_name|default:"Unknown Student" }}</h2>
+                                <div class="dcd-student-meta">
+                                    {% if phd_student.student.student_number %}
+                                        <span>
+                                            <i class="bi bi-person-vcard"></i>
+                                            {{ phd_student.student.student_number }}
+                                        </span>
+                                    {% endif %}
+                                    {% if phd_student.phd_program %}
+                                        <span>
+                                            <i class="bi bi-journal-bookmark-fill"></i>
+                                            {{ phd_student.phd_program.program_name }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dcd-record-number">
+                            <span>Candidacy ID</span>
+                            <strong>#{{ candidacy.candidacy_id }}</strong>
+                        </div>
+                    </div>
+                    <div class="dcd-hero-stats">
+                        <div class="dcd-stat">
+                            <span>
+                                <i class="bi bi-calendar3"></i>
+                                Candidacy Date
+                            </span>
+                            <strong>
+                                {% if candidacy.candidacy_date %}
+                                    {{ candidacy.candidacy_date|date:"d M Y" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="dcd-stat">
+                            <span>
+                                <i class="bi bi-flag-fill"></i>
+                                Current Status
+                            </span>
+                            <strong class="dcd-stat-status">
+                                {% if candidacy.candidacy_status == "APPROVED" %}
+                                    Approved
+                                {% elif candidacy.candidacy_status == "REJECTED" %}
+                                    Rejected
+                                {% elif candidacy.candidacy_status == "HOLD" %}
+                                    On Hold
+                                {% else %}
+                                    Pending
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="dcd-stat">
+                            <span>
+                                <i class="bi bi-check-circle-fill"></i>
+                                Approval Date
+                            </span>
+                            <strong>
+                                {% if candidacy.approval_date %}
+                                    {{ candidacy.approval_date|date:"d M Y" }}
+                                {% else %}
+                                    Not Approved
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="dcd-stat">
+                            <span>
+                                <i class="bi bi-graph-up"></i>
+                                Overall Progress
+                            </span>
+                            <strong>{{ overall_progress }}%</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="dcd-card">
+                    <div class="dcd-card-header">
+                        <div class="dcd-card-title">
+                            <div class="dcd-card-icon">
+                                <i class="bi bi-person-lines-fill"></i>
+                            </div>
+                            <div>
+                                <span>Academic Profile</span>
+                                <h2>Student & Program Information</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dcd-card-body">
+                        <div class="dcd-info-grid">
+                            <div class="dcd-info-item">
+                                <span>Student Name</span>
+                                <strong>{{ phd_student.student.user.get_full_name|default:"—" }}</strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>Student ID</span>
+                                <strong>{{ phd_student.student.student_number|default:"—" }}</strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>PhD Program</span>
+                                <strong>{{ phd_student.phd_program.program_name|default:"—" }}</strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>Department</span>
+                                <strong>{{ phd_student.phd_program.department|default:"—" }}</strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>Advisor</span>
+                                <strong>
+                                    {% if phd_student.advisor %}
+                                        {{ phd_student.advisor }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>Committee</span>
+                                <strong>
+                                    {% if committee %}
+                                        Approved Committee
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>Committee Chair</span>
+                                <strong>
+                                    {% if committee.chair_faculty %}
+                                        {{ committee.chair_faculty }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="dcd-info-item">
+                                <span>Committee Status</span>
+                                <strong>
+                                    {% if committee_approved %}
+                                        Approved
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                            <section class="dcd-card dcd-video-evidence-card">
+
+                <div class="dcd-card-header">
+
+                    <div class="dcd-card-title">
+
+                        <div class="dcd-card-icon dcd-video-icon">
+                            <i class="bi bi-camera-video-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>Recorded Evidence</span>
+                            <h2>Video Evidence</h2>
+                        </div>
+
+                    </div>
+
+                    {% if video_evidence %}
+                        <span class="dcd-video-status available">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Available
+                        </span>
+                    {% else %}
+                        <span class="dcd-video-status pending">
+                            <i class="bi bi-clock-fill"></i>
+                            Not Uploaded
+                        </span>
+                    {% endif %}
+
+                </div>
+
+                <div class="dcd-card-body">
+
+                    {% if video_evidence %}
+
+                        <div class="dcd-video-preview">
+
+                            <video
+                                controls
+                                preload="metadata"
+                                class="dcd-video-player"
+                            >
+                                <source
+                                    src="{{ video_evidence.video.url }}"
+                                >
+                                Your browser does not support the video element.
+                            </video>
+
+                        </div>
+
+                        <div class="dcd-video-meta">
+
+                            <div class="dcd-video-file">
+
+                                <div class="dcd-video-file-icon">
+                                    <i class="bi bi-file-earmark-play-fill"></i>
+                                </div>
+
+                                <div class="dcd-video-file-details">
+
+                                    <strong>
+                                        {{ video_evidence.video.name|cut:"phd/video_evidence/" }}
+                                    </strong>
+
+                                    <span>
+                                        Uploaded
+                                        {{ video_evidence.uploaded_at|date:"d M Y, h:i A" }}
+                                    </span>
+
+                                    {% if video_evidence.uploaded_by %}
+                                        <span>
+                                            By
+                                            {{ video_evidence.uploaded_by.get_full_name|default:video_evidence.uploaded_by.username }}
+                                        </span>
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                            <div class="dcd-video-actions">
+
+                                <a
+                                    href="{{ video_evidence.video.url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="dcd-video-btn dcd-video-btn-primary"
+                                >
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                    Open Video
+                                </a>
+
+                                <a
+                                    href="{{ video_evidence.video.url }}"
+                                    download
+                                    class="dcd-video-btn dcd-video-btn-secondary"
+                                >
+                                    <i class="bi bi-download"></i>
+                                    Download
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="dcd-video-empty">
+
+                            <div class="dcd-video-empty-icon">
+                                <i class="bi bi-camera-video-off-fill"></i>
+                            </div>
+
+                            <div class="dcd-video-empty-content">
+
+                                <strong>No video evidence available</strong>
+
+                                <span>
+                                    No video evidence has been uploaded for this doctoral candidacy yet.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </section>
+                <section class="dcd-card">
+                    <div class="dcd-card-header">
+                        <div class="dcd-card-title">
+                            <div class="dcd-card-icon">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+                            <div>
+                                <span>Eligibility</span>
+                                <h2>Academic Requirements</h2>
+                            </div>
+                        </div>
+                        {% if eligible_for_candidacy %}
+                            <span class="dcd-eligible-badge">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Eligible
+                            </span>
+                        {% else %}
+                            <span class="dcd-incomplete-badge">
+                                <i class="bi bi-exclamation-circle-fill"></i>
+                                Review Required
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="dcd-card-body">
+                        <div class="dcd-requirement-grid">
+                            <div class="dcd-requirement {% if advisor_assigned %}completed{% else %}incomplete{% endif %}">
+                                <div class="dcd-requirement-icon">
+                                    {% if advisor_assigned %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-lg"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Advisor Assigned</strong>
+                                    <span>
+                                        {% if advisor_assigned %}
+                                            Completed
+                                        {% else %}
+                                            Incomplete
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dcd-requirement {% if committee_approved %}completed{% else %}incomplete{% endif %}">
+                                <div class="dcd-requirement-icon">
+                                    {% if committee_approved %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-lg"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Committee Approved</strong>
+                                    <span>
+                                        {% if committee_approved %}
+                                            Completed
+                                        {% else %}
+                                            Incomplete
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dcd-requirement {% if coursework_completed %}completed{% else %}incomplete{% endif %}">
+                                <div class="dcd-requirement-icon">
+                                    {% if coursework_completed %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-lg"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Coursework Completed</strong>
+                                    <span>
+                                        {{ completed_credits }}
+                                        /
+                                        {{ required_credits }}
+                                        Credits
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dcd-requirement {% if preliminary_exam_passed %}completed{% else %}incomplete{% endif %}">
+                                <div class="dcd-requirement-icon">
+                                    {% if preliminary_exam_passed %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-lg"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Preliminary Examination</strong>
+                                    <span>
+                                        {% if preliminary_exam_passed %}
+                                            Passed
+                                        {% else %}
+                                            Not Completed
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dcd-requirement {% if proposal_approved %}completed{% else %}incomplete{% endif %}">
+                                <div class="dcd-requirement-icon">
+                                    {% if proposal_approved %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-lg"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Dissertation Proposal</strong>
+                                    <span>
+                                        {% if proposal_approved %}
+                                            Approved
+                                        {% else %}
+                                            Not Approved
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="dcd-requirement {% if candidacy.candidacy_status == 'APPROVED' %}completed{% else %}incomplete{% endif %}">
+                                <div class="dcd-requirement-icon">
+                                    {% if candidacy.candidacy_status == "APPROVED" %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-hourglass-split"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Doctoral Candidacy</strong>
+                                    <span>
+                                        {% if candidacy.candidacy_status == "APPROVED" %}
+                                            Approved
+                                        {% elif candidacy.candidacy_status == "REJECTED" %}
+                                            Rejected
+                                        {% else %}
+                                            Pending Approval
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                {% comment %} <section class="dcd-card">
+                    <div class="dcd-card-header">
+                        <div class="dcd-card-title">
+                            <div class="dcd-card-icon">
+                                <i class="bi bi-diagram-3-fill"></i>
+                            </div>
+                            <div>
+                                <span>Doctoral Workflow</span>
+                                <h2>Academic Progression</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dcd-card-body">
+                        <div class="dcd-timeline">
+                            <div class="dcd-timeline-item {% if advisor_assigned %}completed{% else %}pending{% endif %}">
+                                <div class="dcd-timeline-marker">
+                                    {% if advisor_assigned %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-hourglass-split"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Advisor Assigned</strong>
+                                    <span>Academic advisor assigned to the PhD scholar.</span>
+                                </div>
+                                <div class="dcd-timeline-state">
+                                    {% if advisor_assigned %}
+                                        Completed
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dcd-timeline-item {% if committee_approved %}completed{% else %}pending{% endif %}">
+                                <div class="dcd-timeline-marker">
+                                    {% if committee_approved %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-hourglass-split"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Doctoral Committee</strong>
+                                    <span>Doctoral committee formation and approval.</span>
+                                </div>
+                                <div class="dcd-timeline-state">
+                                    {% if committee_approved %}
+                                        Completed
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dcd-timeline-item {% if coursework_completed %}completed{% else %}pending{% endif %}">
+                                <div class="dcd-timeline-marker">
+                                    {% if coursework_completed %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-hourglass-split"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Coursework</strong>
+                                    <span>
+                                        {{ completed_credits }}
+                                        of
+                                        {{ required_credits }}
+                                        required credits completed.
+                                    </span>
+                                </div>
+                                <div class="dcd-timeline-state">
+                                    {% if coursework_completed %}
+                                        Completed
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dcd-timeline-item {% if preliminary_exam_passed %}completed{% else %}pending{% endif %}">
+                                <div class="dcd-timeline-marker">
+                                    {% if preliminary_exam_passed %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-hourglass-split"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Preliminary / Qualifying Examination</strong>
+                                    <span>Doctoral examination milestone.</span>
+                                </div>
+                                <div class="dcd-timeline-state">
+                                    {% if preliminary_exam_passed %}
+                                        Completed
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dcd-timeline-item {% if proposal_approved %}completed{% else %}pending{% endif %}">
+                                <div class="dcd-timeline-marker">
+                                    {% if proposal_approved %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-hourglass-split"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Dissertation Proposal</strong>
+                                    <span>Research proposal approval milestone.</span>
+                                </div>
+                                <div class="dcd-timeline-state">
+                                    {% if proposal_approved %}
+                                        Approved
+                                    {% else %}
+                                        Pending
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dcd-timeline-item {% if candidacy.candidacy_status == 'APPROVED' %} completed {% elif candidacy.candidacy_status == 'REJECTED' %} pending {% else %} active {% endif %} ">
+                                <div class="dcd-timeline-marker">
+                                    {% if candidacy.candidacy_status == "APPROVED" %}
+                                        <i class="bi bi-check-lg"></i>
+                                    {% elif candidacy.candidacy_status == "REJECTED" %}
+                                        <i class="bi bi-x-lg"></i>
+                                    {% else %}
+                                        <i class="bi bi-mortarboard-fill"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Doctoral Candidacy</strong>
+                                    <span>Current doctoral candidacy milestone.</span>
+                                </div>
+                                <div class="dcd-timeline-state">
+                                    {% if candidacy.candidacy_status == "APPROVED" %}
+                                        Approved
+                                    {% elif candidacy.candidacy_status == "REJECTED" %}
+                                        Rejected
+                                    {% else %}
+                                        Pending Approval
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="dcd-timeline-item future">
+                                <div class="dcd-timeline-marker">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </div>
+                                <div class="dcd-timeline-content">
+                                    <strong>Dissertation</strong>
+                                    <span>Future dissertation research stage.</span>
+                                </div>
+                                <div class="dcd-timeline-state">Upcoming</div>
+                            </div>
+                        </div>
+                    </div>
+                </section> {% endcomment %}
+            </main>
+            <aside class="dcd-sidebar">
+                <section class="dcd-card dcd-action-card">
+                    <div class="dcd-action-header">
+                        <span>Available Actions</span>
+                        <strong>Manage Candidacy</strong>
+                    </div>
+                    <div class="dcd-action-body">
+                        {% if candidacy.candidacy_status == "PENDING" %}
+                            {% if can_approve and can_reject %}
+                                <form method="post" class="dcd-action-form" id="approveCandidacyForm">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="button"
+                                            class="dcd-action-btn dcd-approve-btn"
+                                            id="approveCandidacyBtn">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        Approve Candidacy
+                                    </button>
+                                </form>
+                                <form method="post" class="dcd-action-form" id="rejectCandidacyForm">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="button"
+                                            class="dcd-action-btn dcd-reject-btn"
+                                            id="rejectCandidacyBtn">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        Reject Candidacy
+                                    </button>
+                                </form>
+                            {% else %}
+                                <div class="dcd-action-message">
+                                    <i class="bi bi-eye-fill"></i>
+                                    <div>
+                                        <strong>View Only</strong>
+                                        <span>
+                                            Committee members can review this candidacy,
+                                            but only the Doctoral Committee Chair can
+                                            approve or reject it.
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% elif candidacy.candidacy_status == "APPROVED" %}
+                            <div class="dcd-action-message success">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <div>
+                                    <strong>Candidacy Approved</strong>
+                                    <span>This doctoral candidacy has been officially approved.</span>
+                                </div>
+                            </div>
+                        {% elif candidacy.candidacy_status == "REJECTED" %}
+                            <div class="dcd-action-message danger">
+                                <i class="bi bi-x-circle-fill"></i>
+                                <div>
+                                    <strong>Candidacy Rejected</strong>
+                                    <span>This doctoral candidacy has been rejected.</span>
+                                </div>
+                            </div>
+                        {% elif candidacy.candidacy_status == "ON_HOLD" %}
+                            <div class="dcd-action-message warning">
+                                <i class="bi bi-pause-circle-fill"></i>
+                                <div>
+                                    <strong>Candidacy On Hold</strong>
+                                    <span>This doctoral candidacy is currently on hold.</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <a href="{% url 'faculty_doctoral_candidacy_list' uuid=faculty.user.uuid %}"
+                           class="dcd-action-btn secondary">
+                           <i class="bi bi-arrow-left-circle-fill"></i>
+                            Back to Candidacies
+                        </a>
+                    </div>
+                </section>
+                <section class="dcd-card">
+                    <div class="dcd-sidebar-title">
+                        <span>Record Summary</span>
+                        <strong>Candidacy Information</strong>
+                    </div>
+                    <div class="dcd-summary">
+                        <div class="dcd-summary-row">
+                            <span>Candidacy ID</span>
+                            <strong>#{{ candidacy.candidacy_id }}</strong>
+                        </div>
+                        <div class="dcd-summary-row">
+                            <span>Status</span>
+                            <strong class="dcd-summary-status">
+                                <span></span>
+                                {% if candidacy.candidacy_status == "APPROVED" %}
+                                    Approved
+                                {% elif candidacy.candidacy_status == "REJECTED" %}
+                                    Rejected
+                                {% elif candidacy.candidacy_status == "HOLD" %}
+                                    On Hold
+                                {% else %}
+                                    Pending
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="dcd-summary-row">
+                            <span>Candidacy Date</span>
+                            <strong>
+                                {% if candidacy.candidacy_date %}
+                                    {{ candidacy.candidacy_date|date:"d M Y" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="dcd-summary-row">
+                            <span>Approval Date</span>
+                            <strong>
+                                {% if candidacy.approval_date %}
+                                    {{ candidacy.approval_date|date:"d M Y" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="dcd-summary-row">
+                            <span>Academic Progress</span>
+                            <strong>{{ overall_progress }}%</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="dcd-card">
+                    <div class="dcd-sidebar-title">
+                        <span>Academic Team</span>
+                        <strong>Supervision</strong>
+                    </div>
+                    <div class="dcd-team">
+                        <div class="dcd-team-item">
+                            <div class="dcd-team-icon">
+                                <i class="bi bi-person-check-fill"></i>
+                            </div>
+                            <div>
+                                <span>Advisor</span>
+                                <strong>
+                                    {% if phd_student.advisor %}
+                                        {{ phd_student.advisor }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="dcd-team-item">
+                            <div class="dcd-team-icon committee">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                            <div>
+                                <span>Doctoral Committee</span>
+                                <strong>
+                                    {% if committee %}
+                                        Assigned
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="dcd-team-item">
+                            <div class="dcd-team-icon chair">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </div>
+                            <div>
+                                <span>Committee Chair</span>
+                                <strong>
+                                    {% if committee.chair_faculty %}
+                                        {{ committee.chair_faculty }}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="dcd-card">
+                    <div class="dcd-sidebar-title">
+                        <span>Academic Completion</span>
+                        <strong>Requirement Progress</strong>
+                    </div>
+                </section>
+                <section class="dcd-info-card">
+                    <div class="dcd-info-icon">
+                        <i class="bi bi-info-circle-fill"></i>
+                    </div>
+                    <div>
+                        <strong>Workflow Notice</strong>
+                        <p>
+                            Doctoral candidacy approval is available only after
+                            all academic eligibility requirements have been completed.
+                        </p>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const approveButton = document.getElementById("approveCandidacyBtn");
+    const rejectButton = document.getElementById("rejectCandidacyBtn");
+
+    const approveForm = document.getElementById("approveCandidacyForm");
+    const rejectForm = document.getElementById("rejectCandidacyForm");
+
+
+    if (approveButton && approveForm) {
+
+        approveButton.addEventListener("click", function () {
+
+            Swal.fire({
+                title: "Approve Candidacy?",
+                text: "Are you sure you want to approve this doctoral candidacy?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Yes, Approve",
+                cancelButtonText: "Cancel",
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: "dcd-swal-popup",
+                    title: "dcd-swal-title",
+                    htmlContainer: "dcd-swal-text",
+                    confirmButton: "dcd-swal-confirm",
+                    cancelButton: "dcd-swal-cancel"
+                }
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    approveButton.disabled = true;
+
+                    approveButton.innerHTML = `
+                        <i class="bi bi-arrow-repeat dcd-spin"></i>
+                        Approving...
+                    `;
+
+                    approveForm.submit();
+
+                }
+
+            });
+
+        });
+
+    }
+
+
+    if (rejectButton && rejectForm) {
+
+        rejectButton.addEventListener("click", function () {
+
+            Swal.fire({
+                title: "Reject Candidacy?",
+                text: "Are you sure you want to reject this doctoral candidacy? This action will update the candidacy status to Rejected.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes, Reject",
+                cancelButtonText: "Cancel",
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: "dcd-swal-popup",
+                    title: "dcd-swal-title",
+                    htmlContainer: "dcd-swal-text",
+                    confirmButton: "dcd-swal-reject",
+                    cancelButton: "dcd-swal-cancel"
+                }
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    rejectButton.disabled = true;
+
+                    rejectButton.innerHTML = `
+                        <i class="bi bi-arrow-repeat dcd-spin"></i>
+                        Rejecting...
+                    `;
+
+                    rejectForm.submit();
+
+                }
+
+            });
+
+        });
+
+    }
+
+});
+
+    </script>
+{% endblock %}

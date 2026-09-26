@@ -1,0 +1,1079 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Active Loans{% endblock %}
+{% block page_title %}Active Loans{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/library_admin/nancy/active_loans.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="al-page">
+
+    <div class="al-topbar">
+
+      
+
+        <div class="al-header">
+            <div class="al-header-inner">
+            <span class="al-header-icon"><i data-lucide="book-open-check"></i></span>
+            <div>
+                <h1 class="al-title">Active Loans</h1>
+                <p class="al-subtitle">Every book currently checked out, library-wide.</p>
+            </div>
+            </div>
+        </div>
+
+        <!-- ---------- EXPORT REPORT DROPDOWN (top-left) ---------- -->
+        <div class="dropdown al-export-dropdown">
+            <button
+            class="btn al-export-btn dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            >
+            <i data-lucide="download"></i>
+            Export Report
+            </button>
+            <ul class="dropdown-menu al-export-menu">
+            <li>
+                <a
+                class="dropdown-item"
+                href="{% url 'export_active_loans_excel' %}{% if search_query %}?q={{ search_query|urlencode }}{% endif %}"
+                >
+                <i data-lucide="file-spreadsheet"></i>
+                Export as Excel (.xlsx)
+                </a>
+            </li>
+            <li>
+                <a
+                class="dropdown-item"
+                href="{% url 'export_active_loans_pdf' %}{% if search_query %}?q={{ search_query|urlencode }}{% endif %}"
+                >
+                <i data-lucide="file-text"></i>
+                Export as PDF
+                </a>
+            </li>
+            </ul>
+        </div>
+
+    </div>
+
+  <!-- ---------- STAT CARDS ---------- -->
+  <div class="al-stat-grid">
+    <div class="al-stat-card">
+      <div class="al-stat-icon al-stat-icon--active"><i data-lucide="book-open"></i></div>
+      <div>
+        <p class="al-stat-number">{{ total_active }}</p>
+        <p class="al-stat-label">Active Loans</p>
+      </div>
+    </div>
+
+    <div class="al-stat-card">
+      <div class="al-stat-icon al-stat-icon--soon"><i data-lucide="alarm-clock"></i></div>
+      <div>
+        <p class="al-stat-number">{{ due_soon_count }}</p>
+        <p class="al-stat-label">Due Soon</p>
+      </div>
+    </div>
+
+    <div class="al-stat-card">
+      <div class="al-stat-icon al-stat-icon--overdue"><i data-lucide="alert-triangle"></i></div>
+      <div>
+        <p class="al-stat-number">{{ overdue_count }}</p>
+        <p class="al-stat-label">Overdue</p>
+      </div>
+    </div>
+
+    <div class="al-stat-card">
+      <div class="al-stat-icon al-stat-icon--returned"><i data-lucide="check-circle"></i></div>
+      <div>
+        <p class="al-stat-number">{{ returned_today_count }}</p>
+        <p class="al-stat-label">Returned Today</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- SEARCH ---------- -->
+  <form method="get" class="al-search-bar"  id="activeLoanSearchForm" onsubmit="return false;">
+    <i data-lucide="search"></i>
+    <input
+      type="search"
+      id="activeLoanSearch"
+      name="q"
+      value="{{ search_query }}"
+      placeholder="Search by student name, book title, or barcode..."
+    >
+    {% if search_query %}
+      <a href="{% url 'active_loans' %}" class="al-search-clear">Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="card al-card">
+    <div class="card-body p-0">
+
+      {% if loans %}
+        <div class="table-responsive">
+          <table class="table al-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Book</th>
+                <th>Barcode</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for loan in loans %}
+                <tr class="{% if loan.computed_status == 'OVERDUE' %}al-row-overdue{% elif loan.computed_status == 'DUE_SOON' %}al-row-soon{% endif %}">
+                  <td>
+                    <div class="al-student">
+                      <span class="al-avatar">
+                        {{ loan.transaction.library_user.user.first_name|slice:":1" }}{{ loan.transaction.library_user.user.last_name|slice:":1" }}
+                      </span>
+                      <div>
+                        <p class="al-student-name">{{ loan.transaction.library_user.user.get_full_name }}</p>
+                        <p class="al-student-sub">{{ loan.transaction.library_user.get_user_type_display }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <p class="al-book-title">{{ loan.transaction.copy.resource.title }}</p>
+                    <p class="al-book-sub">{{ loan.transaction.copy.resource.author }}</p>
+                  </td>
+                  <td class="al-muted">{{ loan.transaction.copy.barcode }}</td>
+                  <td class="al-muted">{{ loan.transaction.issue_date|date:"M d, Y" }}</td>
+                  <td class="al-muted">{{ loan.transaction.due_date|date:"M d, Y" }}</td>
+                  <td>
+                    {% if loan.computed_status == "RETURNED" %}
+                        <span class="badge al-status-badge al-status-badge--returned">
+                            <i data-lucide="check-circle"></i>
+                            Returned
+                        </span>
+
+                        <div class="al-returned-date">
+                            {{ loan.transaction.return_date|date:"M d, Y" }}
+                        </div>
+                    {% elif loan.computed_status == "OVERDUE" %}
+                        <span class="badge al-status-badge al-status-badge--overdue">
+                            {{ loan.days_overdue }}
+                            day{{ loan.days_overdue|pluralize }}
+                            overdue
+                        </span>
+                    {% elif loan.computed_status == "DUE_SOON" %}
+                        <span class="badge al-status-badge al-status-badge--soon">
+                            {{ loan.days_left }}
+                            day{{ loan.days_left|pluralize }}
+                            left
+                        </span>
+                    {% else %}
+                        <span class="badge al-status-badge al-status-badge--active">
+                            {{ loan.days_left }} days left
+                        </span>
+                    {% endif %}
+
+                </td>
+                  <td class="text-end">
+                    {% if loan.computed_status == "RETURNED" %}
+                        <span class="al-returned-label">
+                            <i data-lucide="check"></i>
+                            Returned
+                        </span>
+                    {% else %}
+                        <form method="post" action="{% url 'mark_returned' transaction_id=loan.transaction.id %}">
+
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm al-return-btn">
+                                <i data-lucide="corner-down-left"></i>
+                                Mark Returned
+                            </button>
+                        </form>
+                    {% endif %}
+                </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="al-empty">
+          <i data-lucide="inbox"></i>
+          <p>
+            {% if search_query %}
+              No active loans match "{{ search_query }}".
+            {% else %}
+              No books are currently checked out.
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+
+      <!-- =====================================================
+          AJAX PAGINATION
+      ===================================================== -->
+
+      <div
+    class="al-pagination"
+    id="alPagination"
+>
+    {% if page_obj.paginator.num_pages > 1 %}
+
+        {% if page_obj.has_previous %}
+            <button
+                type="button"
+                class="al-page-btn"
+                data-page="{{ page_obj.previous_page_number }}"
+            >
+                <i data-lucide="chevron-left"></i>
+                
+            </button>
+        {% else %}
+            <button
+                type="button"
+                class="al-page-btn al-page-btn--disabled"
+                disabled
+            >
+                <i data-lucide="chevron-left"></i>
+                
+            </button>
+        {% endif %}
+
+
+        {% for page_num in page_obj.paginator.page_range %}
+
+            <button
+                type="button"
+                class="al-page-number {% if page_num == page_obj.number %}al-page-number--active{% endif %}"
+                data-page="{{ page_num }}"
+            >
+                {{ page_num }}
+            </button>
+
+        {% endfor %}
+
+
+        {% if page_obj.has_next %}
+            <button
+                type="button"
+                class="al-page-btn"
+                data-page="{{ page_obj.next_page_number }}"
+            >
+                
+                <i data-lucide="chevron-right"></i>
+            </button>
+        {% else %}
+            <button
+                type="button"
+                class="al-page-btn al-page-btn--disabled"
+                disabled
+            >
+                
+                <i data-lucide="chevron-right"></i>
+            </button>
+        {% endif %}
+
+    {% endif %}
+</div>
+    </div>
+  </div>
+
+</div>
+
+
+{% endblock %}
+
+{% block page_toasts %}
+  {% if messages %}
+    {% for message in messages %}
+      <span data-toast-tag="{{ message.tags }}" data-toast-message="{{ message|escape }}"></span>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+
+
+(function () {
+
+    /* =====================================================
+       ELEMENTS
+    ===================================================== */
+
+    const searchInput =
+        document.getElementById("activeLoanSearch");
+
+    const tableBody =
+        document.querySelector(".al-table tbody");
+
+    const pagination =
+        document.getElementById("alPagination");
+
+    const paginationInfo =
+        document.getElementById("alPaginationInfo");
+
+    const paginationWrapper =
+        document.getElementById("alPaginationWrapper");
+
+
+    if (!searchInput) {
+        return;
+    }
+
+
+    /* =====================================================
+       VARIABLES
+    ===================================================== */
+
+    let searchTimer = null;
+
+    let currentPage = 1;
+
+
+    /* =====================================================
+       LIVE SEARCH
+    ===================================================== */
+
+    searchInput.addEventListener(
+        "input",
+        function () {
+
+            const query =
+                this.value.trim();
+
+            clearTimeout(
+                searchTimer
+            );
+
+
+            searchTimer = setTimeout(
+                function () {
+
+                    currentPage = 1;
+
+                    loadLoans(
+                        query,
+                        currentPage
+                    );
+
+                },
+                300
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       PAGINATION CLICK
+    ===================================================== */
+
+    document.addEventListener(
+        "click",
+        function (event) {
+
+            const pageButton =
+                event.target.closest(
+                    "[data-page]"
+                );
+
+
+            if (!pageButton) {
+                return;
+            }
+
+
+            const page =
+                parseInt(
+                    pageButton.dataset.page
+                );
+
+
+            if (!page) {
+                return;
+            }
+
+
+            currentPage = page;
+
+
+            loadLoans(
+                searchInput.value.trim(),
+                currentPage
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       LOAD LOANS
+    ===================================================== */
+
+    function loadLoans(
+        query,
+        page
+    ){
+
+        const params =
+            new URLSearchParams();
+
+
+        if (query) {
+
+            params.set(
+                "q",
+                query
+            );
+
+        }
+
+
+        params.set(
+            "page",
+            page
+        );
+
+
+        fetch(
+            "{% url 'active_loans' %}?" +
+            params.toString(),
+            {
+
+                method:"GET",
+
+                headers:{
+                    "X-Requested-With":
+                        "XMLHttpRequest",
+
+                    "Accept":
+                        "application/json"
+                }
+
+            }
+        )
+
+        .then(
+            response => {
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Request failed"
+                    );
+
+                }
+
+                return response.json();
+
+            }
+        )
+
+        .then(
+            data => {
+
+                renderTable(
+                    data.loans
+                );
+
+                renderPagination(
+                    data
+                );
+
+            }
+        )
+
+        .catch(
+            error => {
+
+                console.error(
+                    "Active loans error:",
+                    error
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       RENDER TABLE
+    ===================================================== */
+
+    function renderTable(
+        loans
+    ){
+
+        if (!tableBody) {
+            return;
+        }
+
+
+        tableBody.innerHTML = "";
+
+
+        /* -------------------------------------------------
+           NO RESULTS
+        ------------------------------------------------- */
+
+        if (!loans.length){
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="7">
+
+                        <div class="al-empty">
+
+                            <i data-lucide="inbox"></i>
+
+                            <p>
+                                No active loans found.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+
+            refreshIcons();
+
+            return;
+
+        }
+
+
+        /* -------------------------------------------------
+           ROWS
+        ------------------------------------------------- */
+
+        loans.forEach(
+            function (loan) {
+
+                tableBody.insertAdjacentHTML(
+                    "beforeend",
+                    createLoanRow(loan)
+                );
+
+            }
+        );
+
+
+        refreshIcons();
+
+    }
+
+
+    /* =====================================================
+       CREATE TABLE ROW
+    ===================================================== */
+
+    function createLoanRow(
+        loan
+    ){
+
+        let statusHTML = "";
+
+
+        /* -------------------------------------------------
+           STATUS
+        ------------------------------------------------- */
+
+        if (
+            loan.computed_status ===
+            "OVERDUE"
+        ){
+
+            statusHTML = `
+
+                <span
+                    class="badge al-status-badge
+                    al-status-badge--overdue"
+                >
+                    ${loan.days_overdue}
+                    day${loan.days_overdue == 1 ? "" : "s"}
+                    overdue
+                </span>
+
+            `;
+
+        }
+
+        else if (
+            loan.computed_status ===
+            "DUE_SOON"
+        ){
+
+            statusHTML = `
+
+                <span
+                    class="badge al-status-badge
+                    al-status-badge--soon"
+                >
+                    ${loan.days_left}
+                    day${loan.days_left == 1 ? "" : "s"}
+                    left
+                </span>
+
+            `;
+
+        }
+
+        else {
+
+            statusHTML = `
+
+                <span
+                    class="badge al-status-badge
+                    al-status-badge--active"
+                >
+                    ${loan.days_left}
+                    days left
+                </span>
+
+            `;
+
+        }
+
+
+        /* -------------------------------------------------
+           ROW CLASS
+        ------------------------------------------------- */
+
+        let rowClass = "";
+
+
+        if (
+            loan.computed_status ===
+            "OVERDUE"
+        ){
+
+            rowClass =
+                "al-row-overdue";
+
+        }
+
+        else if (
+            loan.computed_status ===
+            "DUE_SOON"
+        ){
+
+            rowClass =
+                "al-row-soon";
+
+        }
+
+
+        /* -------------------------------------------------
+           RETURN
+        ------------------------------------------------- */
+
+        return `
+
+            <tr class="${rowClass}">
+
+                <td>
+
+                    <div class="al-student">
+
+                        <span class="al-avatar">
+
+                            ${escapeHTML(
+                                loan.initials
+                            )}
+
+                        </span>
+
+                        <div>
+
+                            <p class="al-student-name">
+
+                                ${escapeHTML(
+                                    loan.full_name
+                                )}
+
+                            </p>
+
+                            <p class="al-student-sub">
+
+                                ${escapeHTML(
+                                    loan.user_type
+                                )}
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <td>
+
+                    <p class="al-book-title">
+
+                        ${escapeHTML(
+                            loan.book
+                        )}
+
+                    </p>
+
+                    <p class="al-book-sub">
+
+                        ${escapeHTML(
+                            loan.author
+                        )}
+
+                    </p>
+
+                </td>
+
+
+                <td class="al-muted">
+
+                    ${escapeHTML(
+                        loan.barcode
+                    )}
+
+                </td>
+
+
+                <td class="al-muted">
+
+                    ${escapeHTML(
+                        loan.issue_date
+                    )}
+
+                </td>
+
+
+                <td class="al-muted">
+
+                    ${escapeHTML(
+                        loan.due_date
+                    )}
+
+                </td>
+
+
+                <td>
+
+                    ${statusHTML}
+
+                </td>
+
+
+                <td class="text-end">
+
+                    <form
+                        method="post"
+                        action="/library/active-loans/return/${loan.id}/"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="csrfmiddlewaretoken"
+                            value="${getCSRFToken()}"
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn btn-sm al-return-btn"
+                        >
+
+                            <i
+                                data-lucide="corner-down-left"
+                            ></i>
+
+                            Mark Returned
+
+                        </button>
+
+                    </form>
+
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    /* =====================================================
+       PAGINATION
+    ===================================================== */
+
+    function renderPagination(
+        data
+    ){
+
+        if (!pagination) {
+            return;
+        }
+
+
+        /* -------------------------------------------------
+           RESULT INFO
+        ------------------------------------------------- */
+
+        if (data.total > 0){
+
+            paginationInfo.innerHTML = `
+
+                Showing
+                <strong>${data.start}</strong>
+                -
+                <strong>${data.end}</strong>
+                of
+                <strong>${data.total}</strong>
+
+            `;
+
+        }
+
+        else {
+
+            paginationInfo.innerHTML =
+                "Showing 0 results";
+
+        }
+
+
+        /* -------------------------------------------------
+           NO PAGINATION
+        ------------------------------------------------- */
+
+        if (data.pages <= 1){
+
+            pagination.innerHTML = "";
+
+            return;
+
+        }
+
+
+        let html = "";
+
+
+        /* -------------------------------------------------
+           PREVIOUS
+        ------------------------------------------------- */
+
+        if (data.has_previous){
+
+            html += `
+
+                <button
+                    type="button"
+                    class="al-page-btn"
+                    data-page="${data.previous_page}"
+                >
+
+                    <i data-lucide="chevron-left"></i>
+
+                    Previous
+
+                </button>
+
+            `;
+
+        }
+
+        else {
+
+            html += `
+
+                <button
+                    type="button"
+                    class="al-page-btn
+                    al-page-btn--disabled"
+                    disabled
+                >
+
+                    <i data-lucide="chevron-left"></i>
+
+                    Previous
+
+                </button>
+
+            `;
+
+        }
+
+
+        /* -------------------------------------------------
+           PAGE NUMBERS
+        ------------------------------------------------- */
+
+        for (
+            let page = 1;
+            page <= data.pages;
+            page++
+        ){
+
+            const activeClass =
+                page === data.page
+                ? "al-page-number--active"
+                : "";
+
+
+            html += `
+
+                <button
+                    type="button"
+                    class="al-page-number ${activeClass}"
+                    data-page="${page}"
+                >
+                    ${page}
+                </button>
+
+            `;
+
+        }
+
+
+        /* -------------------------------------------------
+           NEXT
+        ------------------------------------------------- */
+
+        if (data.has_next){
+
+            html += `
+
+                <button
+                    type="button"
+                    class="al-page-btn"
+                    data-page="${data.next_page}"
+                >
+
+                    Next
+
+                    <i data-lucide="chevron-right"></i>
+
+                </button>
+
+            `;
+
+        }
+
+        else {
+
+            html += `
+
+                <button
+                    type="button"
+                    class="al-page-btn
+                    al-page-btn--disabled"
+                    disabled
+                >
+
+                    Next
+
+                    <i data-lucide="chevron-right"></i>
+
+                </button>
+
+            `;
+
+        }
+
+
+        pagination.innerHTML =
+            html;
+
+
+        refreshIcons();
+
+    }
+
+
+    /* =====================================================
+       CSRF TOKEN
+    ===================================================== */
+
+    function getCSRFToken(){
+
+        const cookie =
+            document.cookie
+                .split("; ")
+                .find(
+                    row =>
+                        row.startsWith(
+                            "csrftoken="
+                        )
+                );
+
+
+        if (!cookie){
+            return "";
+        }
+
+
+        return decodeURIComponent(
+            cookie.split("=")[1]
+        );
+
+    }
+
+
+    /* =====================================================
+       ESCAPE HTML
+    ===================================================== */
+
+    function escapeHTML(
+        value
+    ){
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+        div.textContent =
+            value ?? "";
+
+        return div.innerHTML;
+
+    }
+
+
+    /* =====================================================
+       LUCIDE
+    ===================================================== */
+
+    function refreshIcons(){
+
+        if (
+            window.lucide &&
+            typeof lucide.createIcons ===
+            "function"
+        ){
+
+            lucide.createIcons();
+
+        }
+
+    }
+
+
+})();
+
+
+
+</script>
+{% endblock %}

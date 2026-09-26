@@ -1,0 +1,313 @@
+{% load static %}
+<div class="fade-in-up builder-container">
+  <aside class="builder-step-rail" aria-label="Application setup progress">
+    <div class="builder-step-rail-brand">
+      <img src="{% static 'images/apply-uw.png' %}" alt="Universities of Wisconsin">
+      <span>APPLICATION<br>PATHWAY</span>
+    </div>
+    <div class="builder-step-rail-title">START YOUR APPLICATION</div>
+    {% with current=builder_step %}
+    <a class="builder-step {% if current == 'university' %}active{% endif %}" href="./?state=builder&step=university"><span>1</span><b>University</b><small>Choose a campus</small></a>
+    <a class="builder-step {% if current == 'school' %}active{% endif %}" href="{% if university %}./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}{% else %}#{% endif %}"><span>2</span><b>School</b><small>College or school</small></a>
+    <a class="builder-step {% if current == 'degree' %}active{% endif %}" href="{% if university %}./?state=builder&step=degree&u={{ university.pk }}&school={{ request.GET.school }}&campus={{ request.GET.campus }}{% else %}#{% endif %}"><span>3</span><b>Degree</b><small>Level of study</small></a>
+    <a class="builder-step {% if current == 'type' %}active{% endif %}" href="{% if degree_level %}./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&school={{ request.GET.school }}&campus={{ request.GET.campus }}{% else %}#{% endif %}"><span>4</span><b>Applicant type</b><small>Tell us about you</small></a>
+    <a class="builder-step {% if current == 'cycle' %}active{% endif %}" href="{% if degree_level %}./?state=builder&step=cycle&u={{ university.pk }}&dl={{ degree_level.pk }}&school={{ request.GET.school }}&at={{ request.GET.at }}&campus={{ request.GET.campus }}{% else %}#{% endif %}"><span>5</span><b>Academic cycle</b><small>Select your term</small></a>
+    <a class="builder-step {% if current == 'program' %}active{% endif %}" href="{% if cycle %}./?state=builder&step=program&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&school={{ request.GET.school }}&at={{ request.GET.at }}&campus={{ request.GET.campus }}{% else %}#{% endif %}"><span>6</span><b>Program</b><small>Choose a major</small></a>
+    {% endwith %}
+    <div class="builder-step-rail-help"><i class="fas fa-circle-info"></i><span>You can save and return at any time.</span></div>
+  </aside>
+  <div class="builder-content">
+  <div class="builder-card-brand"><img src="{% static 'images/apply-uw.png' %}" alt="Universities of Wisconsin"></div>
+  {% if builder_step == "university" %}
+  <div class="university-picker-heading"> 
+    <h1>WHERE DO YOU WANT TO GO?</h1>
+    <p>Pick one campus now. You can reuse your information when applying to additional campuses.</p>
+  </div>
+  <div class="uni-grid" style="{% if universities|length == 1 %}display:flex;justify-content:center{% elif universities|length == 2 %}grid-template-columns:1fr 1fr{% endif %}">
+    {% for u in universities %}
+    <div class="premium-card uni-select-card uw-university-tile" {% if universities|length == 1 %}style="max-width:340px;width:100%"{% endif %}>
+      <div class="uw-university-logo"><img src="{% static 'images/uw-crest.svg' %}" alt=""></div>
+      <div class="uni-select-name">{{ u.university_name }}</div>
+      <select class="uw-campus-select" aria-label="Select campus for {{ u.university_name }}" onchange="if(this.value){window.location.href=this.value}">
+        <option value="">Select Campus</option>
+        <option value="./?state=builder&amp;step=school&amp;u={{ u.pk }}&amp;campus=Main+Campus">Main Campus</option>
+      </select>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="action-bar builder-global-actions">
+    <a href="./" class="uw-btn uw-btn-outline">&larr; Back</a>
+    <span class="builder-action-note">Choose a campus to continue</span>
+  </div>
+
+  {% elif builder_step == "school" %}
+  <div class="bc-wrap">
+    <a href="./" class="bc-link">Universities</a><span class="bc-sep">/</span>
+    <span>{{ university.university_name }}</span>
+  </div>
+  <div class="text-center mb-32"><h1 class="builder-heading">Choose a School</h1><p class="builder-subtitle">Select the school or college within {{ university.university_name }}.</p></div>
+  <div class="uni-grid">
+    {% for s in schools %}
+    <div class="premium-card uni-select-card uw-university-tile uw-school-tile">
+      <div class="uw-university-logo"><i class="fas fa-school"></i></div>
+      <div class="uni-select-name">{{ s.school_name }}</div>
+      {% if s.description %}<div class="uw-tile-description">{{ s.description|truncatechars:80 }}</div>{% endif %}
+      <a href="./?state=builder&step=degree&u={{ university.pk }}&school={{ s.pk }}&campus={{ request.GET.campus }}" class="uw-tile-link">Select <i class="fas fa-arrow-right"></i></a>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="action-bar builder-global-actions">
+    <a href="./?state=builder&step=university" class="uw-btn uw-btn-outline">&larr; Back</a>
+    <span class="builder-action-note">Select a school or college to continue</span>
+  </div>
+
+  {% elif builder_step == "degree" %}
+  <div class="bc-wrap">
+    <a href="./" class="bc-link">Universities</a><span class="bc-sep">/</span>
+    <a href="./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}" class="bc-link">{{ university.university_name }}</a><span class="bc-sep">/</span>
+    <span>Select Degree</span>
+  </div>
+  <div class="text-center mb-32"><h1 class="fs-24 fw-semibold text-222 m-0">{{ university.university_name }}</h1><p class="builder-subtitle">Select the degree level.</p></div>
+  <div class="degree-grid">
+    {% for level in levels %}
+    <a 
+    href="./?state=builder&step=type&u={{ university.pk }}&school={{ request.GET.school }}&dl={{ level.pk }}&campus={{ request.GET.campus }}" 
+    class="premium-card uw-degree-tile" 
+    style="text-decoration:none;color:inherit;text-align:center"
+    >
+      <div class="uw-university-logo"><i class="fas fa-certificate"></i></div>
+      <h3 class="card-title">{{ level.degree_name }}</h3>
+      <p class="card-desc">{% if level.level == 'UG' %}Undergraduate{% elif level.level == 'PG' %}Postgraduate{% else %}Doctorate{% endif %}</p>
+      <p class="card-body-text">{% if level.level == 'UG' %}First-year, Transfer, Re-entry{% elif level.level == 'PG' %}Master's &amp; Professional programs{% else %}Doctoral programs{% endif %}</p>
+      <span class="uw-tile-link" style="pointer-events:none">Continue <i class="fas fa-arrow-right"></i></span>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="action-bar builder-global-actions">
+    <a href="./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}" class="uw-btn uw-btn-outline">&larr; Back</a>
+    <span class="builder-action-note">Select a degree level to continue</span>
+  </div>
+
+  {% elif builder_step == "type" %}
+  <div class="mb-24">
+    <div class="bc-wrap">
+      <a href="./?state=builder&step=university" class="bc-link">Universities</a><span class="bc-sep">/</span>
+      <a href="./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}" class="bc-link">{{ university.university_name }}</a><span class="bc-sep">/</span>
+      <a href="./?state=builder&step=degree&u={{ university.pk }}&school={{ request.GET.school }}&campus={{ request.GET.campus }}" class="bc-link">{{ school.school_name|default:"Degree" }}</a><span class="bc-sep">/</span>
+      <span>{{ degree_level.degree_name }}</span>
+    </div>
+    <h1 class="card-section-title text-center">Application Preferences</h1>
+    <p class="builder-subtitle text-center">Select your applicant type for {{ degree_level.degree_name }}.</p>
+  </div>
+  <form method="POST" action="./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}">{% csrf_token %}
+    <div class="premium-card"> 
+    <div class="premium-card"><div style="width:100%">
+      
+      <div class="option-grid">
+        {% for req in applicant_type_reqs %}
+        <label class="option-label" onclick="document.querySelectorAll('[name=applicant_type]').forEach(function(e){e.closest('label').className='option-label'});this.className='option-label selected';this.querySelector('input').checked=true;var f=this.closest('form');setTimeout(function(){f.submit()},120)">
+          <input type="radio" name="applicant_type" value="{{ req.applicant_type }}" required class="d-none">
+          <div class="icon-container 
+          {% if req.applicant_type == 'first_year' %}icon-container-blue
+          {% elif req.applicant_type == 'transfer' %}icon-container-orange
+          {% elif req.applicant_type == 'reentry' %}icon-container-red
+          {% elif req.applicant_type == 'second_degree' %}icon-container-green
+          {% elif req.applicant_type == 'international_first_year' %}icon-container-purple
+          {% elif req.applicant_type == 'international_transfer' %}icon-container-teal
+          {% endif %}" 
+          style="
+          width:36px;
+          height:36px;
+          font-size:16px;
+          border-radius:10px">
+          <i class="fas fa-user"></i>
+        </div>
+          <div><div class="option-name">{{ req.get_applicant_type_display }}</div><div class="option-sub">{{ req.applicant_type|title }}</div></div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+    <div class="action-bar">
+      <a href="./?state=builder&step=degree&u={{ university.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}" class="uw-btn uw-btn-outline">&larr; Back</a>
+      <span class="builder-action-note">Select a Application type to continue</span>
+    </div>
+  </form>
+
+  {% elif builder_step == "cycle" %}
+  <div class="bc-wrap">
+    <a href="./" class="bc-link">Universities</a><span class="bc-sep">/</span>
+    <a href="./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}" class="bc-link">{{ university.university_name }}</a><span class="bc-sep">/</span>
+    <a href="./?state=builder&step=degree&u={{ university.pk }}&school={{ request.GET.school }}&campus={{ request.GET.campus }}" class="bc-link">{{ school.school_name|default:"School" }}</a><span class="bc-sep">/</span>
+    <a href="./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}" class="bc-link">{{ degree_level.degree_name }}</a><span class="bc-sep">/</span>
+    <span>Select Cycle</span>
+  </div>
+  <h1 class="fs-22 fw-semibold text-222 m-0">Select Admission Cycle</h1>
+  <p class="fs-14 text-666 mt-4 mb-24">Choose the term for your {{ degree_level.degree_name }} application to {{ university.university_name }}.</p>
+  {% if cycles %}
+  <form method="GET" action="./">
+    <input type="hidden" name="state" value="builder">
+    <input type="hidden" name="step" value="program">
+    <input type="hidden" name="u" value="{{ university.pk }}">
+    <input type="hidden" name="dl" value="{{ degree_level.pk }}">
+    <input type="hidden" name="campus" value="{{ request.GET.campus }}">
+    <input type="hidden" name="school" value="{{ request.GET.school }}">
+    <input type="hidden" name="at" value="{{ request.GET.at }}">
+    <div class="uw-form-group">
+      <label>Admission Cycle <span class="text-c05">*</span></label>
+      <select name="cy" class="uw-input" required onchange="if(this.value)this.form.submit()">
+        <option value="">Select an admission cycle...</option>
+        {% for cycle in cycles %}
+        <option value="{{ cycle.pk }}">{{ cycle.term }} {{ cycle.academic_year }} — {{ cycle.name }} (Deadline: {{ cycle.application_deadline|date:"M j, Y" }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="action-bar mt-24">
+      <a href="./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}" class="uw-btn uw-btn-outline">&larr; Back</a>
+      <span class="builder-action-note">Select a Term to continue</span>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-state">No active admission cycles available.</div>
+  <div class="action-bar mt-24">
+    <a href="./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}" class="uw-btn uw-btn-outline">&larr; Back</a>
+  </div>
+  {% endif %}
+
+  {% elif builder_step == "program" %}
+  <div class="bc-wrap">
+    <a href="./" class="bc-link">Universities</a>
+     <span class="bc-sep">/</span>
+    <a href="./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}" class="bc-link">{{ university.university_name }}</a>
+    <span class="bc-sep">/</span>
+    <a href="./?state=builder&step=degree&u={{ university.pk }}&school={{ request.GET.school }}&campus={{ request.GET.campus }}" class="bc-link">{{ school.school_name|default:"School" }}</a>
+     <span class="bc-sep">/</span>
+    <a href="./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}" class="bc-link">{{ degree_level.degree_name }}</a>
+     <span class="bc-sep">/</span>
+    <a href="./?state=builder&step=cycle&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}" class="bc-link">{{ cycle.term }} {{ cycle.academic_year }}</a>
+    <span class="bc-sep">/</span>
+    <span>Select Program</span>
+  </div>
+  <h1 class="fs-22 fw-semibold text-222 m-0">Choose a Major / Program</h1>
+  <p class="fs-14 text-666 mt-4 mb-24">Select one primary program. You may also pick a second-choice (backup) program &mdash; it is only used if you are not admitted to your first choice.</p>
+   {% for dname, progs in program_groups.items %}
+  <div class="dg prog-group" data-dname="{{ dname }}">
+    <h2 class="prog-group-title">{{ dname }}</h2>
+    <div class="prog-group-count">{{ progs|length }} program{{ progs|length|pluralize }}</div>
+    {% for program in progs %}
+    <div class="pi prog-item" data-search="{{ program.program_name }} {{ program.description|default:'' }}" data-pid="{{ program.pk }}" data-pname="{{ program.program_name }}" data-dname="{{ dname }}">
+      <div class="prog-item-inner">
+        <span class="prog-name">{{ program.program_name }}</span>
+        <span class="prog-choice prog-choice-primary" title="Set as first-choice program">Primary</span>
+        <span class="prog-choice prog-choice-backup" title="Set as second-choice (backup) program">Backup</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% empty %}
+  <div class="empty-state"><i class="fas fa-file empty-icon"></i><p>No programs available.</p></div>
+  {% endfor %}
+  <div class="prog-actions">
+    <a href="./?state=builder&step=cycle&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}" class="uw-btn uw-btn-outline">&larr; Back</a>
+    <a id="progContinue" href="#" class="uw-btn uw-btn-primary d-none">Continue <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <form id="createForm" method="POST" action="./?state=builder&step=create&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}" class="d-none">{% csrf_token %}</form>
+
+  {% elif builder_step == "create" %}
+  <div class="fade-in-up">
+    <h1 class="ap-rev__heading">Review Your Choices</h1>
+    <div class="ap-rev__grid">
+      <div class="ap-rev__rows">
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-university"><i class="fas fa-university"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">University</p>
+            <p class="ap-rev__row-value">{{ university.university_name }}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=university">Change</a>
+        </div>
+
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-school"><i class="fas fa-school"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">School</p>
+            <p class="ap-rev__row-value">{{ school.school_name|default:"—" }}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=school&u={{ university.pk }}&campus={{ request.GET.campus }}">Change</a>
+        </div>
+
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-degree"><i class="fas fa-graduation-cap"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">Degree level</p>
+            <p class="ap-rev__row-value">{{ degree_level.degree_name }}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=degree&u={{ university.pk }}&school={{ request.GET.school }}&campus={{ request.GET.campus }}">Change</a>
+        </div>
+
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-type"><i class="fas fa-user"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">Applicant type</p>
+            <p class="ap-rev__row-value">{% if applicant_type_label %}{{ applicant_type_label }}{% else %}First Year{% endif %}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=type&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}">Change</a>
+        </div>
+
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-program"><i class="fas fa-book-open"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">Primary program</p>
+            <p class="ap-rev__row-value">{{ program.program_name }}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=program&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}{% if program %}&pid={{ program.pk }}{% endif %}{% if backup_program %}&bid={{ backup_program.pk }}{% endif %}">Change</a>
+        </div>
+
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-backup"><i class="fas fa-layer-group"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">Backup program</p>
+            <p class="ap-rev__row-value">{% if backup_program %}{{ backup_program.program_name }}{% else %}None selected — only used if you are not admitted to your first choice{% endif %}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=program&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}{% if program %}&pid={{ program.pk }}{% endif %}{% if backup_program %}&bid={{ backup_program.pk }}{% endif %}">Change</a>
+        </div>
+
+        <div class="ap-rev__row">
+          <div class="ap-rev__row-icon ap-rev__icon-cycle"><i class="fas fa-calendar-check"></i></div>
+          <div class="ap-rev__row-body">
+            <p class="ap-rev__row-label">Admission term</p>
+            <p class="ap-rev__row-value">{{ cycle.name }} — Deadline: {{ cycle.application_deadline|date:"F j, Y" }}</p>
+          </div>
+          <a class="ap-rev__edit" href="./?state=builder&step=cycle&u={{ university.pk }}&dl={{ degree_level.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}">Change</a>
+        </div>
+      </div>
+
+      <aside class="ap-rev__panel">
+        <div class="ap-rev__panel-title"><i class="fas fa-list-check"></i> Application Summary</div>
+        <ul class="ap-rev__steps">
+          <li><i class="fas fa-circle-check"></i> University — {{ university.university_name|truncatechars:28 }}</li>
+          <li><i class="fas fa-circle-check"></i> School — {{ school.school_name|default:"—"|truncatechars:28 }}</li>
+          <li><i class="fas fa-circle-check"></i> Degree — {{ degree_level.degree_name|truncatechars:28 }}</li>
+          <li><i class="fas fa-circle-check"></i> Applicant type — {% if applicant_type_label %}{{ applicant_type_label }}{% else %}First Year{% endif %}</li>
+          <li><i class="fas fa-circle-check"></i> Term — {{ cycle.term }} {{ cycle.academic_year }}</li>
+          <li><i class="fas fa-circle-check"></i> Program — {{ program.program_name|truncatechars:28 }}{% if backup_program %} &amp; backup{% endif %}</li>
+        </ul>
+        <div class="ap-rev__deadline">
+          <i class="fas fa-calendar-day"></i>
+          <div><p>Application deadline</p><strong>{{ cycle.application_deadline|date:"F j, Y" }}</strong></div>
+        </div>
+        <div class="ap-rev__note"><i class="fas fa-circle-info"></i> Nothing is saved until you click “Create Application”. You can return to any step above to make changes.</div>
+      </aside>
+    </div>
+
+    <form method="POST" action="{% if backup_program %}./?state=builder&step=create&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}&pid={{ program.pk }}&bid={{ backup_program.pk }}{% else %}./?state=builder&step=create&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}&pid={{ program.pk }}{% endif %}">{% csrf_token %}
+      <div class="create-actions">
+        <a href="./?state=builder&step=program&u={{ university.pk }}&dl={{ degree_level.pk }}&cy={{ cycle.pk }}&campus={{ request.GET.campus }}&school={{ request.GET.school }}&at={{ request.GET.at }}&pid={{ program.pk }}{% if backup_program %}&bid={{ backup_program.pk }}{% endif %}" class="uw-btn uw-btn-outline">Back</a>
+        <button type="submit" class="uw-btn uw-btn-primary" data-uw-loading-text="Submitting&hellip;">Create Application <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+  </div>
+</div>
+

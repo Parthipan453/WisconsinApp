@@ -1,0 +1,2644 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Bulk Enrollment - Select Courses — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<style>
+  /* Breadcrumbs */
+  .enrollment-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-top: 8px;
+    margin-bottom: 24px;
+  }
+
+  .enrollment-breadcrumb a {
+    color: #c5050c;
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.15s ease;
+  }
+
+  .enrollment-breadcrumb a:hover {
+    opacity: 0.75;
+  }
+
+  .enrollment-breadcrumb .separator {
+    color: #d1d5db;
+  }
+
+  .enrollment-breadcrumb .active {
+    color: #c5050c;
+    font-weight: 600;
+  }
+
+  /* Date badge */
+  .dash-date-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+  }
+
+  .dash-date-badge svg {
+    width: 15px;
+    height: 15px;
+    color: #9ca3af;
+  }
+
+  .breadcrumb-wrapper-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .breadcrumb-wrapper-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+  }
+
+  /* Header row */
+  .bulk-header-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 32px;
+    width: 100%;
+  }
+
+  .bulk-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    color: #c5050c;
+    background-color: #ffffff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
+  .back-btn:hover {
+    background-color: #fff5f5;
+    border-color: #f3b8bb;
+  }
+
+  .bulk-header-icon-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background-color: #c5050c;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 6px 14px -6px rgba(197, 5, 12, 0.35);
+  }
+
+  .bulk-header-icon-circle svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .bulk-header-text {
+    min-width: 0;
+  }
+
+  .bulk-header-text h1 {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .bulk-header-text p {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Subheader layout */
+  .section-controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 16px;
+  }
+
+  .section-title-col h2 {
+    font-size: 1.1875rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .section-title-col p {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Curriculum Filters */
+  .bulk-filter-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+  }
+
+  .bulk-filter-grid {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .bulk-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .bulk-filter-field .bulk-filter-label {
+    display: none;
+  }
+
+  .bulk-filter-search {
+    position: relative;
+    flex-direction: row;
+    align-items: center;
+    flex: 1.6;
+  }
+
+  .bulk-filter-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .bulk-filter-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    display: flex;
+    pointer-events: none;
+  }
+
+  .bulk-filter-input {
+    width: 100%;
+    height: 42px;
+    padding: 10px 12px 10px 38px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    color: #1f2937;
+    background: #f9fafb;
+    outline: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .bulk-filter-input::placeholder {
+    color: #9ca3af;
+  }
+
+  .bulk-filter-input:focus {
+    border-color: #c5050c;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.08);
+  }
+
+  .bulk-filter-select {
+    display: none !important;
+  }
+
+  .choices {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+    min-width: 0 !important;
+  }
+
+  .choices__inner {
+    min-height: 42px !important;
+    padding: 10px 32px 10px 12px !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 10px !important;
+    background-color: #f9fafb !important;
+    color: #1f2937 !important;
+    font-size: 0.875rem !important;
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    transition: border-color 0.15s ease, background-color 0.15s ease !important;
+  }
+
+  .choices[is-focused] .choices__inner {
+    border-color: #c5050c !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.08) !important;
+  }
+
+  .choices__list--single {
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .choices__list--dropdown, .choices__list[aria-expanded] {
+    border-radius: 10px !important;
+    z-index: 1000 !important;
+    border-color: #e5e7eb !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) !important;
+  }
+
+  .choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+  }
+
+  /* Choices.js responsive overrides */
+  @media (max-width: 600px) {
+    .choices__inner {
+      padding: 9px 30px 9px 10px !important;
+      font-size: 0.8125rem !important;
+      min-height: 38px !important;
+    }
+  }
+  @media (max-width: 480px) {
+    .choices__inner {
+      padding: 8px 28px 8px 8px !important;
+      font-size: 0.75rem !important;
+      min-height: 34px !important;
+    }
+  }
+  @media (max-width: 360px) {
+    .choices__inner {
+      padding: 7px 26px 7px 8px !important;
+      font-size: 0.6875rem !important;
+      min-height: 32px !important;
+    }
+  }
+  @media (max-width: 200px) {
+    .choices__inner {
+      padding: 6px 22px 6px 6px !important;
+      font-size: 0.625rem !important;
+      min-height: 28px !important;
+    }
+  }
+  @media (max-width: 165px) {
+    .choices__inner {
+      padding: 5px 20px 5px 4px !important;
+      font-size: 0.5625rem !important;
+      min-height: 26px !important;
+    }
+  }
+
+  .bulk-filter-actions {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+
+  .bulk-btn-apply {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 10px;
+    background: #c5050c;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+  }
+
+  .bulk-btn-apply:hover {
+    background: #9b0409;
+  }
+
+  .bulk-btn-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .bulk-btn-reset:hover {
+    background: #f9fafb;
+    color: #374151;
+  }
+
+  @media (max-width: 1100px) {
+    .bulk-filter-grid {
+      flex-wrap: wrap;
+    }
+    .bulk-filter-field {
+      flex: 1 1 calc(50% - 10px);
+      min-width: 140px;
+    }
+    .bulk-filter-search {
+      flex: 1 1 100%;
+    }
+    .bulk-filter-actions {
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .bulk-filter-grid {
+      flex-direction: column;
+    }
+    .bulk-filter-field {
+      flex: 1 1 100%;
+    }
+    .bulk-filter-actions {
+      width: 100%;
+      display: flex;
+      gap: 10px;
+    }
+    .bulk-btn-apply,
+    .bulk-btn-reset {
+      flex: 1;
+    }
+  }
+
+  /* Info Alert Banner */
+  .bulk-alert-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background-color: #fff7f7;
+    border: 1px solid #fbe0e0;
+    border-left: 3px solid #c5050c;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 28px;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .bulk-alert-banner svg {
+    width: 18px;
+    height: 18px;
+    color: #c5050c;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Courses Cards Grid - 4 Columns */
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  @media (max-width: 1200px) {
+    .courses-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .courses-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .courses-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Course Card */
+  .course-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .course-card:hover {
+    transform: translateY(-2px);
+    border-color: #d1d5db;
+    box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Checked/selected state */
+  .course-card.checked {
+    border-color: #c5050c;
+    background: #fffdfd;
+    box-shadow: 0 8px 20px -12px rgba(197, 5, 12, 0.25);
+  }
+
+  /* Top-left checkbox positioning */
+  .card-checkbox-container {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 1;
+  }
+
+  .custom-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #d1d5db;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    transition: all 0.15s ease;
+  }
+
+  .course-card.checked .custom-checkbox {
+    background-color: #c5050c;
+    border-color: #c5050c;
+  }
+
+  .custom-checkbox svg {
+    width: 13px;
+    height: 13px;
+    color: #ffffff;
+    display: none;
+  }
+
+  .course-card.checked .custom-checkbox svg {
+    display: block;
+  }
+
+  /* Central Circle Icon */
+  .course-icon-badge-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+    margin-top: 8px;
+  }
+
+  .course-icon-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background-color: #fff0f0;
+    color: #c5050c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+  }
+
+  .course-icon-badge svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Course Card Headings */
+  .course-card-code {
+    text-align: center;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .course-card-name {
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 16px 0;
+    min-height: 38px;
+    line-height: 1.45;
+  }
+
+  /* Course Stats split row */
+  .course-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 12px;
+    margin-bottom: 16px;
+  }
+
+  .course-stat-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #6b7280;
+  }
+
+  .course-stat-col.left {
+    border-right: 1px solid #e5e7eb;
+  }
+
+  .course-stat-col svg {
+    width: 14px;
+    height: 14px;
+    color: #9ca3af;
+  }
+
+  .course-stat-col strong {
+    color: #111827;
+    font-weight: 700;
+  }
+
+  /* Shaded Bottom Bar inside Card */
+  .course-card-bottom-bar {
+    width: calc(100% + 40px);
+    margin: auto -20px -20px;
+    padding: 10px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    border-top: 1px solid #f3f4f6;
+    background-color: #f9fafb;
+    color: #6b7280;
+    transition: all 0.2s ease;
+  }
+
+  .course-card.checked .course-card-bottom-bar {
+    background-color: #fff0f0;
+    color: #c5050c;
+    border-top-color: #f6d3d4;
+  }
+
+  /* Empty state */
+  .courses-grid-empty {
+    text-align: center;
+    padding: 56px 24px;
+    background: #ffffff;
+    border: 1px dashed #e5e7eb;
+    border-radius: 14px;
+    margin-top: 16px;
+  }
+
+  .courses-grid-empty p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #6b7280;
+  }
+
+  /* ── Courses Table (student-records style) ── */
+  .bulk-courses-table-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e8e8f0;
+    width: 100%;
+  }
+
+  .bulk-courses-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 700px;
+  }
+
+  .bulk-courses-table thead {
+    background: #f8f8f8;
+  }
+
+  .bulk-courses-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #4a4a6a;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid #e8e8f0;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .bulk-courses-table th:hover {
+    background: #f0f0f0;
+  }
+
+  .bulk-courses-table th i {
+    font-size: 12px;
+    color: #999;
+    margin-left: 4px;
+  }
+
+  .bulk-courses-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f5f5f5;
+    color: #1a1a2e;
+    vertical-align: middle;
+  }
+
+  .bulk-courses-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .year-separator td {
+    padding: 10px 16px 6px !important;
+    background: #f8f9fc;
+    font-weight: 700;
+    font-size: 13px;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: default;
+    pointer-events: none;
+  }
+  .year-separator:hover { background: #f8f9fc; }
+
+  .bulk-courses-table tbody tr {
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .bulk-courses-table tbody tr:hover {
+    background: #fafafa;
+  }
+
+  .bulk-courses-table tbody tr.checked {
+    background: #fef2f2;
+  }
+
+  .bulk-courses-table tbody tr.checked td .custom-checkbox {
+    background: #c5050c;
+    border-color: #c5050c;
+  }
+
+  .bulk-courses-table tbody tr.checked td .custom-checkbox svg {
+    display: block;
+  }
+
+  .bulk-th-checkbox, .bulk-td-checkbox {
+    width: 40px;
+    text-align: center;
+  }
+
+  .bulk-td-checkbox .custom-checkbox,
+  .bulk-th-checkbox .custom-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.15s ease;
+  }
+
+  .bulk-td-checkbox .custom-checkbox svg,
+  .bulk-th-checkbox .custom-checkbox svg {
+    display: none;
+    width: 12px;
+    height: 12px;
+    color: #fff;
+  }
+
+  .bulk-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .bulk-tag.elective {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .bulk-tag.core {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  /* Pagination */
+  .courses-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+  }
+
+  .courses-pagination .page-info {
+    font-size: 13px;
+    color: #555;
+  }
+
+  .courses-pagination .page-btns {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .courses-pagination .page-btns button,
+  .courses-pagination .page-btns a {
+    padding: 6px 12px;
+    border: 1px solid #ebebeb;
+    border-radius: 6px;
+    font-size: 12px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 32px;
+    text-align: center;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .courses-pagination .page-btns button:hover:not(:disabled),
+  .courses-pagination .page-btns a:hover {
+    border-color: #c5050c;
+    background: #fafafa;
+  }
+
+  .courses-pagination .page-btns .active {
+    background: #c5050c;
+    color: #fff;
+    border-color: #c5050c;
+  }
+
+  .courses-pagination .page-btns button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 600px) {
+    .courses-pagination {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+    .courses-pagination .page-btns {
+      justify-content: center;
+    }
+  }
+
+  /* Bottom action bar (above footer) */
+  .bulk-floating-action-bar {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15);
+    margin-bottom: 28px;
+  }
+
+  .bulk-selection-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .bulk-status-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease;
+  }
+
+  .bulk-selection-status.has-selection .bulk-status-circle {
+    background-color: #c5050c;
+  }
+
+  .bulk-status-circle svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .bulk-status-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+
+  .bulk-status-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .bulk-status-subtitle {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .bulk-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-clear-selection {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    padding: 10px 16px;
+    border-radius: 10px;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-clear-selection:hover {
+    background-color: #fff5f5;
+    border-color: #f3b8bb;
+    color: #c5050c;
+  }
+
+  .btn-clear-selection svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .btn-continue-wizard {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #c5050c;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-continue-wizard:hover {
+    background-color: #9b0409;
+  }
+
+  .btn-continue-wizard:disabled {
+    background-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .btn-continue-wizard svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 900px) {
+    .breadcrumb-wrapper-row {
+      margin-bottom: 20px;
+    }
+
+    .dash-date-badge {
+      white-space: normal;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .enrollment-breadcrumb {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .bulk-header-row {
+      margin-bottom: 24px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .back-btn {
+      padding: 8px 14px;
+      font-size: 0.8125rem;
+    }
+
+    .bulk-header-left {
+      gap: 12px;
+    }
+
+    .bulk-header-icon-circle {
+      width: 46px;
+      height: 46px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 1.25rem;
+    }
+
+    .section-title-col h2 {
+      font-size: 1.0625rem;
+    }
+
+    .section-title-col p {
+      font-size: 0.75rem;
+    }
+
+    .bulk-filter-card {
+      padding: 14px;
+    }
+
+    .course-card {
+      padding: 18px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 36px);
+      margin: auto -18px -18px;
+    }
+
+    .bulk-alert-banner {
+      font-size: 0.8125rem;
+      padding: 12px 14px;
+    }
+
+    .bulk-floating-action-bar {
+      padding: 14px 16px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .bulk-selection-status {
+      justify-content: center;
+    }
+
+    .bulk-action-buttons {
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .enrollment-breadcrumb {
+      font-size: 0.6875rem;
+      gap: 5px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+    }
+
+    .dash-date-badge svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .back-btn {
+      padding: 7px 12px;
+      font-size: 0.75rem;
+      gap: 6px;
+    }
+
+    .bulk-header-icon-circle {
+      width: 42px;
+      height: 42px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 1.125rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.75rem;
+    }
+
+    .section-title-col h2 {
+      font-size: 1rem;
+    }
+
+    .section-controls-row {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+    }
+
+    .bulk-filter-grid {
+      gap: 10px;
+    }
+
+    .bulk-filter-input,
+    .bulk-filter-select {
+      padding: 9px 10px 9px 34px;
+      font-size: 0.8125rem;
+    }
+
+    .bulk-filter-select {
+      padding: 9px 30px 9px 10px;
+    }
+
+    .bulk-btn-apply,
+    .bulk-btn-reset {
+      height: 36px;
+      font-size: 0.8125rem;
+      padding: 0 12px;
+    }
+
+    .bulk-alert-banner {
+      font-size: 0.75rem;
+      padding: 10px 12px;
+      gap: 10px;
+    }
+
+    .bulk-alert-banner svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .course-card {
+      padding: 16px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 32px);
+      margin: auto -16px -16px;
+      font-size: 0.75rem;
+      padding: 8px;
+    }
+
+    .course-card-code {
+      font-size: 1rem;
+    }
+
+    .course-card-name {
+      font-size: 0.75rem;
+    }
+
+    .course-icon-badge {
+      width: 42px;
+      height: 42px;
+    }
+
+    .course-icon-badge svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .course-stats-row {
+      padding-top: 10px;
+      margin-bottom: 12px;
+    }
+
+    .course-stat-col {
+      font-size: 0.75rem;
+      gap: 5px;
+    }
+
+    .course-stat-col svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .bulk-action-buttons {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .btn-clear-selection,
+    .btn-continue-wizard {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .bulk-header-left {
+      gap: 10px;
+    }
+
+    .back-btn {
+      padding: 6px 10px;
+      font-size: 0.6875rem;
+    }
+
+    .bulk-header-icon-circle {
+      width: 38px;
+      height: 38px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 1.0625rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.6875rem;
+    }
+
+    .section-title-col h2 {
+      font-size: 0.9375rem;
+    }
+
+    .section-title-col p {
+      font-size: 0.6875rem;
+    }
+
+    .bulk-filter-card {
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .bulk-filter-input,
+    .bulk-filter-select {
+      font-size: 0.75rem;
+      padding: 8px 8px 8px 30px;
+      border-radius: 8px;
+    }
+
+    .bulk-filter-select {
+      padding: 8px 28px 8px 8px;
+    }
+
+    .bulk-filter-icon {
+      left: 9px;
+    }
+
+    .bulk-filter-icon svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .bulk-btn-apply,
+    .bulk-btn-reset {
+      font-size: 0.75rem;
+      padding: 0 10px;
+      height: 34px;
+    }
+
+    .bulk-alert-banner {
+      font-size: 0.6875rem;
+      padding: 9px 10px;
+    }
+
+    .course-card {
+      padding: 14px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 28px);
+      margin: auto -14px -14px;
+    }
+
+    .course-icon-badge {
+      width: 38px;
+      height: 38px;
+    }
+
+    .course-icon-badge svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .course-card-name {
+      font-size: 0.6875rem;
+    }
+
+    .course-stat-col {
+      font-size: 0.6875rem;
+    }
+
+    .courses-pagination .page-btns button {
+      padding: 5px 9px;
+      font-size: 11px;
+      min-width: 28px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .bulk-header-text h1 {
+      font-size: 1rem;
+    }
+
+    .card-checkbox-container {
+      top: 12px;
+      left: 12px;
+    }
+
+    .custom-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+    }
+
+    .custom-checkbox svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .course-card-code {
+      font-size: 0.9375rem;
+    }
+
+    .course-stat-col {
+      font-size: 0.625rem;
+    }
+
+    .course-stat-col svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .bulk-status-title {
+      font-size: 0.875rem;
+    }
+
+    .bulk-status-subtitle {
+      font-size: 0.6875rem;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .enrollment-breadcrumb {
+      font-size: 0.625rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.6875rem;
+      padding: 5px 8px;
+    }
+
+    .back-btn {
+      font-size: 0.625rem;
+      padding: 5px 8px;
+    }
+
+    .bulk-header-left {
+      gap: 10px;
+    }
+
+    .bulk-header-icon-circle {
+      width: 34px;
+      height: 34px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.9375rem;
+    }
+
+    .course-card {
+      padding: 12px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 24px);
+      margin: auto -12px -12px;
+      font-size: 0.6875rem;
+    }
+
+    .course-icon-badge {
+      width: 34px;
+      height: 34px;
+    }
+
+    .course-icon-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .course-card-name {
+      font-size: 0.625rem;
+    }
+
+    .bulk-status-circle {
+      width: 26px;
+      height: 26px;
+    }
+
+    .bulk-status-circle svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  @media (max-width: 280px) {
+    .breadcrumb-wrapper-row {
+      margin-bottom: 16px;
+    }
+
+    .enrollment-breadcrumb {
+      font-size: 0.5625rem;
+      gap: 4px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.625rem;
+      padding: 4px 6px;
+      gap: 4px;
+    }
+
+    .dash-date-badge svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .back-btn {
+      font-size: 0.5625rem;
+      padding: 5px;
+      gap: 5px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.875rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.625rem;
+    }
+
+    .bulk-header-icon-circle {
+      width: 30px;
+      height: 30px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .section-title-col h2 {
+      font-size: 0.875rem;
+    }
+
+    .section-title-col p {
+      font-size: 0.625rem;
+    }
+
+    .bulk-filter-label {
+      font-size: 0.625rem;
+    }
+
+    .bulk-filter-input,
+    .bulk-filter-select {
+      font-size: 0.6875rem;
+      padding: 7px 6px 7px 26px;
+    }
+
+    .bulk-filter-select {
+      padding: 7px 24px 7px 6px;
+    }
+
+    .bulk-btn-apply,
+    .bulk-btn-reset {
+      font-size: 0.6875rem;
+      padding: 0 8px;
+    }
+
+    .bulk-alert-banner {
+      font-size: 0.625rem;
+      padding: 8px;
+    }
+
+    .card-checkbox-container {
+      top: 10px;
+      left: 10px;
+    }
+
+    .custom-checkbox {
+      width: 16px;
+      height: 16px;
+    }
+
+    .course-card {
+      padding: 10px;
+      border-radius: 12px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 20px);
+      margin: auto -10px -10px;
+      font-size: 0.625rem;
+      padding: 7px;
+    }
+
+    .course-card-code {
+      font-size: 0.875rem;
+    }
+
+    .course-card-name {
+      font-size: 0.5625rem;
+    }
+
+    .course-icon-badge {
+      width: 30px;
+      height: 30px;
+    }
+
+    .course-icon-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .course-stats-row {
+      padding-top: 8px;
+      margin-bottom: 10px;
+    }
+
+    .course-stat-col {
+      font-size: 0.5625rem;
+      gap: 4px;
+    }
+
+    .course-stat-col svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .courses-pagination .page-info {
+      font-size: 11px;
+    }
+
+    .courses-pagination .page-btns button {
+      padding: 4px 8px;
+      font-size: 10px;
+      min-width: 26px;
+    }
+  }
+
+  @media (max-width: 240px) {
+    .enrollment-breadcrumb {
+      font-size: 0.5rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.5625rem;
+      padding: 3px 5px;
+    }
+
+    .dash-date-badge svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .back-btn {
+      font-size: 0.5rem;
+      padding: 4px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.8125rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.5625rem;
+    }
+
+    .bulk-header-icon-circle {
+      width: 28px;
+      height: 28px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .section-title-col h2 {
+      font-size: 0.8125rem;
+    }
+
+    .card-checkbox-container {
+      top: 8px;
+      left: 8px;
+    }
+
+    .course-card {
+      padding: 8px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 16px);
+      margin: auto -8px -8px;
+      font-size: 0.5625rem;
+      padding: 6px;
+    }
+
+    .course-icon-badge {
+      width: 28px;
+      height: 28px;
+    }
+
+    .course-icon-badge svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .course-card-name {
+      font-size: 0.5rem;
+    }
+
+    .course-stat-col {
+      font-size: 0.5rem;
+    }
+
+    .course-stat-col svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .bulk-status-title {
+      font-size: 0.8125rem;
+    }
+
+    .bulk-status-subtitle {
+      font-size: 0.625rem;
+    }
+
+    .btn-clear-selection,
+    .btn-continue-wizard {
+      font-size: 0.75rem;
+      padding: 8px 10px;
+    }
+  }
+
+  @media (max-width: 220px) {
+    .enrollment-breadcrumb {
+      font-size: 0.4375rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.5rem;
+    }
+
+    .back-btn {
+      font-size: 0.4375rem;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.75rem;
+    }
+
+    .course-card {
+      padding: 6px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 12px);
+      margin: auto -6px -6px;
+    }
+
+    .course-card-code {
+      font-size: 0.75rem;
+    }
+
+    .course-card-name {
+      font-size: 0.4375rem;
+    }
+
+    .course-stat-col {
+      font-size: 0.4375rem;
+    }
+  }
+
+  @media (max-width: 200px) {
+    .breadcrumb-wrapper-row {
+      margin-bottom: 14px;
+    }
+
+    .enrollment-breadcrumb {
+      font-size: 0.375rem;
+      gap: 3px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.4375rem;
+      padding: 2px 4px;
+    }
+
+    .dash-date-badge svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    .back-btn {
+      font-size: 0.375rem;
+      padding: 3px 4px;
+    }
+
+    .back-btn svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .bulk-header-left {
+      gap: 8px;
+    }
+
+    .bulk-header-icon-circle {
+      width: 24px;
+      height: 24px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.6875rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.5rem;
+    }
+
+    .section-title-col h2 {
+      font-size: 0.75rem;
+    }
+
+    .section-title-col p {
+      font-size: 0.5625rem;
+    }
+
+    .bulk-filter-card {
+      padding: 8px;
+    }
+
+    .bulk-filter-input,
+    .bulk-filter-select {
+      font-size: 0.625rem;
+      padding: 6px 5px 6px 24px;
+    }
+
+    .bulk-filter-select {
+      padding: 6px 22px 6px 5px;
+    }
+
+    .bulk-filter-icon {
+      left: 7px;
+    }
+
+    .bulk-btn-apply,
+    .bulk-btn-reset {
+      font-size: 0.625rem;
+      padding: 0 6px;
+      height: 30px;
+    }
+
+    .bulk-alert-banner {
+      font-size: 0.5625rem;
+      padding: 7px;
+      gap: 8px;
+    }
+
+    .bulk-alert-banner svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .course-card {
+      padding: 6px;
+    }
+
+    .course-card-bottom-bar {
+      font-size: 0.5rem;
+      padding: 5px;
+    }
+
+    .course-icon-badge {
+      width: 26px;
+      height: 26px;
+    }
+
+    .course-icon-badge svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .course-card-code {
+      font-size: 0.6875rem;
+    }
+
+    .course-card-name {
+      font-size: 0.375rem;
+    }
+
+    .courses-pagination .page-btns button {
+      padding: 3px 6px;
+      font-size: 9px;
+      min-width: 22px;
+    }
+
+    .courses-pagination .page-info {
+      font-size: 9px;
+    }
+
+    .btn-clear-selection,
+    .btn-continue-wizard {
+      font-size: 0.6875rem;
+      padding: 7px 8px;
+    }
+
+    .btn-clear-selection svg,
+    .btn-continue-wizard svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+
+  @media (max-width: 180px) {
+    .enrollment-breadcrumb {
+      font-size: 0.3125rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.375rem;
+      padding: 2px 3px;
+    }
+
+    .dash-date-badge svg {
+      width: 8px;
+      height: 8px;
+    }
+
+    .back-btn {
+      font-size: 0.3125rem;
+    }
+
+    .bulk-header-icon-circle {
+      width: 22px;
+      height: 22px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.625rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.4375rem;
+    }
+
+    .course-card-code {
+      font-size: 0.625rem;
+    }
+
+    .course-stat-col {
+      font-size: 0.375rem;
+    }
+
+    .bulk-status-title {
+      font-size: 0.75rem;
+    }
+
+    .bulk-status-subtitle {
+      font-size: 0.5625rem;
+    }
+
+    .bulk-status-circle {
+      width: 22px;
+      height: 22px;
+    }
+
+    .bulk-status-circle svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  @media (max-width: 165px) {
+    .enrollment-breadcrumb {
+      font-size: 0.3125rem;
+      gap: 2px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.3125rem;
+      padding: 2px;
+    }
+
+    .dash-date-badge svg {
+      width: 7px;
+      height: 7px;
+    }
+
+    .back-btn {
+      font-size: 0.3125rem;
+      padding: 2px 3px;
+    }
+
+    .back-btn svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .bulk-header-text h1 {
+      font-size: 0.5625rem;
+    }
+
+    .bulk-header-text p {
+      font-size: 0.375rem;
+    }
+
+    .bulk-header-icon-circle {
+      width: 20px;
+      height: 20px;
+    }
+
+    .bulk-header-icon-circle svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .section-title-col h2 {
+      font-size: 0.6875rem;
+    }
+
+    .section-title-col p {
+      font-size: 0.5rem;
+    }
+
+    .bulk-filter-input,
+    .bulk-filter-select {
+      font-size: 0.5625rem;
+      padding: 5px 4px 5px 22px;
+    }
+
+    .bulk-filter-select {
+      padding: 5px 20px 5px 4px;
+    }
+
+    .bulk-btn-apply,
+    .bulk-btn-reset {
+      font-size: 0.5625rem;
+      height: 28px;
+    }
+
+    .bulk-alert-banner {
+      font-size: 0.5rem;
+    }
+
+    .course-card {
+      padding: 5px;
+      border-radius: 10px;
+    }
+
+    .course-card-bottom-bar {
+      width: calc(100% + 10px);
+      margin: auto -5px -5px;
+      font-size: 0.4375rem;
+      padding: 4px;
+    }
+
+    .course-icon-badge {
+      width: 24px;
+      height: 24px;
+    }
+
+    .course-icon-badge svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .course-card-code {
+      font-size: 0.5625rem;
+    }
+
+    .course-card-name {
+      font-size: 0.3125rem;
+    }
+
+    .course-stat-col {
+      font-size: 0.3125rem;
+    }
+
+    .course-stat-col svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    .courses-pagination .page-btns button {
+      padding: 2px 5px;
+      font-size: 8px;
+      min-width: 18px;
+    }
+
+    .courses-pagination .page-info {
+      font-size: 8px;
+    }
+
+    .btn-clear-selection,
+    .btn-continue-wizard {
+      font-size: 0.625rem;
+      padding: 6px;
+      gap: 5px;
+    }
+
+    .btn-clear-selection svg,
+    .btn-continue-wizard svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  /* Modal */
+  .step4-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+  }
+
+  .step4-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 640px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.3);
+  }
+
+  .step4-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+  }
+
+  .step4-modal-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .step4-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .step4-modal-close:hover {
+    color: #c5050c;
+  }
+
+  .step4-modal-body {
+    padding: 18px 22px;
+    overflow-y: auto;
+  }
+
+  .step4-modal-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .step4-modal-message svg {
+    width: 18px;
+    height: 18px;
+    color: #c5050c;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step4-modal-footer {
+    padding: 16px 22px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+</style>
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_enrollment %}active{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb & Date -->
+<div class="breadcrumb-wrapper-row">
+  <div class="enrollment-breadcrumb">
+    <a href="{% url 'staff_enrollment' request.user.uuid %}">Enrollment Support</a>
+    <span class="separator">&gt;</span>
+    <a href="{% url 'staff_enrollment' request.user.uuid %}">Department</a>
+    <span class="separator">&gt;</span>
+    <a href="{% url 'staff_department_enrollment' request.user.uuid department.department_id %}">{{ department.department_name }}</a>
+    <span class="separator">&gt;</span>
+    <span class="active">{{ program.program_name }}</span>
+    <span class="separator">&gt;</span>
+    <span class="active" style="color: #6b7280; font-weight: 500;">Bulk Enrollment</span>
+  </div>
+  <div class="dash-date-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    {{ today|date:"d M Y, l" }}
+  </div>
+</div>
+
+<!-- Header block -->
+<div class="bulk-header-row">
+  <a href="{% url 'staff_department_enrollment' request.user.uuid department.department_id %}" class="back-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="19" y1="12" x2="5" y2="12"></line>
+      <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+    Back to Programs
+  </a>
+  <div class="bulk-header-left">
+    <div class="bulk-header-icon-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 10l-10-5-10 5 10 5 10-5z"/>
+        <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+      </svg>
+    </div>
+    <div class="bulk-header-text">
+      <h1>Bulk Enrollment - Select Courses</h1>
+      <p>Select one or more courses to enroll students in bulk</p>
+    </div>
+  </div>
+</div>
+
+<!-- Select Courses Subheader -->
+<div class="section-controls-row">
+  <div class="section-title-col">
+    <h2>1. Select Courses</h2>
+    <p>Choose multiple courses from {{ program.program_name }} program</p>
+  </div>
+</div>
+
+<!-- Curriculum Filters -->
+<div class="bulk-filter-card">
+  <div class="bulk-filter-grid">
+
+    <div class="bulk-filter-field bulk-filter-search">
+      <span class="bulk-filter-icon">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <input type="text" id="courseSearchInput" class="bulk-filter-input"
+             placeholder="Search courses..." oninput="filterCourses()" autocomplete="off">
+    </div>
+
+    <div class="bulk-filter-field">
+      <label class="bulk-filter-label">Curriculum Year</label>
+      <select id="studyYearSelect" class="bulk-filter-select" onchange="filterCourses()">
+        <option value="">All Years</option>
+        {% for value, label in study_year_choices %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="bulk-filter-field">
+      <label class="bulk-filter-label">Semester</label>
+      <select id="semesterSelect" class="bulk-filter-select" onchange="filterCourses()">
+        <option value="">All Semesters</option>
+        {% for value, label in semester_choices %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="bulk-filter-field">
+      <label class="bulk-filter-label">Status</label>
+      <select id="statusSelect" class="bulk-filter-select" onchange="filterCourses()">
+        <option value="">All Status</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="bulk-filter-field">
+      <label class="bulk-filter-label">Elective</label>
+      <select id="electiveSelect" class="bulk-filter-select" onchange="filterCourses()">
+        <option value="">All</option>
+        <option value="yes">Elective Only</option>
+        <option value="no">Core Only</option>
+      </select>
+    </div>
+
+    <div class="bulk-filter-actions">
+      <button type="button" class="bulk-btn-apply" onclick="filterCourses()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h18M6 9.75h12M10 15h4"/>
+        </svg>
+        Apply
+      </button>
+      <button type="button" class="bulk-btn-reset" onclick="resetFilters()">
+        Reset
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Info Alert Banner -->
+<div class="bulk-alert-banner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="16" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+  </svg>
+  <span>Select the courses you want to enroll students in. You can select multiple courses.</span>
+</div>
+
+<!-- Courses Table -->
+<div class="bulk-courses-table-wrap">
+  <table class="bulk-courses-table" id="coursesTable">
+    <thead>
+      <tr>
+        <th class="bulk-th-checkbox">
+          <div class="custom-checkbox" onclick="toggleSelectAllCourses(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </th>
+        <th onclick="sortCoursesTable(0)">Course Code <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortCoursesTable(1)">Course Name <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortCoursesTable(2)">Credits <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortCoursesTable(3)">Sections <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortCoursesTable(4)">Curriculum Year <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortCoursesTable(5)">Semester <i class="ti ti-chevron-up-down"></i></th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody id="coursesTableBody">
+      {% regroup courses by study_years.0 as year_groups %}
+      {% for year_group in year_groups %}
+      <tr class="year-separator"><td colspan="8"><span>Year {{ year_group.grouper }}</span></td></tr>
+      {% for course in year_group.list %}
+      <tr class="course-row"
+      <tr class="course-row"
+          data-id="{{ course.id }}"
+          data-credits="{{ course.credits }}"
+          data-code="{{ course.code }}"
+          data-name="{{ course.name }}"
+          data-study-years="{{ course.study_years|join:',' }}"
+          data-terms="{{ course.terms|join:',' }}"
+          data-statuses="{{ course.statuses|join:',' }}"
+          data-elective="{% if course.has_elective %}yes{% else %}no{% endif %}"
+          data-core="{% if course.has_core %}yes{% else %}no{% endif %}"
+          onclick="toggleRow(this)">
+        <td class="bulk-td-checkbox">
+          <div class="custom-checkbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </td>
+        <td><strong>{{ course.code }}</strong></td>
+        <td>{{ course.name }}</td>
+        <td>{{ course.credits }}</td>
+        <td>{{ course.sections_count }}</td>
+        <td>Year {{ course.study_years.0 }}</td>
+        <td>{{ course.terms.0 }}</td>
+        <td>
+          {% if course.has_elective %}<span class="bulk-tag elective">Elective</span>{% endif %}
+          {% if course.has_core %}<span class="bulk-tag core">Core</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center; padding:40px; color:#9ca3af;">No courses registered for this academic program.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Filter Empty State -->
+<div class="courses-grid-empty" id="filterEmptyState" style="display:none;">
+  <p>No courses match your filters.</p>
+</div>
+
+<!-- Courses Pagination -->
+<div class="courses-pagination" id="coursesPagination">
+  <div class="page-info" id="coursesPageInfo">Showing 0 – 0 of 0 courses</div>
+  <div class="page-btns" id="coursesPageButtons"></div>
+</div>
+
+<!-- Floating Action Bar -->
+<div class="bulk-floating-action-bar">
+  <div class="bulk-selection-status">
+    <div class="bulk-status-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <div class="bulk-status-info">
+      <span class="bulk-status-title" id="selectedCountText">0 Courses Selected</span>
+      <span class="bulk-status-subtitle" id="totalCreditsText">Total Credits: 0</span>
+    </div>
+  </div>
+
+  <div class="bulk-action-buttons">
+    <button class="btn-clear-selection" onclick="clearAllSelections(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+      Clear Selection
+    </button>
+    <button class="btn-continue-wizard" id="btnContinueWizard" onclick="proceedToSections()">
+      Continue to Select Sections
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- Custom Alert Modal -->
+<div class="step4-modal-overlay" id="customAlertModal" style="display: none;">
+  <div class="step4-modal" style="max-width: 480px;">
+    <div class="step4-modal-header">
+      <h3 id="customAlertTitle">Attention</h3>
+      <button class="step4-modal-close" onclick="closeCustomAlert()">&times;</button>
+    </div>
+    <div class="step4-modal-body">
+      <div class="step4-modal-message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: #c5050c; flex-shrink: 0;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span id="customAlertMessage" style="font-size: 0.9375rem; color: #374151; font-weight: 500;"></span>
+      </div>
+    </div>
+    <div class="step4-modal-footer">
+      <button class="btn-continue-wizard" style="padding: 8px 20px;" onclick="closeCustomAlert()">OK</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ── Sort Table ── */
+  let coursesSortCol = -1, coursesSortAsc = true;
+  function sortCoursesTable(colIndex) {
+    if (coursesSortCol === colIndex) coursesSortAsc = !coursesSortAsc;
+    else { coursesSortCol = colIndex; coursesSortAsc = true; }
+
+    const tbody = document.getElementById('coursesTableBody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('.course-row'));
+
+    rows.sort((a, b) => {
+      const aCells = a.querySelectorAll('td');
+      const bCells = b.querySelectorAll('td');
+      const cellIndex = colIndex + 1;
+      let aVal, bVal;
+
+      if (colIndex === 2) {
+        aVal = parseInt(a.dataset.credits) || 0;
+        bVal = parseInt(b.dataset.credits) || 0;
+        return coursesSortAsc ? aVal - bVal : bVal - aVal;
+      } else if (colIndex === 3) {
+        aVal = parseInt(aCells[cellIndex]?.textContent) || 0;
+        bVal = parseInt(bCells[cellIndex]?.textContent) || 0;
+        return coursesSortAsc ? aVal - bVal : bVal - aVal;
+      } else {
+        aVal = (aCells[cellIndex]?.textContent || '').trim().toLowerCase();
+        bVal = (bCells[cellIndex]?.textContent || '').trim().toLowerCase();
+        return coursesSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+    renderCourses();
+  }
+  window.sortCoursesTable = sortCoursesTable;
+
+  function toggleRow(row) {
+    row.classList.toggle('checked');
+    updateSelectAllState();
+    updateSelectionSummary();
+  }
+
+  function toggleSelectAllCourses(event) {
+    if (event) { event.stopPropagation(); }
+    const visibleRows = getFilteredCourses();
+    const allChecked = visibleRows.length > 0 && visibleRows.every(r => r.classList.contains('checked'));
+    visibleRows.forEach(r => {
+      if (allChecked) r.classList.remove('checked');
+      else r.classList.add('checked');
+    });
+    updateSelectAllState();
+    updateSelectionSummary();
+  }
+
+  function updateSelectAllState() {
+    const visibleRows = getFilteredCourses();
+    const allChecked = visibleRows.length > 0 && visibleRows.every(r => r.classList.contains('checked'));
+    const cb = document.querySelector('.bulk-th-checkbox .custom-checkbox');
+    if (!cb) return;
+    cb.style.backgroundColor = allChecked ? '#c5050c' : '#fff';
+    cb.style.borderColor = allChecked ? '#c5050c' : '#d1d5db';
+    cb.querySelector('svg').style.display = allChecked ? 'block' : 'none';
+  }
+
+  function clearAllSelections(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    document.querySelectorAll('#coursesTableBody .course-row').forEach(r => r.classList.remove('checked'));
+    updateSelectAllState();
+    updateSelectionSummary();
+  }
+
+  function updateSelectionSummary() {
+    const checkedRows = document.querySelectorAll('#coursesTableBody .course-row.checked');
+    const selectedCountText = document.getElementById('selectedCountText');
+    const totalCreditsText = document.getElementById('totalCreditsText');
+    const btnContinue = document.getElementById('btnContinueWizard');
+    const statusWrap = document.querySelector('.bulk-selection-status');
+
+    let count = checkedRows.length;
+    let totalCredits = 0;
+    checkedRows.forEach(r => { totalCredits += parseInt(r.dataset.credits) || 0; });
+
+    if (statusWrap) statusWrap.classList.toggle('has-selection', count > 0);
+    if (selectedCountText) selectedCountText.textContent = `${count} Course${count !== 1 ? 's' : ''} Selected`;
+    if (totalCreditsText) totalCreditsText.textContent = `Total Credits: ${totalCredits}`;
+    if (btnContinue) btnContinue.disabled = (count === 0);
+  }
+
+  function getFilterValues() {
+    return {
+      studyYear: document.getElementById('studyYearSelect')?.value || '',
+      semester: document.getElementById('semesterSelect')?.value || '',
+      status: document.getElementById('statusSelect')?.value || '',
+      elective: document.getElementById('electiveSelect')?.value || ''
+    };
+  }
+
+  function courseMatchesFilters(row) {
+    const { studyYear, semester, status, elective } = getFilterValues();
+    const studyYears = (row.dataset.studyYears || '').split(',').filter(Boolean);
+    const terms = (row.dataset.terms || '').split(',').filter(Boolean);
+    const statuses = (row.dataset.statuses || '').split(',').filter(Boolean);
+    if (studyYear && !studyYears.includes(studyYear)) return false;
+    if (semester && !terms.includes(semester)) return false;
+    if (status && !statuses.includes(status)) return false;
+    if (elective === 'yes' && row.dataset.elective !== 'yes') return false;
+    if (elective === 'no' && row.dataset.core !== 'yes') return false;
+    return true;
+  }
+
+  const COURSE_PAGE_SIZE = 10;
+  let courseCurrentPage = 1;
+
+  function getFilteredCourses() {
+    const query = (document.getElementById('courseSearchInput')?.value || '').toLowerCase().trim();
+    return Array.from(document.querySelectorAll('#coursesTableBody .course-row')).filter(row => {
+      const code = (row.dataset.code || '').toLowerCase();
+      const name = (row.dataset.name || '').toLowerCase();
+      return (!query || code.includes(query) || name.includes(query)) && courseMatchesFilters(row);
+    });
+  }
+
+  function renderCourses() {
+    const tbody = document.getElementById('coursesTableBody');
+    if (!tbody) return;
+    const allRows = Array.from(tbody.querySelectorAll('.course-row'));
+    const visible = getFilteredCourses();
+    const totalPages = Math.max(1, Math.ceil(visible.length / COURSE_PAGE_SIZE));
+    courseCurrentPage = Math.min(Math.max(courseCurrentPage, 1), totalPages);
+    const start = (courseCurrentPage - 1) * COURSE_PAGE_SIZE;
+    const pageRows = visible.slice(start, start + COURSE_PAGE_SIZE);
+
+    allRows.forEach(row => { row.style.display = pageRows.includes(row) ? '' : 'none'; });
+
+    /* Show/hide year-separator rows based on whether any course-row beneath them is visible */
+    document.querySelectorAll('#coursesTableBody .year-separator').forEach(sep => {
+      let sibling = sep.nextElementSibling;
+      let hasVisible = false;
+      while (sibling && !sibling.classList.contains('year-separator')) {
+        if (sibling.classList.contains('course-row') && sibling.style.display !== 'none') { hasVisible = true; break; }
+        sibling = sibling.nextElementSibling;
+      }
+      sep.style.display = hasVisible ? '' : 'none';
+    });
+
+    toggleFilterEmptyState(visible.length);
+    renderCoursePagination(visible.length, totalPages, start, pageRows.length);
+  }
+
+  function renderCoursePagination(visibleCount, totalPages, start, pageCount) {
+    const wrap = document.getElementById('coursesPagination');
+    const info = document.getElementById('coursesPageInfo');
+    const buttons = document.getElementById('coursesPageButtons');
+    if (!wrap || !buttons) return;
+    if (totalPages <= 1) { wrap.style.display = 'none'; buttons.innerHTML = ''; return; }
+    wrap.style.display = 'flex';
+    if (info) info.textContent = `Showing ${visibleCount ? start + 1 : 0} – ${start + pageCount} of ${visibleCount} courses`;
+    let html = `<button type="button" onclick="goToCoursePage(${courseCurrentPage - 1})" ${courseCurrentPage === 1 ? 'disabled' : ''}>‹</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button type="button" class="${i === courseCurrentPage ? 'active' : ''}" onclick="goToCoursePage(${i})">${i}</button>`;
+    }
+    html += `<button type="button" onclick="goToCoursePage(${courseCurrentPage + 1})" ${courseCurrentPage === totalPages ? 'disabled' : ''}>›</button>`;
+    buttons.innerHTML = html;
+  }
+
+  function goToCoursePage(page) { courseCurrentPage = page; renderCourses(); }
+  function filterCourses() { courseCurrentPage = 1; renderCourses(); }
+
+  const choicesInstances = {};
+
+  function resetFilters() {
+    const searchInput = document.getElementById('courseSearchInput');
+    if (searchInput) searchInput.value = '';
+    ['studyYearSelect', 'semesterSelect', 'statusSelect', 'electiveSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; if (choicesInstances[id]) choicesInstances[id].setChoiceByValue(''); }
+    });
+    filterCourses();
+  }
+
+  function toggleFilterEmptyState(visibleCount) {
+    const totalRows = document.querySelectorAll('#coursesTableBody .course-row').length;
+    const empty = document.getElementById('filterEmptyState');
+    if (empty) empty.style.display = (visibleCount === 0 && totalRows > 0) ? '' : 'none';
+  }
+
+  function proceedToSections() {
+    const checkedRows = document.querySelectorAll('#coursesTableBody .course-row.checked');
+    const selectedCourseIds = Array.from(checkedRows).map(r => r.dataset.id);
+    if (selectedCourseIds.length === 0) { showCustomAlert("Please select at least one course to continue."); return; }
+    const baseUrl = "{% url 'staff_program_bulk_enrollment_sections' request.user.uuid program.program_id %}";
+    window.location.href = `${baseUrl}?course_ids=${selectedCourseIds.join(',')}`;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updateSelectionSummary();
+    renderCourses();
+    ['studyYearSelect', 'semesterSelect', 'statusSelect', 'electiveSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        choicesInstances[id] = new Choices(el, { searchEnabled: false, shouldSort: false, itemSelectText: '', allowHTML: false, removeItemButton: false });
+        el.addEventListener('change', () => filterCourses());
+      }
+    });
+  });
+
+  window.toggleRow = toggleRow;
+  window.toggleSelectAllCourses = toggleSelectAllCourses;
+  window.clearAllSelections = clearAllSelections;
+  window.updateSelectionSummary = updateSelectionSummary;
+  window.filterCourses = filterCourses;
+  window.resetFilters = resetFilters;
+  window.goToCoursePage = goToCoursePage;
+  window.proceedToSections = proceedToSections;
+
+  function showCustomAlert(message, title = "Attention") {
+    el('customAlertTitle').textContent = title;
+    el('customAlertMessage').innerHTML = message;
+    el('customAlertModal').style.display = 'flex';
+  }
+
+  function closeCustomAlert() { el('customAlertModal').style.display = 'none'; }
+
+  window.showCustomAlert = showCustomAlert;
+  window.closeCustomAlert = closeCustomAlert;
+</script>
+{% endblock %}

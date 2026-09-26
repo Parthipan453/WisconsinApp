@@ -1,0 +1,212 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}My Research Applications - Wisconsin University{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/jordan/student_research_application_details.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_student_research_application_details %}active{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            My Research Applications
+        </h1>
+        <p class="text-muted">Track and manage all your research project applications</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'Elsa_research:student_research_opportunity' uuid %}" class="btn-primary">
+            <i class="ti ti-plus"></i> Apply New
+        </a>
+    </div>
+</div>
+
+<!-- Student Info Card -->
+<div class="student-info-card">
+    <div class="student-avatar">
+        <span>{{ student.user.get_full_name|slice:":1"|upper }}</span>
+    </div>
+    <div class="student-info">
+        <h3>{{ student.user.get_full_name }}</h3>
+        <div class="student-details">
+            <span><i class="ti ti-id"></i> {{ student.student_number }}</span>
+            <span><i class="ti ti-mail"></i> {{ student.user.email }}</span>
+            <span><i class="ti ti-building"></i> {{ department_name|default:'Not Assigned' }}</span>
+            <span><i class="ti ti-book"></i> {{ program_name|default:'Not Assigned' }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card total">
+        <div class="stat-icon"><i class="ti ti-files"></i></div>
+        <div class="stat-info">
+            <span class="stat-number">{{ total_applications }}</span>
+            <span class="stat-label">Total</span>
+        </div>
+    </div>
+    <div class="stat-card accepted">
+        <div class="stat-icon"><i class="ti ti-check"></i></div>
+        <div class="stat-info">
+            <span class="stat-number">{{ accepted_count }}</span>
+            <span class="stat-label">Accepted</span>
+        </div>
+    </div>
+    <div class="stat-card rejected">
+        <div class="stat-icon"><i class="ti ti-x"></i></div>
+        <div class="stat-info">
+            <span class="stat-number">{{ rejected_count }}</span>
+            <span class="stat-label">Rejected</span>
+        </div>
+    </div>
+    <div class="stat-card withdrawn">
+        <div class="stat-icon"><i class="ti ti-arrow-back"></i></div>
+        <div class="stat-info">
+            <span class="stat-number">{{ withdrawn_count }}</span>
+            <span class="stat-label">Withdrawn</span>
+        </div>
+    </div>
+</div>
+
+<!-- Status Chart -->
+{% if has_applications %}
+<div class="chart-container">
+    <div class="chart-header">
+        <h3><i class="ti ti-chart-bar"></i> Application Status Overview</h3>
+    </div>
+    <div class="chart-bars">
+        <div class="chart-bar-item">
+            <div class="chart-bar accepted" style="height: {% if total_applications > 0 %}{% widthratio accepted_count total_applications 100 %}{% else %}0{% endif %}%">
+                <span class="chart-value">{{ accepted_count }}</span>
+            </div>
+            <span class="chart-label">Accepted</span>
+        </div>
+        <div class="chart-bar-item">
+            <div class="chart-bar rejected" style="height: {% if total_applications > 0 %}{% widthratio rejected_count total_applications 100 %}{% else %}0{% endif %}%">
+                <span class="chart-value">{{ rejected_count }}</span>
+            </div>
+            <span class="chart-label">Rejected</span>
+        </div>
+        <div class="chart-bar-item">
+            <div class="chart-bar pending" style="height: {% if total_applications > 0 %}{% widthratio pending_count total_applications 100 %}{% else %}0{% endif %}%">
+                <span class="chart-value">{{ pending_count }}</span>
+            </div>
+            <span class="chart-label">Pending</span>
+        </div>
+        <div class="chart-bar-item">
+            <div class="chart-bar withdrawn" style="height: {% if total_applications > 0 %}{% widthratio withdrawn_count total_applications 100 %}{% else %}0{% endif %}%">
+                <span class="chart-value">{{ withdrawn_count }}</span>
+            </div>
+            <span class="chart-label">Withdrawn</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Applications List -->
+<div class="applications-section">
+    <div class="section-header">
+        <h3><i class="ti ti-list"></i> All Applications</h3>
+        <div class="filter-options">
+            <select id="statusFilter" class="filter-select" onchange="filterApplications()">
+                <option value="all">All Status</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="submitted">Submitted</option>
+                <option value="under_review">Under Review</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="withdrawn">Withdrawn</option>
+            </select>
+            <input type="text" id="searchInput" class="filter-input" placeholder="Search applications..." onkeyup="searchApplications()">
+        </div>
+    </div>
+
+    {% if has_applications %}
+        <!-- Applications Grid -->
+        <div class="applications-grid" id="applicationsGrid">
+            <!-- Applications will be rendered by JavaScript -->
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer">
+            <div class="pagination-info">
+                <span id="paginationInfo">Showing 0-0 of 0 applications</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevPage" onclick="changePage('prev')">
+                    <i class="ti ti-chevron-left"></i> Previous
+                </button>
+                <div class="pagination-numbers" id="paginationNumbers">
+                    <!-- Page numbers will be rendered here -->
+                </div>
+                <button class="pagination-btn" id="nextPage" onclick="changePage('next')">
+                    Next <i class="ti ti-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="ti ti-file-off"></i>
+            <h3>No Applications Yet</h3>
+            <p>You haven't applied for any research opportunities yet.</p>
+            <a href="{% url 'Elsa_research:student_research_opportunity' uuid %}" class="btn-primary">
+                Browse Opportunities
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- ============================================ -->
+<!-- APPLICATION DETAIL MODAL -->
+<!-- ============================================ -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-container detail-modal">
+        <button class="modal-close" onclick="closeDetailModal()">
+            <i class="ti ti-x"></i>
+        </button>
+        <div class="detail-modal-content" id="detailContent">
+            <div style="text-align:center;padding:40px;">
+                <i class="ti ti-loader" style="font-size:40px;color:#94a3b8;animation:spin 1s linear infinite;"></i>
+                <p style="color:#94a3b8;margin-top:16px;">Loading application details...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TOAST NOTIFICATION -->
+<!-- ============================================ -->
+<div class="toast-notification" id="toast">
+    <div class="toast-icon"><i class="ti ti-check-circle"></i></div>
+    <div class="toast-content">
+        <div class="toast-title">Success!</div>
+        <div class="toast-message" id="toastMessage">Action completed</div>
+    </div>
+    <button class="toast-close" onclick="closeToast()"><i class="ti ti-x"></i></button>
+</div>
+
+<!-- ============================================ -->
+<!-- APPLICATION DATA (JSON from Django) -->
+<!-- ============================================ -->
+<script>
+    // Application data passed from Django as JSON
+    const applicationsData = {{ applications_json|safe }};
+    console.log('Applications Data loaded:', applicationsData.length, 'applications');
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/jordan/student_research_application_details.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+{% endblock %}

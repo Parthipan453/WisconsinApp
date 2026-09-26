@@ -1,0 +1,171 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Presentation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/faculty_research/research_presentation.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="rp-page">
+    <div class="rp-header">
+        <div>
+            <h1><i data-lucide="presentation"></i> Research Presentation</h1>
+            <p>{% if presentation %}Update presentation details{% else %}Record a new conference, symposium, or award{% endif %}</p>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="presentationForm">
+        {% csrf_token %}
+
+        <div class="rp-card">
+            <h2>Project Information</h2>
+            <div class="rp-form-row-3">
+                <div class="rp-form-group">
+                    <label>Research Project <span>*</span></label>
+                    <select name="research" id="researchSelect" class="rp-input" required>
+                        <option value="">Select Research</option>
+                        {% for r in researches %}
+                        <option value="{{ r.research_id }}" {% if presentation.research_id == r.research_id %}selected{% endif %}>
+                            {{ r.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if errors.research %}<div class="rp-error">{{ errors.research }}</div>{% endif %}
+                </div>
+                <div class="rp-form-group">
+                    <label>Presentation Title <span>*</span></label>
+                    <input type="text" name="presentation_title" class="rp-input"
+                           value="{{ presentation.presentation_title|default:old.presentation_title }}" required>
+                    {% if errors.presentation_title %}<div class="rp-error">{{ errors.presentation_title }}</div>{% endif %}
+                </div>
+                <div class="rp-form-group">
+                    <label>Event Name <span>*</span></label>
+                    <input type="text" name="event_name" class="rp-input"
+                           value="{{ presentation.event_name|default:old.event_name }}" required>
+                    {% if errors.event_name %}<div class="rp-error">{{ errors.event_name }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="rp-form-row-2">
+                <div class="rp-form-group">
+                    <label>Presentation Type <span>*</span></label>
+                    <select name="presentation_type" id="typeSelect" class="rp-input" required>
+                        <option value="CONFERENCE" {% if presentation.presentation_type == "CONFERENCE" %}selected{% endif %}>Conference</option>
+                        <option value="SYMPOSIUM" {% if presentation.presentation_type == "SYMPOSIUM" %}selected{% endif %}>Symposium</option>
+                        <option value="WORKSHOP" {% if presentation.presentation_type == "WORKSHOP" %}selected{% endif %}>Workshop</option>
+                        <option value="SEMINAR" {% if presentation.presentation_type == "SEMINAR" %}selected{% endif %}>Seminar</option>
+                        <option value="POSTER_SESSION" {% if presentation.presentation_type == "POSTER_SESSION" %}selected{% endif %}>Poster Session</option>
+                    </select>
+                    {% if errors.presentation_type %}<div class="rp-error">{{ errors.presentation_type }}</div>{% endif %}
+                </div>
+                <div class="rp-form-group">
+                    <label>Presentation Date <span>*</span></label>
+                    <input type="date" name="presentation_date" class="rp-input"
+                           value="{{ presentation.presentation_date|date:'Y-m-d'|default:old.presentation_date }}" required>
+                    {% if errors.presentation_date %}<div class="rp-error">{{ errors.presentation_date }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="rp-card">
+            <h2>Event Details</h2>
+            <div class="rp-form-row-3">
+                <div class="rp-form-group">
+                    <label>Organizer</label>
+                    <input type="text" name="organizer" class="rp-input" value="{{ presentation.organizer|default:old.organizer }}">
+                </div>
+                <div class="rp-form-group">
+                    <label>Venue</label>
+                    <input type="text" name="venue" class="rp-input" value="{{ presentation.venue|default:old.venue }}">
+                </div>
+                <div class="rp-form-group">
+                    <label>Award (Optional)</label>
+                    <input type="text" name="award" class="rp-input" value="{{ presentation.award|default:old.award }}">
+                    {% if errors.award %}<div class="rp-error">{{ errors.award }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="rp-card">
+            <h2>Presentation Documents</h2>
+            <div class="rp-form-row-4">
+                <div class="rp-form-group">
+                    <label>Certificate</label>
+                    <input type="file" name="certificate" class="rp-input" accept=".pdf,.jpg,.jpeg,.png">
+                    {% if errors.certificate %}<div class="rp-error">{{ errors.certificate }}</div>{% endif %}
+                </div>
+                <div class="rp-form-group">
+                    <label>Presentation Slides</label>
+                    <input type="file" name="slides" class="rp-input" accept=".pdf,.ppt,.pptx">
+                    {% if errors.slides %}<div class="rp-error">{{ errors.slides }}</div>{% endif %}
+                </div>
+                <div class="rp-form-group">
+                    <label>Research Paper (Optional)</label>
+                    <input type="file" name="paper" class="rp-input" accept=".pdf,.doc,.docx">
+                    {% if errors.paper %}<div class="rp-error">{{ errors.paper }}</div>{% endif %}
+                </div>
+                <div class="rp-form-group">
+                    <label>Poster (Optional)</label>
+                    <input type="file" name="poster" class="rp-input" accept=".pdf,.jpg,.jpeg,.png">
+                    {% if errors.poster %}<div class="rp-error">{{ errors.poster }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="rp-card">
+            <h2>Remarks</h2>
+            <textarea name="remarks" class="rp-input" rows="4">{{ presentation.remarks|default:old.remarks }}</textarea>
+        </div>
+
+        {% if presentation %}
+        <div class="rp-card">
+            <h2>Uploaded Files</h2>
+            <div class="rp-table-scroll">
+                <table class="rp-table">
+                    <tr><th>#</th><th>File Name</th><th>Type</th><th>Action</th></tr>
+                    {% for doc in presentation.documents.all %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ doc.file.name|slice:"-30:" }}</td>
+                        <td>{{ doc.get_document_type_display }}</td>
+                        <td>
+                            <a href="{{ doc.file.url }}" target="_blank" class="rp-btn rp-btn-view">View</a>
+                            <form method="POST" action="{% url 'Elsa_research:delete_presentation_document' uuid=uuid document_id=doc.document_id %}"
+                                  style="display:inline;" onsubmit="return confirm('Delete this file?');">
+                                {% csrf_token %}
+                                <button type="submit" class="rp-btn rp-btn-revision">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">No files uploaded yet.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="rp-form-actions">
+            <button type="submit" class="rp-btn rp-btn-primary"><i data-lucide="save"></i> Save</button>
+            <button type="reset" class="rp-btn rp-btn-reset"><i data-lucide="rotate-ccw"></i> Reset</button>
+            <a href="{% url 'Elsa_research:research_presentation' uuid=uuid %}" class="rp-btn rp-btn-reset">
+                <i data-lucide="x"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    if (window.lucide) lucide.createIcons();
+    new Choices(document.getElementById("researchSelect"), { searchEnabled: true, itemSelectText: "", shouldSort: false });
+    new Choices(document.getElementById("typeSelect"), { searchEnabled: false, itemSelectText: "", shouldSort: false });
+});
+</script>
+{% endblock %}

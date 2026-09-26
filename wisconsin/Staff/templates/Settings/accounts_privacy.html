@@ -1,0 +1,955 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Accounts & Privacy — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'Settings/accounts_privacy.css' %}" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@9.0.1/public/assets/styles/choices.min.css" />
+{% endblock %}
+
+{% block nav_settings_open %}open{% endblock %}
+{% block nav_settings_submenu %}open{% endblock %}
+{% block nav_staff_profile %}active{% endblock %}
+
+{% block content %}
+
+
+<div class="accounts-profile-card">
+    <div class="profile-avatar" id="profileAvatar">
+        {% if user.profile_photo %}
+            <img src="{{ user.profile_photo.url }}" alt="Profile Photo">
+        {% else %}
+            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+        {% endif %}
+    </div>
+    <div class="accounts-profile-info">
+        <div class="accounts-profile-name">{{ user.get_full_name|default:"Staff User" }}</div>
+        <div class="accounts-profile-role">{{ user.email|default:"staff@wisc.edu" }}</div>
+        <div class="accounts-profile-id">ID: {{ user.username|default:"N/A" }}</div>
+    </div>
+</div>
+
+
+<div class="accounts-content-full">
+
+
+    <div class="accounts-section" id="section-account">
+        <div class="accounts-section-header">
+            <div class="icon-box"><i class="ti ti-user-circle"></i></div>
+            <div>
+                <h2>Account Settings</h2>
+                <p>Manage your account details and preferences.</p>
+            </div>
+        </div>
+
+        <form class="accounts-form" id="accountForm">
+            {% csrf_token %}
+            
+            <div class="accounts-form-row">
+                <div class="accounts-form-group">
+                    <label>First Name <span class="required">*</span></label>
+                    <input type="text" class="accounts-input" id="firstName" 
+                           value="{{ user.first_name|default:'' }}" 
+                           placeholder="First name" required>
+                </div>
+                <div class="accounts-form-group">
+                    <label>Last Name <span class="required">*</span></label>
+                    <input type="text" class="accounts-input" id="lastName" 
+                           value="{{ user.last_name|default:'' }}" 
+                           placeholder="Last name" required>
+                </div>
+            </div>
+
+            <div class="accounts-form-group">
+                <label>Email Address <span class="required">*</span></label>
+                <input type="email" class="accounts-input" id="email" 
+                       value="{{ user.email|default:'' }}" 
+                       placeholder="Email address" required>
+                <div class="accounts-field-hint">This email will be used for account notifications and recovery.</div>
+            </div>
+
+            <div class="accounts-form-group">
+                <label>Username <span class="required">*</span></label>
+                <input type="text" class="accounts-input" id="username" 
+                       value="{{ user.username|default:'' }}" 
+                       placeholder="Username" required>
+                <div class="accounts-field-hint">Username must be unique and can only contain letters, numbers, and underscores.</div>
+            </div>
+
+            <div class="accounts-form-group">
+                <label>Display Name</label>
+                <input type="text" class="accounts-input" id="displayName" 
+                       value="{{ user.get_full_name|default:'' }}" 
+                       placeholder="Display name">
+                <div class="accounts-field-hint">This name will appear on your profile and dashboard.</div>
+            </div>
+
+            <!-- Timezone with Choices.js -->
+            <div class="accounts-form-group">
+                <label>Time Zone <span class="required">*</span></label>
+                <div class="choices-timezone-wrapper">
+                    <select class="accounts-select choices-timezone" id="timezone">
+                        {% for tz in available_timezones %}
+                            <option value="{{ tz.value }}" {% if user.timezone == tz.value or user_timezone == tz.value %}selected{% endif %}>
+                                {{ tz.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="accounts-field-hint">
+                    <i class="ti ti-clock"></i> 
+                    Current time in your timezone: 
+                    <strong id="currentTimeDisplay">
+                        {{ today|time:"P" }}
+                    </strong>
+                    <span style="color:#6b7280; font-size:11px;">
+                        ({{ user.timezone|default:"America/Chicago" }})
+                    </span>
+                </div>
+            </div>
+
+            <div class="accounts-form-actions">
+                <button type="submit" class="accounts-btn primary" id="saveAccountBtn">
+                    <i class="ti ti-device-floppy"></i> Save Changes
+                </button>
+                <button type="reset" class="accounts-btn secondary">
+                    <i class="ti ti-rotate"></i> Reset
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+    <div class="accounts-section" id="section-privacy">
+        <div class="accounts-section-header">
+            <div class="icon-box"><i class="ti ti-shield-lock"></i></div>
+            <div>
+                <h2>Privacy & Security</h2>
+                <p>Control your privacy settings and security preferences.</p>
+            </div>
+        </div>
+
+        <div class="accounts-privacy-settings">
+            <div class="accounts-toggle-row">
+                <div class="accounts-toggle-info">
+                    <div class="accounts-toggle-label">Profile Visibility</div>
+                    <div class="accounts-toggle-desc">Make your profile visible to other staff members</div>
+                </div>
+                <label class="accounts-toggle">
+                    <input type="checkbox" checked>
+                    <span class="accounts-toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="accounts-toggle-row">
+                <div class="accounts-toggle-info">
+                    <div class="accounts-toggle-label">Email Visibility</div>
+                    <div class="accounts-toggle-desc">Show your email address on your public profile</div>
+                </div>
+                <label class="accounts-toggle">
+                    <input type="checkbox">
+                    <span class="accounts-toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="accounts-toggle-row">
+                <div class="accounts-toggle-info">
+                    <div class="accounts-toggle-label">Activity Status</div>
+                    <div class="accounts-toggle-desc">Show when you're active on the platform</div>
+                </div>
+                <label class="accounts-toggle">
+                    <input type="checkbox" checked>
+                    <span class="accounts-toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="accounts-toggle-row">
+                <div class="accounts-toggle-info">
+                    <div class="accounts-toggle-label">Search Engine Indexing</div>
+                    <div class="accounts-toggle-desc">Allow search engines to index your public profile</div>
+                </div>
+                <label class="accounts-toggle">
+                    <input type="checkbox">
+                    <span class="accounts-toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="accounts-divider"></div>
+
+            <div class="accounts-form-group">
+                <label>Data Sharing Preferences</label>
+                <div class="accounts-radio-group">
+                    <label class="accounts-radio-option">
+                        <input type="radio" name="dataSharing" value="all" checked>
+                        <span>Share data with all university departments</span>
+                    </label>
+                    <label class="accounts-radio-option">
+                        <input type="radio" name="dataSharing" value="limited">
+                        <span>Share limited data with authorized departments</span>
+                    </label>
+                    <label class="accounts-radio-option">
+                        <input type="radio" name="dataSharing" value="none">
+                        <span>Don't share data with any departments</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="accounts-form-actions">
+                <button class="accounts-btn primary" onclick="savePrivacySettings()">
+                    <i class="ti ti-device-floppy"></i> Save Privacy Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- DATA & PERMISSIONS SECTION -->
+    <!-- ============================================ -->
+    <div class="accounts-section" id="section-data">
+        <div class="accounts-section-header">
+            <div class="icon-box"><i class="ti ti-database"></i></div>
+            <div>
+                <h2>Data & Permissions</h2>
+                <p>Manage your data access and application permissions.</p>
+            </div>
+        </div>
+
+        <div class="accounts-permissions">
+            <div class="accounts-permission-group">
+                <h4>Application Permissions</h4>
+                
+                <div class="accounts-toggle-row">
+                    <div class="accounts-toggle-info">
+                        <div class="accounts-toggle-label">Access to Student Records</div>
+                        <div class="accounts-toggle-desc">View and edit student academic records</div>
+                    </div>
+                    <label class="accounts-toggle">
+                        <input type="checkbox" checked>
+                        <span class="accounts-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="accounts-toggle-row">
+                    <div class="accounts-toggle-info">
+                        <div class="accounts-toggle-label">Access to Financial Data</div>
+                        <div class="accounts-toggle-desc">View financial aid and payment information</div>
+                    </div>
+                    <label class="accounts-toggle">
+                        <input type="checkbox" checked>
+                        <span class="accounts-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="accounts-toggle-row">
+                    <div class="accounts-toggle-info">
+                        <div class="accounts-toggle-label">Access to Reports</div>
+                        <div class="accounts-toggle-desc">Generate and view system reports</div>
+                    </div>
+                    <label class="accounts-toggle">
+                        <input type="checkbox" checked>
+                        <span class="accounts-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="accounts-toggle-row">
+                    <div class="accounts-toggle-info">
+                        <div class="accounts-toggle-label">Access to Admin Panel</div>
+                        <div class="accounts-toggle-desc">Access administrative functions and settings</div>
+                    </div>
+                    <label class="accounts-toggle">
+                        <input type="checkbox">
+                        <span class="accounts-toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="accounts-divider"></div>
+
+            <!-- <div class="accounts-data-actions">
+                <h4>Data Management</h4>
+                <div class="accounts-data-buttons">
+                    <button class="accounts-data-btn" onclick="exportData()">
+                        <i class="ti ti-download"></i> Export All Data
+                    </button>
+                    <button class="accounts-data-btn" onclick="downloadArchive()">
+                        <i class="ti ti-archive"></i> Download Archive
+                    </button>
+                    <button class="accounts-data-btn danger" onclick="clearData()">
+                        <i class="ti ti-trash"></i> Clear Data
+                    </button>
+                </div>
+            </div> -->
+
+            <div class="accounts-form-actions">
+                <button class="accounts-btn primary" onclick="savePermissions()">
+                    <i class="ti ti-device-floppy"></i> Save Permissions
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- ACTIVE SESSIONS SECTION - UPDATED DESIGN -->
+    <!-- ============================================ -->
+    <div class="accounts-section" id="section-sessions">
+        <div class="accounts-section-header">
+            <div class="icon-box"><i class="ti ti-devices"></i></div>
+            <div>
+                <h2>Active Sessions</h2>
+                <p>Monitor and manage your active login sessions across all devices.</p>
+            </div>
+            <div class="accounts-session-badge">
+                <span class="session-count">4</span> Active
+            </div>
+        </div>
+
+        <div class="accounts-sessions-grid">
+            <!-- Current Session -->
+            <div class="accounts-session-card current">
+                <div class="session-card-header">
+                    <div class="session-device-icon">
+                        <i class="ti ti-device-desktop"></i>
+                    </div>
+                    <div class="session-device-info">
+                        <div class="session-device-name">Chrome on Windows</div>
+                        <div class="session-device-status">
+                            <span class="status-dot active"></span> Current Session
+                        </div>
+                    </div>
+                    <span class="session-badge current">Active Now</span>
+                </div>
+                <div class="session-card-details">
+                    <div class="session-detail-item">
+                        <i class="ti ti-map-pin"></i>
+                        <span>Madison, WI</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-device-laptop"></i>
+                        <span>IP: 192.168.1.1</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-clock"></i>
+                        <span>Started: Today, 09:30 AM</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session 2 -->
+            <div class="accounts-session-card">
+                <div class="session-card-header">
+                    <div class="session-device-icon">
+                        <i class="ti ti-device-mobile"></i>
+                    </div>
+                    <div class="session-device-info">
+                        <div class="session-device-name">Safari on iPhone 15</div>
+                        <div class="session-device-status">
+                            <span class="status-dot"></span> Active
+                        </div>
+                    </div>
+                    <button class="session-logout-btn" onclick="logoutSession(this)">
+                        <i class="ti ti-logout"></i> Logout
+                    </button>
+                </div>
+                <div class="session-card-details">
+                    <div class="session-detail-item">
+                        <i class="ti ti-map-pin"></i>
+                        <span>Madison, WI</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-device-laptop"></i>
+                        <span>IP: 192.168.1.2</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-clock"></i>
+                        <span>Started: Today, 07:15 AM</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session 3 -->
+            <div class="accounts-session-card">
+                <div class="session-card-header">
+                    <div class="session-device-icon">
+                        <i class="ti ti-device-tablet"></i>
+                    </div>
+                    <div class="session-device-info">
+                        <div class="session-device-name">Chrome on iPad</div>
+                        <div class="session-device-status">
+                            <span class="status-dot"></span> Active
+                        </div>
+                    </div>
+                    <button class="session-logout-btn" onclick="logoutSession(this)">
+                        <i class="ti ti-logout"></i> Logout
+                    </button>
+                </div>
+                <div class="session-card-details">
+                    <div class="session-detail-item">
+                        <i class="ti ti-map-pin"></i>
+                        <span>Chicago, IL</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-device-laptop"></i>
+                        <span>IP: 192.168.1.3</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-clock"></i>
+                        <span>Started: Yesterday, 08:45 PM</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session 4 -->
+            <div class="accounts-session-card">
+                <div class="session-card-header">
+                    <div class="session-device-icon">
+                        <i class="ti ti-device-laptop"></i>
+                    </div>
+                    <div class="session-device-info">
+                        <div class="session-device-name">Firefox on MacBook</div>
+                        <div class="session-device-status">
+                            <span class="status-dot"></span> Active
+                        </div>
+                    </div>
+                    <button class="session-logout-btn" onclick="logoutSession(this)">
+                        <i class="ti ti-logout"></i> Logout
+                    </button>
+                </div>
+                <div class="session-card-details">
+                    <div class="session-detail-item">
+                        <i class="ti ti-map-pin"></i>
+                        <span>Milwaukee, WI</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-device-laptop"></i>
+                        <span>IP: 192.168.1.4</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="ti ti-clock"></i>
+                        <span>Started: Yesterday, 02:30 PM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accounts-session-actions">
+            <button class="accounts-btn warning" onclick="logoutAllSessions()">
+                <i class="ti ti-logout"></i> Logout All Sessions
+            </button>
+            <button class="accounts-btn secondary" onclick="refreshSessions()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+
+    <div class="accounts-section" id="section-activity">
+        <div class="accounts-section-header">
+            <div class="icon-box"><i class="ti ti-clock"></i></div>
+            <div>
+                <h2>Activity Log</h2>
+                <p>View your recent account activity and security events.</p>
+            </div>
+        </div>
+
+        <!-- Activity Filters with Choices.js -->
+        <div class="accounts-activity-filters">
+            <div class="choices-activity-wrapper">
+                <select class="accounts-filter-select choices-activity" id="activityFilter">
+                    <option value="all">All Activities</option>
+                    <option value="login">Logins</option>
+                    <option value="settings">Settings Changes</option>
+                    <option value="security">Security Events</option>
+                    <option value="profile">Profile Updates</option>
+                </select>
+            </div>
+            <!-- <button class="accounts-filter-clear" onclick="clearActivityFilter()">
+                <i class="ti ti-rotate"></i> Clear
+            </button> -->
+        </div>
+
+        <!-- Activity List -->
+        <div class="accounts-activity-list">
+            <!-- Activity 1 -->
+            <div class="accounts-activity-item" data-type="login">
+                <div class="activity-icon-wrapper login">
+                    <i class="ti ti-login"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Login from Chrome on Windows</div>
+                    <div class="activity-meta">
+                        <span class="activity-location">
+                            <i class="ti ti-map-pin"></i> Madison, WI
+                        </span>
+                        <span class="activity-ip">
+                            <i class="ti ti-device-laptop"></i> IP: 192.168.1.1
+                        </span>
+                    </div>
+                </div>
+                <div class="activity-time">Today, 09:30 AM</div>
+            </div>
+
+            <!-- Activity 2 -->
+            <div class="accounts-activity-item" data-type="security">
+                <div class="activity-icon-wrapper security">
+                    <i class="ti ti-shield"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Password changed successfully</div>
+                    <div class="activity-meta">
+                        <span class="activity-location">
+                            <i class="ti ti-shield-check"></i> Security update
+                        </span>
+                        <span class="activity-ip">
+                            <i class="ti ti-lock"></i> Strong password
+                        </span>
+                    </div>
+                </div>
+                <div class="activity-time">Today, 09:15 AM</div>
+            </div>
+
+            <!-- Activity 3 -->
+            <div class="accounts-activity-item" data-type="settings">
+                <div class="activity-icon-wrapper settings">
+                    <i class="ti ti-settings"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Profile updated</div>
+                    <div class="activity-meta">
+                        <span class="activity-location">
+                            <i class="ti ti-user"></i> Changed display name
+                        </span>
+                        <span class="activity-ip">
+                            <i class="ti ti-mail"></i> Email updated
+                        </span>
+                    </div>
+                </div>
+                <div class="activity-time">Yesterday, 04:20 PM</div>
+            </div>
+
+            <!-- Activity 4 -->
+            <div class="accounts-activity-item" data-type="login">
+                <div class="activity-icon-wrapper login">
+                    <i class="ti ti-login"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Login from Safari on iPhone</div>
+                    <div class="activity-meta">
+                        <span class="activity-location">
+                            <i class="ti ti-map-pin"></i> Madison, WI
+                        </span>
+                        <span class="activity-ip">
+                            <i class="ti ti-device-mobile"></i> IP: 192.168.1.2
+                        </span>
+                    </div>
+                </div>
+                <div class="activity-time">Yesterday, 07:15 AM</div>
+            </div>
+
+            <!-- Activity 5 -->
+            <div class="accounts-activity-item" data-type="profile">
+                <div class="activity-icon-wrapper profile">
+                    <i class="ti ti-user"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Profile photo updated</div>
+                    <div class="activity-meta">
+                        <span class="activity-location">
+                            <i class="ti ti-camera"></i> New photo uploaded
+                        </span>
+                        <span class="activity-ip">
+                            <i class="ti ti-check"></i> Verified
+                        </span>
+                    </div>
+                </div>
+                <div class="activity-time">2 days ago, 11:45 AM</div>
+            </div>
+
+            <!-- Activity 6 -->
+            <div class="accounts-activity-item" data-type="security">
+                <div class="activity-icon-wrapper security">
+                    <i class="ti ti-shield"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">2FA enabled</div>
+                    <div class="activity-meta">
+                        <span class="activity-location">
+                            <i class="ti ti-shield-check"></i> Two-factor authentication
+                        </span>
+                        <span class="activity-ip">
+                            <i class="ti ti-lock"></i> Activated
+                        </span>
+                    </div>
+                </div>
+                <div class="activity-time">3 days ago, 03:10 PM</div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="accounts-pagination">
+            <span class="accounts-pagination-info">Showing 1 - 6 of 24 activities</span>
+            <div class="accounts-pagination-links">
+                <a href="#" class="accounts-page-link disabled">Previous</a>
+                <a href="#" class="accounts-page-link active">1</a>
+                <a href="#" class="accounts-page-link">2</a>
+                <a href="#" class="accounts-page-link">3</a>
+                <a href="#" class="accounts-page-link">4</a>
+                <a href="#" class="accounts-page-link">Next</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js@9.0.1/public/assets/scripts/choices.min.js"></script>
+<script>
+
+
+const UUID = '{{ user.uuid }}';
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupAccountForm();
+    setupTimeZoneUpdater();
+    initChoicesJs();
+});
+
+
+
+function initChoicesJs() {
+    // Timezone Select
+    const timezoneSelect = document.getElementById('timezone');
+    if (timezoneSelect && typeof Choices !== 'undefined') {
+        try {
+            new Choices(timezoneSelect, {
+                searchEnabled: true,
+                searchPlaceholderValue: 'Search timezone...',
+                shouldSort: false,
+                position: 'auto',
+                placeholder: true,
+                placeholderValue: 'Select your timezone...',
+                itemSelectText: '',
+                classNames: {
+                    containerOuter: 'choices choices-timezone',
+                    containerInner: 'choices__inner',
+                    input: 'choices__input',
+                    inputCloned: 'choices__input--cloned',
+                    list: 'choices__list',
+                    listItems: 'choices__list--multiple',
+                    listSingle: 'choices__list--single',
+                    listDropdown: 'choices__list--dropdown',
+                    item: 'choices__item',
+                    itemSelectable: 'choices__item--selectable',
+                    itemDisabled: 'choices__item--disabled',
+                    itemChoice: 'choices__item--choice',
+                    placeholder: 'choices__placeholder',
+                    group: 'choices__group',
+                    groupHeading: 'choices__heading',
+                    button: 'choices__button',
+                    activeState: 'is-active',
+                    focusState: 'is-focused',
+                    openState: 'is-open',
+                    disabledState: 'is-disabled',
+                    highlightedState: 'is-highlighted',
+                    hiddenState: 'is-hidden',
+                    flippedState: 'is-flipped',
+                    loadingState: 'is-loading',
+                    noResults: 'has-no-results',
+                    noChoices: 'has-no-choices'
+                }
+            });
+            console.log('Timezone Choices.js initialized');
+        } catch (e) {
+            console.log('Timezone Choices.js error:', e);
+        }
+    }
+
+    // Activity Filter Select
+    const activityFilter = document.getElementById('activityFilter');
+    if (activityFilter && typeof Choices !== 'undefined') {
+        try {
+            new Choices(activityFilter, {
+                searchEnabled: true,
+                searchPlaceholderValue: 'Filter activities...',
+                shouldSort: false,
+                position: 'auto',
+                placeholder: true,
+                placeholderValue: 'All Activities',
+                itemSelectText: '',
+                classNames: {
+                    containerOuter: 'choices choices-activity',
+                    containerInner: 'choices__inner',
+                    input: 'choices__input',
+                    inputCloned: 'choices__input--cloned',
+                    list: 'choices__list',
+                    listItems: 'choices__list--multiple',
+                    listSingle: 'choices__list--single',
+                    listDropdown: 'choices__list--dropdown',
+                    item: 'choices__item',
+                    itemSelectable: 'choices__item--selectable',
+                    itemDisabled: 'choices__item--disabled',
+                    itemChoice: 'choices__item--choice',
+                    placeholder: 'choices__placeholder',
+                    group: 'choices__group',
+                    groupHeading: 'choices__heading',
+                    button: 'choices__button',
+                    activeState: 'is-active',
+                    focusState: 'is-focused',
+                    openState: 'is-open',
+                    disabledState: 'is-disabled',
+                    highlightedState: 'is-highlighted',
+                    hiddenState: 'is-hidden',
+                    flippedState: 'is-flipped',
+                    loadingState: 'is-loading',
+                    noResults: 'has-no-results',
+                    noChoices: 'has-no-choices'
+                }
+            });
+            
+            // Add change event
+            activityFilter.addEventListener('change', function() {
+                filterActivity();
+            });
+            
+            console.log('Activity filter Choices.js initialized');
+        } catch (e) {
+            console.log('Activity filter Choices.js error:', e);
+        }
+    }
+}
+
+
+
+function setupTimeZoneUpdater() {
+    const timezoneSelect = document.getElementById('timezone');
+    const timeDisplay = document.getElementById('currentTimeDisplay');
+    
+    if (timezoneSelect && timeDisplay) {
+        timezoneSelect.addEventListener('change', function() {
+            updateTimeDisplay(this.value);
+        });
+        
+        setInterval(function() {
+            const selectedTz = timezoneSelect.value || 'America/Chicago';
+            updateTimeDisplay(selectedTz);
+        }, 30000);
+    }
+}
+
+function updateTimeDisplay(timezone) {
+    const timeDisplay = document.getElementById('currentTimeDisplay');
+    if (!timeDisplay) return;
+    
+    try {
+        const now = new Date();
+        const options = {
+            timeZone: timezone,
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        };
+        const formattedTime = now.toLocaleTimeString('en-US', options);
+        timeDisplay.textContent = formattedTime;
+    } catch (e) {
+        console.log('Error updating time:', e);
+    }
+}
+
+
+
+function setupAccountForm() {
+    const form = document.getElementById('accountForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateAccount();
+        });
+    }
+}
+
+function updateAccount() {
+    const data = {
+        first_name: document.getElementById('firstName').value.trim(),
+        last_name: document.getElementById('lastName').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        display_name: document.getElementById('displayName').value.trim(),
+        timezone: document.getElementById('timezone').value,
+    };
+
+    const btn = document.getElementById('saveAccountBtn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i> Saving...';
+    btn.disabled = true;
+
+    fetch(`/staff/api/staff/${UUID}/update-account/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        
+        if (result.success) {
+            toastSuccess('Account updated successfully!');
+            document.querySelector('.accounts-profile-name').textContent = result.data.full_name;
+            
+            if (result.data.timezone) {
+                updateTimeDisplay(result.data.timezone);
+            }
+        } else {
+            toastError(result.message || 'Failed to update');
+        }
+    })
+    .catch(() => {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        toastError('Network error. Please try again.');
+    });
+}
+
+
+
+function savePrivacySettings() {
+    toastSuccess('Privacy settings saved successfully!');
+}
+
+
+
+function savePermissions() {
+    toastSuccess('Permissions saved successfully!');
+}
+
+
+
+function exportData() {
+    if (confirm('Export all your data? This may take a few minutes.')) {
+        toastInfo('Data export started. You will receive an email when ready.');
+    }
+}
+
+function downloadArchive() {
+    toastSuccess('Archive downloaded successfully!');
+}
+
+function clearData() {
+    if (confirm('Clear all your data? This cannot be undone.')) {
+        toastSuccess('Data cleared successfully!');
+    }
+}
+
+
+
+function logoutSession(btn) {
+    const card = btn.closest('.accounts-session-card');
+    if (confirm('Logout this session?')) {
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+        btn.innerHTML = '<i class="ti ti-check"></i> Logged out';
+        btn.style.background = '#d4edda';
+        btn.style.color = '#155724';
+        btn.style.borderColor = '#c3e6cb';
+        toastSuccess('Session logged out successfully!');
+    }
+}
+
+function logoutAllSessions() {
+    if (confirm('Logout all active sessions? You will be logged out on all devices.')) {
+        toastSuccess('All sessions logged out successfully!');
+        setTimeout(() => {
+            window.location.href = '/logout/';
+        }, 2000);
+    }
+}
+
+function refreshSessions() {
+    toastInfo('Sessions refreshed!');
+}
+
+
+
+function filterActivity() {
+    const filterSelect = document.getElementById('activityFilter');
+    const filter = filterSelect ? filterSelect.value : 'all';
+    const items = document.querySelectorAll('.accounts-activity-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const type = item.dataset.type;
+        if (filter === 'all' || type === filter) {
+            item.style.display = 'flex';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Update pagination info
+    const infoEl = document.querySelector('.accounts-pagination-info');
+    if (infoEl) {
+        infoEl.textContent = `Showing 1 - ${visibleCount} of ${visibleCount} activities`;
+    }
+    
+    if (visibleCount === 0) {
+        toastInfo('No activities found for this filter');
+    }
+}
+
+function clearActivityFilter() {
+    const filterSelect = document.getElementById('activityFilter');
+    if (filterSelect) {
+        if (filterSelect._choicesInstance) {
+            filterSelect._choicesInstance.setChoiceByValue('all');
+        } else {
+            filterSelect.value = 'all';
+        }
+    }
+    filterActivity();
+    toastInfo('Filter cleared');
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .spin {
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+});
+
+console.log('Accounts & Privacy loaded successfully!');
+</script>
+{% endblock %}

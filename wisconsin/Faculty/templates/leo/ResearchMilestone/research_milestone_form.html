@@ -1,0 +1,798 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}
+    {% if is_update %}
+        Update Research Milestone | Faculty Portal
+    {% else %}
+        Create Research Milestone | Faculty Portal
+    {% endif %}
+{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/ResearchMilestone/research_milestone_form.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="rmf-page">
+        <!-- PAGE HEADER -->
+        <section class="rmf-header-card">
+            {% comment %} <div class="rmf-breadcrumb">
+                <a href="{% url 'research_milestone_list' uuid=request.user.uuid %}">Research Milestones</a>
+                <i class="bi bi-chevron-right"></i>
+                <span>
+                    {% if is_update %}
+                        Update Milestone
+                    {% else %}
+                        Create Milestone
+                    {% endif %}
+                </span>
+            </div> {% endcomment %}
+            <div class="rmf-header-main">
+                <div class="rmf-title-area">
+                    <div class="rmf-title-icon">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                    <div class="rmf-title-content">
+                        <span class="rmf-kicker">PhD Research Management</span>
+                        <h1>
+                            {% if is_update %}
+                                Update Research Milestone
+                            {% else %}
+                                Create Research Milestone
+                            {% endif %}
+                        </h1>
+                        <p>
+                            {% if is_update %}
+                                Update the selected research milestone details.
+                            {% else %}
+                                Define a new research milestone for an eligible PhD student.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <a href="{% url 'research_milestone_list' uuid=request.user.uuid %}"
+                   class="rmf-back-btn">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Back to Milestones</span>
+                </a>
+            </div>
+        </section>
+        <!-- SERVER ERROR -->
+        {% if form_error_messages %}
+            <div class="rmf-alert rmf-alert-danger">
+                <div class="rmf-alert-icon">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="rmf-alert-content">
+                    <strong>Unable to continue</strong>
+                    {% for error in form_error_messages %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        {% if form.non_field_errors %}
+            <div class="rmf-alert rmf-alert-danger">
+                <div class="rmf-alert-icon">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                </div>
+                <div class="rmf-alert-content">
+                    <strong>Please review the form</strong>
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        <div class="rmf-layout">
+            <!-- MAIN FORM -->
+            <main class="rmf-main-card">
+                <div class="rmf-card-heading">
+                    <div>
+                        <span class="rmf-section-label">Milestone Information</span>
+                        <h2>
+                            {% if is_update %}
+                                Edit Milestone Details
+                            {% else %}
+                                Milestone Details
+                            {% endif %}
+                        </h2>
+                        <p>Complete the required information below.</p>
+                    </div>
+                    <div class="rmf-required-note">
+                        <span>*</span>
+                        Required
+                    </div>
+                </div>
+                <form method="post" id="researchMilestoneForm" novalidate>
+                    {% csrf_token %}
+                    <!-- STUDENT -->
+                    <div class="rmf-form-section">
+                        <div class="rmf-section-heading">
+                            <div class="rmf-section-number">01</div>
+                            <div>
+                                <h3>Student Assignment</h3>
+                                <p>Select the PhD student for this milestone.</p>
+                            </div>
+                        </div>
+                        <div class="rmf-field">
+                            <label for="{{ form.phd_student.id_for_label }}">
+                                PhD Student
+                                <span>*</span>
+                            </label>
+                            <div class="rmf-field-help">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Only active PhD students assigned to your Chair Faculty role are available.</span>
+                            </div>
+                            <div class="rmf-select-wrap">{{ form.phd_student }}</div>
+                            {% if form.phd_student.errors %}
+                                <div class="rmf-field-error">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    <div>
+                                        {% for error in form.phd_student.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="rmf-divider"></div>
+                    <!-- MILESTONE -->
+                    <div class="rmf-form-section">
+                        <div class="rmf-section-heading">
+                            <div class="rmf-section-number">02</div>
+                            <div>
+                                <h3>Milestone Definition</h3>
+                                <p>Define the title and description of the research milestone.</p>
+                            </div>
+                        </div>
+                        <!-- TITLE -->
+                        <div class="rmf-field">
+                            <label for="{{ form.milestone_title.id_for_label }}">
+                                Milestone Title
+                                <span>*</span>
+                            </label>
+                            <div class="rmf-input-wrap">
+                                <i class="bi bi-bullseye"></i>
+                                {{ form.milestone_title }}
+                            </div>
+                            <div class="rmf-character-row">
+                                <span>Enter a clear and specific milestone title.</span>
+                                <span id="titleCounter">0 / 255</span>
+                            </div>
+                            {% if form.milestone_title.errors %}
+                                <div class="rmf-field-error">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    <div>
+                                        {% for error in form.milestone_title.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <!-- DESCRIPTION -->
+                        <div class="rmf-field">
+                            <label for="{{ form.description.id_for_label }}">Description</label>
+                            <div class="rmf-input-wrap rmf-textarea-wrap">
+                                <i class="bi bi-card-text"></i>
+                                {{ form.description }}
+                            </div>
+                            <div class="rmf-character-row">
+                                <span>Describe the expected research outcome or scope.</span>
+                                <span id="descriptionCounter">0 characters</span>
+                            </div>
+                            {% if form.description.errors %}
+                                <div class="rmf-field-error">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    <div>
+                                        {% for error in form.description.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="rmf-divider"></div>
+                    <!-- DATE -->
+                    <div class="rmf-form-section">
+                        <div class="rmf-section-heading">
+                            <div class="rmf-section-number">03</div>
+                            <div>
+                                <h3>Target Completion</h3>
+                                <p>Set the expected completion date for this milestone.</p>
+                            </div>
+                        </div>
+                        <div class="rmf-field">
+                            <label for="{{ form.expected_completion_date.id_for_label }}">
+                                Expected Completion Date
+                                <span>*</span>
+                            </label>
+                            <div class="rmf-input-wrap rmf-date-wrap">
+                                <i class="bi bi-calendar-event"></i>
+                                {{ form.expected_completion_date }}
+                                <button type="button"
+                                        id="openDatePicker"
+                                        class="rmf-calendar-btn"
+                                        aria-label="Open date picker">
+                                    <i class="bi bi-calendar3"></i>
+                                </button>
+                            </div>
+                            <div class="rmf-field-help">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Select today or a future date.</span>
+                            </div>
+                            {% if form.expected_completion_date.errors %}
+                                <div class="rmf-field-error">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    <div>
+                                        {% for error in form.expected_completion_date.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- WORKFLOW INFORMATION -->
+                    <div class="rmf-workflow-note">
+                        <div class="rmf-workflow-note-icon">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <div>
+                            {% if is_update %}
+                                <strong>Workflow-controlled information</strong>
+                                <p>
+                                    Status, progress, sequence number, Chair Faculty,
+                                    and completion information are managed by the
+                                    research workflow and are not editable here.
+                                </p>
+                            {% else %}
+                                <strong>Research workflow validation</strong>
+                                <p>
+                                    Student eligibility and required research
+                                    prerequisites are validated by the server
+                                    before the milestone is created.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- ACTIONS -->
+                    <div class="rmf-form-actions">
+                        <a href="{% url 'research_milestone_list' uuid=request.user.uuid %}"
+                           class="rmf-cancel-btn">
+                            <i class="bi bi-x-lg"></i>
+                            <span>Cancel</span>
+                        </a>
+                        <button type="submit" id="submitMilestoneBtn" class="rmf-submit-btn">
+                            <i class="bi bi-check2-circle"></i>
+                            <span>
+                                {% if is_update %}
+                                    Save Changes
+                                {% else %}
+                                    Create Milestone
+                                {% endif %}
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </main>
+            <!-- SIDEBAR -->
+            <aside class="rmf-sidebar">
+                {% if is_update %}
+                    <!-- CURRENT MILESTONE -->
+                    <div class="rmf-info-card">
+                        <div class="rmf-info-header">
+                            <div class="rmf-info-icon">
+                                <i class="bi bi-info-circle-fill"></i>
+                            </div>
+                            <div>
+                                <h3>Current Milestone</h3>
+                                <span>Existing information</span>
+                            </div>
+                        </div>
+                        <div class="rmf-current-item">
+                            <span>Milestone ID</span>
+                            <strong>#RM-{{ milestone.milestone_id }}</strong>
+                        </div>
+                        <div class="rmf-current-item">
+                            <span>Sequence</span>
+                            <strong>{{ milestone.sequence_number }}</strong>
+                        </div>
+                        <div class="rmf-current-item">
+                            <span>Status</span>
+                            <strong class="rmf-status status-{{ milestone.status|lower }}">{{ milestone.get_status_display }}</strong>
+                        </div>
+                        <div class="rmf-current-item">
+                            <span>Progress</span>
+                            <strong>{{ milestone.current_progress_percentage|default:"0" }}%</strong>
+                        </div>
+                        <div class="rmf-mini-progress">
+                            <div class="rmf-mini-progress-track">
+                                <div class="rmf-mini-progress-fill"
+                                     style="width: {{ milestone.current_progress_percentage|default:0 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- CREATION FLOW -->
+                    <div class="rmf-info-card">
+                        <div class="rmf-info-header">
+                            <div class="rmf-info-icon">
+                                <i class="bi bi-signpost-2-fill"></i>
+                            </div>
+                            <div>
+                                <h3>Creation Flow</h3>
+                                <span>Milestone setup process</span>
+                            </div>
+                        </div>
+                        <div class="rmf-flow">
+                            <div class="rmf-flow-item">
+                                <div class="rmf-flow-number">1</div>
+                                <div>
+                                    <strong>Student Selection</strong>
+                                    <p>Select an eligible active PhD student.</p>
+                                </div>
+                            </div>
+                            <div class="rmf-flow-item">
+                                <div class="rmf-flow-number">2</div>
+                                <div>
+                                    <strong>Milestone Definition</strong>
+                                    <p>Provide the title and research description.</p>
+                                </div>
+                            </div>
+                            <div class="rmf-flow-item">
+                                <div class="rmf-flow-number">3</div>
+                                <div>
+                                    <strong>Target Date</strong>
+                                    <p>Select the expected completion date.</p>
+                                </div>
+                            </div>
+                            <div class="rmf-flow-item">
+                                <div class="rmf-flow-number">4</div>
+                                <div>
+                                    <strong>Server Validation</strong>
+                                    <p>Eligibility and workflow requirements are verified.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- GUIDANCE -->
+                <div class="rmf-help-card">
+                    <div class="rmf-help-icon">
+                        <i class="bi bi-lightbulb-fill"></i>
+                    </div>
+                    <div>
+                        <h3>Good Practice</h3>
+                        <ul>
+                            <li>Use a specific milestone title.</li>
+                            <li>Keep the description clear.</li>
+                            <li>Choose a realistic target date.</li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* =========================================================
+       ELEMENT REFERENCES
+    ========================================================= */
+
+    const studentSelect =
+        document.getElementById(
+            "{{ form.phd_student.id_for_label }}"
+        );
+
+    const titleInput =
+        document.getElementById(
+            "{{ form.milestone_title.id_for_label }}"
+        );
+
+    const descriptionInput =
+        document.getElementById(
+            "{{ form.description.id_for_label }}"
+        );
+
+    const dateInput =
+        document.getElementById(
+            "{{ form.expected_completion_date.id_for_label }}"
+        );
+
+    const titleCounter =
+        document.getElementById("titleCounter");
+
+    const descriptionCounter =
+        document.getElementById("descriptionCounter");
+
+    const form =
+        document.getElementById(
+            "researchMilestoneForm"
+        );
+
+    const submitButton =
+        document.getElementById(
+            "submitMilestoneBtn"
+        );
+
+
+    /* =========================================================
+       CHOICES.JS
+    ========================================================= */
+
+    if (studentSelect) {
+
+        new Choices(
+            studentSelect,
+            {
+                searchEnabled: true,
+
+                shouldSort: false,
+
+                itemSelectText: "",
+
+                searchPlaceholderValue:
+                    "Search PhD student...",
+
+                noResultsText:
+                    "No student found",
+
+                noChoicesText:
+                    "No eligible students available",
+
+                placeholder: true,
+
+                placeholderValue:
+                    "Select PhD Student",
+
+                allowHTML: false,
+
+                searchResultLimit: 100,
+
+                removeItemButton: false,
+
+                searchChoices: true
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       FLATPICKR
+       STATIC MODE
+       CALENDAR REMAINS INSIDE DATE FIELD WRAPPER
+    ========================================================= */
+
+    let milestoneDatePicker = null;
+
+    if (dateInput) {
+
+        milestoneDatePicker = flatpickr(
+            dateInput,
+            {
+
+                dateFormat: "Y-m-d",
+
+                minDate: "today",
+
+                allowInput: false,
+
+                disableMobile: true,
+
+                clickOpens: true,
+
+                static: true,
+
+                monthSelectorType: "static",
+
+                animate: true,
+
+                closeOnSelect: true,
+
+                onReady: function (
+                    selectedDates,
+                    dateStr,
+                    instance
+                ) {
+
+                    dateInput.setAttribute(
+                        "readonly",
+                        "readonly"
+                    );
+
+
+                    /*
+                     * Keep calendar inside the
+                     * rmf-date-wrap container.
+                     */
+
+                    const dateWrapper =
+                        dateInput.closest(
+                            ".rmf-date-wrap"
+                        );
+
+                    if (
+                        dateWrapper &&
+                        instance.calendarContainer
+                    ) {
+
+                        dateWrapper.appendChild(
+                            instance.calendarContainer
+                        );
+
+                    }
+
+
+                    /*
+                     * Ensure calendar opens below
+                     * the date input.
+                     */
+
+                    if (
+                        instance.calendarContainer
+                    ) {
+
+                        instance.calendarContainer.style.position =
+                            "absolute";
+
+                        instance.calendarContainer.style.left =
+                            "0";
+
+                        instance.calendarContainer.style.top =
+                            "calc(100% + 8px)";
+
+                    }
+
+                },
+
+                onOpen: function (
+                    selectedDates,
+                    dateStr,
+                    instance
+                ) {
+
+                    const dateWrapper =
+                        dateInput.closest(
+                            ".rmf-date-wrap"
+                        );
+
+                    if (
+                        dateWrapper &&
+                        instance.calendarContainer
+                    ) {
+
+                        /*
+                         * Re-attach to wrapper
+                         * if Flatpickr moved it.
+                         */
+
+                        if (
+                            instance.calendarContainer
+                                .parentElement !==
+                            dateWrapper
+                        ) {
+
+                            dateWrapper.appendChild(
+                                instance.calendarContainer
+                            );
+
+                        }
+
+
+                        instance.calendarContainer.style.position =
+                            "absolute";
+
+                        instance.calendarContainer.style.left =
+                            "0";
+
+                        instance.calendarContainer.style.top =
+                            "calc(100% + 8px)";
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       OPEN DATE PICKER BUTTON
+    ========================================================= */
+
+    const openDatePicker =
+        document.getElementById(
+            "openDatePicker"
+        );
+
+    if (
+        openDatePicker &&
+        milestoneDatePicker
+    ) {
+
+        openDatePicker.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                milestoneDatePicker.open();
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       CHARACTER COUNTERS
+    ========================================================= */
+
+    function updateTitleCounter() {
+
+        if (
+            !titleInput ||
+            !titleCounter
+        ) {
+            return;
+        }
+
+        titleCounter.textContent =
+            `${titleInput.value.length} / 255`;
+
+    }
+
+
+    function updateDescriptionCounter() {
+
+        if (
+            !descriptionInput ||
+            !descriptionCounter
+        ) {
+            return;
+        }
+
+        descriptionCounter.textContent =
+            `${descriptionInput.value.length} characters`;
+
+    }
+
+
+    if (titleInput) {
+
+        titleInput.addEventListener(
+            "input",
+            updateTitleCounter
+        );
+
+        updateTitleCounter();
+
+    }
+
+
+    if (descriptionInput) {
+
+        descriptionInput.addEventListener(
+            "input",
+            updateDescriptionCounter
+        );
+
+        updateDescriptionCounter();
+
+    }
+
+
+    /* =========================================================
+       FORM SUBMISSION
+    ========================================================= */
+
+    if (
+        form &&
+        submitButton
+    ) {
+
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+                if (!form.checkValidity()) {
+
+                    event.preventDefault();
+
+                    form.classList.add(
+                        "rmf-form-was-validated"
+                    );
+
+                    return;
+
+                }
+
+
+                submitButton.disabled = true;
+
+                submitButton.innerHTML =
+                    `
+                    <span class="rmf-spinner"></span>
+
+                    <span>
+                        {% if is_update %}
+                            Saving Changes...
+                        {% else %}
+                            Creating Milestone...
+                        {% endif %}
+                    </span>
+                    `;
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       DJANGO MESSAGES
+    ========================================================= */
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            Swal.fire({
+
+                icon:
+                    "{% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
+
+                title:
+                    "{% if message.tags == 'success' %}Success{% elif message.tags == 'warning' %}Notice{% elif message.tags == 'error' %}Unable to continue{% else %}Information{% endif %}",
+
+                text:
+                    "{{ message|escapejs }}",
+
+                confirmButtonColor:
+                    "#C5050C",
+
+                confirmButtonText:
+                    "OK",
+
+                customClass: {
+
+                    popup:
+                        "rmf-swal-popup",
+
+                    confirmButton:
+                        "rmf-swal-confirm"
+
+                }
+
+            });
+
+        {% endfor %}
+
+    {% endif %}
+
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,232 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+<!-- /* kali's code */ -->
+
+{% block title %}{% if is_edit %}Edit Olympic Performance{% else %}Add Olympic Performance{% endif %}{% endblock %}
+{% block page_title %}{% if is_edit %}Edit Olympic Performance{% else %}Add Olympic Performance{% endif %}{% endblock %}
+<span class="op-eyebrow ps-4 "><i data-lucide="clipboard-list"></i>{% if is_edit %}Edit Performance Details{% else %}Add Performance Details{% endif %}</span>
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/olympic_performance.css' %}">
+<link rel="stylesheet" href="{% static 'css/add_performance.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="op-page opf-page" id="opfPage">
+    <div class="header-btn" >
+            <span class="op-eyebrow ps-4 "><i data-lucide="clipboard-list"></i>{% if is_edit %}Edit Performance Details{% else %}Add Performance Details{% endif %}</span>
+
+
+         <a href="{% url 'olympic_performance_page' %}" class="opf-back-link opf-back-link--standalone">
+        <i data-lucide="arrow-left"></i><span>Back to Olympic Performances</span>
+    </a>
+
+
+    </div>
+
+    
+
+    <section class="op-section" style="animation-delay:.04s" data-op-animate>
+        <form id="opfForm" class="opf-form" novalidate autocomplete="off"
+      data-mode="{% if is_edit %}edit{% else %}create{% endif %}"
+      data-performance-uuid="{% if performance_obj %}{{ performance_obj.performance_uuid }}{% endif %}">
+
+            {% csrf_token %}
+            <div class="op-card opf-card">
+                <div class="op-section-head" style="margin-bottom:18px;">
+                    <div>
+                        <!-- <span class="op-eyebrow"><i data-lucide="clipboard-list"></i> Performance Details</span> -->
+                        <h6 style="margin-top:4px;"><i data-lucide="trophy"></i> Competition Information</h6>
+                        <!-- <p>Fields marked <span class="opf-req">*</span> are required</p> -->
+                    </div>
+                </div>
+
+                <div class="opf-grid">
+
+                    <!-- Olympic Athlete — Choices.js searchable select with profile photo -->
+                    <div class="opf-field opf-field--full" data-field="olympic_athlete">
+                        <label for="opfAthleteSelect">Olympic Athlete <span class="opf-req">*</span></label>
+                        <select name="olympic_athlete" id="opfAthleteSelect" class="opf-choices-athlete" required>
+                            <option value="">Select an athlete</option>
+                            {% for a in athlete_options %}
+                           <option value="{{ a.uuid }}" data-photo="{{ a.photo }}" data-subtext="{{ a.athlete_number }}" {% if a.selected %}selected{% endif %}>{{ a.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="opf-error" id="err-olympic_athlete"></span>
+                    </div>
+
+                    <!-- Competition Name -->
+                    <div class="opf-field" data-field="competition_name">
+                        <label for="opfCompetitionName">Competition Name <span class="opf-req">*</span></label>
+                        <input type="text" id="opfCompetitionName" name="competition_name" maxlength="150" placeholder="e.g. World Athletics Championships" value="{% if performance_obj %}{{ performance_obj.competition_name }}{% endif %}">
+                        <span class="opf-error" id="err-competition_name"></span>
+                    </div>
+
+                    <!-- Competition Level -->
+                    <div class="opf-field" data-field="competition_level">
+                        <label for="opfCompetitionLevel">Competition Level <span class="opf-req">*</span></label>
+                        <select id="opfCompetitionLevel" name="competition_level" class="opf-choices-basic">
+                            <option value="">Select level</option>
+                            {% for value, label in competition_level_choices %}
+                            <option value="{{ value }}" {% if performance_obj and performance_obj.competition_level == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="opf-error" id="err-competition_level"></span>
+                    </div>
+
+                    <!-- Event Name -->
+                    <div class="opf-field" data-field="event_name">
+                        <label for="opfEventName">Event Name <span class="opf-req">*</span></label>
+                        <input type="text" id="opfEventName" name="event_name" maxlength="150" placeholder="e.g. 100m Freestyle" value="{% if performance_obj %}{{ performance_obj.event_name }}{% endif %}">
+                        <span class="opf-error" id="err-event_name"></span>
+                    </div>
+
+                    <!-- Competition Date -->
+                    <div class="opf-field" data-field="competition_date">
+                        <label for="opfCompetitionDate">Competition Date <span class="opf-req">*</span></label>
+                        <!-- <input type="date" id="opfCompetitionDate" name="competition_date"> -->
+                         <!-- <input
+                            type="date"
+                            id="opfCompetitionDate"
+                            name="competition_date"
+                            onkeydown="return false;"
+                            onpaste="return false;"
+                            autocomplete="off"
+                            value="{% if performance_obj and performance_obj.competition_date %}{{ performance_obj.competition_date|date:'Y-m-d' }}{% endif %}"> -->
+                            <input
+                                    type="text"
+                                    id="opfCompetitionDate"
+                                    name="competition_date"
+                                    class="opf-date-picker"
+                                    placeholder="Select competition date"
+                                    readonly
+                                    autocomplete="off"
+                                    value="{% if performance_obj and performance_obj.competition_date %}{{ performance_obj.competition_date|date:'Y-m-d' }}{% endif %}">
+                        <span class="opf-error" id="err-competition_date"></span>
+                    </div>
+
+                    <!-- Host City -->
+                    <div class="opf-field" data-field="host_city">
+                        <label for="opfHostCity">Host City <span class="opf-req">*</span></label>
+                        <input type="text" id="opfHostCity" name="host_city" maxlength="100" placeholder="e.g. Paris" value="{% if performance_obj %}{{ performance_obj.host_city }}{% endif %}">
+                        <span class="opf-error" id="err-host_city"></span>
+                    </div>
+
+                    <!-- Host Country -->
+                    <!-- <div class="opf-field" data-field="host_country">
+                        <label for="opfHostCountry">Host Country <span class="opf-req">*</span></label>
+                        <input type="text" id="opfHostCountry" name="host_country" maxlength="100" placeholder="e.g. France">
+                        <span class="opf-error" id="err-host_country"></span>
+                    </div> -->
+
+                    <div class="opf-field" data-field="host_country">
+                        <label for="opfHostCountry">
+                            Host Country <span class="opf-req">*</span>
+                        </label>
+
+                        <select
+                            id="opfHostCountry"
+                            name="host_country"
+                            class="opf-choices-country">
+
+                            <option value="">Select Country</option>
+
+                            {% for country in countries %}
+                                <option value="{{ country }}" {% if performance_obj and performance_obj.host_country == country %}selected{% endif %}>
+                                    {{ country }}
+                                </option>
+                            {% endfor %}
+
+                        </select>
+
+                        <span class="opf-error" id="err-host_country"></span>
+                    </div>
+
+                    <!-- Score / Time (optional) -->
+                    <div class="opf-field" data-field="score_time">
+                        <label for="opfScoreTime">Score / Time <span class="opf-optional">(optional)</span></label>
+                        <input type="text" id="opfScoreTime" name="score_time" maxlength="100" placeholder="e.g. 9.58s or 220.5 pts" value="{% if performance_obj %}{{ performance_obj.score_time }}{% endif %}">                        <span class="opf-error" id="err-score_time"></span>
+                    </div>
+
+                    <!-- Ranking (optional) -->
+                    <div class="opf-field" data-field="ranking">
+                        <label for="opfRanking">Ranking <span class="opf-optional">(optional)</span></label>
+                        <input type="number" id="opfRanking" name="ranking" min="1" step="1" placeholder="e.g. 1" value="{% if performance_obj and performance_obj.ranking %}{{ performance_obj.ranking }}{% endif %}">
+                        <span class="opf-error" id="err-ranking"></span>
+                    </div>
+
+                    <!-- Medal -->
+                    <div class="opf-field" data-field="medal">
+                        <label for="opfMedal">Medal <span class="opf-req">*</span></label>
+                        <select id="opfMedal" name="medal" class="opf-choices-basic">
+                            <option value="">Select medal</option>
+                            {% for value, label in medal_choices %}
+                            <option value="{{ value }}" {% if performance_obj and performance_obj.medal == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="opf-error" id="err-medal"></span>
+                    </div>
+
+                    <!-- Participation Status -->
+                    <div class="opf-field" data-field="participation_status">
+                        <label for="opfParticipationStatus">Participation Status <span class="opf-req">*</span></label>
+                        <select id="opfParticipationStatus" name="participation_status" class="opf-choices-basic">
+                            <option value="">Select status</option>
+                            {% for value, label in participation_status_choices %}
+                            <option value="{{ value }}" {% if performance_obj and performance_obj.participation_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="opf-error" id="err-participation_status"></span>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="opf-field opf-field--full" data-field="remarks">
+                        <label for="opfRemarks">Remarks <span class="opf-optional">(optional)</span></label>
+                        <textarea id="opfRemarks" name="remarks" rows="4" maxlength="5000" placeholder="Additional notes about this performance...">{% if performance_obj %}{{ performance_obj.remarks }}{% endif %}</textarea>
+                        <span class="opf-error" id="err-remarks"></span>
+                    </div>
+
+                </div>
+
+                <div class="opf-actions">
+                    <a href="{% url 'olympic_performance_page' %}" class="op-btn op-btn--ghost opf-cancel-btn" id="opfCancelBtn">
+                        <i data-lucide="x"></i><span>Cancel</span>
+                    </a>
+                     <button type="submit" class="op-btn op-btn--primary opf-save-btn" id="opfSaveBtn">
+                        <span class="opf-btn-content"><i data-lucide="save"></i><span>{% if is_edit %}Update Performance{% else %}Save Performance{% endif %}</span></span>
+                        <span class="opf-btn-spinner" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+</div>
+
+
+{% endblock %}
+
+{% block page_toasts %}
+
+<!-- Success / error toast — top right -->
+<div class="role-toast" id="roleToast" hidden>
+    <div class="role-toast__icon-wrap role-toast__icon-wrap--success" id="toastIconWrap">
+        <i id="toastIcon" data-lucide="check-circle-2"></i>
+    </div>
+    <div class="role-toast__body">
+        <span class="role-toast__title" id="toastTitle">Success</span>
+        <span class="role-toast__msg" id="toastMsg"></span>
+    </div>
+    <button type="button" class="role-toast__close" id="toastClose" aria-label="Close">
+        <i data-lucide="x"></i>
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{% static 'script/add_performance.js' %}"></script>
+{% endblock %}

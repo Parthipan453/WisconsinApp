@@ -1,0 +1,487 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Declare Examination Result{% endblock %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+          crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/PreliminaryExam/exam_result.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="exam-header d-flex flex-wrap align-items-center justify-content-between">
+        <div>
+            <h1 class="exam-page-title">Declare Examination Result</h1>
+            <p class="exam-page-subtitle">Review evaluations and declare the final result for the preliminary/qualifying examination.</p>
+        </div>
+        <div class="exam-header-actions">
+            <a href="{% url 'faculty_preliminary_exam_detail' uuid=request.user.uuid exam_id=examination.prelim_exam_id %}"
+               class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Details
+            </a>
+        </div>
+    </div>
+    <div id="formAlertContainer" class="mb-4"></div>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card exam-card mb-4">
+                <div class="card-header exam-card-header">
+                    <i class="bi bi-info-circle me-2"></i> Examination Information
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Student</label>
+                            <p class="fw-bold mb-0">{{ examination.phd_student.student.user.get_full_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Registration Number</label>
+                            <p class="fw-bold mb-0">{{ examination.phd_student.student.student_number|default:"—" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Exam Type</label>
+                            <p class="fw-bold mb-0">{{ examination.get_exam_type_display }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Title</label>
+                            <p class="fw-bold mb-0">{{ examination.title|default:"—" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Exam Date</label>
+                            <p class="fw-bold mb-0">{{ examination.exam_date|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Time</label>
+                            <p class="fw-bold mb-0">{{ examination.start_time|time:"g:i A" }} - {{ examination.end_time|time:"g:i A" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Venue</label>
+                            <p class="fw-bold mb-0">{{ examination.venue|default:"—" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card exam-card mb-4">
+                <div class="card-header exam-card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clipboard-data me-2"></i> Evaluation Summary</span>
+                    <span class="badge bg-primary">{{ submitted_evaluations }} / {{ total_evaluations }} Submitted</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle evaluation-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Evaluator</th>
+                                    <th>Role</th>
+                                    <th>Knowledge</th>
+                                    <th>Research Aptitude</th>
+                                    <th>Presentation</th>
+                                    <th>Technical</th>
+                                    <th>Recommendation</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if evaluations %}
+                                    {% for eval in evaluations %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ eval.faculty.user.get_full_name }}</strong>
+                                            </td>
+                                            <td>
+                                                {% if eval.faculty == examination.phd_student.advisor %}
+                                                    <span class="badge bg-info-subtle text-info">Advisor</span>
+                                                {% elif eval.faculty == examination.phd_student.doctoral_committee.chair_faculty %}
+                                                    <span class="badge bg-danger-subtle text-danger">Chair</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary-subtle text-secondary">Member</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ eval.knowledge_score|default:"—" }}</td>
+                                            <td>{{ eval.research_aptitude_score|default:"—" }}</td>
+                                            <td>{{ eval.presentation_score|default:"—" }}</td>
+                                            <td>{{ eval.technical_score|default:"—" }}</td>
+                                            <td>
+                                                {% if eval.recommendation == 'PASS' %}
+                                                    <span class="badge bg-success">Pass</span>
+                                                {% elif eval.recommendation == 'FAIL' %}
+                                                    <span class="badge bg-danger">Fail</span>
+                                                {% elif eval.recommendation == 'REVISION' %}
+                                                    <span class="badge bg-warning text-dark">Revision</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">—</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if eval.is_submitted %}
+                                                    <span class="badge bg-success-subtle text-success">
+                                                        <i class="bi bi-check-circle-fill"></i> Submitted
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning-subtle text-warning">
+                                                        <i class="bi bi-clock"></i> Pending
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <div class="empty-state">
+                                                <i class="bi bi-inbox"></i>
+                                                <p class="mt-2 mb-0 text-muted">No evaluations submitted yet.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card exam-card mb-4">
+                <div class="card-header exam-card-header">
+                    <i class="bi bi-graph-up-arrow me-2"></i> Recommendation Summary
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-4">
+                            <div class="recommendation-stat bg-success-subtle">
+                                <span class="stat-number">{{ pass_recommendations }}</span>
+                                <span class="stat-label">Pass</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="recommendation-stat bg-danger-subtle">
+                                <span class="stat-number">{{ fail_recommendations }}</span>
+                                <span class="stat-label">Fail</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="recommendation-stat bg-warning-subtle">
+                                <span class="stat-number">{{ revision_recommendations }}</span>
+                                <span class="stat-label">Revision</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card exam-card summary-card sticky-top">
+                <div class="card-header exam-card-header">
+                    <i class="bi bi-clipboard-check me-2"></i> Declare Result
+                </div>
+                <div class="card-body">
+                    {% if can_submit_result %}
+                        <form method="post" id="resultForm" novalidate>
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="resultSelect" class="form-label required">Final Result</label>
+                                <select class="form-select" id="resultSelect" name="result" required>
+                                    <option value="">Select Result</option>
+                                    <option value="PASS">Pass</option>
+                                    <option value="FAIL">Fail</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a result.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="resultRemarks" class="form-label">Remarks</label>
+                                <textarea class="form-control"
+                                          id="resultRemarks"
+                                          name="remarks"
+                                          rows="3"
+                                          maxlength="500"
+                                          placeholder="Additional remarks about the result..."></textarea>
+                                <div class="form-text">
+                                    <span id="remarksCount">0</span>/500
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="declareResultBtn">
+                                <i class="bi bi-check2-circle me-1"></i>
+                                Declare Result
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-check-circle-fill text-success result-completed-icon"></i>
+                            <h5 class="mt-3">Result Already Declared</h5>
+                            <p class="text-muted">This examination has been completed.</p>
+                            <p class="fw-bold mb-0">
+                                Result:
+                                {% if examination.result == 'PASS' %}
+                                    <span class="badge bg-success">Pass</span>
+                                {% elif examination.result == 'FAIL' %}
+                                    <span class="badge bg-danger">Fail</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ examination.get_result_display }}</span>
+                                {% endif %}
+                            </p>
+                            {% if examination.remarks %}
+                                <p class="text-muted small mt-2">{{ examination.remarks }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card exam-card mt-4">
+                <div class="card-header exam-card-header">
+                    <i class="bi bi-info-circle me-2"></i> Status Information
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Examination Status</span>
+                        <span>
+                            {% if examination.status == 'SCHEDULED' %}
+                                <span class="badge bg-primary">Scheduled</span>
+                            {% elif examination.status == 'COMPLETED' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif examination.status == 'CANCELLED' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% elif examination.status == 'DRAFT' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ examination.get_status_display }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Published</span>
+                        <span>
+                            {% if examination.is_published %}
+                                <span class="badge bg-success-subtle text-success">
+                                    <i class="bi bi-check-circle-fill"></i> Yes
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning">
+                                    <i class="bi bi-clock"></i> No
+                                </span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="text-muted">Current Result</span>
+                        <span>
+                            {% if examination.result == 'PASS' %}
+                                <span class="badge bg-success">Pass</span>
+                            {% elif examination.result == 'FAIL' %}
+                                <span class="badge bg-danger">Fail</span>
+                            {% elif examination.result == 'PENDING' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% else %}
+                                <span class="badge bg-secondary">—</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3 result-toast-container">
+        <div class="toast align-items-center text-bg-success border-0"
+             id="successToast"
+             role="alert"
+             aria-live="assertive"
+             aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Result declared successfully!</div>
+                <button type="button"
+                        class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ndDqU0Gzau9qJ1lfW4J6J7sF1n5z8v7p3b0m8j8c3X2s2r7w8m5H7G5J5V5Q5"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/scripts/choices.min.js"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const remarksInput = document.getElementById("resultRemarks");
+    const remarksCount = document.getElementById("remarksCount");
+    const resultSelect = document.getElementById("resultSelect");
+    const resultForm = document.getElementById("resultForm");
+    const alertContainer = document.getElementById("formAlertContainer");
+    const declareResultBtn = document.getElementById("declareResultBtn");
+
+    let resultChoices = null;
+
+    if (resultSelect) {
+        resultChoices = new Choices(resultSelect, {
+            searchEnabled: false,
+            itemSelectText: "",
+            shouldSort: false,
+            allowHTML: false,
+            removeItemButton: false,
+            placeholder: true,
+            placeholderValue: "Select Result",
+            searchPlaceholderValue: "Search Result",
+            noResultsText: "No result found",
+            noChoicesText: "No result available",
+            classNames: {
+                containerOuter: ["choices", "result-choices"]
+            }
+        });
+    }
+
+    if (remarksInput && remarksCount) {
+        remarksCount.textContent = remarksInput.value.length;
+
+        remarksInput.addEventListener("input", function () {
+            remarksCount.textContent = this.value.length;
+        });
+    }
+
+    function getResultValue() {
+        if (!resultSelect) {
+            return "";
+        }
+
+        return resultSelect.value;
+    }
+
+    function setResultInvalid() {
+        if (resultSelect) {
+            resultSelect.classList.add("is-invalid");
+        }
+
+        const choicesContainer = document.querySelector(".result-choices");
+
+        if (choicesContainer) {
+            choicesContainer.classList.add("is-invalid");
+        }
+    }
+
+    function setResultValid() {
+        if (resultSelect) {
+            resultSelect.classList.remove("is-invalid");
+            resultSelect.classList.add("is-valid");
+        }
+
+        const choicesContainer = document.querySelector(".result-choices");
+
+        if (choicesContainer) {
+            choicesContainer.classList.remove("is-invalid");
+            choicesContainer.classList.add("is-valid");
+        }
+    }
+
+    function clearResultValidation() {
+        if (resultSelect) {
+            resultSelect.classList.remove("is-invalid", "is-valid");
+        }
+
+        const choicesContainer = document.querySelector(".result-choices");
+
+        if (choicesContainer) {
+            choicesContainer.classList.remove("is-invalid", "is-valid");
+        }
+    }
+
+    function showValidationAlert() {
+        if (!alertContainer) {
+            return;
+        }
+
+        alertContainer.innerHTML = "";
+
+        const alertDiv = document.createElement("div");
+
+        alertDiv.className = "alert alert-danger alert-dismissible fade show";
+        alertDiv.setAttribute("role", "alert");
+
+        alertDiv.innerHTML =
+            '<i class="bi bi-exclamation-triangle-fill me-2"></i>' +
+            "Please select a result before declaring." +
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+
+        alertContainer.appendChild(alertDiv);
+
+        alertContainer.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+    }
+
+    function validateForm() {
+        const selectedResult = getResultValue();
+
+        clearResultValidation();
+
+        if (!selectedResult) {
+            setResultInvalid();
+            showValidationAlert();
+            return false;
+        }
+
+        setResultValid();
+
+        if (alertContainer) {
+            alertContainer.innerHTML = "";
+        }
+
+        return true;
+    }
+
+    if (resultSelect) {
+        resultSelect.addEventListener("change", function () {
+            if (this.value) {
+                setResultValid();
+
+                if (alertContainer) {
+                    alertContainer.innerHTML = "";
+                }
+            } else {
+                clearResultValidation();
+            }
+        });
+    }
+
+    if (resultForm) {
+        resultForm.addEventListener("submit", function (event) {
+            if (!validateForm()) {
+                event.preventDefault();
+                return;
+            }
+
+            if (declareResultBtn) {
+                declareResultBtn.disabled = true;
+                declareResultBtn.classList.add("is-submitting");
+                declareResultBtn.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+                    "Declaring Result...";
+            }
+        });
+    }
+
+    {% if messages %}
+        {% for message in messages %}
+            const toastElement = document.getElementById("successToast");
+
+            if (toastElement) {
+                const toastMessage = document.getElementById("toastMessage");
+
+                if (toastMessage) {
+                    toastMessage.textContent = "{{ message|escapejs }}";
+                }
+
+                const toast = new bootstrap.Toast(toastElement, {
+                    delay: 5000
+                });
+
+                toast.show();
+            }
+        {% endfor %}
+    {% endif %}
+});
+    </script>
+{% endblock %}

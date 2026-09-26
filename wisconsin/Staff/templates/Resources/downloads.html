@@ -1,0 +1,513 @@
+<!-- ********************************************** Arun code **************************************************** -->
+
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Downloads — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Resources/downloads.css' %}" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/choices.js/10.2.0/styles/choices.min.css" />
+{% endblock %}
+
+{% block nav_resources_open %}open{% endblock %}
+{% block nav_resources_submenu %}open{% endblock %}
+{% block nav_downloads %}active{% endblock %}
+
+{% block content %}
+
+<div class="dl-header">
+  <div>
+    <h1>Downloads</h1>
+    <p>Forms, templates, guides, and shared resources.</p>
+  </div>
+  <button class="dl-upload-btn" onclick="document.getElementById('fileUpload').click()">
+    <i class="ti ti-upload"></i> Upload
+  </button>
+</div>
+
+<input type="file" id="fileUpload" style="display:none;" multiple onchange="handleFileUpload(this)">
+<div id="uploadDropzone" style="display:none;"></div>
+
+<div class="dl-stats-row">
+  <div class="dl-stat"><span>{{ total_resources }}</span><small>Total Resources</small></div>
+  <div class="dl-stat"><span>{{ new_this_month }}</span><small>New This Month</small></div>
+  <div class="dl-stat"><span>{{ total_downloads }}</span><small>Total Downloads</small></div>
+  <div class="dl-stat"><span>{{ storage_gb }} GB</span><small>Storage Used</small></div>
+</div>
+
+{% if resource_alerts %}
+<div class="dl-alert-bar">
+  <i class="ti ti-bell-ringing"></i>
+  <span>
+    {{ resource_alerts.0.resource.title }}
+    {% if resource_alerts.count > 1 %}and {{ resource_alerts.count|add:"-1" }} more{% endif %}
+    recently added
+  </span>
+  {% if resource_alerts_unread %}<span class="dl-alert-badge">{{ resource_alerts_unread }}</span>{% endif %}
+</div>
+{% endif %}
+
+<div class="dl-toolbar">
+  <div class="dl-search">
+    <i class="ti ti-search"></i>
+    <input type="text" id="downloadsSearch" placeholder="Search resources..." onkeyup="filterDownloads()" value="{{ search_query }}">
+  </div>
+  <select id="typeFilter" onchange="filterDownloads()">
+    <option value="all">All Types</option>
+    <option value="document">Document</option>
+    <option value="template">Template</option>
+    <option value="form">Form</option>
+    <option value="guide">Guide</option>
+    <option value="presentation">Presentation</option>
+    <option value="spreadsheet">Spreadsheet</option>
+  </select>
+  <select id="categoryFilter" onchange="filterDownloads()">
+    <option value="all">All Categories</option>
+    <option value="student-services">Student Services</option>
+    <option value="academic-support">Academic Support</option>
+    <option value="financial-aid">Financial Aid</option>
+    <option value="records">Records</option>
+  </select>
+  <button class="dl-reset" onclick="clearFilters()"><i class="ti ti-rotate"></i></button>
+</div>
+
+<div class="dl-list" id="downloadsGrid">
+  <div class="dl-list-head">
+    <span class="col-name">Name</span>
+    <span class="col-type">Type</span>
+    <span class="col-size">Size</span>
+    <span class="col-date">Uploaded</span>
+    <span class="col-dl">Downloads</span>
+    <span class="col-actions"></span>
+  </div>
+
+  {% for r in resources %}
+  <div class="dl-row" data-type="{{ r.resource_type }}" data-category="{{ r.category }}" data-id="{{ r.id }}">
+    <span class="col-name">
+      <span class="dl-file-icon">
+        <i class="ti ti-file-type-{% if r.file_extension == 'PDF' %}pdf{% elif r.file_extension == 'XLSX' or r.file_extension == 'XLS' %}xls{% elif r.file_extension == 'DOCX' or r.file_extension == 'DOC' %}doc{% elif r.file_extension == 'PPTX' or r.file_extension == 'PPT' %}ppt{% elif r.file_extension == 'ZIP' %}zip{% else %}txt{% endif %}"></i>
+      </span>
+      <span class="dl-file-info">
+        <strong>{{ r.title }}</strong>
+        <small>{{ r.description|default:"No description"|truncatechars:60 }}</small>
+      </span>
+    </span>
+    <span class="col-type"><span class="dl-tag">{{ r.get_resource_type_display }}</span></span>
+    <span class="col-size">{{ r.file_size_display }}</span>
+    <span class="col-date">{{ r.uploaded_at|date:"M d, Y" }}</span>
+    <span class="col-dl">{{ r.download_count }}</span>
+    <span class="col-actions">
+      <button class="dl-icon-btn" title="Preview" onclick="previewResource(event, {{ r.id }})">
+        <i class="ti ti-eye"></i>
+      </button>
+      <a class="dl-icon-btn primary" title="Download" href="{% url 'download_resource' uuid=user.uuid resource_id=r.id %}">
+        <i class="ti ti-download"></i>
+      </a>
+    </span>
+  </div>
+  {% empty %}
+  <div class="dl-empty">
+    <i class="ti ti-folder-off"></i>
+    <p>No resources found.</p>
+  </div>
+  {% endfor %}
+</div>
+
+
+<div id="downloadsPagination">
+  {% if page_obj.paginator.num_pages > 1 %}
+<div class="dl-pagination">
+  <span class="dl-page-info">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    ({{ page_obj.paginator.count }} total)
+  </span>
+  <div class="dl-page-links">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="dl-page-btn">
+        <i class="ti ti-chevron-left"></i>
+      </a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <span class="dl-page-btn active">{{ num }}</span>
+      {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" class="dl-page-btn">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="dl-page-btn">
+        <i class="ti ti-chevron-right"></i>
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+</div>
+
+
+<div class="modal-overlay" id="downloadsModal" onclick="closeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modalTitle">Resource Details</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="visibilityModal">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Who should see this?</h3>
+      <button class="modal-close" onclick="cancelUpload()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="pendingFileNames" class="dl-pending-files"></p>
+      <div class="upload-visibility">
+        <p><strong>Visible to:</strong></p>
+        <label><input type="checkbox" id="visStaff" checked> Staff</label>
+        <label><input type="checkbox" id="visFaculty"> Faculty</label>
+        <label><input type="checkbox" id="visStudents"> Students</label>
+        <p><strong>Notify on upload:</strong></p>
+        <label><input type="checkbox" id="notifyStaff"> Staff</label>
+        <label><input type="checkbox" id="notifyFaculty"> Faculty</label>
+        <label><input type="checkbox" id="notifyStudents"> Students</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="cancelUpload()">Cancel</button>
+      <button class="modal-btn primary" onclick="confirmUpload()">Upload</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const uuid = "{{ user.uuid }}";
+</script>
+<script>
+const UPLOAD_URL = "{% url 'upload_resource' uuid=user.uuid %}";
+const DETAIL_URL_BASE = "{% url 'resource_detail_ajax' uuid=user.uuid resource_id=0 %}".replace('/0/detail/', '/');
+const CSRF_TOKEN = "{{ csrf_token }}";
+let pendingFiles = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  showPendingToastIfAny();
+});
+
+function handleFileUpload(input) {
+  if (input.files.length > 0) {
+    const filesArray = Array.from(input.files);
+    openVisibilityModal(filesArray);
+  }
+  input.value = '';
+}
+
+function openVisibilityModal(files) {
+  pendingFiles = files;
+  const names = Array.from(files).map(f => f.name).join(', ');
+  document.getElementById('pendingFileNames').textContent =
+    files.length === 1 ? `File: ${names}` : `${files.length} files: ${names}`;
+
+  document.getElementById('visStaff').checked = true;
+  document.getElementById('visFaculty').checked = false;
+  document.getElementById('visStudents').checked = false;
+  document.getElementById('notifyStaff').checked = false;
+  document.getElementById('notifyFaculty').checked = false;
+  document.getElementById('notifyStudents').checked = false;
+
+  document.getElementById('visibilityModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function cancelUpload() {
+  pendingFiles = null;
+  document.getElementById('visibilityModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function confirmUpload() {
+  if (!pendingFiles) return;
+
+  const visStaff = document.getElementById('visStaff').checked;
+  const visFaculty = document.getElementById('visFaculty').checked;
+  const visStudents = document.getElementById('visStudents').checked;
+
+  if (!visStaff && !visFaculty && !visStudents) {
+    showNotification('Please select at least one audience.', 'warning');
+    return;
+  }
+
+  const fileList = Array.from(pendingFiles);
+  const formData = new FormData();
+  fileList.forEach(file => formData.append('files', file));
+  formData.append('resource_type', 'document');
+  formData.append('category', 'student-services');
+  formData.append('version', '1.0');
+  formData.append('visible_to_staff', visStaff);
+  formData.append('visible_to_faculty', visFaculty);
+  formData.append('visible_to_students', visStudents);
+  formData.append('notify_staff', document.getElementById('notifyStaff').checked);
+  formData.append('notify_faculty', document.getElementById('notifyFaculty').checked);
+  formData.append('notify_students', document.getElementById('notifyStudents').checked);
+
+  document.getElementById('visibilityModal').style.display = 'none';
+  document.body.style.overflow = '';
+
+  fetch(UPLOAD_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF_TOKEN }, body: formData })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.created && data.created.length > 0) {
+        sessionStorage.setItem('pending_toast', JSON.stringify({ message: data.message, type: 'success' }));
+        window.location.reload();
+      } else {
+        showNotification(data.message || 'Upload failed', 'error');
+      }
+    })
+    .catch(err => showNotification('Upload failed: ' + err.message, 'error'))
+    .finally(() => { pendingFiles = null; });
+}
+
+document.getElementById('visibilityModal').addEventListener('click', function(e) {
+  if (e.target === this) cancelUpload();
+});
+
+function showPendingToastIfAny() {
+  const pending = sessionStorage.getItem('pending_toast');
+  if (pending) {
+    sessionStorage.removeItem('pending_toast');
+    try {
+      const parsed = JSON.parse(pending);
+      showNotification(parsed.message, parsed.type);
+    } catch (e) {}
+  }
+}
+
+const DOWNLOADS_URL = "{% url 'staff_downloads' uuid=user.uuid %}";
+const FILE_ICON_MAP = { PDF: 'pdf', XLSX: 'xls', XLS: 'xls', DOCX: 'doc', DOC: 'doc', PPTX: 'ppt', PPT: 'ppt', ZIP: 'zip' };
+let searchDebounce = null;
+
+function filterDownloads() {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => triggerSearch(1), 300);
+}
+
+function clearFilters() {
+  document.getElementById('downloadsSearch').value = '';
+  typeChoices.setChoiceByValue('all');
+  categoryChoices.setChoiceByValue('all');
+  triggerSearch(1);
+}
+
+function triggerSearch(page) {
+  const search = document.getElementById('downloadsSearch').value;
+  const type = document.getElementById('typeFilter').value;
+  const category = document.getElementById('categoryFilter').value;
+
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (type !== 'all') params.set('type', type);
+  if (category !== 'all') params.set('category', category);
+  params.set('page', page);
+
+  fetch(`${DOWNLOADS_URL}?${params.toString()}`, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      renderRows(data.rows);
+      renderPagination(data);
+      history.replaceState(null, '', `?${params.toString()}`);
+    })
+    .catch(err => console.error('Search failed:', err));
+}
+
+function renderRows(rows) {
+  const grid = document.getElementById('downloadsGrid');
+  const head = grid.querySelector('.dl-list-head');
+  grid.querySelectorAll('.dl-row, .dl-empty').forEach(el => el.remove());
+
+  if (rows.length === 0) {
+    head.insertAdjacentHTML('afterend', `
+      <div class="dl-empty">
+        <i class="ti ti-folder-off"></i>
+        <p>No resources found.</p>
+      </div>
+    `);
+    return;
+  }
+
+  rows.forEach(r => {
+    const icon = FILE_ICON_MAP[r.ext] || 'txt';
+    head.insertAdjacentHTML('afterend', `
+      <div class="dl-row" data-type="${r.resource_type}" data-category="${r.category}" data-id="${r.id}">
+        <span class="col-name">
+          <span class="dl-file-icon"><i class="ti ti-file-type-${icon}"></i></span>
+          <span class="dl-file-info">
+            <strong>${r.title}</strong>
+            <small>${r.description.length > 60 ? r.description.slice(0, 60) + '…' : r.description}</small>
+          </span>
+        </span>
+        <span class="col-type"><span class="dl-tag">${r.type_display}</span></span>
+        <span class="col-size">${r.size}</span>
+        <span class="col-date">${r.uploaded_at}</span>
+        <span class="col-dl">${r.downloads}</span>
+        <span class="col-actions">
+          <button class="dl-icon-btn" title="Preview" onclick="previewResource(event, ${r.id})">
+            <i class="ti ti-eye"></i>
+          </button>
+          <a class="dl-icon-btn primary" title="Download" href="${r.download_url}">
+            <i class="ti ti-download"></i>
+          </a>
+        </span>
+      </div>
+    `);
+  });
+}
+
+function renderPagination(data) {
+  const container = document.getElementById('downloadsPagination');
+  if (data.num_pages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let links = '';
+  if (data.has_previous) {
+    links += `<a href="#" class="dl-page-btn" onclick="triggerSearch(${data.previous_page}); return false;"><i class="ti ti-chevron-left"></i></a>`;
+  }
+  for (let n = 1; n <= data.num_pages; n++) {
+    if (n === data.page) {
+      links += `<span class="dl-page-btn active">${n}</span>`;
+    } else if (n > data.page - 3 && n < data.page + 3) {
+      links += `<a href="#" class="dl-page-btn" onclick="triggerSearch(${n}); return false;">${n}</a>`;
+    }
+  }
+  if (data.has_next) {
+    links += `<a href="#" class="dl-page-btn" onclick="triggerSearch(${data.next_page}); return false;"><i class="ti ti-chevron-right"></i></a>`;
+  }
+
+  container.innerHTML = `
+    <div class="dl-pagination">
+      <span class="dl-page-info">Page ${data.page} of ${data.num_pages} (${data.total_count} total)</span>
+      <div class="dl-page-links">${links}</div>
+    </div>
+  `;
+}
+
+function previewResource(event, resourceId) {
+  event.preventDefault();
+  const modal = document.getElementById('downloadsModal');
+  document.getElementById('modalTitle').textContent = 'Loading...';
+  document.getElementById('modalBody').innerHTML = '<p>Loading details...</p>';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+    fetch(`${DETAIL_URL_BASE}${resourceId}/detail/`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("HTTP error " + res.status);
+        }
+        return res.json();
+      })
+    .then(res => {
+      if (!res.success) {
+        document.getElementById('modalBody').innerHTML = '<p>Could not load details.</p>';
+        return;
+      }
+      const d = res.data;
+      document.getElementById('modalTitle').textContent = d.title;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="modal-details">
+          <p><strong>Type:</strong> ${d.type}</p>
+          <p><strong>Category:</strong> ${d.category}</p>
+          <p><strong>Format:</strong> ${d.ext}</p>
+          <p><strong>Version:</strong> ${d.version}</p>
+          <p><strong>Uploaded by:</strong> ${d.uploaded_by}</p>
+          <p><strong>Uploaded:</strong> ${d.uploaded_at}</p>
+          <p><strong>Size:</strong> ${d.size}</p>
+          <p><strong>Downloads:</strong> ${d.downloads}</p>
+          <p style="margin-top:10px;"><strong>Description:</strong> ${d.description}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn primary" onclick="closeModal()">Close</button>
+          <a class="modal-btn" style="background:#e8f5e9;color:#16a34a;border-color:#c8e6c9;text-decoration:none;"
+             href="${DETAIL_URL_BASE}${d.id}/download/">Download</a>
+        </div>
+      `;
+    })
+    .catch(err => {
+      document.getElementById('modalBody').innerHTML =
+        `<p style="color:red;">${err.message}</p>`;
+    });
+}
+
+function closeModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('downloadsModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+    cancelUpload();
+  }
+});
+
+function showNotification(message, type = 'success') {
+  dlShowToast(
+    type === 'success' ? 'Success' : type === 'info' ? 'Info' : type === 'warning' ? 'Warning' : 'Error',
+    message, type
+  );
+}
+
+function dlShowToast(title, msg, type = 'success') {
+  document.querySelectorAll('.dl-toast').forEach(t => t.remove());
+  const iconMap = {
+    success: '<i class="ti ti-circle-check"></i>',
+    info: '<i class="ti ti-info-circle"></i>',
+    warning: '<i class="ti ti-alert-triangle"></i>',
+    error: '<i class="ti ti-circle-x"></i>',
+  };
+  const toast = document.createElement('div');
+  toast.className = 'dl-toast';
+  toast.innerHTML = `
+    <div class="dl-toast-icon ${type}">${iconMap[type] || iconMap.success}</div>
+    <div class="dl-toast-txt"><b>${title}</b><small>${msg}</small></div>
+    <span class="dl-toast-close" onclick="this.closest('.dl-toast').remove()"><i class="ti ti-x"></i></span>`;
+  document.body.appendChild(toast);
+  setTimeout(function () {
+    toast.style.animation = 'dlToastFadeOut 0.35s ease forwards';
+    setTimeout(() => toast.remove(), 350);
+  }, 4000);
+}
+
+let typeChoices, categoryChoices;
+
+document.addEventListener('DOMContentLoaded', function() {
+  showPendingToastIfAny();
+
+  typeChoices = new Choices('#typeFilter', {
+    searchEnabled: false,
+    itemSelectText: '',
+    shouldSort: false,
+  });
+  categoryChoices = new Choices('#categoryFilter', {
+    searchEnabled: false,
+    itemSelectText: '',
+    shouldSort: false,
+  });
+
+  document.getElementById('typeFilter').addEventListener('change', filterDownloads);
+  document.getElementById('categoryFilter').addEventListener('change', filterDownloads);
+});
+
+</script>
+{% endblock %}
+
+
+<!-- ********************************************** Arun code **************************************************** -->

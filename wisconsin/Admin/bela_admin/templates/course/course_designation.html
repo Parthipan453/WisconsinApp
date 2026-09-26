@@ -1,0 +1,608 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Course Designation{% endblock %}
+{% block page_title %}Course Designation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/course/course_home.css' %}">
+<link rel="stylesheet" href="{% static 'css/course/course_designation.css' %}">
+<link rel="stylesheet" href="{% static 'css/course/course_view.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="course-page">
+
+  <!-- Page Header -->
+  <div class="course-page-header-card">
+
+    <div class="course-page-header-left">
+
+      <h2 class="course-page-title">
+        Course Designation
+      </h2>
+
+      <nav class="course-breadcrumb" aria-label="breadcrumb">
+
+        <i data-lucide="home"></i>
+
+        <a href="{% url 'admin_dashboard' request.user.uuid %}">
+          Dashboard
+        </a>
+
+        <span class="sep">›</span>
+
+        <a href="{% url 'course_dashboard' %}">
+          Courses
+        </a>
+
+        <span class="sep">›</span>
+
+        <span class="active">
+          Course Designation
+        </span>
+
+      </nav>
+
+    </div>
+
+    <div class="course-page-header-right">
+
+      <button
+          class="btn-add-course"
+          data-bs-toggle="modal"
+          data-bs-target="#addDesignationModal">
+
+        <i data-lucide="plus"></i>
+
+        New Designation
+
+      </button>
+
+    </div>
+
+  </div>
+
+  {# ── Stat cards ── #}
+  <div class="row g-3">
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-primary bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="tags" class="text-primary" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Designation Types</div>
+            <div class="fs-4 fw-bold text-dark" id="totalTypes">{{ total_types }}</div>
+            <div class="text-muted" style="font-size: 11px;">Categories</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-success bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="book-open" class="text-success" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Linked Courses</div>
+            <div class="fs-4 fw-bold text-success" id="totalLinked">{{ total_linked }}</div>
+            <div class="text-muted" style="font-size: 11px;">Course associations</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-success bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="check-circle" class="text-success" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Active</div>
+            <div class="fs-4 fw-bold text-success" id="activeTypes">{{ active_types }}</div>
+            <div class="text-muted" style="font-size: 11px;">Designation types</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-warning bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="circle-slash" class="text-warning" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Inactive</div>
+            <div class="fs-4 fw-bold text-warning" id="inactiveTypes">{{ inactive_types }}</div>
+            <div class="text-muted" style="font-size: 11px;">Designation types</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Designation table card ── #}
+  <div class="course-card">
+
+    <div class="course-card__hd">
+      <div class="course-card__title">
+        <i data-lucide="tags"></i>All Designation Types
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'export_designations_excel' %}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1"
+          style="font-size:12px;border-radius:8px;">
+          <i data-lucide="file-spreadsheet" style="width:13px;height:13px;"></i>Excel
+        </a>
+        <a href="{% url 'export_designations_pdf' %}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
+          style="font-size:12px;border-radius:8px;">
+          <i data-lucide="file-text" style="width:13px;height:13px;"></i>PDF
+        </a>
+      </div>
+    </div>
+
+    {# Filters #}
+    <div class="course-filter">
+      <div class="filter-wrapper">
+        <div class="input-group search-group">
+          <input type="text" id="designationSearch" class="form-control" placeholder="Search designation types…"
+            oninput="filterDesignations()">
+          <span class="input-group-text">
+            <i data-lucide="search"></i>
+          </span>
+        </div>
+        <button class="reset-btn" onclick="resetDesignationFilters()">
+          <i data-lucide="x"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+    </div>
+
+    {# Table #}
+    <div class="table-responsive">
+      <table class="course-tbl" id="designationTable" aria-label="Designation types list">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Designation Type</th>
+            <th>Description</th>
+            <th>Linked Courses</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="designationTbody">
+          {% for t in types %}
+          <tr data-name="{{ t.designation_name|lower }}" data-description="{{ t.description|lower }}" data-status="{{ t.status }}" data-linked="{{ t.linked_count }}">
+            <td>{{ forloop.counter }}</td>
+            <td>
+                <span 
+                      title="{{ t.designation_name }}">
+                    {{ t.designation_name|truncatechars:25 }}
+                </span>
+            </td>
+
+            <td>
+                <span class="value-text"
+                      title="{{ t.description }}">
+                    {{ t.description|default:"—"|truncatechars:50 }}
+                </span>
+            </td>
+            <td style="text-align:center;">
+              <span class="order-badge">{{ t.linked_count }} course{{ t.linked_count|pluralize }}</span>
+            </td>
+            <td>
+              {% if t.status == 'ACTIVE' %}
+                <span class="b-active">Active</span>
+              {% else %}
+                <span class="b-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="act-btns">
+                <button class="act-btn view-btn" title="View" data-id="{{ t.designation_type_id }}">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+                <button class="act-btn edit-btn" title="Edit" data-id="{{ t.designation_type_id }}">
+                  <i class="fa-regular fa-pen-to-square"></i>
+                </button>
+                {% if t.status == 'ACTIVE' %}
+                <button class="act-btn danger" title="Mark Inactive"
+                  data-id="{{ t.designation_type_id }}" data-name="{{ t.designation_name|escapejs }}"
+                  onclick="showInactiveModal(this)">
+                  <i class="fa-solid fa-ban"></i>
+                </button>
+                {% else %}
+                <button class="act-btn" disabled title="Already Inactive"
+                  style="opacity:.4;cursor:not-allowed;">
+                  <i class="fa-solid fa-ban"></i>
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr id="emptyRow">
+            <td colspan="7">
+              <div class="course-empty">
+                <i data-lucide="inbox"></i>
+                <p>No designation types yet.</p>
+                <button class="btn-add-course" data-bs-toggle="modal" data-bs-target="#addDesignationModal">
+                  <i data-lucide="plus"></i>
+                  New Designation
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# No-results placeholder #}
+    <div id="noDesignationResults" style="display:none;">
+      <div class="course-empty">
+        <i data-lucide="search-x"></i>
+        <p>No designation types match your search.</p>
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetDesignationFilters()"
+          style="font-size:12px;border-radius:8px;">
+          Clear filters
+        </button>
+      </div>
+    </div>
+
+    {# Pagination #}
+    {% if is_paginated %}
+    <div class="course-pg">
+      <small>
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+        of {{ paginator.count }} designation types
+      </small>
+      <div class="d-flex gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="pg-btn">
+          <i data-lucide="chevron-left"></i>Prev
+        </a>
+        {% endif %}
+        {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+        <span class="pg-btn" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;">
+          {{ num }}
+        </span>
+        {% elif num == page_obj.previous_page_number or num == page_obj.next_page_number %}
+        <a href="?page={{ num }}" class="pg-btn">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="pg-btn">
+          Next<i data-lucide="chevron-right"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>{# /course-card #}
+
+</div>{# /course-page #}
+{% endblock %}
+
+{% block global_modal %}
+<!-- ================= ADD / EDIT MODAL ================= -->
+<div class="modal fade" id="addDesignationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modern-status-modal">
+      <div class="status-modal-header">
+        <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1;">
+          <div class="status-modal-icon">
+            <i data-lucide="tags" style="width:28px;height:28px;color:#dc2626;"></i>
+          </div>
+          <h4 class="status-modal-title" id="modalTitle">New Designation Type</h4>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="flex-shrink:0;"></button>
+      </div>
+      <form id="designationForm" method="POST">
+        {% csrf_token %}
+        <div class="status-modal-body">
+          <input type="hidden" id="editId" name="edit_id" value="">
+          <div class="mb-3">
+            <label class="form-label" style="font-weight:500;color:#111827;margin-bottom:6px;font-size:14px;">Designation Type <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="formDesignationName" name="designation_name" placeholder="e.g. Writing Intensive" required style="border-radius:8px;border:1px solid #e5e7eb;padding:10px 14px;font-size:14px;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" style="font-weight:500;color:#111827;margin-bottom:6px;font-size:14px;">Description</label>
+            <textarea class="form-control" id="formDescription" name="description" rows="4" placeholder="Brief description of this designation type" style="border-radius:8px;border:1px solid #e5e7eb;padding:10px 14px;font-size:14px;"></textarea>
+          </div>
+          <div class="mb-3" id="statusFieldGroup">
+            <label class="form-label" style="font-weight:500;color:#111827;margin-bottom:6px;font-size:14px;">Status</label>
+            <select id="formStatus" name="status" class="form-select" style="border-radius:8px;border:1px solid #e5e7eb;padding:10px 14px;font-size:14px;width:100%;">
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="status-modal-footer">
+          <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-confirm" id="saveBtn"><i data-lucide="check" style="width:16px;height:16px;"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= INACTIVE CONFIRM MODAL ================= -->
+<div class="modal fade" id="inactiveDesignationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content shadow">
+      <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:38px;height:38px;background:#fff0f0;border-radius:9px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="shield-alert" style="width:18px;height:18px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0">Mark as Inactive?</h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="font-size:13px;color:#495057;padding-top:.85rem;">
+        <p style="margin-bottom:.5rem;">
+          You are about to mark <strong id="inactiveDesignationName" class="inactiveDesignationName"></strong> as
+          <strong style="color:#c5050c;">Inactive</strong>.
+        </p>
+        <ul style="margin:0;padding-left:1.1rem;font-size:12.5px;color:#6c757d;line-height:1.8;">
+          <li>This type won't appear when adding new course designations.</li>
+          <li>Existing designations using this type are not affected.</li>
+          <li>You can reactivate it at any time via Edit.</li>
+        </ul>
+      </div>
+      <div class="modal-footer" style="border-top:none;padding-top:0;gap:.5rem;">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-dismiss="modal"
+                style="font-size:13px;border-radius:8px;padding:6px 16px;">
+          Cancel
+        </button>
+        <form id="inactiveDesignationForm" method="POST" style="margin:0;">
+          {% csrf_token %}
+          <input type="hidden" id="inactiveDesignationId" name="designation_type_id" value="">
+          <button type="submit" class="btn btn-sm"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;
+                         background:#c5050c;color:#fff;border:none;font-weight:600;">
+            <i data-lucide="ban" style="width:13px;height:13px;"></i>
+            Yes, Mark Inactive
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ================= VIEW MODAL ================= -->
+<div class="modal fade" id="viewDesignationModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border:none;border-radius:14px;overflow:hidden;">
+      <div style="padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f0f0;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;background:#eff6ff;border-radius:9px;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="eye" style="width:18px;height:18px;color:#2563eb;"></i>
+          </div>
+          <h5 style="margin:0;font-size:16px;font-weight:600;color:#111827;">Designation Type Details</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="flex-shrink:0;"></button>
+      </div>
+      <div class="modal-body" style="padding:20px 24px;">
+        <div class="f-card" style="border:1px solid #e5e7eb;border-radius:12px;margin-bottom:16px;">
+          <div class="f-card__hd" style="border-bottom:1px solid #f3f4f6;padding:14px 18px;">
+            <div class="f-card__icon blue"><i data-lucide="tags"></i></div>
+            <span class="f-card__title">Designation Information</span>
+          </div>
+          <div class="f-card__body" style="padding:18px;">
+            <div class="field-grid">
+              <div class="field-item">
+                <div class="field-label">Designation Type</div>
+                <div class="field-value" id="viewDesignationName"></div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">Status</div>
+                <div class="field-value" id="viewStatus"></div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">Description</div>
+                <div class="field-value" id="viewDescription" style="white-space:pre-wrap;">—</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">Linked Courses</div>
+                <div class="field-value" id="viewLinked">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:12px 24px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal"
+          style="font-size:13px;border-radius:8px;padding:6px 16px;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+
+function getCSRFToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+/* ── Search filter ── */
+function filterDesignations() {
+  var search = document.getElementById('designationSearch').value.toLowerCase().trim();
+  var rows = document.querySelectorAll('#designationTbody tr[data-name]');
+  var visible = 0;
+  rows.forEach(function(row) {
+    var name = row.dataset.name || '';
+    var desc = row.dataset.description || '';
+    var match = !search || name.includes(search) || desc.includes(search);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  var el = document.getElementById('noDesignationResults');
+  if (el) el.style.display = visible === 0 ? 'block' : 'none';
+}
+
+function resetDesignationFilters() {
+  document.getElementById('designationSearch').value = '';
+  filterDesignations();
+}
+
+/* ── Modal: View ── */
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.view-btn');
+  if (!btn) return;
+  e.preventDefault();
+  var row = btn.closest('tr');
+  document.getElementById('viewDesignationName').textContent = row ? (row.dataset.name || '') : '';
+  document.getElementById('viewDescription').textContent = row ? (row.dataset.description || '') : '—';
+  document.getElementById('viewLinked').textContent = row ? (row.dataset.linked || '0') : '0';
+  var status = row ? (row.dataset.status || '') : '';
+  document.getElementById('viewStatus').innerHTML = status === 'ACTIVE'
+    ? '<span class="badge-active">Active</span>'
+    : '<span class="badge-inactive">Inactive</span>';
+  new bootstrap.Modal(document.getElementById('viewDesignationModal')).show();
+});
+
+/* ── Modal: Edit ── */
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.edit-btn');
+  if (!btn) return;
+  e.preventDefault();
+  var id = parseInt(btn.dataset.id);
+  var row = btn.closest('tr');
+  var d = {
+    id: id,
+    designation_name: row ? row.dataset.name : '',
+    description: row ? row.dataset.description : '',
+    status: row ? row.dataset.status : 'ACTIVE'
+  };
+  
+  if (!d) return;
+  document.getElementById('editId').value = d.id;
+  document.getElementById('modalTitle').textContent = 'Edit Designation Type';
+  document.getElementById('formDesignationName').value = d.designation_name || '';
+  document.getElementById('formDescription').value = d.description || '';
+  const statusChoices = window.choicesMap["formStatus"];
+
+if (statusChoices) {
+    statusChoices.setChoiceByValue(d.status || "ACTIVE");
+}
+  new bootstrap.Modal(document.getElementById('addDesignationModal')).show();
+});
+
+/* ── Modal: Add/Edit form submit ── */
+document.getElementById('designationForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var editId = document.getElementById('editId').value;
+  var name = document.getElementById('formDesignationName').value.trim();
+  var description = document.getElementById('formDescription').value.trim();
+ 
+  if (!name) {
+    Swal.fire({ icon: 'warning', title: 'Validation Error', text: 'Please enter a designation type name.' });
+    return;
+  }
+
+  var url = editId
+    ? '{% url "designation_type_edit" 0 %}'.replace('0', editId)
+    : '{% url "designation_type_add" %}';
+
+  var formData = new FormData(this);
+
+  fetch(url, {
+    method: 'POST',
+    body: formData,
+    headers: { 'X-CSRFToken': getCSRFToken() }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (res.success) {
+      bootstrap.Modal.getInstance(document.getElementById('addDesignationModal')).hide();
+      window.location.reload();
+    } else {
+      var msg = '';
+      for (var key in res.errors) { msg += res.errors[key] + '\n'; }
+      Swal.fire({ icon: 'error', title: 'Error', text: msg });
+    }
+  })
+  .catch(function() {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+  });
+});
+
+/* ── Reset form on modal close ── */
+document.getElementById('addDesignationModal').addEventListener('hidden.bs.modal', function() {
+  document.getElementById('editId').value = '';
+  document.getElementById('modalTitle').textContent = 'New Designation Type';
+  document.getElementById('formDesignationName').value = '';
+  document.getElementById('formDescription').value = '';
+  const statusChoices = window.choicesMap["formStatus"];
+
+if (statusChoices) {
+    statusChoices.setChoiceByValue("ACTIVE");
+}
+});
+
+/* ── Inactive Modal ── */
+function showInactiveModal(btn) {
+  var id = btn.dataset.id;
+  var name = btn.dataset.name;
+  document.getElementById('inactiveDesignationId').value = id;
+  document.getElementById('inactiveDesignationName').textContent = name;
+  new bootstrap.Modal(document.getElementById('inactiveDesignationModal')).show();
+}
+
+/* ── Inactive Form Submit ── */
+document.getElementById('inactiveDesignationForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var id = document.getElementById('inactiveDesignationId').value;
+  var formData = new FormData(this);
+  fetch('{% url "designation_type_inactivate" 0 %}'.replace('0', id), {
+    method: 'POST',
+    body: formData,
+    headers: { 'X-CSRFToken': getCSRFToken() }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (res.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Marked Inactive!',
+        text: res.message,
+        timer: 3000,
+        showConfirmButton: false
+      });
+      bootstrap.Modal.getInstance(document.getElementById('inactiveDesignationModal')).hide();
+      setTimeout(function() { window.location.reload(); }, 2000);
+    } else {
+      Swal.fire({ icon: 'error', title: 'Error', text: res.message });
+    }
+  })
+  .catch(function() {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'Could not mark as inactive.' });
+  });
+});
+
+/* ── Init icons ── */
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+});
+</script>
+{% endblock %}

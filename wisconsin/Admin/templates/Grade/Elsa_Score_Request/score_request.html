@@ -1,0 +1,290 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Grade Scale{% endblock %}
+{% block page_title %}Grade Scale {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Grade/Elsa_Score_Request/score_request.css' %}">
+{% endblock %}
+
+
+{% block content %}
+
+<div class="">
+
+    <!-- HEADER -->
+    <div class="sr-header">
+        <div class="sr-header-left">
+            <div class="headerr-icon">
+                <i data-lucide="clipboard-list"></i>
+            </div>
+            <div>
+                <h2 class="page-title mb-1">Score Change Requests</h2>
+                <p class="page-subtitle mb-0">
+                    Review and manage student score modification requests
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="sr-stats-modern">
+        <!-- Total -->
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon blue">
+                    <i data-lucide="layers"></i>
+                </div>
+            </div>
+            <div class="stat-right">
+                <h3>{{total_count}}</h3>
+                <p>Total Requests</p>
+            </div>
+        </div>
+        <!-- Pending -->
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon orange">
+                    <i data-lucide="clock"></i>
+                </div>
+            </div>
+
+            <div class="stat-right">
+                <h3>{{ pending_count }}</h3>
+                <p>Pending</p>
+            </div>
+        </div>
+        <!-- Approved -->
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle"></i>
+                </div>
+            </div>
+            <div class="stat-right">
+                <h3>{{ approved_count }}</h3>
+                <p>Approved</p>
+            </div>
+        </div>
+        <!-- Rejected -->
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon red">
+                    <i data-lucide="x-circle"></i>
+                </div>
+            </div>
+            <div class="stat-right">
+                <h3>{{ rejected_count }}</h3>
+                <p>Rejected</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    {% if errors.duplicate %}
+    <div class="alert alert-warning">
+        {{ errors.duplicate }}
+    </div>
+    {% endif %}
+    <div class="sr-table-card">
+        <div class="sr-table-header">
+            <h3>Requests List</h3>
+                <form method="get" id="dateFilterForm" class="sr-date-filter">
+                    <input
+                        type="date"
+                        name="date"
+                        id="requestDate"
+                        value="{{ selected_date }}"
+                        max="{{ today }}"
+                        onchange="document.getElementById('dateFilterForm').submit();"
+                        onkeydown="return false;"
+                        onpaste="return false;"
+                        ondrop="return false;">
+                    {% if selected_date %}
+                        <a href="{% url 'score_request' %}" class="sr-date-clear" title="Clear filter">
+                            <i data-lucide="x"></i>
+                        </a>
+                    {% endif %}
+                </form>
+        </div>
+        <div class="sr-table-wrapper">
+            <table class="sr-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Faculty</th>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Current</th>
+                        <th>Requested</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for r in requests %}
+                    <tr>
+                        <td>#{{ r.request_code }}</td>
+                        <td>
+                            {% if r.faculty_obj %}
+                                {{ r.faculty_obj.employee_id }}<br>
+                                ({{ r.faculty_obj.user.first_name }} {{ r.faculty_obj.user.last_name }})
+                            {% else %}
+                                {{ r.instructor_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.student_obj %}
+                                {{ r.student_obj.student_number }}<br>
+                                ({{ r.student_obj.user.first_name }} {{ r.student_obj.user.last_name }})
+                            {% else %}
+                                {{ r.student_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.course_obj %}
+                                {{ r.course_obj.course_code }}<br>
+                                ({{ r.course_obj.course_name }})
+                            {% else %}
+                                {{ r.course_id }}
+                            {% endif %}
+                        </td>
+                        <td>{{ r.current_score }}</td>
+                        <td class="highlight">{{ r.requested_score }}</td>
+                        <td class="reason">{{ r.reason }}</td>
+                        <td>
+                            {% if r.approval_status == "Pending" %}
+                                <span class="badge pending">Pending</span>
+
+                            {% elif r.approval_status == "Approved" %}
+                                <span class="badge approved">Approved</span>
+
+                            {% elif r.approval_status == "Rejected" %}
+                                <span class="badge rejected">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td class="sr-action-cell">
+                            {% if r.approval_status == "Pending" %}
+                                <button type="button" class="btn approve"
+                                    data-approve-url="{% url 'approve_request' r.request_id %}">Approve</button>
+                                <button type="button" class="btn reject"
+                                    data-reject-url="{% url 'reject_request' r.request_id %}">Reject</button>
+                            {% else %}
+                                <span class="done">Done</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="empty">
+                            <div class="empty-icon">
+                                <i data-lucide="inbox"></i>
+                            </div>
+                            <div class="empty-title">No Requests Found</div>
+                            <div class="empty-text">
+                                There are no score change requests to display.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- PAGINATION -->
+    {% if request_page.paginator.num_pages > 1 %}
+    <div class="sr-pagination">
+        <div class="sr-page-info">
+            Showing {{ request_page.start_index }}–{{ request_page.end_index }} of {{ request_page.paginator.count }} Requests
+        </div>
+        <div class="sr-page-nav">
+            <!-- Previous -->
+            {% if request_page.has_previous %}
+                <a href="?page={{ request_page.previous_page_number }}"
+                class="sr-page-btn sr-page-arrow"
+                aria-label="Previous page">
+                    <i data-lucide="chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="sr-page-btn sr-page-arrow sr-page-disabled"><i data-lucide="chevron-left"></i></span>
+            {% endif %}
+            <!-- First page -->
+            {% if request_page.number > 3 %}
+                <a href="?page=1"
+                class="sr-page-btn">
+                    1
+                </a>
+                <span class="sr-page-dots">...</span>
+            {% endif %}
+            <!-- Page numbers -->
+            {% for num in request_page.paginator.page_range %}
+                {% if num >= request_page.number|add:"-2" and num <= request_page.number|add:"2" %}
+                    {% if num == request_page.number %}
+                        <span class="sr-page-btn sr-page-active">
+                            {{ num }}
+                        </span>
+                    {% else %}
+                        <a href="?page={{ num }}"
+                        class="sr-page-btn">
+                            {{ num }}
+                        </a>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            <!-- Last page -->
+            {% if request_page.number < request_page.paginator.num_pages|add:"-2" %}
+                <span class="sr-page-dots">...</span>
+                <a href="?page={{ request_page.paginator.num_pages }}"
+                class="sr-page-btn">
+                    {{ request_page.paginator.num_pages }}
+                </a>
+            {% endif %}
+            <!-- Next -->
+            {% if request_page.has_next %}
+                <a href="?page={{ request_page.next_page_number }}"
+                class="sr-page-btn sr-page-arrow"
+                aria-label="Next page">
+                    <i data-lucide="chevron-right"></i>
+                </a>
+            {% else %}
+                <span class="sr-page-btn sr-page-arrow sr-page-disabled">
+                    <i data-lucide="chevron-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="liveToast"
+         class="toast align-items-center text-white border-0 hide"
+         role="alert"
+         aria-live="assertive"
+         aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage">
+                Message here
+            </div>
+            <button type="button"
+                    class="btn-close btn-close-white me-2 m-auto"
+                    data-bs-dismiss="toast">
+            </button>
+        </div>
+    </div>
+</div>
+{% if toast_message %}
+<script>
+    showToast("{{ toast_message }}", "{{ toast_type }}");
+</script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Grade/Elsa_Score_Request/score_request.js' %}"></script>
+<script src="{% static 'script/Grade/Elsa_Score_Request/score_request_ajax.js' %}"></script>
+{% endblock %}

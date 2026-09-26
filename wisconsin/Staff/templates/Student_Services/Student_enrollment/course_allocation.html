@@ -1,0 +1,2048 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Course Allocation — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<style>
+  :root {
+    --uw-red: #c5050c;
+    --uw-red-hover: #a2040a;
+    --border-color: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --bg-light: #f8fafc;
+    
+    --badge-allocated-bg: #ecfdf5;
+    --badge-allocated-text: #047857;
+    --badge-allocated-border: #10b981;
+    
+    --badge-new-bg: #eff6ff;
+    --badge-new-text: #1d4ed8;
+    --badge-new-border: #3b82f6;
+    
+    --badge-not-bg: #fffbeb;
+    --badge-not-text: #b45309;
+    --badge-not-border: #f59e0b;
+  }
+
+  .allocation-page {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 10px 20px 40px;
+    font-family: 'Encode Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-primary);
+  }
+
+  /* Breadcrumbs */
+  .allocation-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .allocation-breadcrumbs a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .allocation-breadcrumbs a:hover {
+    color: var(--uw-red);
+  }
+  .allocation-breadcrumbs i {
+    font-size: 14px;
+  }
+
+  /* Page Title */
+  .page-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .page-title-row h1 {
+    font-size: 26px;
+    font-weight: 750;
+    margin: 0;
+    color: #0f172a;
+  }
+
+  /* Grid Layout */
+  .allocation-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 30px;
+  }
+
+  /* allocation grid baseline layout */
+
+  /* Premium Card Styles */
+  .premium-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: #0f172a;
+  }
+
+  .card-body {
+    padding: 24px;
+  }
+
+  /* Form Fields */
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* form row baseline layout */
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .required-star {
+    color: var(--uw-red);
+  }
+
+  .form-select-custom {
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #ffffff;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+  }
+
+  .form-select-custom:focus {
+    border-color: var(--uw-red);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.1);
+  }
+
+  /* Alerts */
+  .pink-alert {
+    background-color: #fff5f5;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    color: #991b1b;
+    font-size: 13px;
+  }
+  
+  .pink-alert i {
+    font-size: 18px;
+    color: var(--uw-red);
+  }
+
+  .pink-alert .alert-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pink-alert .alert-title {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7f1d1d;
+  }
+
+  /* Allocate to Departments Card */
+  .allocation-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .search-wrapper {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-wrapper i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 16px;
+  }
+
+  .search-input {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px 8px 38px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .search-input:focus {
+    border-color: var(--uw-red);
+    outline: none;
+  }
+
+  .btn-expand-all {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-expand-all:hover {
+    background: var(--bg-light);
+    border-color: #94a3b8;
+  }
+
+  /* Tree checklist design */
+  .dept-tree-container {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .dept-group {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .dept-group:last-child {
+    border-bottom: none;
+  }
+
+  .dept-header {
+    background: var(--bg-light);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dept-toggle {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s ease;
+  }
+
+  .dept-toggle.collapsed {
+    transform: rotate(-90deg);
+  }
+
+  .dept-checkbox, .program-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--uw-red);
+  }
+
+  .dept-title-label {
+    font-weight: 700;
+    font-size: 13px;
+    color: #334155;
+    margin: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .badge {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 3px 8px;
+    border-radius: 6px !important;
+    font-size: 11px;
+    font-weight: 600 !important;
+  }
+
+  .badge-count {
+    background: #e2e8f0;
+    color: #475569;
+    margin-left: auto;
+  }
+
+  .dept-programs {
+    padding: 4px 0;
+    transition: max-height 0.3s ease;
+    overflow: hidden;
+  }
+
+  .program-item {
+    padding: 10px 18px 10px 52px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .program-item:last-child {
+    border-bottom: none;
+  }
+
+  .program-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .program-left label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+  }
+
+  .program-badges {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .allocation-badge {
+    border: 1px solid transparent;
+  }
+
+  .allocation-badge.allocated {
+    background: var(--badge-allocated-bg);
+    color: var(--badge-allocated-text);
+    border-color: var(--badge-allocated-border);
+  }
+
+  .allocation-badge.new-allocation {
+    background: var(--badge-new-bg);
+    color: var(--badge-new-text);
+    border-color: var(--badge-new-border);
+  }
+
+  .allocation-badge.not-allocated {
+    background: var(--badge-not-bg);
+    color: var(--badge-not-text);
+    border-color: var(--badge-not-border);
+  }
+
+  .allocation-badge.base-dept {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fca5a5;
+  }
+
+  .course-type-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .program-item.locked {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .program-item.locked .program-left label {
+    color: #94a3b8;
+  }
+
+  .dept-header.base-dept-header {
+    background: #fff5f5;
+  }
+
+  .status-badge.status-active {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  .status-badge.status-inactive {
+    background: #f3f4f6;
+    color: #4b5563;
+  }
+
+  /* Card footer actions */
+  .card-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .btn-custom {
+    min-height: 40px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-custom.cancel {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: var(--text-primary);
+  }
+
+  .btn-custom.cancel:hover {
+    background: var(--bg-light);
+  }
+
+  .btn-custom.save {
+    background: var(--uw-red);
+    border: 1px solid var(--uw-red);
+    color: #ffffff;
+  }
+
+  .btn-custom.save:hover {
+    background: var(--uw-red-hover);
+    border-color: var(--uw-red-hover);
+  }
+
+  /* Side Summary Panel */
+  .summary-panel {
+    position: sticky;
+    top: 20px;
+  }
+
+  .summary-avatar-box {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .summary-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #fef2f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--uw-red);
+    font-size: 28px;
+  }
+
+  .summary-meta-item {
+    margin-bottom: 18px;
+  }
+
+  .summary-meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .summary-meta-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .summary-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 20px 0;
+  }
+
+  .summary-counts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .summary-count-card {
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .summary-count-card.allocated {
+    background: var(--badge-allocated-bg);
+    border-left: 4px solid var(--badge-allocated-border);
+  }
+
+  .summary-count-card.new {
+    background: var(--badge-new-bg);
+    border-left: 4px solid var(--badge-new-border);
+  }
+
+  .summary-count-card.not {
+    background: var(--badge-not-bg);
+    border-left: 4px solid var(--badge-not-border);
+  }
+
+  .summary-count-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+  }
+
+  .summary-count-value {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .summary-totals {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .total-stat-box {
+    text-align: left;
+  }
+
+  .total-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .total-stat-val {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 2px;
+  }
+
+  /* Bottom Allocations Table */
+  .table-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 16px;
+  }
+
+  .table-header-tools {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .btn-export {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-export:hover {
+    background: var(--bg-light);
+  }
+
+  .table-responsive {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .allocations-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .allocations-table th {
+    background: var(--bg-light);
+    color: #475569;
+    font-weight: 600;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .allocations-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+  }
+
+  .allocations-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .action-btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    margin-right: 4px;
+  }
+
+  .action-btn-icon:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+  }
+
+  .action-btn-icon.delete:hover {
+    background: #fef2f2;
+    color: var(--uw-red);
+    border-color: #fee2e2;
+  }
+
+  /* Pagination and footer */
+  .table-pagination-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    background: #ffffff;
+    border-top: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .pagination-buttons {
+    display: flex;
+    gap: 4px;
+  }
+
+  .pagination-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    background: var(--bg-light);
+    border-color: #94a3b8;
+  }
+
+  .pagination-btn.active {
+    background: var(--uw-red);
+    border-color: var(--uw-red);
+    color: #ffffff;
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ===== RESPONSIVE ===== */
+
+  /* Global reset */
+  .allocation-page,
+  .allocation-page *,
+  .allocation-page *::before,
+  .allocation-page *::after {
+    box-sizing: border-box;
+  }
+
+  .dept-title-label,
+  .program-left label,
+  .card-header h2,
+  .page-title-row h1,
+  .pink-alert .alert-title,
+  .pink-alert .alert-content {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .form-select-custom {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .choices {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-bottom: 0 !important;
+    min-width: 0 !important;
+  }
+
+  .premium-card:has(.choices) {
+    overflow: visible;
+  }
+  .premium-card:has(.choices) .card-header {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+
+  .choices__inner {
+    min-height: 42px !important;
+    padding: 6px 30px 6px 12px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
+    font-size: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+  }
+
+  .choices__list--single {
+    padding: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .choices__list--single .choices__item {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .choices__list--dropdown, .choices__list[aria-expanded] {
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    border-radius: 8px !important;
+    z-index: 1000 !important;
+  }
+
+  .choices__list--dropdown .choices__item, .choices__list[aria-expanded] .choices__item {
+    font-size: 14px !important;
+    padding: 10px 12px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .choices[is-focused] .choices__inner {
+    border-color: var(--uw-red) !important;
+    box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.1) !important;
+  }
+
+  .table-responsive {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pagination-buttons {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+
+  /* ── 1441px+ cap ── */
+  @media (min-width: 1441px) {
+    .allocation-page { max-width: 1440px; }
+  }
+
+  /* ── 1200px ── */
+  @media (max-width: 1200px) {
+    .allocation-grid { grid-template-columns: 1fr 300px; gap: 20px; }
+  }
+
+  /* ── 1024px ── */
+  @media (max-width: 1024px) {
+    .allocation-grid { grid-template-columns: 1fr 280px; gap: 16px; }
+    .form-row { grid-template-columns: 1fr; }
+    .summary-panel { position: static; }
+  }
+
+  /* ── 900px ── */
+  @media (max-width: 900px) {
+    .allocation-grid { grid-template-columns: 1fr; gap: 20px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  /* ── 768px ── */
+  @media (max-width: 768px) {
+    .allocation-grid { grid-template-columns: 1fr; gap: 20px; }
+    .form-row { grid-template-columns: 1fr; }
+    .card-footer-actions { flex-wrap: wrap; }
+  }
+
+  /* ── 600px ── */
+  @media (max-width: 600px) {
+    .allocation-page { padding: clamp(4px, 2vw, 12px); }
+    .card-body { padding: clamp(8px, 3vw, 16px); }
+    .card-header { padding: clamp(8px, 2.5vw, 14px) clamp(10px, 3vw, 18px); }
+    .premium-card { border-radius: 8px; }
+    .page-title-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .page-title-row h1 { font-size: clamp(16px, 4.5vw, 22px); }
+    .form-select-custom { min-height: 38px; font-size: 13px; }
+    .choices__inner { min-height: 38px !important; font-size: 13px !important; padding: 4px 24px 4px 10px !important; }
+    .choices__list--dropdown .choices__item, .choices__list[aria-expanded] .choices__item { font-size: 13px !important; padding: 8px 10px !important; }
+    .dept-header { padding: 10px 14px; }
+    .program-item { padding: 8px 14px 8px 36px; }
+    .program-left { min-width: 0 !important; }
+    .allocation-filters { flex-direction: column; align-items: stretch; gap: 10px; }
+    .search-wrapper { max-width: none; }
+    .allocations-table th, .allocations-table td { padding: 10px 12px; font-size: clamp(10px, 2.2vw, 13px); }
+    .allocations-table th { font-size: clamp(9px, 2vw, 12px); }
+    .table-header-tools { flex-direction: column; align-items: stretch; gap: 10px; }
+    .table-pagination-footer { flex-direction: column; gap: 12px; align-items: center; text-align: center; }
+    .summary-avatar-box { margin-bottom: 12px; }
+    .summary-icon-wrapper { width: 50px; height: 50px; font-size: 24px; }
+    .summary-totals { gap: 16px; }
+    .pink-alert { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .btn-export { font-size: clamp(10px, 2vw, 13px); padding: 6px 12px; }
+    .program-item {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 6px !important;
+      padding: 8px 12px 8px 42px !important;
+    }
+    .program-badges {
+      width: auto !important;
+      justify-content: flex-start !important;
+      margin-left: 36px !important;
+      gap: 6px !important;
+    }
+    .summary-count-card { padding: 8px 12px; }
+  }
+
+  /* ── 480px ── */
+  @media (max-width: 480px) {
+    .allocation-breadcrumbs { font-size: 11px; }
+    .premium-card { margin-bottom: 16px; }
+    .card-header { padding: 10px 12px; }
+    .card-body { padding: 10px 12px; }
+    .card-header h2 { font-size: clamp(12px, 3vw, 14px); }
+    .dept-title-label { font-size: clamp(10px, 2.5vw, 12px); }
+    .program-left label { font-size: clamp(10px, 2.5vw, 12px); }
+    .badge { font-size: clamp(8px, 2vw, 10px); padding: 2px 5px; }
+    .course-type-badge { font-size: clamp(8px, 2vw, 10px); padding: 2px 5px; }
+    .allocations-table th, .allocations-table td { padding: 8px 10px; font-size: clamp(9px, 2vw, 12px); }
+    .allocations-table th { font-size: clamp(8px, 1.8vw, 11px); }
+    .table-header-tools { flex-direction: column; align-items: stretch; gap: 8px; }
+    .table-pagination-footer { flex-direction: column; gap: 10px; align-items: center; text-align: center; }
+    .summary-icon-wrapper { width: clamp(36px, 10vw, 46px); height: clamp(36px, 10vw, 46px); font-size: clamp(16px, 4vw, 22px); }
+    .btn-custom { min-height: 36px; padding: 6px 12px; font-size: clamp(11px, 2.5vw, 13px); }
+  }
+
+  /* ── 400px ── */
+  @media (max-width: 400px) {
+    .allocation-page { overflow-x: hidden; }
+    .allocation-breadcrumbs { display: none; }
+    .page-title-row { margin-bottom: 16px; }
+    .page-title-row h1 { margin-bottom: 0; }
+    .form-row { flex-direction: column; gap: clamp(6px, 2vw, 12px); margin-bottom: 12px; }
+    .form-group label { font-size: clamp(9px, 2.5vw, 13px); }
+    .form-select-custom { min-height: clamp(32px, 8vw, 42px); font-size: clamp(11px, 2.8vw, 14px); }
+    .choices__inner { min-height: clamp(32px, 8vw, 42px) !important; font-size: clamp(11px, 2.8vw, 14px) !important; }
+    .choices__list--dropdown .choices__item, .choices__list[aria-expanded] .choices__item { font-size: clamp(11px, 2.8vw, 14px) !important; }
+    .pink-alert { padding: clamp(6px, 2vw, 10px) clamp(8px, 2.5vw, 12px); gap: clamp(4px, 1.5vw, 8px); }
+    .pink-alert i { font-size: clamp(14px, 3.5vw, 18px); }
+    .pink-alert .alert-title { font-size: clamp(10px, 2.5vw, 14px); }
+    .pink-alert .alert-content { font-size: clamp(9px, 2.3vw, 13px); }
+    .dept-header { padding: clamp(6px, 2vw, 10px) clamp(8px, 2.5vw, 12px); gap: clamp(4px, 1.5vw, 8px); }
+    .dept-title-label { font-size: clamp(9px, 2.3vw, 13px); }
+    .program-item { padding: clamp(4px, 1.5vw, 8px) clamp(6px, 2vw, 12px) clamp(4px, 1.5vw, 8px) clamp(26px, 7.5vw, 40px) !important; }
+    .program-left { min-width: 0 !important; flex: 1 1 0; }
+    .program-left label { font-size: clamp(9px, 2.3vw, 13px); }
+    .program-badges { margin-left: clamp(12px, 3vw, 28px) !important; gap: 4px !important; }
+    .badge { font-size: clamp(7px, 1.8vw, 10px); padding: clamp(1px, 0.5vw, 2px) clamp(3px, 1vw, 6px); }
+    .course-type-badge { font-size: clamp(7px, 1.8vw, 10px); padding: clamp(1px, 0.5vw, 2px) clamp(3px, 1vw, 6px); }
+    .search-input { font-size: clamp(10px, 2.5vw, 14px); min-height: clamp(32px, 8vw, 40px); }
+    .btn-expand-all { font-size: clamp(10px, 2.5vw, 13px); padding: clamp(4px, 1.5vw, 6px) clamp(6px, 2vw, 12px); }
+    .btn-custom { min-height: clamp(32px, 8vw, 40px); padding: clamp(5px, 1.8vw, 8px) clamp(8px, 2.5vw, 14px); font-size: clamp(10px, 2.5vw, 13px); }
+    .summary-avatar-box { margin-bottom: 10px; }
+    .summary-icon-wrapper { width: clamp(32px, 9vw, 48px); height: clamp(32px, 9vw, 48px); font-size: clamp(14px, 4vw, 22px); }
+    .summary-meta-item { margin-bottom: 8px; }
+    .summary-meta-label { font-size: clamp(8px, 2vw, 11px); }
+    .summary-meta-value { font-size: clamp(10px, 2.5vw, 13px); }
+    .summary-divider { margin: 10px 0; }
+    .summary-counts { gap: 6px; }
+    .summary-count-card { padding: clamp(5px, 1.5vw, 8px) clamp(6px, 2vw, 10px); }
+    .summary-count-label { font-size: clamp(7px, 1.8vw, 10px); }
+    .summary-count-value { font-size: clamp(8px, 2vw, 11px); }
+    .summary-totals { gap: 10px; margin-top: 10px; padding-top: 8px; }
+    .total-stat-val { font-size: clamp(12px, 3.2vw, 16px); }
+    .total-stat-label { font-size: clamp(7px, 1.8vw, 10px); }
+    .table-section-title { font-size: clamp(12px, 3vw, 15px); margin-bottom: 8px; }
+    .table-header-tools { gap: 8px; margin-bottom: 8px; }
+    .btn-export { font-size: clamp(10px, 2.5vw, 13px); padding: clamp(4px, 1.5vw, 6px) clamp(6px, 2vw, 12px); }
+    .allocations-table { min-width: 0; }
+    .allocations-table th, .allocations-table td { padding: clamp(4px, 1.5vw, 8px) clamp(5px, 1.8vw, 10px); font-size: clamp(8px, 2vw, 12px); }
+    .allocations-table th { font-size: clamp(7px, 1.8vw, 11px); }
+    .action-btn-icon { width: clamp(22px, 6vw, 30px); height: clamp(22px, 6vw, 30px); font-size: clamp(10px, 2.5vw, 14px); }
+    .table-pagination-footer { gap: 8px; padding: clamp(6px, 2vw, 10px) clamp(4px, 1.5vw, 8px); }
+    .pagination-btn { width: clamp(24px, 6.5vw, 32px); height: clamp(24px, 6.5vw, 32px); font-size: clamp(10px, 2.5vw, 13px); }
+    .pagination-info { font-size: clamp(9px, 2.2vw, 12px); }
+    .dept-toggle { font-size: clamp(10px, 2.5vw, 16px); width: clamp(14px, 3.5vw, 20px); height: clamp(14px, 3.5vw, 20px); }
+    .dept-checkbox, .program-checkbox { width: clamp(12px, 3vw, 16px); height: clamp(12px, 3vw, 16px); }
+  }
+
+  /* ── 320px ── */
+  @media (max-width: 320px) {
+    .page-title-row h1 { font-size: clamp(14px, 5vw, 18px); }
+    .card-header h2 { font-size: clamp(11px, 3.5vw, 13px); }
+    .pink-alert i { font-size: clamp(12px, 4vw, 16px); }
+    .pink-alert .alert-title { font-size: clamp(10px, 3vw, 13px); }
+    .pink-alert .alert-content { font-size: clamp(9px, 2.8vw, 12px); }
+    .badge { font-size: clamp(7px, 2.2vw, 9px); padding: 1px 4px; }
+    .course-type-badge { font-size: clamp(7px, 2.2vw, 9px); padding: 1px 4px; }
+    .summary-icon-wrapper { width: clamp(28px, 9vw, 44px); height: clamp(28px, 9vw, 44px); font-size: clamp(12px, 4vw, 20px); }
+    .summary-meta-label { font-size: clamp(7px, 2.2vw, 10px); }
+    .summary-meta-value { font-size: clamp(9px, 2.8vw, 12px); }
+    .summary-count-label { font-size: clamp(6px, 2vw, 9px); }
+    .summary-count-value { font-size: clamp(7px, 2.2vw, 10px); }
+    .total-stat-val { font-size: clamp(11px, 3.5vw, 14px); }
+    .total-stat-label { font-size: clamp(6px, 2vw, 9px); }
+  }
+
+  /* ── 240px ── */
+  @media (max-width: 240px) {
+    .page-title-row h1 { font-size: clamp(12px, 5.5vw, 16px); }
+    .card-header h2 { font-size: clamp(10px, 4vw, 12px); }
+    .pink-alert .alert-title { font-size: clamp(9px, 3.5vw, 11px); }
+    .pink-alert .alert-content { font-size: clamp(8px, 3vw, 10px); }
+    .badge { font-size: clamp(6px, 2.5vw, 8px); padding: 1px 3px; }
+    .course-type-badge { font-size: clamp(6px, 2.5vw, 8px); padding: 1px 3px; }
+    .summary-icon-wrapper { width: clamp(24px, 10vw, 36px); height: clamp(24px, 10vw, 36px); font-size: clamp(10px, 4.5vw, 16px); }
+    .summary-count-label { font-size: clamp(5px, 2vw, 7px); }
+    .summary-count-value { font-size: clamp(6px, 2.5vw, 8px); }
+    .total-stat-val { font-size: clamp(9px, 4vw, 12px); }
+    .total-stat-label { font-size: clamp(5px, 2vw, 7px); }
+  }
+
+  /* ── 180px ── */
+  @media (max-width: 180px) {
+    .summary-avatar-box { display: none; }
+    .page-title-row h1 { font-size: clamp(10px, 6vw, 14px); }
+    .card-header h2 { font-size: clamp(9px, 4.5vw, 11px); }
+    .card-header { padding: clamp(4px, 2.5vw, 8px) clamp(5px, 3vw, 10px); }
+    .card-body { padding: clamp(4px, 2.5vw, 8px) clamp(5px, 3vw, 10px); }
+    .pink-alert { padding: clamp(4px, 2.5vw, 6px) clamp(5px, 3vw, 8px); gap: clamp(3px, 2vw, 5px); }
+    .pink-alert i { font-size: clamp(10px, 5.5vw, 14px); }
+    .pink-alert .alert-title { font-size: clamp(8px, 4.5vw, 10px); }
+    .pink-alert .alert-content { font-size: clamp(7px, 4vw, 9px); }
+    .dept-header { padding: clamp(3px, 2vw, 5px) clamp(4px, 2.5vw, 6px); gap: clamp(2px, 1.5vw, 4px); flex-wrap: wrap; }
+    .dept-title-label { font-size: clamp(8px, 4.5vw, 10px); }
+    .dept-toggle { width: clamp(8px, 5vw, 12px); height: clamp(8px, 5vw, 12px); font-size: clamp(8px, 5vw, 12px); }
+    .dept-checkbox, .program-checkbox { width: clamp(8px, 5vw, 12px); height: clamp(8px, 5vw, 12px); }
+    .badge-count { margin-left: 0 !important; }
+    .program-item { padding: clamp(3px, 2vw, 5px) clamp(3px, 2vw, 6px) clamp(3px, 2vw, 5px) clamp(14px, 9vw, 22px) !important; justify-content: flex-start !important; flex-direction: column !important; align-items: flex-start !important; gap: clamp(3px, 2vw, 5px) !important; }
+    .program-left { min-width: 0 !important; flex: none !important; gap: clamp(4px, 2.5vw, 8px) !important; }
+    .program-left label { font-size: clamp(8px, 4.5vw, 10px); }
+    .program-badges { margin-left: clamp(4px, 3vw, 8px) !important; gap: clamp(2px, 1.5vw, 4px) !important; flex-wrap: wrap; }
+    .badge { font-size: clamp(5px, 3vw, 7px); padding: 1px 2px; }
+    .course-type-badge { font-size: clamp(5px, 3vw, 7px); padding: 1px 2px; }
+    .search-input { font-size: clamp(9px, 5vw, 11px); min-height: clamp(26px, 14.5vw, 34px); }
+    .btn-expand-all { font-size: clamp(8px, 4.5vw, 10px); padding: clamp(3px, 2vw, 4px) clamp(4px, 2.5vw, 6px); }
+    .btn-custom { min-height: clamp(26px, 14.5vw, 34px); padding: clamp(3px, 2vw, 5px) clamp(4px, 2.5vw, 8px); font-size: clamp(8px, 4.5vw, 10px); }
+    .summary-icon-wrapper { width: clamp(20px, 11vw, 28px); height: clamp(20px, 11vw, 28px); font-size: clamp(9px, 5vw, 12px); }
+    .summary-meta-label { font-size: clamp(6px, 3.5vw, 8px); }
+    .summary-meta-value { font-size: clamp(8px, 4.5vw, 10px); }
+    .summary-count-label { font-size: clamp(5px, 3vw, 6px); }
+    .summary-count-value { font-size: clamp(6px, 3.5vw, 7px); }
+    .total-stat-val { font-size: clamp(8px, 4.5vw, 10px); }
+    .total-stat-label { font-size: clamp(4px, 2.5vw, 6px); }
+    .summary-divider { margin: 6px 0; }
+    .action-btn-icon { width: clamp(18px, 10vw, 24px); height: clamp(18px, 10vw, 24px); font-size: clamp(8px, 4.5vw, 11px); }
+    .pagination-btn { width: clamp(20px, 11vw, 26px); height: clamp(20px, 11vw, 26px); font-size: clamp(8px, 4.5vw, 10px); }
+    .pagination-info { font-size: clamp(7px, 4vw, 9px); }
+    .allocations-table th, .allocations-table td { padding: clamp(3px, 2vw, 5px) clamp(3px, 2vw, 6px); font-size: clamp(7px, 4vw, 9px); }
+    .allocations-table th { font-size: clamp(6px, 3.5vw, 8px); }
+    .table-section-title { font-size: clamp(10px, 5.5vw, 13px); }
+    .btn-export { font-size: clamp(8px, 4.5vw, 10px); padding: clamp(3px, 2vw, 4px) clamp(4px, 2.5vw, 6px); }
+  }
+
+  /* ── 16px (absolute minimum) ── */
+  @media (max-width: 16px) {
+    .allocation-page { padding: 2px; }
+    .page-title-row h1 { font-size: 8px; }
+    .card-header { padding: 2px 3px; }
+    .card-header h2 { font-size: 7px; }
+    .card-body { padding: 2px 3px; }
+    .form-row { gap: 3px; margin-bottom: 4px; }
+    .form-group label { font-size: 6px; }
+    .form-select-custom { min-height: 16px; font-size: 7px; padding: 1px 3px; }
+    .choices__inner { min-height: 16px !important; font-size: 7px !important; padding: 1px 10px 1px 4px !important; }
+    .pink-alert { padding: 2px 3px; gap: 2px; }
+    .pink-alert i { font-size: 6px; }
+    .pink-alert .alert-title { font-size: 6px; }
+    .pink-alert .alert-content { font-size: 5px; }
+    .dept-header { padding: 2px 3px; gap: 2px; flex-wrap: wrap; }
+    .dept-toggle { font-size: 6px; width: 8px; height: 8px; }
+    .dept-checkbox, .program-checkbox { width: 8px; height: 8px; }
+    .dept-title-label { font-size: 6px; }
+    .badge-count { margin-left: 0 !important; }
+    .program-item { padding: 2px 2px 2px 13px !important; flex-direction: column !important; align-items: flex-start !important; gap: 2px !important; }
+    .program-left { min-width: 0 !important; flex: none !important; gap: 3px !important; }
+    .program-left label { font-size: 6px; }
+    .program-badges { margin-left: 4px !important; gap: 1px !important; flex-wrap: wrap; }
+    .badge { font-size: 5px; padding: 0px 2px; border-radius: 2px !important; }
+    .course-type-badge { font-size: 5px; padding: 0px 2px; }
+    .allocation-filters { gap: 3px; margin-bottom: 4px; }
+    .search-input { font-size: 7px; min-height: 16px; padding: 1px 2px 1px 8px; }
+    .search-wrapper i { font-size: 6px; left: 2px; }
+    .btn-expand-all { font-size: 6px; padding: 1px 2px; }
+    .btn-custom { min-height: 16px; padding: 1px 2px; font-size: 6px; gap: 1px; }
+    .summary-avatar-box { display: none; }
+    .summary-icon-wrapper { width: 14px; height: 14px; font-size: 6px; }
+    .summary-meta-item { margin-bottom: 3px; }
+    .summary-meta-label { font-size: 5px; }
+    .summary-meta-value { font-size: 6px; }
+    .summary-divider { margin: 3px 0; }
+    .summary-count-card { padding: 2px 3px; }
+    .summary-count-label { font-size: 5px; }
+    .summary-count-value { font-size: 5px; }
+    .summary-totals { gap: 4px; margin-top: 4px; padding-top: 3px; }
+    .total-stat-val { font-size: 6px; }
+    .total-stat-label { font-size: 4px; }
+    .table-section-title { font-size: 7px; margin-bottom: 3px; }
+    .table-header-tools { gap: 3px; margin-bottom: 3px; }
+    .btn-export { font-size: 6px; padding: 1px 2px; }
+    .allocations-table th, .allocations-table td { padding: 2px 2px; font-size: 5px; }
+    .allocations-table th { font-size: 4px; }
+    .action-btn-icon { width: 12px; height: 12px; font-size: 6px; }
+    .table-pagination-footer { padding: 3px 2px; gap: 3px; }
+    .pagination-btn { width: 12px; height: 12px; font-size: 6px; }
+    .pagination-info { font-size: 5px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="allocation-page">
+  <!-- Breadcrumbs -->
+  <div class="allocation-breadcrumbs">
+    <a href="{% url 'staff_dashboard' uuid=request.user.uuid %}">Academic Management</a>
+    <i class="ti ti-chevron-right"></i>
+    <a href="{% url 'staff_enrollment' uuid=request.user.uuid %}">Course Allocation</a>
+    <i class="ti ti-chevron-right"></i>
+    <span>Allocate Course</span>
+  </div>
+
+  <!-- Page Title -->
+  <div class="page-title-row">
+    <h1>Course Allocation</h1>
+  </div>
+
+  <div class="allocation-grid">
+    <!-- Left Main Panel -->
+    <div class="left-panel">
+      <!-- Section 1: Allocate Course to Programs -->
+      <div class="premium-card">
+        <div class="card-header">
+          <h2>Allocate Course to Programs</h2>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <!-- Select Course -->
+            <div class="form-group">
+              <label for="courseSelect">Select Course <span class="required-star">*</span></label>
+              <select id="courseSelect" class="form-select-custom" onchange="loadCourseAllocations()">
+                {% for course in courses %}
+                  <option value="{{ course.course_id }}" data-dept="{{ course.department.department_name }}" data-dept-id="{{ course.department.department_id }}" {% if forloop.first %}selected{% endif %}>
+                    {{ course.course_code }} - {{ course.course_name }}{% if course.course_id in allocated_course_ids %} (Allocated){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Effective Term -->
+            <div class="form-group">
+              <label for="termSelect">Effective Term <span class="required-star">*</span></label>
+              <select id="termSelect" class="form-select-custom" onchange="onFilterChange()">
+                {% for term in academic_terms %}
+                  <option value="{{ term.term_name }}" data-display-name="{{ term }}">{{ term }}</option>
+                {% empty %}
+                  {% for tc in term_choices %}
+                    <option value="{{ tc.value }}" data-display-name="{{ tc.label }}">{{ tc.label }}</option>
+                  {% endfor %}
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Study Year -->
+            <div class="form-group">
+              <label for="yearSelect">Study Year <span class="required-star">*</span></label>
+              <select id="yearSelect" class="form-select-custom" onchange="onFilterChange()">
+                {% for yr in study_years %}
+                  <option value="{{ yr.value }}">{{ yr.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Owner Department alert -->
+          <div class="pink-alert" id="ownerDeptAlert">
+            <i class="ti ti-info-circle"></i>
+            <div class="alert-content">
+              <span class="alert-title">Course Owner Department</span>
+              <strong id="ownerDeptName">—</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Allocate to Departments / Programs -->
+      <div class="premium-card">
+        <div class="card-header">
+          <h2>Allocate to Departments / Programs</h2>
+        </div>
+        <div class="card-body">
+          <div class="allocation-filters">
+            <div class="search-wrapper">
+              <i class="ti ti-search"></i>
+              <input type="text" id="deptSearchInput" class="search-input" placeholder="Search department or program..." oninput="filterDeptTree()" />
+            </div>
+            <button type="button" class="btn-expand-all" onclick="toggleExpandAll()">
+              <i class="ti ti-arrows-minimize" id="expandIcon"></i> <span id="expandText">Collapse All</span>
+            </button>
+          </div>
+
+          <!-- Tree Component -->
+          <div class="dept-tree-container">
+            {% for dept in departments %}
+              <div class="dept-group" data-dept-id="{{ dept.department_id }}" id="dept-group-{{ dept.department_id }}">
+                <div class="dept-header">
+                  <span class="dept-toggle" onclick="toggleDeptCollapse({{ dept.department_id }})" id="toggle-{{ dept.department_id }}">
+                    <i class="ti ti-chevron-down"></i>
+                  </span>
+                  <input type="checkbox" class="dept-checkbox" id="dept-chk-{{ dept.department_id }}" onchange="toggleDeptCheckbox(this, {{ dept.department_id }})" />
+                  <label for="dept-chk-{{ dept.department_id }}" class="dept-title-label">
+                    <i class="ti ti-building"></i> {{ dept.department_name }}
+                  </label>
+                  <span class="badge badge-count">{{ dept.programs.all.count }} Program{{ dept.programs.all.count|pluralize }}</span>
+                </div>
+                
+                <div class="dept-programs" id="programs-container-{{ dept.department_id }}">
+                  {% for prog in dept.programs.all %}
+                    {% if prog.status == 'ACTIVE' %}
+                      <div class="program-item" data-program-id="{{ prog.program_id }}" data-program-name="{{ prog.program_name }}" data-dept-id="{{ dept.department_id }}">
+                        <div class="program-left">
+                          <input type="checkbox" class="program-checkbox" id="prog-chk-{{ prog.program_id }}" data-dept-id="{{ dept.department_id }}" onchange="toggleProgramCheckbox(this)" />
+                          <label for="prog-chk-{{ prog.program_id }}">{{ prog.program_name }}</label>
+                        </div>
+                        <div class="program-badges">
+                          <span class="badge allocation-badge not-allocated" id="alloc-badge-{{ prog.program_id }}">Not Allocated</span>
+                          <span class="badge status-badge status-inactive" id="status-badge-{{ prog.program_id }}">Inactive</span>
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            {% empty %}
+              <div style="padding:24px; text-align:center; color:var(--text-secondary);">
+                No departments available.
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Description message -->
+          <div class="pink-alert" style="background:#f8fafc; border-color:#e2e8f0; color:#475569; margin-top:20px;">
+            <i class="ti ti-info-circle" style="color:#64748b;"></i>
+            <span>The selected course will be available to students of the allocated programs for the selected term and study year.</span>
+          </div>
+
+          <!-- Card actions -->
+          <div class="card-footer-actions">
+            <button type="button" class="btn-custom cancel" onclick="resetForm()">
+              <i class="ti ti-rotate"></i> Cancel
+            </button>
+            <button type="button" class="btn-custom save" onclick="saveAllocation()">
+              <i class="ti ti-circle-check"></i> Save Allocation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Summary Panel -->
+    <div class="summary-panel">
+      <div class="premium-card">
+        <div class="card-header">
+          <h2>Allocation Summary</h2>
+        </div>
+        <div class="card-body">
+          <div class="summary-avatar-box">
+            <div class="summary-icon-wrapper">
+              <i class="ti ti-git-branch"></i>
+            </div>
+          </div>
+
+          <!-- Course detail -->
+          <div class="summary-meta-item">
+            <div class="summary-meta-label">Course</div>
+            <div class="summary-meta-value" id="summaryCourseVal">—</div>
+          </div>
+
+          <!-- Effective Term detail -->
+          <div class="summary-meta-item">
+            <div class="summary-meta-label">Effective Term</div>
+            <div class="summary-meta-value" id="summaryTermVal">—</div>
+          </div>
+
+          <!-- Study Year detail -->
+          <div class="summary-meta-item">
+            <div class="summary-meta-label">Study Year</div>
+            <div class="summary-meta-value" id="summaryYearVal">—</div>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <!-- Count Stats -->
+          <div class="summary-counts">
+            <div class="summary-count-card allocated">
+              <span class="summary-count-label">Already Allocated</span>
+              <span class="summary-count-value" id="countAlreadyAllocated">0 Programs</span>
+            </div>
+            
+            <div class="summary-count-card new">
+              <span class="summary-count-label">Newly Selected</span>
+              <span class="summary-count-value" id="countNewlySelected">0 Programs</span>
+            </div>
+            
+            <div class="summary-count-card not">
+              <span class="summary-count-label">Not Allocated</span>
+              <span class="summary-count-value" id="countNotAllocated">0 Programs</span>
+            </div>
+          </div>
+
+          <!-- Totals count -->
+          <div class="summary-totals">
+            <div class="total-stat-box">
+              <div class="total-stat-label">Total Departments</div>
+              <div class="total-stat-val" id="totalDeptsCount">0</div>
+            </div>
+            <div class="total-stat-box">
+              <div class="total-stat-label">Total Programs</div>
+              <div class="total-stat-val" id="totalProgsCount">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Panel: Current Allocations for this Course -->
+  <div class="table-section-title">Current Allocations for this Course</div>
+  <div class="premium-card">
+    <div class="card-body">
+      <div class="table-header-tools">
+        <div class="search-wrapper">
+          <i class="ti ti-search"></i>
+          <input type="text" id="allocTableSearch" class="search-input" placeholder="Search allocations..." oninput="onTableSearch()" />
+        </div>
+        <button type="button" class="btn-export" onclick="exportAllocations()">
+          <i class="ti ti-download"></i> Export
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="allocations-table" id="allocationsTable">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Program</th>
+              <th>Study Year</th>
+              <th>Term</th>
+              <th>Course Type</th>
+              <th>Status</th>
+              <th>Allocated On</th>
+              <th>Allocated By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="allocationsTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+        
+        <!-- Pagination controls -->
+        <div class="table-pagination-footer">
+          <div id="paginationInfo">Showing 0 to 0 of 0 entries</div>
+          <div class="pagination-buttons" id="paginationButtons">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:#ffffff; border-radius:16px; max-width:480px; width:90%; box-shadow:0 20px 60px -15px rgba(0,0,0,0.3); overflow:hidden;">
+    <div style="padding:20px 24px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.125rem; font-weight:700; color:#111827;">Confirm Deletion</h3>
+      <button onclick="closeDeleteModal(false)" style="background:transparent; border:none; font-size:24px; color:#94a3b8; cursor:pointer; line-height:1;">&times;</button>
+    </div>
+    <div style="padding:20px 24px;">
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <div style="width:40px; height:40px; border-radius:10px; background:#fef2f2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <i class="ti ti-alert-triangle" style="font-size:20px; color:#c5050c;"></i>
+        </div>
+        <span style="font-size:0.9375rem; color:#374151; font-weight:500; line-height:1.5; padding-top:4px;">Are you sure you want to delete this course allocation? This action cannot be undone.</span>
+      </div>
+    </div>
+    <div style="padding:16px 24px; border-top:1px solid #f1f5f9; display:flex; justify-content:flex-end; gap:10px;">
+      <button onclick="closeDeleteModal(false)" style="padding:8px 20px; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff; color:#374151; font-size:0.875rem; font-weight:600; cursor:pointer;">Cancel</button>
+      <button id="deleteConfirmBtn" onclick="closeDeleteModal(true)" style="padding:8px 20px; border-radius:8px; border:none; background:#c5050c; color:#ffffff; font-size:0.875rem; font-weight:600; cursor:pointer;">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentAllocations = []; // Stores all allocations for the selected course
+  let isAllExpanded = true;
+  let tableSearchQuery = '';
+  let currentPage = 1;
+  const itemsPerPage = 5;
+  let isSaving = false;
+  let isDeleting = false;
+  let baseDeptId = null;
+
+  let courseChoicesInstance = null;
+  let termChoicesInstance = null;
+  let yearChoicesInstance = null;
+
+  // Initialize page on load
+  document.addEventListener('DOMContentLoaded', function() {
+    initChoices();
+    loadCourseAllocations();
+  });
+
+  function initChoices() {
+    const courseSelect = document.getElementById('courseSelect');
+    const termSelect = document.getElementById('termSelect');
+    const yearSelect = document.getElementById('yearSelect');
+
+    if (typeof Choices !== 'undefined') {
+      if (courseSelect) {
+        courseChoicesInstance = new Choices(courseSelect, {
+          searchEnabled: true,
+          shouldSort: false,
+          itemSelectText: '',
+          searchPlaceholderValue: 'Search course...',
+        });
+      }
+      if (termSelect) {
+        termChoicesInstance = new Choices(termSelect, {
+          searchEnabled: false,
+          shouldSort: false,
+          itemSelectText: '',
+        });
+      }
+      if (yearSelect) {
+        yearChoicesInstance = new Choices(yearSelect, {
+          searchEnabled: false,
+          shouldSort: false,
+          itemSelectText: '',
+        });
+      }
+    }
+  }
+
+  // CSRF Helper
+  function getCSRFToken() {
+    let token = '';
+    const cookie = document.cookie.split(';').find(row => row.trim().startsWith('csrftoken='));
+    if (cookie) {
+      token = cookie.split('=')[1];
+    }
+    return token;
+  }
+
+  // Load allocations via AJAX for the selected course
+  async function loadCourseAllocations() {
+    const courseSelect = document.getElementById('courseSelect');
+    if (!courseSelect) return;
+    const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+    const courseId = courseSelect.value;
+    
+    // Identify base (owner) department for this course
+    baseDeptId = selectedOption.getAttribute('data-dept-id');
+    
+    // Update owner department alert box
+    const deptName = selectedOption.getAttribute('data-dept') || 'Unknown Department';
+    document.getElementById('ownerDeptName').innerText = deptName;
+
+    if (!courseId) return;
+
+    try {
+      const response = await fetch(`/staff/api/course-allocations/?course_id=${courseId}`);
+      const data = await response.json();
+      if (data.success) {
+        currentAllocations = data.allocations;
+        onFilterChange(); // Refresh UI list and summary
+        updateCourseDropdownLabel(); // Update (Allocated) tag in dropdown
+        lockBaseDeptPrograms(); // Lock base dept programs after UI is refreshed
+      } else {
+        toastError(data.error || 'Failed to fetch allocations');
+      }
+    } catch (e) {
+      console.error(e);
+      toastError('An unexpected error occurred while fetching allocations');
+    }
+  }
+
+  // Lock programs in the base (owner) department — they cannot be deselected
+  function lockBaseDeptPrograms() {
+    if (!baseDeptId) return;
+
+    // Lock the department-level checkbox
+    const deptChk = document.getElementById('dept-chk-' + baseDeptId);
+    if (deptChk) {
+      deptChk.checked = true;
+      deptChk.disabled = true;
+    }
+
+    // Lock the department header visual
+    const deptGroup = document.getElementById('dept-group-' + baseDeptId);
+    if (deptGroup) {
+      deptGroup.querySelector('.dept-header').classList.add('base-dept-header');
+    }
+
+    // Check and lock every program in the base department
+    const programCheckboxes = document.querySelectorAll('.program-checkbox[data-dept-id="' + baseDeptId + '"]');
+    programCheckboxes.forEach(function(chk) {
+      const progId = chk.id.split('-').pop();
+      const badge = document.getElementById('alloc-badge-' + progId);
+      const statusBadge = document.getElementById('status-badge-' + progId);
+
+      chk.checked = true;
+      chk.disabled = true;
+      chk.setAttribute('data-original-state', 'allocated');
+
+      if (badge) {
+        badge.className = 'badge allocation-badge base-dept';
+        badge.innerText = 'Base Department';
+      }
+      if (statusBadge) {
+        statusBadge.className = 'badge status-badge status-active';
+        statusBadge.innerText = 'Active';
+      }
+
+      // Mark the program item as locked
+      const programItem = chk.closest('.program-item');
+      if (programItem) {
+        programItem.classList.add('locked');
+      }
+    });
+  }
+
+  // Update the (Allocated) label on the selected course dropdown option
+  function updateCourseDropdownLabel() {
+    const courseSelect = document.getElementById('courseSelect');
+    if (!courseSelect) return;
+    const opt = courseSelect.options[courseSelect.selectedIndex];
+    if (!opt) return;
+
+    // Strip existing "(Allocated)" suffix
+    let text = opt.text.replace(/\s*\(Allocated\)\s*$/, '').trim();
+    if (currentAllocations.length > 0) {
+      opt.text = text + ' (Allocated)';
+    } else {
+      opt.text = text;
+    }
+  }
+
+  // Triggered when Term or Study Year select inputs are changed
+  function onFilterChange() {
+    const courseSelect = document.getElementById('courseSelect');
+    if (!courseSelect) return;
+    const courseText = courseSelect.options[courseSelect.selectedIndex].text;
+    
+    const termSelect = document.getElementById('termSelect');
+    const termText = termSelect.options[termSelect.selectedIndex].getAttribute('data-display-name') || termSelect.value;
+    const termVal = termSelect.value;
+
+    const yearSelect = document.getElementById('yearSelect');
+    const yearText = yearSelect.options[yearSelect.selectedIndex].text;
+    const yearVal = parseInt(yearSelect.value);
+
+    // Update Right Summary Panel Titles
+    document.getElementById('summaryCourseVal').innerText = courseText;
+    document.getElementById('summaryTermVal').innerText = termText;
+    document.getElementById('summaryYearVal').innerText = yearText;
+
+    // Reset tree program states
+    const programItems = document.querySelectorAll('.program-item');
+    programItems.forEach(item => {
+      const progId = parseInt(item.getAttribute('data-program-id'));
+      const chk = document.getElementById(`prog-chk-${progId}`);
+      const badge = document.getElementById(`alloc-badge-${progId}`);
+      const statusBadge = document.getElementById(`status-badge-${progId}`);
+
+      // Check if this program is already allocated for the selected Term & Study Year
+      const allocation = currentAllocations.find(a => 
+        parseInt(a.program_id) === progId && 
+        a.term === termVal && 
+        parseInt(a.study_year) === yearVal
+      );
+
+      if (allocation) {
+        chk.checked = true;
+        chk.setAttribute('data-original-state', 'allocated');
+        
+        badge.className = 'badge allocation-badge allocated';
+        badge.innerText = 'Already Allocated';
+        
+        statusBadge.className = `badge status-badge ${allocation.status === 'ACTIVE' ? 'status-active' : 'status-inactive'}`;
+        statusBadge.innerText = allocation.status === 'ACTIVE' ? 'Active' : 'Inactive';
+      } else {
+        chk.checked = false;
+        chk.setAttribute('data-original-state', 'not-allocated');
+        
+        badge.className = 'badge allocation-badge not-allocated';
+        badge.innerText = 'Not Allocated';
+        
+        statusBadge.className = 'badge status-badge status-inactive';
+        statusBadge.innerText = 'Inactive';
+      }
+    });
+
+    // Update parent department checkboxes based on child state
+    updateAllDeptCheckboxStates();
+
+    // Update counters and bottom list
+    updateSummaryCounters();
+    currentPage = 1;
+    renderAllocationsTable();
+
+    // Re-lock base department programs so they cannot be deselected
+    lockBaseDeptPrograms();
+  }
+
+  // Handle checking/unchecking a program
+  function toggleProgramCheckbox(checkbox) {
+    const progId = checkbox.id.split('-').pop();
+    const badge = document.getElementById(`alloc-badge-${progId}`);
+    const statusBadge = document.getElementById(`status-badge-${progId}`);
+    const originalState = checkbox.getAttribute('data-original-state');
+
+    if (checkbox.checked) {
+      statusBadge.className = 'badge status-badge status-active';
+      statusBadge.innerText = 'Active';
+
+      if (originalState === 'allocated') {
+        badge.className = 'badge allocation-badge allocated';
+        badge.innerText = 'Already Allocated';
+      } else {
+        badge.className = 'badge allocation-badge new-allocation';
+        badge.innerText = 'New Allocation';
+      }
+    } else {
+      statusBadge.className = 'badge status-badge status-inactive';
+      statusBadge.innerText = 'Inactive';
+      
+      badge.className = 'badge allocation-badge not-allocated';
+      badge.innerText = 'Not Allocated';
+    }
+
+    // Update parent department checkbox
+    const deptId = checkbox.getAttribute('data-dept-id');
+    const deptCheckbox = document.getElementById(`dept-chk-${deptId}`);
+    const brotherCheckboxes = document.querySelectorAll(`.program-checkbox[data-dept-id="${deptId}"]`);
+    
+    let allChecked = true;
+    brotherCheckboxes.forEach(c => {
+      if (!c.checked) allChecked = false;
+    });
+    deptCheckbox.checked = allChecked;
+
+    updateSummaryCounters();
+  }
+
+  // Handle checking/unchecking a department (bulk checks all children)
+  function toggleDeptCheckbox(deptCheckbox, deptId) {
+    const childCheckboxes = document.querySelectorAll(`.program-checkbox[data-dept-id="${deptId}"]`);
+    childCheckboxes.forEach(chk => {
+      if (chk.checked !== deptCheckbox.checked) {
+        chk.checked = deptCheckbox.checked;
+        toggleProgramCheckbox(chk);
+      }
+    });
+  }
+
+  // Update parent department checkboxes dynamically
+  function updateAllDeptCheckboxStates() {
+    const deptGroups = document.querySelectorAll('.dept-group');
+    deptGroups.forEach(group => {
+      const deptId = group.getAttribute('data-dept-id');
+      const deptCheckbox = document.getElementById(`dept-chk-${deptId}`);
+      const childCheckboxes = document.querySelectorAll(`.program-checkbox[data-dept-id="${deptId}"]`);
+      
+      if (childCheckboxes.length === 0) {
+        deptCheckbox.checked = false;
+        return;
+      }
+
+      let allChecked = true;
+      childCheckboxes.forEach(chk => {
+        if (!chk.checked) allChecked = false;
+      });
+      deptCheckbox.checked = allChecked;
+    });
+  }
+
+  // Collapses/expands a single department
+  function toggleDeptCollapse(deptId) {
+    const container = document.getElementById(`programs-container-${deptId}`);
+    const toggleIcon = document.getElementById(`toggle-${deptId}`);
+
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      toggleIcon.className = 'dept-toggle';
+    } else {
+      container.style.display = 'none';
+      toggleIcon.className = 'dept-toggle collapsed';
+    }
+  }
+
+  // Expand / Collapse all departments
+  function toggleExpandAll() {
+    const containers = document.querySelectorAll('.dept-programs');
+    const toggles = document.querySelectorAll('.dept-toggle');
+    const expandIcon = document.getElementById('expandIcon');
+    const expandText = document.getElementById('expandText');
+
+    isAllExpanded = !isAllExpanded;
+
+    containers.forEach((container, i) => {
+      if (isAllExpanded) {
+        container.style.display = 'block';
+        toggles[i].className = 'dept-toggle';
+      } else {
+        container.style.display = 'none';
+        toggles[i].className = 'dept-toggle collapsed';
+      }
+    });
+
+    if (isAllExpanded) {
+      expandIcon.className = 'ti ti-arrows-minimize';
+      expandText.innerText = 'Collapse All';
+    } else {
+      expandIcon.className = 'ti ti-arrows-maximize';
+      expandText.innerText = 'Expand All';
+    }
+  }
+
+  // Filter department/programs checklist tree based on search box
+  function filterDeptTree() {
+    const query = document.getElementById('deptSearchInput').value.toLowerCase().trim();
+    const deptGroups = document.querySelectorAll('.dept-group');
+
+    deptGroups.forEach(group => {
+      const deptName = group.querySelector('.dept-title-label').innerText.toLowerCase();
+      const programItems = group.querySelectorAll('.program-item');
+      
+      let matchCount = 0;
+
+      programItems.forEach(item => {
+        const progName = item.getAttribute('data-program-name').toLowerCase();
+        if (progName.includes(query) || deptName.includes(query)) {
+          item.style.display = 'flex';
+          matchCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      // Show/hide parent department group
+      if (query === '' || matchCount > 0 || deptName.includes(query)) {
+        group.style.display = 'block';
+        if (query !== '') {
+          // Temporarily show child program elements if query matches
+          group.querySelector('.dept-programs').style.display = 'block';
+          group.querySelector('.dept-toggle').className = 'dept-toggle';
+        }
+      } else {
+        group.style.display = 'none';
+      }
+    });
+  }
+
+  // Update counters in the summary section
+  function updateSummaryCounters() {
+    const checkboxes = document.querySelectorAll('.program-checkbox');
+    let alreadyCount = 0;
+    let newCount = 0;
+    let notCount = 0;
+
+    let uniqueDepts = new Set();
+    let totalProgs = checkboxes.length;
+
+    checkboxes.forEach(chk => {
+      const orgState = chk.getAttribute('data-original-state');
+      const deptId = chk.getAttribute('data-dept-id');
+
+      if (chk.checked) {
+        if (orgState === 'allocated') {
+          alreadyCount++;
+        } else {
+          newCount++;
+        }
+        uniqueDepts.add(deptId);
+      } else {
+        notCount++;
+      }
+    });
+
+    document.getElementById('countAlreadyAllocated').innerText = `${alreadyCount} Program${alreadyCount !== 1 ? 's' : ''}`;
+    document.getElementById('countNewlySelected').innerText = `${newCount} Program${newCount !== 1 ? 's' : ''}`;
+    document.getElementById('countNotAllocated').innerText = `${notCount} Program${notCount !== 1 ? 's' : ''}`;
+    document.getElementById('totalDeptsCount').innerText = uniqueDepts.size;
+    document.getElementById('totalProgsCount').innerText = totalProgs;
+  }
+
+  // Reset form checks back to original allocation state
+  function resetForm() {
+    onFilterChange();
+    toastInfo('Form inputs restored to their initial database values.');
+  }
+
+
+  // Save the selected programs using save API endpoint
+  async function saveAllocation() {
+    if (isSaving) return;
+    const courseSelect = document.getElementById('courseSelect');
+    const courseId = courseSelect.value;
+    
+    const termSelect = document.getElementById('termSelect');
+    const term = termSelect.value;
+
+    const yearSelect = document.getElementById('yearSelect');
+    const studyYear = yearSelect.value;
+
+    // Collect checked program IDs (disabled base-dept programs won't be in :checked)
+    const checkedCheckboxes = document.querySelectorAll('.program-checkbox:checked');
+    const programIds = Array.from(checkedCheckboxes).map(chk => chk.id.split('-').pop());
+
+    // Always include base department program IDs
+    if (baseDeptId) {
+      const baseDeptCheckboxes = document.querySelectorAll('.program-checkbox[data-dept-id="' + baseDeptId + '"]');
+      baseDeptCheckboxes.forEach(function(chk) {
+        const pid = chk.id.split('-').pop();
+        if (!programIds.includes(pid)) {
+          programIds.push(pid);
+        }
+      });
+    }
+
+    isSaving = true;
+    try {
+      const response = await fetch('/staff/api/save-course-allocations/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+          course_id: courseId,
+          term: term,
+          study_year: studyYear,
+          program_ids: programIds
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toastSuccess('Course allocation saved successfully');
+        loadCourseAllocations(); // Reload allocation list
+      } else {
+        toastError(data.error || 'Failed to save allocations');
+      }
+    } catch (e) {
+      console.error(e);
+      toastError('An unexpected error occurred while saving allocations');
+    }
+    isSaving = false;
+  }
+
+  // Delete confirmation modal helpers
+  let deleteConfirmResolver = null;
+
+  function showDeleteModal() {
+    document.getElementById('deleteConfirmModal').style.display = 'flex';
+    return new Promise(function(resolve) { deleteConfirmResolver = resolve; });
+  }
+
+  function closeDeleteModal(result) {
+    document.getElementById('deleteConfirmModal').style.display = 'none';
+    if (deleteConfirmResolver) {
+      var resolve = deleteConfirmResolver;
+      deleteConfirmResolver = null;
+      resolve(result);
+    }
+  }
+
+  // Delete an allocation record via API
+  async function deleteAllocation(allocationId) {
+    if (isDeleting) return;
+    isDeleting = true;
+
+    var confirmed = await showDeleteModal();
+    if (!confirmed) {
+      isDeleting = false;
+      return;
+    }
+
+    try {
+      const response = await fetch('/staff/api/delete-course-allocation/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({
+          allocation_id: allocationId
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toastSuccess('Allocation deleted successfully');
+        loadCourseAllocations(); // Reload allocation list
+      } else {
+        toastError(data.error || 'Failed to delete allocation');
+      }
+    } catch (e) {
+      console.error(e);
+      toastError('An unexpected error occurred while deleting allocation');
+    }
+    isDeleting = false;
+  }
+
+  // Bottom table search handler
+  function onTableSearch() {
+    tableSearchQuery = document.getElementById('allocTableSearch').value.toLowerCase().trim();
+    currentPage = 1;
+    renderAllocationsTable();
+  }
+
+  // Renders the bottom allocations table with search, pagination, and sorting
+  function renderAllocationsTable() {
+    const tbody = document.getElementById('allocationsTableBody');
+    tbody.innerHTML = '';
+
+    // Filter based on search query
+    const filtered = currentAllocations.filter(a => {
+      return (
+        a.department_name.toLowerCase().includes(tableSearchQuery) ||
+        a.program_name.toLowerCase().includes(tableSearchQuery) ||
+        a.study_year_display.toLowerCase().includes(tableSearchQuery) ||
+        a.term_display.toLowerCase().includes(tableSearchQuery) ||
+        a.status.toLowerCase().includes(tableSearchQuery) ||
+        a.allocated_by.toLowerCase().includes(tableSearchQuery)
+      );
+    });
+
+    const totalEntries = filtered.length;
+    const totalPages = Math.ceil(totalEntries / itemsPerPage);
+
+    if (totalEntries === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" style="text-align:center; padding:30px; color:var(--text-secondary);">
+            No allocations found.
+          </td>
+        </tr>
+      `;
+      document.getElementById('paginationInfo').innerText = 'Showing 0 to 0 of 0 entries';
+      document.getElementById('paginationButtons').innerHTML = '';
+      return;
+    }
+
+    // Get paginated slice
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const endIdx = Math.min(startIdx + itemsPerPage, totalEntries);
+    const pageItems = filtered.slice(startIdx, endIdx);
+
+    pageItems.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${a.department_name}</strong></td>
+        <td>${a.program_name}</td>
+        <td>${a.study_year_display}</td>
+        <td>${a.term_display}</td>
+        <td>
+          <span class="badge course-type-badge" style="${a.is_elective
+            ? 'background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;'
+            : 'background:#fef2f2; color:#c5050c; border:1px solid #fecaca;'}">
+            ${a.is_elective ? '✦ Elective' : '◉ Core'}
+          </span>
+        </td>
+        <td>
+          <span class="badge ${a.status === 'ACTIVE' ? 'status-badge status-active' : 'status-badge status-inactive'}">
+            ${a.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+          </span>
+        </td>
+        <td>${a.allocated_on}</td>
+        <td>${a.allocated_by}</td>
+        <td>
+          ${String(a.department_id) === String(baseDeptId)
+            ? '<span style="color:#94a3b8; font-size:12px;">—</span>'
+            : '<button type="button" class="action-btn-icon delete" title="Delete Allocation" onclick="deleteAllocation(' + a.id + ')"><i class="ti ti-trash"></i></button>'
+          }
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Update pagination info label
+    document.getElementById('paginationInfo').innerText = `Showing ${startIdx + 1} to ${endIdx} of ${totalEntries} entries`;
+
+    // Populate pagination buttons
+    const paginationContainer = document.getElementById('paginationButtons');
+    paginationContainer.innerHTML = '';
+
+    // Previous Button
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'pagination-btn';
+    prevBtn.innerHTML = '<i class="ti ti-chevron-left"></i>';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => {
+      currentPage--;
+      renderAllocationsTable();
+    };
+    paginationContainer.appendChild(prevBtn);
+
+    // Numbered buttons
+    for (let p = 1; p <= totalPages; p++) {
+      const btn = document.createElement('button');
+      btn.className = `pagination-btn ${p === currentPage ? 'active' : ''}`;
+      btn.innerText = p;
+      btn.onclick = () => {
+        currentPage = p;
+        renderAllocationsTable();
+      };
+      paginationContainer.appendChild(btn);
+    }
+
+    // Next Button
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'pagination-btn';
+    nextBtn.innerHTML = '<i class="ti ti-chevron-right"></i>';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => {
+      currentPage++;
+      renderAllocationsTable();
+    };
+    paginationContainer.appendChild(nextBtn);
+  }
+
+  // Export current allocation list to CSV file
+  function exportAllocations() {
+    if (currentAllocations.length === 0) {
+      toastWarning('No allocations exist to export.');
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Department,Program,Study Year,Term,Status,Allocated On,Allocated By\n";
+
+    currentAllocations.forEach(a => {
+      const row = [
+        `"${a.department_name}"`,
+        `"${a.program_name}"`,
+        `"${a.study_year_display}"`,
+        `"${a.term_display}"`,
+        `"${a.status}"`,
+        `"${a.allocated_on}"`,
+        `"${a.allocated_by}"`
+      ].join(",");
+      csvContent += row + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `course_allocations_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toastSuccess('Allocations list downloaded successfully as CSV.');
+  }
+</script>
+{% endblock %}

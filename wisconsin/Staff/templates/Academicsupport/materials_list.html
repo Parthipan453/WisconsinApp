@@ -1,0 +1,288 @@
+<!-- ******************************************** Arun Code ********************************************************** -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Course Materials — University of Wisconsin{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<link rel="stylesheet" href="{% static 'Academicsupport/coursesupport.css' %}" />
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_course %}active{% endblock %}
+
+{% block content %}
+
+<div class="cs-page-header">
+  <div>
+    <h1>Course Materials</h1>
+    <p>Upload and manage syllabi, slides, and handouts for course sections.</p>
+  </div>
+  <div class="cs-header-actions">
+    <a href="{% url 'staff_course_support' request.user.uuid %}" class="fd-btn fd-btn-ghost">
+      <i class="ti ti-arrow-left"></i><span>Back to Courses</span>
+    </a>
+  </div>
+</div>
+
+<div class="fd-bottom-grid cs-materials-grid">
+
+  <div class="fd-widget">
+    <!-- <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-file-upload"></i> Upload New Material</div>
+    </div> -->
+
+    <!-- {% if messages %}
+      {% for message in messages %}
+        <div class="fd-alert {% if message.tags %}fd-alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %} -->
+
+    <form method="post" 
+          action="{% url 'upload_course_material' uuid=request.user.uuid %}" 
+          enctype="multipart/form-data" 
+          class="cs-upload-form" 
+          id="materialForm">
+      {% csrf_token %}
+      <input type="hidden" name="material_id" id="materialIdField" value="">
+
+      <div class="fd-widget-title" id="formTitle"><i class="ti ti-file-upload"></i> Upload New Material</div>
+
+      <label class="cs-form-label">Course Section</label>
+      <select name="course_section" id="sectionField" class="cs-form-input" required>
+        <option value="">Select a section…</option>
+        {% for section in sections %}
+          <option value="{{ section.section_id }}">
+            {{ section.course_id.course_code }} — Sec {{ section.section_number }}
+            {% if section.faculty_name %}({{ section.faculty_name }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+
+      <label class="cs-form-label">Title</label>
+      <input type="text" name="title" id="titleField" class="cs-form-input" placeholder="e.g. Week 3 Lecture Slides" required />
+
+      <label class="cs-form-label">Material Type</label>
+      <select name="material_type" id="materialTypeField" class="cs-form-input">
+        <option value="SYLLABUS">Syllabus</option>
+        <option value="SLIDES">Slides</option>
+        <option value="HANDOUT">Handout</option>
+        <option value="LAB_MANUAL">Lab Manual</option>
+        <option value="OTHER">Other</option>
+      </select>
+
+      <label class="cs-form-label">File <span style="font-weight:normal;color:#888;">(leave empty to keep existing file when editing)</span></label>
+      <input type="file" name="file" class="cs-form-input" id="fileField" />
+
+      <button type="submit" class="fd-btn fd-btn-primary" style="margin-top:16px;width:100%;" id="submitBtn">
+        <i class="ti ti-upload"></i><span>Upload Material</span>
+      </button>
+      <button type="button" id="cancelEditBtn" class="fd-btn fd-btn-ghost" style="margin-top:8px;width:100%;display:none;" onclick="resetForm()">
+        Cancel Edit
+      </button>
+    </form>
+  </div>
+
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-folder"></i> All Materials</div>
+      <span class="fd-widget-link">{{ materials|length }} total</span>
+    </div>
+
+    <div class="fd-table-wrap cs-table-scroll">
+      <table class="fd-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Course</th>
+            <th>Type</th>
+            <th>Uploaded By</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="materialsTableBody">
+          {% for m in materials %}
+          <tr class="material-row">
+            <td><div class="fd-form-title">{{ m.title }}</div></td>
+            <td><span class="fd-version">{{ m.course_section.course_id.course_code }}</span></td>
+            <td>{{ m.get_material_type_display }}</td>
+            <td>{{ m.uploaded_by.get_full_name|default:"Unknown" }}</td>
+            <td><span class="fd-date">{{ m.uploaded_at|date:"M d, Y" }}</span></td>
+            <td>
+              <div class="fd-action-icons">
+                <a href="{{ m.file.url }}" target="_blank" class="fd-action-btn download" title="Download">
+                  <i class="ti ti-file-download"></i>
+                </a>
+                <button type="button" class="fd-action-btn edit" title="Edit" style="background:none;border:none;cursor:pointer;"
+                  onclick="editMaterial('{{ m.id }}', '{{ m.course_section.section_id }}', '{{ m.title|escapejs }}', '{{ m.material_type }}')">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <form method="post" action="{% url 'delete_course_material' uuid=request.user.uuid material_id=m.id %}" onsubmit="return confirm('Delete this material? This cannot be undone.');">
+                  {% csrf_token %}
+                  <button type="submit" class="fd-action-btn delete" title="Delete" style="background:none;border:none;cursor:pointer;">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:#888;">No materials uploaded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if materials %}
+    <div class="fd-pagination" id="materialsPagination">
+      <span class="fd-page-info" id="pageInfo"></span>
+      <div class="fd-page-controls" id="pageControls"></div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+let sectionChoices = null;
+let materialTypeChoices = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+  const choicesConfig = {
+    searchEnabled: true,
+    itemSelectText: '',
+    shouldSort: false
+  };
+
+  sectionChoices = new Choices('#sectionField', {
+    ...choicesConfig,
+    placeholderValue: 'Select a section…',
+    searchPlaceholderValue: 'Search sections…'
+  });
+
+  materialTypeChoices = new Choices('#materialTypeField', {
+    ...choicesConfig,
+    searchEnabled: false
+  });
+});
+
+function editMaterial(id, sectionId, title, materialType) {
+  document.getElementById('materialIdField').value = id;
+  document.getElementById('titleField').value = title;
+  document.getElementById('fileField').required = false;
+
+  if (sectionChoices) {s
+    sectionChoices.setChoiceByValue(sectionId);
+  }
+  if (materialTypeChoices) {
+    materialTypeChoices.setChoiceByValue(materialType);
+  }
+
+  document.getElementById('formTitle').innerHTML = '<i class="ti ti-edit"></i> Edit Material';
+  document.getElementById('submitBtn').innerHTML = '<i class="ti ti-device-floppy"></i><span>Save Changes</span>';
+  document.getElementById('cancelEditBtn').style.display = 'block';
+
+  document.getElementById('materialForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetForm() {
+  document.getElementById('materialForm').reset();
+  document.getElementById('materialIdField').value = '';
+  document.getElementById('fileField').required = true;
+
+  if (sectionChoices) {
+    sectionChoices.setChoiceByValue('');
+  }
+  if (materialTypeChoices) {
+    materialTypeChoices.setChoiceByValue('SYLLABUS');
+  }
+
+  document.getElementById('formTitle').innerHTML = '<i class="ti ti-file-upload"></i> Upload New Material';
+  document.getElementById('submitBtn').innerHTML = '<i class="ti ti-upload"></i><span>Upload Material</span>';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+}
+
+
+(function () {
+  const rowsPerPage = 5; 
+  const tbody = document.getElementById('materialsTableBody');
+  if (!tbody) return;
+
+  const allRows = Array.from(tbody.querySelectorAll('tr.material-row'));
+  if (allRows.length === 0) return; 
+
+  let currentPage = 1;
+  const totalPages = Math.ceil(allRows.length / rowsPerPage);
+
+  const pageInfo = document.getElementById('pageInfo');
+  const pageControls = document.getElementById('pageControls');
+
+  function renderPage(page) {
+    currentPage = page;
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    allRows.forEach((row, idx) => {
+      row.style.display = (idx >= start && idx < end) ? '' : 'none';
+    });
+
+    pageInfo.textContent = `Showing ${start + 1}–${Math.min(end, allRows.length)} of ${allRows.length}`;
+    renderControls();
+  }
+
+  function renderControls() {
+    pageControls.innerHTML = '';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'fd-page-btn';
+    prevBtn.innerHTML = '<i class="ti ti-chevron-left"></i>';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => renderPage(currentPage - 1);
+    pageControls.appendChild(prevBtn);
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 ||
+        i === totalPages ||
+        Math.abs(i - currentPage) <= 1
+      ) {
+        const btn = document.createElement('button');
+        btn.className = 'fd-page-btn' + (i === currentPage ? ' active' : '');
+        btn.textContent = i;
+        btn.onclick = () => renderPage(i);
+        pageControls.appendChild(btn);
+      } else if (
+        (i === currentPage - 2 && i > 1) ||
+        (i === currentPage + 2 && i < totalPages)
+      ) {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'fd-page-ellipsis';
+        ellipsis.textContent = '…';
+        pageControls.appendChild(ellipsis);
+      }
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'fd-page-btn';
+    nextBtn.innerHTML = '<i class="ti ti-chevron-right"></i>';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => renderPage(currentPage + 1);
+    pageControls.appendChild(nextBtn);
+  }
+
+  renderPage(1);
+})();
+
+</script>
+{% endblock %}
+
+
+
+<!-- ******************************************** Arun Code ********************************************************** -->

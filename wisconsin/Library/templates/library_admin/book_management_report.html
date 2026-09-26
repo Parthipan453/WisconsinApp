@@ -1,0 +1,3582 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}
+Book Management Report
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+      href="{% static 'css/library_admin/book_management_report.css' %}">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="book-report-page">
+
+    <!-- ================================================= -->
+    <!-- HEADER -->
+    <!-- ================================================= -->
+
+    <div class="report-header">
+
+        <div>
+            <h2>Book Management Report</h2>
+
+            <div class="report-breadcrumb">
+
+                <a href="{% url 'library_dashboard' request.user.uuid %}">
+                    Dashboard
+                </a>
+
+                <span>›</span>
+
+                <strong>Book Management</strong>
+
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- FILTER CARD -->
+    <!-- ================================================= -->
+
+    <form method="GET"
+          id="reportFilterForm"
+          class="report-filter-card">
+
+        <div class="filter-row">
+
+            <!-- Library -->
+
+            <div class="filter-group">
+
+                <label>Library</label>
+
+                <select
+                    name="library"
+                    class="library-choice">
+
+                    <option value="">
+                        All Libraries
+                    </option>
+
+                    {% for library in libraries %}
+                        <option
+                            value="{{ library.id }}"
+                            {% if selected_library == library.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ library.library_name }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Category -->
+
+            <div class="filter-group">
+
+                <label>Category</label>
+
+                <select
+                    name="category"
+                    class="library-choice">
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% for category in categories %}
+                        <option
+                            value="{{ category.id }}"
+                            {% if selected_category == category.id|stringformat:"s" %}
+                                selected
+                            {% endif %} >
+                            {{ category.title }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Period -->
+
+            <!-- <div class="filter-group">
+
+                <label>Period</label>
+
+                <select name="period"
+                        id="periodSelect"
+                        class="form-select library-choice"
+                        required>>
+
+                    <option value="today"
+                        {% if period == "today" %}selected{% endif %}>
+                        Today
+                    </option>
+
+                    <option value="week"
+                        {% if period == "week" %}selected{% endif %}>
+                        This Week
+                    </option>
+
+                    <option value="month"
+                        {% if period == "month" %}selected{% endif %}>
+                        This Month
+                    </option>
+
+                    <option value="custom"
+                        {% if period == "custom" %}selected{% endif %}>
+                        Custom Range
+                    </option>
+
+                </select>
+
+            </div> -->
+
+
+            <!-- Start -->
+
+            <div class="filter-group">
+
+                <label>From</label>
+
+                <input
+                    type="date"
+                    name="start_date"
+                    value="{{ start_date }}"
+                    id="startDate" >
+
+            </div>
+
+
+            <!-- End -->
+
+            <div class="filter-group">
+
+                <label>To</label>
+
+                <input
+                    type="date"
+                    name="end_date"
+                    value="{{ end_date }}"
+                    id="endDate" >
+
+            </div>
+
+
+            <div class="filter-actions">
+
+                <button type="submit"
+                        class="apply-filter-btn">
+
+                    <i class="fa-solid fa-filter"></i>
+
+                    Apply Filter
+
+                </button>
+
+                <a href="{% url 'book_management_report' %}"
+                   class="reset-filter-btn">
+
+                    <i class="fa-solid fa-rotate-left"></i>
+
+                    Reset
+
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- QUICK PERIOD BUTTONS -->
+
+        <div class="quick-period-row">
+
+            <button
+                type="submit"
+                name="period"
+                value="today"
+                class="{% if period == 'today' %}active{% endif %}">
+                Today
+            </button>
+
+            <button
+                type="submit"
+                name="period"
+                value="week"
+                class="{% if period == 'week' %}active{% endif %}">
+                This Week
+            </button>
+
+            <button
+                type="submit"
+                name="period"
+                value="month"
+                class="{% if period == 'month' %}active{% endif %}">
+                This Month
+            </button>
+
+            <!-- <button
+                type="button"
+                id="customPeriodBtn"
+                class="{% if period == 'custom' %}active{% endif %}">
+                Custom Range
+            </button> -->
+
+            <div class="export-buttons">
+
+                <span>Download Report</span>
+
+                <a id="pdfExport"
+                   href="{% url 'book_management_report_pdf' %}"
+                   class="pdf-btn">
+
+                    <i class="fa-solid fa-file-pdf"></i>
+
+                    PDF
+
+                </a>
+
+                <a id="excelExport"
+                   href="{% url 'book_management_report_excel' %}"
+                   class="excel-btn">
+
+                    <i class="fa-solid fa-file-excel"></i>
+
+                    Excel
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </form>
+
+    <div id="reportResults">
+      
+        <!-- ================================================= -->
+    <!-- SUMMARY CARDS -->
+    <!-- ================================================= -->
+
+    <div class="report-stat-grid">
+
+        <div class="report-stat-card">
+
+            <div class="report-stat-icon total">
+                <i class="fa-solid fa-book"></i>
+            </div>
+
+            <div>
+                <span>Book Titles</span>
+
+                <strong id="totalBookTitles">
+                    {{ total_book_titles }}
+                </strong>
+
+                <small>
+                    Cataloged books
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="report-stat-card">
+
+            <div class="report-stat-icon available">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+
+            <div>
+                <span>Available Copies</span>
+
+                <strong id="availableCopies">
+                    {{ available_copies }}
+                </strong>
+
+                <small>
+                    Ready to borrow
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="report-stat-card">
+
+            <div class="report-stat-icon borrowed">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            </div>
+
+            <div>
+                <span>Borrowed Copies</span>
+
+                <strong id="borrowedCopies">
+                    {{ borrowed_copies }}
+                </strong>
+
+                <small>
+                    Currently checked out
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="report-stat-card">
+
+            <div class="report-stat-icon reserved">
+                <i class="fa-solid fa-bookmark"></i>
+            </div>
+
+            <div>
+                <span>Reserved</span>
+
+                <strong id="reservedCopies">
+                    {{ reserved_copies }}
+                </strong>
+
+                <small>
+                    Reserved copies
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="report-stat-card">
+
+            <div class="report-stat-icon damaged">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+
+            <div>
+                <span>Damaged</span>
+
+                <strong id="damagedCopies">
+                   {{ damaged_copies }}
+                </strong>
+
+                <small>
+                    Damaged copies
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="report-stat-card">
+
+            <div class="report-stat-icon lost">
+                <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+
+            <div>
+                <span>Lost</span>
+
+                <strong id="lostCopies">
+                    {{ lost_copies }}
+                </strong>
+
+                <small>
+                    Lost copies
+                </small>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- PERIOD SUMMARY -->
+    <!-- ================================================= -->
+
+    <div class="period-summary-card">
+
+        <div>
+
+            <span>Reporting Period</span>
+
+            <strong id="periodLabel">
+                {{ period_label }}
+            </strong>
+
+        </div>
+
+        <div>
+
+            <span>Borrowed</span>
+
+            <strong id="totalBorrowedPeriod">
+                {{ total_borrowed_period }}
+            </strong>
+
+        </div>
+
+        <div>
+
+            <span>Returned</span>
+
+            <strong id="totalReturnedPeriod">
+                {{ total_returned_period }}
+            </strong>
+
+        </div>
+
+        <div>
+
+            <span>Today</span>
+
+            <strong id="borrowedToday">
+               {{ borrowed_today }}
+            </strong>
+
+        </div>
+
+        <div>
+
+            <span>This Week</span>
+
+            <strong id="borrowedThisWeek">
+                {{ borrowed_this_week }}
+            </strong>
+
+        </div>
+
+        <div>
+
+            <span>This Month</span>
+
+            <strong id="borrowedThisMonth">
+                {{ borrowed_this_month }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- CHART ROW -->
+    <!-- ================================================= -->
+
+    <div class="report-chart-grid">
+
+
+        <!-- BORROWING ACTIVITY -->
+
+        <div class="report-panel large-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Borrowing Activity
+                    </h3>
+
+                    <p>
+                        {{ period_label }}
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container">
+
+                <canvas id="borrowingChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- USER TYPE -->
+
+        <div class="report-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Borrowing by User Type
+                    </h3>
+
+                    <p>
+                        {{ period_label }}
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container donut">
+
+                <canvas id="userTypeChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- INVENTORY -->
+
+        <div class="report-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Inventory Status
+                    </h3>
+
+                    <p>
+                        Current inventory
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container donut">
+
+                <canvas id="inventoryChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- CATEGORY / MOST BORROWED -->
+    <!-- ================================================= -->
+
+    <div class="report-three-column">
+
+
+        <!-- BOOKS BY CATEGORY -->
+
+        <div class="report-panel">
+
+            <div class="panel-header">
+
+                <h3>
+                    Books by Category
+                </h3>
+
+            </div>
+
+            <div class="report-table-wrapper">
+
+                <table class="report-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Category</th>
+                            <th>Books</th>
+                            <th>Copies</th>
+                            <th>Available</th>
+                            <th>Borrowed</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="categoryTableBody">
+
+                        {% for row in category_data %}
+
+                        <tr>
+
+                            <td>
+                                {{ row.title }}
+                            </td>
+
+                            <td>
+                                {{ row.total_books }}
+                            </td>
+
+                            <td>
+                                {{ row.total_copies }}
+                            </td>
+
+                            <td>
+                                {{ row.available }}
+                            </td>
+
+                            <td>
+                                {{ row.borrowed }}
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td colspan="5"
+                                class="empty-table">
+
+                                No book categories available.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <!-- MOST BORROWED CATEGORIES -->
+
+        <div class="report-panel">
+
+            <div class="panel-header">
+
+                <h3>
+                    Most Borrowed Categories
+                </h3>
+
+            </div>
+
+            <div class="category-ranking"
+                  id="mostBorrowedCategories">
+
+                {% for row in most_borrowed_categories %}
+
+                <div class="ranking-item">
+
+                    <div class="ranking-info">
+
+                        <span>
+                            {{ row.title }}
+                        </span>
+
+                        <strong>
+                            {{ row.period_borrowed }}
+                        </strong>
+
+                    </div>
+
+                    <div class="ranking-bar">
+
+                       <span style="width: {{ row.percentage }}%;"></span>
+
+                    </div>
+
+                </div>
+
+                {% empty %}
+
+                <div class="empty-report">
+
+                    <i class="fa-solid fa-chart-column"></i>
+
+                    <p>
+                        No borrowing data for this period.
+                    </p>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- MOST BORROWED BOOKS -->
+
+        <div class="report-panel">
+
+            <div class="panel-header">
+
+                <h3>
+                    Most Borrowed Books
+                </h3>
+
+            </div>
+
+            <div class="report-table-wrapper">
+
+                <table class="report-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+
+                            <th>Book</th>
+
+                            <th>Borrowed</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="mostBorrowedBooksBody">
+
+                        {% for row in most_borrowed_books %}
+
+                        <tr>
+
+                            <td>
+                                {{ forloop.counter }}
+                            </td>
+
+                            <td>
+
+                                <div class="book-report-name">
+
+                                    <strong>
+                                        {{ row.title }}
+                                    </strong>
+
+                                    <small>
+                                        {{ row.category }}
+                                    </small>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+                                {{ row.borrowed }}
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td colspan="3"
+                                class="empty-table">
+
+                                No borrowing data.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- DAILY SUMMARY / LIBRARY -->
+    <!-- ================================================= -->
+
+    <div class="report-two-column">
+
+
+        <!-- DAILY -->
+
+        <div class="report-panel daily-summary-panel">
+
+            <div class="panel-header">
+
+                <h3>
+                    Daily Borrowing & Return Summary
+                </h3>
+
+            </div>
+
+
+            <div class="report-table-wrapper">
+
+                <table class="report-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Date</th>
+                            <th>Borrowed</th>
+                            <th>Returned</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="dailySummaryBody">
+
+                        {% for row in daily_data %}
+
+                        <tr
+                            class="
+                                daily-summary-row
+                                {% if period == 'month' and forloop.counter > 5 %}
+                                    daily-row-hidden
+                                {% endif %}
+                            "
+                        >
+
+                            <td>
+                                {{ row.display_date }}
+                            </td>
+
+                            <td>
+                                {{ row.borrowed }}
+                            </td>
+
+                            <td>
+                                {{ row.returned }}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- VIEW ALL BUTTON -->
+
+            <div
+                id="dailyViewAllContainer"
+                class="daily-view-all-container"
+            >
+
+                {% if period == "month" and daily_data|length > 5 %}
+
+                <button
+                    type="button"
+                    id="dailyViewAllBtn"
+                    class="daily-view-all-btn"
+                >
+
+                    <span id="dailyViewAllText">
+                        View All
+                    </span>
+
+                    <i
+                        id="dailyViewAllIcon"
+                        class="fa-solid fa-chevron-down"
+                    ></i>
+
+                </button>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- LIBRARY -->
+
+        <div class="report-panel">
+
+            <div class="panel-header">
+
+                <h3>
+                    Library Wise Summary
+                </h3>
+
+            </div>
+
+            <div class="report-table-wrapper">
+
+                <table class="report-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Library</th>
+                            <th>Books</th>
+                            <th>Available</th>
+                            <th>Borrowed</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="librarySummaryBody">
+
+                        {% for row in library_data %}
+
+                        <tr>
+
+                            <td>
+                                {{ row.library_name }}
+                            </td>
+
+                            <td>
+                                {{ row.total_books }}
+                            </td>
+
+                            <td>
+                                {{ row.available }}
+                            </td>
+
+                            <td>
+                                {{ row.borrowed }}
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td colspan="4"
+                                class="empty-table">
+
+                                No library data available.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+    
+</div>
+
+
+    </div>
+
+
+
+
+<!-- ===================================================== -->
+<!-- CHART DATA -->
+<!-- ===================================================== -->
+
+{{ daily_data|json_script:"dailyData" }}
+
+{{ user_type_data|json_script:"userTypeData" }}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* =====================================================
+       FORM
+    ===================================================== */
+
+    const form = document.getElementById("reportFilterForm");
+
+    if (!form) {
+        return;
+    }
+
+
+    /* =====================================================
+       CHART INSTANCES
+    ===================================================== */
+
+    let borrowingChart = null;
+    let userTypeChart = null;
+    let inventoryChart = null;
+
+    let dailySummaryData = [];
+    let dailySummaryPeriod = "month";
+    let dailySummaryExpanded = false;
+
+
+    /* =====================================================
+       HELPER - SET TEXT
+    ===================================================== */
+
+    function setText(id, value) {
+
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.textContent = value ?? 0;
+        }
+    }
+
+
+    /* =====================================================
+       UPDATE ACTIVE PERIOD BUTTON
+       
+       Today    -> RED
+       Week     -> RED
+       Month    -> RED
+       
+       Only ONE button will be active.
+    ===================================================== */
+
+    function updateActivePeriod(period) {
+
+        const periodButtons = document.querySelectorAll(
+            ".quick-period-row > button[type='submit']"
+        );
+
+
+        /* Remove active from all buttons */
+
+        periodButtons.forEach(function (button) {
+
+            button.classList.remove("active");
+
+        });
+
+
+        /* Add active to selected button */
+
+        if (!period) {
+            return;
+        }
+
+
+        const activeButton = document.querySelector(
+            `.quick-period-row > button[type='submit'][value="${period}"]`
+        );
+
+
+        if (activeButton) {
+
+            activeButton.classList.add("active");
+
+        }
+
+    }
+
+
+    /* =====================================================
+       BUILD FILTER PARAMETERS
+    ===================================================== */
+
+    function getFilterParams(periodOverride = null) {
+
+        const params = new URLSearchParams();
+
+
+        const libraryElement =
+            form.querySelector("[name='library']");
+
+        const categoryElement =
+            form.querySelector("[name='category']");
+
+        const startElement =
+            form.querySelector("[name='start_date']");
+
+        const endElement =
+            form.querySelector("[name='end_date']");
+
+
+        const library =
+            libraryElement
+                ? libraryElement.value
+                : "";
+
+
+        const category =
+            categoryElement
+                ? categoryElement.value
+                : "";
+
+
+        const startDate =
+            startElement
+                ? startElement.value
+                : "";
+
+
+        const endDate =
+            endElement
+                ? endElement.value
+                : "";
+
+
+        /* =================================================
+           LIBRARY
+        ================================================= */
+
+        if (library) {
+
+            params.set(
+                "library",
+                library
+            );
+
+        }
+
+
+        /* =================================================
+           CATEGORY
+        ================================================= */
+
+        if (category) {
+
+            params.set(
+                "category",
+                category
+            );
+
+        }
+
+
+        /* =================================================
+           QUICK PERIOD
+        ================================================= */
+
+        if (periodOverride) {
+
+            params.set(
+                "period",
+                periodOverride
+            );
+
+
+            /*
+             * When Today / Week / Month is selected,
+             * remove custom dates.
+             */
+
+            params.delete("start_date");
+            params.delete("end_date");
+
+
+            return params;
+
+        }
+
+
+        /* =================================================
+           CUSTOM DATE RANGE
+        ================================================= */
+
+        if (startDate || endDate) {
+
+            if (!startDate || !endDate) {
+
+                throw new Error(
+                    "Please select both From and To dates."
+                );
+
+            }
+
+
+            if (startDate > endDate) {
+
+                throw new Error(
+                    "From date cannot be after To date."
+                );
+
+            }
+
+
+            params.set(
+                "period",
+                "custom"
+            );
+
+
+            params.set(
+                "start_date",
+                startDate
+            );
+
+
+            params.set(
+                "end_date",
+                endDate
+            );
+
+        }
+
+        else {
+
+            /*
+             * Default period
+             */
+
+            params.set(
+                "period",
+                "month"
+            );
+
+        }
+
+
+        return params;
+
+    }
+
+
+    /* =====================================================
+       LOAD REPORT USING AJAX
+    ===================================================== */
+
+    function loadReport(params) {
+
+        const queryString =
+            params.toString();
+
+
+        const url =
+            window.location.pathname +
+            (
+                queryString
+                    ? "?" + queryString
+                    : ""
+            );
+
+
+        /* =================================================
+           LOADING STATE
+        ================================================= */
+
+        document.body.classList.add(
+            "report-loading"
+        );
+
+
+        /* =================================================
+           AJAX REQUEST
+        ================================================= */
+
+        fetch(
+            url,
+            {
+
+                method: "GET",
+
+                headers: {
+
+                    "X-Requested-With":
+                        "XMLHttpRequest",
+
+                    "Accept":
+                        "application/json"
+
+                }
+
+            }
+        )
+
+        .then(function (response) {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Server returned " +
+                    response.status
+                );
+
+            }
+
+
+            return response.json();
+
+        })
+
+
+        /* =================================================
+           AJAX SUCCESS
+        ================================================= */
+
+        .then(function (data) {
+
+            console.log(
+                "Book Management Report:",
+                data
+            );
+
+
+            /* =================================================
+               ACTIVE PERIOD
+               
+               This is VERY IMPORTANT.
+               
+               Example:
+               week -> This Week becomes RED
+               month -> This Month becomes RED
+               today -> Today becomes RED
+            ================================================= */
+
+            const currentPeriod =
+                data.period ||
+                params.get("period") ||
+                "month";
+
+
+            updateActivePeriod(
+                currentPeriod
+            );
+
+
+            /* =================================================
+               SUMMARY CARDS
+            ================================================= */
+
+            setText(
+                "totalBookTitles",
+                data.total_book_titles
+            );
+
+
+            setText(
+                "availableCopies",
+                data.available_copies
+            );
+
+
+            setText(
+                "borrowedCopies",
+                data.borrowed_copies
+            );
+
+
+            setText(
+                "reservedCopies",
+                data.reserved_copies
+            );
+
+
+            setText(
+                "damagedCopies",
+                data.damaged_copies
+            );
+
+
+            setText(
+                "lostCopies",
+                data.lost_copies
+            );
+
+
+            /* =================================================
+               PERIOD SUMMARY
+            ================================================= */
+
+            setText(
+                "periodLabel",
+                data.period_label
+            );
+
+
+            setText(
+                "totalBorrowedPeriod",
+                data.total_borrowed_period
+            );
+
+
+            setText(
+                "totalReturnedPeriod",
+                data.total_returned_period
+            );
+
+
+            setText(
+                "borrowedToday",
+                data.borrowed_today
+            );
+
+
+            setText(
+                "borrowedThisWeek",
+                data.borrowed_this_week
+            );
+
+
+            setText(
+                "borrowedThisMonth",
+                data.borrowed_this_month
+            );
+
+
+            /* =================================================
+               TABLES
+            ================================================= */
+
+            updateCategoryTable(
+                data.category_data || []
+            );
+
+
+            updateMostBorrowedCategories(
+                data.most_borrowed_categories || []
+            );
+
+
+            updateMostBorrowedBooks(
+                data.most_borrowed_books || []
+            );
+
+
+            updateDailySummary(
+                data.daily_data || [],
+                currentPeriod
+            );
+
+            updateLibrarySummary(
+                data.library_data || []
+            );
+
+
+            /* =================================================
+               CHARTS
+            ================================================= */
+
+            updateBorrowingChart(
+                data.daily_data || []
+            );
+
+
+            updateUserTypeChart(
+                data.user_type_data || []
+            );
+
+
+            updateInventoryChart(
+                data.available_copies || 0,
+                data.borrowed_copies || 0,
+                data.reserved_copies || 0,
+                data.damaged_copies || 0,
+                data.lost_copies || 0
+            );
+
+
+            /* =================================================
+               EXPORT LINKS
+            ================================================= */
+
+            updateExportLinks(
+                params
+            );
+
+
+            /* =================================================
+               UPDATE BROWSER URL
+               WITHOUT PAGE REFRESH
+            ================================================= */
+
+            window.history.pushState(
+                {},
+                "",
+                url
+            );
+
+
+            /* =================================================
+               REMOVE LOADING
+            ================================================= */
+
+            document.body.classList.remove(
+                "report-loading"
+            );
+
+        })
+
+
+        /* =================================================
+           AJAX ERROR
+        ================================================= */
+
+        .catch(function (error) {
+
+            console.error(
+                "Book report AJAX error:",
+                error
+            );
+
+
+            document.body.classList.remove(
+                "report-loading"
+            );
+
+
+            alert(
+                error.message ||
+                "Unable to load the report."
+            );
+
+        });
+
+    }
+
+
+    /* =====================================================
+       APPLY FILTER
+    ===================================================== */
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+
+            try {
+
+                const params =
+                    getFilterParams();
+
+
+                /*
+                 * If custom date is selected,
+                 * no quick-period button should
+                 * remain active.
+                 */
+
+                if (
+                    params.get("period") ===
+                    "custom"
+                ) {
+
+                    updateActivePeriod(
+                        null
+                    );
+
+                }
+
+
+                loadReport(
+                    params
+                );
+
+            }
+
+            catch (error) {
+
+                alert(
+                    error.message
+                );
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       TODAY / WEEK / MONTH BUTTONS
+    ===================================================== */
+
+    document
+        .querySelectorAll(
+            ".quick-period-row > button[type='submit']"
+        )
+        .forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+
+                    /*
+                     * Get selected period
+                     *
+                     * today
+                     * week
+                     * month
+                     */
+
+                    const selectedPeriod =
+                        this.value;
+
+
+                    /*
+                     * IMMEDIATELY make
+                     * selected button RED.
+                     */
+
+                    updateActivePeriod(
+                        selectedPeriod
+                    );
+
+
+                    try {
+
+                        const params =
+                            getFilterParams(
+                                selectedPeriod
+                            );
+
+
+                        loadReport(
+                            params
+                        );
+
+                    }
+
+                    catch (error) {
+
+                        alert(
+                            error.message
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    /* =====================================================
+       BORROWING ACTIVITY CHART
+    ===================================================== */
+
+    function updateBorrowingChart(data) {
+
+        const canvas =
+            document.getElementById(
+                "borrowingChart"
+            );
+
+
+        if (!canvas) {
+            return;
+        }
+
+
+        const labels =
+            data.map(function (row) {
+
+                return row.label || "";
+
+            });
+
+
+        const borrowed =
+            data.map(function (row) {
+
+                return Number(
+                    row.borrowed || 0
+                );
+
+            });
+
+
+        const returned =
+            data.map(function (row) {
+
+                return Number(
+                    row.returned || 0
+                );
+
+            });
+
+
+        /* =================================================
+           UPDATE EXISTING CHART
+        ================================================= */
+
+        if (borrowingChart) {
+
+            borrowingChart.data.labels =
+                labels;
+
+
+            borrowingChart.data.datasets[0].data =
+                borrowed;
+
+
+            borrowingChart.data.datasets[1].data =
+                returned;
+
+
+            borrowingChart.update();
+
+            return;
+
+        }
+
+
+        /* =================================================
+           CREATE CHART
+        ================================================= */
+
+        borrowingChart =
+            new Chart(
+                canvas,
+                {
+
+                    type: "line",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+
+                                label: "Borrowed",
+
+                                data: borrowed,
+
+                                tension: 0.35,
+
+                                borderWidth: 2,
+
+                                pointRadius: 3,
+
+                                pointHoverRadius: 5,
+
+                                fill: false
+
+                            },
+
+                            {
+
+                                label: "Returned",
+
+                                data: returned,
+
+                                tension: 0.35,
+
+                                borderWidth: 2,
+
+                                pointRadius: 3,
+
+                                pointHoverRadius: 5,
+
+                                fill: false
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        interaction: {
+
+                            mode: "index",
+
+                            intersect: false
+
+                        },
+
+                        plugins: {
+
+                            legend: {
+
+                                position: "top"
+
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label:
+                                        function (context) {
+
+                                            return (
+                                                context.dataset.label +
+                                                ": " +
+                                                context.parsed.y
+                                            );
+
+                                        }
+
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                ticks: {
+
+                                    autoSkip: true,
+
+                                    maxTicksLimit: 12
+
+                                }
+
+                            },
+
+                            y: {
+
+                                beginAtZero: true,
+
+                                ticks: {
+
+                                    precision: 0
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* =====================================================
+       USER TYPE CHART
+    ===================================================== */
+
+    function updateUserTypeChart(data) {
+
+        const canvas =
+            document.getElementById(
+                "userTypeChart"
+            );
+
+
+        if (!canvas) {
+            return;
+        }
+
+
+        const labels =
+            data.map(function (row) {
+
+                return row.label || "";
+
+            });
+
+
+        const values =
+            data.map(function (row) {
+
+                return Number(
+                    row.count || 0
+                );
+
+            });
+
+
+        /* =================================================
+           UPDATE EXISTING CHART
+        ================================================= */
+
+        if (userTypeChart) {
+
+            userTypeChart.data.labels =
+                labels;
+
+
+            userTypeChart.data.datasets[0].data =
+                values;
+
+
+            userTypeChart.update();
+
+            return;
+
+        }
+
+
+        /* =================================================
+           CREATE CHART
+        ================================================= */
+
+        userTypeChart =
+            new Chart(
+                canvas,
+                {
+
+                    type: "doughnut",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+
+                                data: values,
+
+                                borderWidth: 2,
+
+                                hoverOffset: 6
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        cutout: "60%",
+
+                        plugins: {
+
+                            legend: {
+
+                                position: "bottom"
+
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label:
+                                        function (context) {
+
+                                            const total =
+                                                context.dataset.data
+                                                    .reduce(
+                                                        function (
+                                                            sum,
+                                                            value
+                                                        ) {
+
+                                                            return (
+                                                                sum +
+                                                                Number(
+                                                                    value
+                                                                )
+                                                            );
+
+                                                        },
+                                                        0
+                                                    );
+
+
+                                            const value =
+                                                Number(
+                                                    context.raw || 0
+                                                );
+
+
+                                            const percentage =
+                                                total > 0
+                                                    ? (
+                                                        value /
+                                                        total *
+                                                        100
+                                                    ).toFixed(1)
+                                                    : 0;
+
+
+                                            return (
+                                                context.label +
+                                                ": " +
+                                                value +
+                                                " (" +
+                                                percentage +
+                                                "%)"
+                                            );
+
+                                        }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* =====================================================
+       INVENTORY STATUS CHART
+    ===================================================== */
+
+    function updateInventoryChart(
+        available,
+        borrowed,
+        reserved,
+        damaged,
+        lost
+    ) {
+
+        const canvas =
+            document.getElementById(
+                "inventoryChart"
+            );
+
+
+        if (!canvas) {
+            return;
+        }
+
+
+        const labels = [
+
+            "Available",
+
+            "Borrowed",
+
+            "Reserved",
+
+            "Damaged",
+
+            "Lost"
+
+        ];
+
+
+        const values = [
+
+            Number(
+                available || 0
+            ),
+
+            Number(
+                borrowed || 0
+            ),
+
+            Number(
+                reserved || 0
+            ),
+
+            Number(
+                damaged || 0
+            ),
+
+            Number(
+                lost || 0
+            )
+
+        ];
+
+
+        /* =================================================
+           UPDATE EXISTING CHART
+        ================================================= */
+
+        if (inventoryChart) {
+
+            inventoryChart.data.labels =
+                labels;
+
+
+            inventoryChart.data.datasets[0].data =
+                values;
+
+
+            inventoryChart.update();
+
+            return;
+
+        }
+
+
+        /* =================================================
+           CREATE CHART
+        ================================================= */
+
+        inventoryChart =
+            new Chart(
+                canvas,
+                {
+
+                    type: "doughnut",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+
+                                data: values,
+
+                                borderWidth: 2,
+
+                                hoverOffset: 6
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        cutout: "60%",
+
+                        plugins: {
+
+                            legend: {
+
+                                position: "bottom"
+
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label:
+                                        function (context) {
+
+                                            return (
+                                                context.label +
+                                                ": " +
+                                                context.raw
+                                            );
+
+                                        }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* =====================================================
+       CATEGORY TABLE
+    ===================================================== */
+
+    function updateCategoryTable(data) {
+
+        const tbody =
+            document.getElementById(
+                "categoryTableBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.innerHTML = "";
+
+
+        if (!data.length) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5"
+                        class="empty-table">
+
+                        No book categories available.
+
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        data.forEach(function (row) {
+
+            tbody.insertAdjacentHTML(
+                "beforeend",
+                `
+                <tr>
+
+                    <td>
+                        ${escapeHtml(
+                            row.title || "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${Number(
+                            row.total_books || 0
+                        )}
+                    </td>
+
+                    <td>
+                        ${Number(
+                            row.total_copies || 0
+                        )}
+                    </td>
+
+                    <td>
+                        ${Number(
+                            row.available || 0
+                        )}
+                    </td>
+
+                    <td>
+                        ${Number(
+                            row.borrowed || 0
+                        )}
+                    </td>
+
+                </tr>
+                `
+            );
+
+        });
+
+    }
+
+
+    /* =====================================================
+       MOST BORROWED CATEGORIES
+    ===================================================== */
+
+    function updateMostBorrowedCategories(data) {
+
+        const container =
+            document.getElementById(
+                "mostBorrowedCategories"
+            );
+
+
+        if (!container) {
+            return;
+        }
+
+
+        container.innerHTML = "";
+
+
+        if (!data.length) {
+
+            container.innerHTML = `
+                <div class="empty-report">
+
+                    <i class="fa-solid fa-chart-column"></i>
+
+                    <p>
+                        No borrowing data for this period.
+                    </p>
+
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        data.forEach(function (row) {
+
+            const percentage =
+                Math.min(
+                    100,
+                    Math.max(
+                        0,
+                        Number(
+                            row.percentage || 0
+                        )
+                    )
+                );
+
+
+            container.insertAdjacentHTML(
+                "beforeend",
+                `
+                <div class="ranking-item">
+
+                    <div class="ranking-info">
+
+                        <span>
+                            ${escapeHtml(
+                                row.title || "-"
+                            )}
+                        </span>
+
+                        <strong>
+                            ${Number(
+                                row.period_borrowed || 0
+                            )}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="ranking-bar">
+
+                        <span
+                            style="width:${percentage}%;">
+                        </span>
+
+                    </div>
+
+                </div>
+                `
+            );
+
+        });
+
+    }
+
+
+    /* =====================================================
+       MOST BORROWED BOOKS
+    ===================================================== */
+
+    function updateMostBorrowedBooks(data) {
+
+        const tbody =
+            document.getElementById(
+                "mostBorrowedBooksBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.innerHTML = "";
+
+
+        if (!data.length) {
+
+            tbody.innerHTML = `
+                <tr>
+
+                    <td colspan="3"
+                        class="empty-table">
+
+                        No borrowing data.
+
+                    </td>
+
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        data.forEach(function (row, index) {
+
+            tbody.insertAdjacentHTML(
+                "beforeend",
+                `
+                <tr>
+
+                    <td>
+                        ${index + 1}
+                    </td>
+
+
+                    <td>
+
+                        <div class="book-report-name">
+
+                            <strong>
+                                ${escapeHtml(
+                                    row.title || "-"
+                                )}
+                            </strong>
+
+
+                            <small>
+                                ${escapeHtml(
+                                    row.category || "-"
+                                )}
+                            </small>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        ${Number(
+                            row.borrowed || 0
+                        )}
+                    </td>
+
+                </tr>
+                `
+            );
+
+        });
+
+    }
+
+
+    /* =====================================================
+       DAILY SUMMARY
+    ===================================================== */
+
+    function updateDailySummary(
+        data,
+        period
+    ) {
+
+        const tbody =
+            document.getElementById(
+                "dailySummaryBody"
+            );
+
+
+        const buttonContainer =
+            document.getElementById(
+                "dailyViewAllContainer"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        /* ================================================
+        SAVE DATA
+        ================================================= */
+
+        dailySummaryData =
+            Array.isArray(data)
+                ? data
+                : [];
+
+
+        dailySummaryPeriod =
+            period || "month";
+
+
+        /* Always reset when filters change */
+
+        dailySummaryExpanded = false;
+
+
+        /* ================================================
+        CLEAR TABLE
+        ================================================= */
+
+        tbody.innerHTML = "";
+
+
+        /* ================================================
+        NO DATA
+        ================================================= */
+
+        if (!dailySummaryData.length) {
+
+            tbody.innerHTML = `
+                <tr>
+
+                    <td
+                        colspan="3"
+                        class="empty-table"
+                    >
+
+                        No daily data available.
+
+                    </td>
+
+                </tr>
+            `;
+
+
+            if (buttonContainer) {
+                buttonContainer.innerHTML = "";
+            }
+
+
+            return;
+
+        }
+
+
+        /* ================================================
+        MONTH ONLY
+
+        Show first 5 rows initially.
+        ================================================= */
+
+        const isMonth =
+            dailySummaryPeriod === "month";
+
+
+        const visibleData =
+            (
+                isMonth &&
+                !dailySummaryExpanded
+            )
+                ? dailySummaryData.slice(0, 5)
+                : dailySummaryData;
+
+
+        /* ================================================
+        RENDER ROWS
+        ================================================= */
+
+        visibleData.forEach(
+            function (row) {
+
+                tbody.insertAdjacentHTML(
+                    "beforeend",
+                    `
+                    <tr>
+
+                        <td>
+
+                            ${
+                                escapeHtml(
+                                    row.display_date ||
+                                    row.label ||
+                                    "-"
+                                )
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                Number(
+                                    row.borrowed || 0
+                                )
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                Number(
+                                    row.returned || 0
+                                )
+                            }
+
+                        </td>
+
+                    </tr>
+                    `
+                );
+
+            }
+        );
+
+
+        /* ================================================
+        VIEW ALL BUTTON
+
+        ONLY FOR THIS MONTH
+        ================================================= */
+
+        if (buttonContainer) {
+
+            if (
+                isMonth &&
+                dailySummaryData.length > 5
+            ) {
+
+                buttonContainer.innerHTML = `
+                    <button
+                        type="button"
+                        id="dailyViewAllBtn"
+                        class="daily-view-all-btn"
+                    >
+
+                        <span id="dailyViewAllText">
+
+                            View All
+                            (${dailySummaryData.length} Days)
+
+                        </span>
+
+                        <i
+                            class="fa-solid fa-chevron-down"
+                        ></i>
+
+                    </button>
+                `;
+
+
+                setupDailyViewAllButton();
+
+            }
+
+            else {
+
+                buttonContainer.innerHTML = "";
+
+            }
+
+        }
+
+    }
+
+    /* =====================================================
+    DAILY SUMMARY VIEW ALL
+    ===================================================== */
+
+    function setupDailyViewAllButton() {
+
+        const button =
+            document.getElementById(
+                "dailyViewAllBtn"
+            );
+
+
+        if (!button) {
+            return;
+        }
+
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                dailySummaryExpanded =
+                    !dailySummaryExpanded;
+
+
+                renderDailySummary();
+
+            }
+        );
+
+    }
+
+    /* =====================================================
+    RENDER DAILY SUMMARY
+    ===================================================== */
+
+    function renderDailySummary() {
+
+        const tbody =
+            document.getElementById(
+                "dailySummaryBody"
+            );
+
+
+        const buttonContainer =
+            document.getElementById(
+                "dailyViewAllContainer"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.innerHTML = "";
+
+
+        const isMonth =
+            dailySummaryPeriod === "month";
+
+
+        const visibleData =
+            (
+                isMonth &&
+                !dailySummaryExpanded
+            )
+                ? dailySummaryData.slice(0, 5)
+                : dailySummaryData;
+
+
+        /* ================================================
+        RENDER ROWS
+        ================================================= */
+
+        visibleData.forEach(
+            function (row) {
+
+                tbody.insertAdjacentHTML(
+                    "beforeend",
+                    `
+                    <tr>
+
+                        <td>
+
+                            ${
+                                escapeHtml(
+                                    row.display_date ||
+                                    row.label ||
+                                    "-"
+                                )
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                Number(
+                                    row.borrowed || 0
+                                )
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                Number(
+                                    row.returned || 0
+                                )
+                            }
+
+                        </td>
+
+                    </tr>
+                    `
+                );
+
+            }
+        );
+
+
+        /* ================================================
+        BUTTON
+        ================================================= */
+
+        if (!buttonContainer) {
+            return;
+        }
+
+
+        if (
+            isMonth &&
+            dailySummaryData.length > 5
+        ) {
+
+            const buttonText =
+                dailySummaryExpanded
+                    ? "Show Less"
+                    : `View All (${dailySummaryData.length} Days)`;
+
+
+            const buttonClass =
+                dailySummaryExpanded
+                    ? "daily-view-all-btn expanded"
+                    : "daily-view-all-btn";
+
+
+            buttonContainer.innerHTML = `
+                <button
+                    type="button"
+                    id="dailyViewAllBtn"
+                    class="${buttonClass}"
+                >
+
+                    <span>
+
+                        ${buttonText}
+
+                    </span>
+
+                    <i
+                        class="fa-solid fa-chevron-down"
+                    ></i>
+
+                </button>
+            `;
+
+
+            setupDailyViewAllButton();
+
+        }
+
+        else {
+
+            buttonContainer.innerHTML = "";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       LIBRARY SUMMARY
+    ===================================================== */
+
+    function updateLibrarySummary(data) {
+
+        const tbody =
+            document.getElementById(
+                "librarySummaryBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.innerHTML = "";
+
+
+        if (!data.length) {
+
+            tbody.innerHTML = `
+                <tr>
+
+                    <td colspan="4"
+                        class="empty-table">
+
+                        No library data available.
+
+                    </td>
+
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        data.forEach(function (row) {
+
+            tbody.insertAdjacentHTML(
+                "beforeend",
+                `
+                <tr>
+
+                    <td>
+                        ${escapeHtml(
+                            row.library_name || "-"
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${Number(
+                            row.total_books || 0
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${Number(
+                            row.available || 0
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${Number(
+                            row.borrowed || 0
+                        )}
+                    </td>
+
+                </tr>
+                `
+            );
+
+        });
+
+    }
+
+
+    /* =====================================================
+       UPDATE PDF / EXCEL LINKS
+    ===================================================== */
+
+    function updateExportLinks(params) {
+
+        const query =
+            params.toString();
+
+
+        const pdf =
+            document.getElementById(
+                "pdfExport"
+            );
+
+
+        const excel =
+            document.getElementById(
+                "excelExport"
+            );
+
+
+        if (pdf) {
+
+            pdf.href =
+                "{% url 'book_management_report_pdf' %}" +
+                (
+                    query
+                        ? "?" + query
+                        : ""
+                );
+
+        }
+
+
+        if (excel) {
+
+            excel.href =
+                "{% url 'book_management_report_excel' %}" +
+                (
+                    query
+                        ? "?" + query
+                        : ""
+                );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       ESCAPE HTML
+    ===================================================== */
+
+    function escapeHtml(value) {
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+
+        div.textContent =
+            value ?? "";
+
+
+        return div.innerHTML;
+
+    }
+
+
+    /* =====================================================
+       RESET FILTER
+    ===================================================== */
+
+    const resetButton =
+        document.querySelector(
+            ".reset-filter-btn"
+        );
+
+
+    if (resetButton) {
+
+        resetButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+
+                /*
+                 * Remove all filters.
+                 */
+
+                const params =
+                    new URLSearchParams();
+
+
+                /*
+                 * Reset form controls.
+                 */
+
+                const libraryElement =
+                    form.querySelector(
+                        "[name='library']"
+                    );
+
+
+                const categoryElement =
+                    form.querySelector(
+                        "[name='category']"
+                    );
+
+
+                const startElement =
+                    form.querySelector(
+                        "[name='start_date']"
+                    );
+
+
+                const endElement =
+                    form.querySelector(
+                        "[name='end_date']"
+                    );
+
+
+                if (libraryElement) {
+
+                    libraryElement.value =
+                        "";
+
+                }
+
+
+                if (categoryElement) {
+
+                    categoryElement.value =
+                        "";
+
+                }
+
+
+                if (startElement) {
+
+                    startElement.value =
+                        "";
+
+                }
+
+
+                if (endElement) {
+
+                    endElement.value =
+                        "";
+
+                }
+
+
+                /*
+                 * Reset means default
+                 * This Month.
+                 */
+
+                params.set(
+                    "period",
+                    "month"
+                );
+
+
+                updateActivePeriod(
+                    "month"
+                );
+
+
+                loadReport(
+                    params
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       BROWSER BACK / FORWARD
+    ===================================================== */
+
+    window.addEventListener(
+        "popstate",
+        function () {
+
+            const params =
+                new URLSearchParams(
+                    window.location.search
+                );
+
+
+            const library =
+                params.get(
+                    "library"
+                ) || "";
+
+
+            const category =
+                params.get(
+                    "category"
+                ) || "";
+
+
+            const period =
+                params.get(
+                    "period"
+                ) || "month";
+
+
+            const startDate =
+                params.get(
+                    "start_date"
+                ) || "";
+
+
+            const endDate =
+                params.get(
+                    "end_date"
+                ) || "";
+
+
+            /* =================================================
+               RESTORE FILTER VALUES
+            ================================================= */
+
+            const libraryElement =
+                form.querySelector(
+                    "[name='library']"
+                );
+
+
+            const categoryElement =
+                form.querySelector(
+                    "[name='category']"
+                );
+
+
+            const startElement =
+                form.querySelector(
+                    "[name='start_date']"
+                );
+
+
+            const endElement =
+                form.querySelector(
+                    "[name='end_date']"
+                );
+
+
+            if (libraryElement) {
+
+                libraryElement.value =
+                    library;
+
+            }
+
+
+            if (categoryElement) {
+
+                categoryElement.value =
+                    category;
+
+            }
+
+
+            if (startElement) {
+
+                startElement.value =
+                    startDate;
+
+            }
+
+
+            if (endElement) {
+
+                endElement.value =
+                    endDate;
+
+            }
+
+
+            /* =================================================
+               RESTORE ACTIVE BUTTON
+            ================================================= */
+
+            if (
+                period === "today" ||
+                period === "week" ||
+                period === "month"
+            ) {
+
+                updateActivePeriod(
+                    period
+                );
+
+            }
+
+            else {
+
+                updateActivePeriod(
+                    null
+                );
+
+            }
+
+
+            /* =================================================
+               LOAD REPORT
+            ================================================= */
+
+            loadReport(
+                params
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       INITIAL EXPORT LINKS
+    ===================================================== */
+
+    const initialParams =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    updateExportLinks(
+        initialParams
+    );
+
+
+    /* =====================================================
+       INITIAL ACTIVE PERIOD
+    ===================================================== */
+
+    let initialPeriod =
+        initialParams.get(
+            "period"
+        );
+
+
+    /*
+     * If there is no period in URL,
+     * use the Django-rendered active
+     * button.
+     */
+
+    if (!initialPeriod) {
+
+        const activeButton =
+            document.querySelector(
+                ".quick-period-row > button.active"
+            );
+
+
+        if (activeButton) {
+
+            initialPeriod =
+                activeButton.value;
+
+        }
+
+        else {
+
+            initialPeriod =
+                "month";
+
+        }
+
+    }
+
+
+    if (
+        initialPeriod === "today" ||
+        initialPeriod === "week" ||
+        initialPeriod === "month"
+    ) {
+
+        updateActivePeriod(
+            initialPeriod
+        );
+
+    }
+
+
+    /* =====================================================
+       INITIAL CHART DATA
+    ===================================================== */
+
+    const dailyDataElement =
+        document.getElementById(
+            "dailyData"
+        );
+
+
+    const userTypeDataElement =
+        document.getElementById(
+            "userTypeData"
+        );
+
+
+    let initialDailyData = [];
+
+    let initialUserTypeData = [];
+
+
+    /* =====================================================
+       DAILY DATA
+    ===================================================== */
+
+    if (dailyDataElement) {
+
+        try {
+
+            initialDailyData =
+                JSON.parse(
+                    dailyDataElement.textContent
+                );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Unable to parse daily data:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       USER TYPE DATA
+    ===================================================== */
+
+    if (userTypeDataElement) {
+
+        try {
+
+            initialUserTypeData =
+                JSON.parse(
+                    userTypeDataElement.textContent
+                );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Unable to parse user type data:",
+                error
+            );
+
+        }
+
+    }
+
+    updateDailySummary(
+        initialDailyData,
+        initialPeriod
+    );
+
+    /* =====================================================
+       INITIAL BORROWING CHART
+    ===================================================== */
+
+    updateBorrowingChart(
+        initialDailyData
+    );
+
+
+    /* =====================================================
+       INITIAL USER TYPE CHART
+    ===================================================== */
+
+    updateUserTypeChart(
+        initialUserTypeData
+    );
+
+
+    /* =====================================================
+       INITIAL INVENTORY CHART
+    ===================================================== */
+
+    updateInventoryChart(
+
+        Number(
+            document.getElementById(
+                "availableCopies"
+            )?.textContent || 0
+        ),
+
+        Number(
+            document.getElementById(
+                "borrowedCopies"
+            )?.textContent || 0
+        ),
+
+        Number(
+            document.getElementById(
+                "reservedCopies"
+            )?.textContent || 0
+        ),
+
+        Number(
+            document.getElementById(
+                "damagedCopies"
+            )?.textContent || 0
+        ),
+
+        Number(
+            document.getElementById(
+                "lostCopies"
+            )?.textContent || 0
+        )
+
+    );
+
+
+});
+
+/* =====================================================
+   DAILY SUMMARY - VIEW ALL / SHOW LESS
+===================================================== */
+
+const dailyViewAllBtn =
+    document.getElementById(
+        "dailyViewAllBtn"
+    );
+
+
+if (dailyViewAllBtn) {
+
+    dailyViewAllBtn.addEventListener(
+        "click",
+        function () {
+
+            const hiddenRows =
+                document.querySelectorAll(
+                    ".daily-row-hidden"
+                );
+
+
+            const isExpanded =
+                this.classList.contains(
+                    "expanded"
+                );
+
+
+            if (isExpanded) {
+
+                /* =========================================
+                   SHOW LESS
+                ========================================= */
+
+                hiddenRows.forEach(
+                    function (row) {
+
+                        row.style.display =
+                            "none";
+
+                    }
+                );
+
+
+                this.classList.remove(
+                    "expanded"
+                );
+
+
+                this.querySelector(
+                    ".view-all-text"
+                ).textContent =
+                    "View All";
+
+
+                /* Scroll back to card */
+
+                const panel =
+                    this.closest(
+                        ".daily-summary-panel"
+                    );
+
+
+                if (panel) {
+
+                    panel.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+
+                }
+
+            } else {
+
+                /* =========================================
+                   VIEW ALL
+                ========================================= */
+
+                hiddenRows.forEach(
+                    function (row) {
+
+                        row.style.display =
+                            "table-row";
+
+                    }
+                );
+
+
+                this.classList.add(
+                    "expanded"
+                );
+
+
+                this.querySelector(
+                    ".view-all-text"
+                ).textContent =
+                    "Show Less";
+
+            }
+
+        }
+    );
+
+}
+
+</script>
+
+{% endblock %}

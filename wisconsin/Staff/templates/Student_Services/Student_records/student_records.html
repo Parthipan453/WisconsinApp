@@ -1,0 +1,925 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Student Records — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'Student_Services/student_records.css' %}" />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@9.0.1/public/assets/styles/choices.min.css" />
+<style>
+
+    .choices-select {
+        margin-bottom: 0;
+        min-width: 140px;
+    }
+
+    .choices-select .choices__inner {
+        background: #fff;
+        border: 1px solid #e8e8f0;
+        border-radius: 8px;
+        padding: 6px 12px;
+        min-height: 40px;
+        font-size: 12px;
+        transition: border-color 0.15s;
+    }
+
+    .choices-select.is-focused .choices__inner {
+        border-color: #c5050c;
+        box-shadow: 0 0 0 3px rgba(197, 5, 12, 0.08);
+    }
+
+    .choices-select .choices__list--dropdown {
+        border: 1px solid #e8e8f0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        width: 100% !important;
+    }
+
+    .choices-select .choices__list--dropdown .choices__item {
+        padding: 8px 14px;
+        font-size: 12px;
+        color: #555;
+    }
+
+    .choices-select .choices__list--dropdown .choices__item.is-highlighted {
+        background: #fef2f2;
+        color: #c5050c;
+    }
+
+    .choices-select .choices__input {
+        background: transparent;
+        color: #1a1a1a;
+        font-size: 12px;
+    }
+
+    .choices-select .choices__input::placeholder {
+        color: #888;
+    }
+
+    .choices-select .choices__arrow {
+        border-color: #888 transparent transparent;
+        border-width: 5px 4px;
+    }
+
+    .choices-select.is-open .choices__arrow {
+        border-color: transparent transparent #888;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .choices-select {
+            min-width: 100px;
+        }
+        .choices-select .choices__inner {
+            min-height: 36px;
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .choices-select {
+            min-width: 80px;
+            width: 100%;
+        }
+        .choices-select .choices__inner {
+            min-height: 32px;
+            padding: 3px 8px;
+            font-size: 10px;
+        }
+        .records-filter-group {
+            flex-direction: column !important;
+            width: 100%;
+        }
+        .records-filter-group .choices-select {
+            width: 100%;
+        }
+    }
+
+    /* Fix filter group alignment */
+    .records-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .records-filter-group .primary-btn {
+        padding: 9px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.15s;
+        font-family: inherit;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .records-filter-group .primary-btn.reset {
+        background: #c5050c;
+        color: #fff;
+    }
+
+    .records-filter-group .primary-btn.reset:hover {
+        opacity: 0.85;
+    }
+
+    .records-filter-group .primary-btn.export {
+        background: #059669;
+        color: #fff;
+    }
+
+    .records-filter-group .primary-btn.export:hover {
+        opacity: 0.85;
+    }
+</style>
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block content %}
+
+<div class="records-page-header">
+    <div>
+        <h1>Student Records</h1>
+        <p>View and manage all student academic records, personal information, and enrollment details.</p>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="records-stats">
+    <div class="records-stat-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="records-stat-number" data-count="{{ total_students|default:0 }}">{{ total_students|default:0 }}</div>
+        <div class="records-stat-label">Total Students</div>
+        <div class="records-stat-change up">↑ Total registered</div>
+    </div>
+    <div class="records-stat-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="records-stat-number" data-count="{{ active_students|default:0 }}">{{ active_students|default:0 }}</div>
+        <div class="records-stat-label">Active Students</div>
+        <div class="records-stat-change up">↑ Active this semester</div>
+    </div>
+    <div class="records-stat-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="records-stat-number" data-count="{{ graduated|default:0 }}">{{ graduated|default:0 }}</div>
+        <div class="records-stat-label">Graduated</div>
+        <div class="records-stat-change up">↑ Alumni</div>
+    </div>
+    <div class="records-stat-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="records-stat-number" data-count="{{ on_leave|default:0 }}">{{ on_leave|default:0 }}</div>
+        <div class="records-stat-label">On Leave / Inactive</div>
+        <div class="records-stat-change down">↓ Currently inactive</div>
+    </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="records-search-bar">
+    <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="recordsSearch" placeholder="Search by name, student ID, or email..." onkeyup="filterRecords()" value="{{ search_query|default:'' }}">
+    </div>
+    <div class="records-filter-group">
+        <select id="statusFilter" class="choices-select">
+            <option value="">All Status</option>
+            <option value="active" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status_filter == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+            <option value="leave" {% if status_filter == 'LEAVE' %}selected{% endif %}>On Leave</option>
+            <option value="graduated" {% if status_filter == 'GRADUATED' %}selected{% endif %}>Graduated</option>
+            <option value="suspended" {% if status_filter == 'SUSPENDED' %}selected{% endif %}>Suspended</option>
+        </select>
+
+        <select id="programFilter" class="choices-select">
+            <option value="">All Programs</option>
+            {% for program in programs %}
+                <option value="{{ program.id }}" {% if program_filter == program.id|stringformat:"s" %}selected{% endif %}>
+                    {{ program.program_name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button class="primary-btn reset" onclick="clearFilters()">
+            <i class="ti ti-rotate"></i> Reset
+        </button>
+        <button class="primary-btn export" onclick="exportData()">
+            <i class="ti ti-download"></i> Export
+        </button>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="records-table-wrap">
+    <table class="records-table" id="recordsTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">Student <i class="ti ti-chevron-up-down"></i></th>
+                <th onclick="sortTable(1)">Student ID <i class="ti ti-chevron-up-down"></i></th>
+                <th onclick="sortTable(2)">Program <i class="ti ti-chevron-up-down"></i></th>
+                <th onclick="sortTable(3)">GPA <i class="ti ti-chevron-up-down"></i></th>
+                <th onclick="sortTable(4)">Status <i class="ti ti-chevron-up-down"></i></th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="recordsBody">
+            {% if students %}
+                {% for student in students %}
+                <tr data-status="{{ student.account_status|lower|default:'inactive' }}"
+                    data-program="{{ student.student_profile.academic_profile.program_id|default:'' }}">
+                    <td>
+                        <div class="student-info">
+                            <div class="student-avatar" {% if student.profile_photo %}style="background-image:url('{{ student.profile_photo.url }}'); background-size:cover; background-position:center;"{% else %}style="background:#c5050c;"{% endif %}>
+                                {% if not student.profile_photo %}
+                                    {{ student.first_name|default:'U'|first }}{{ student.last_name|default:''|first }}
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="student-name">{{ student.get_full_name|default:'Unknown Student' }}</div>
+                                <div class="student-id">{{ student.email|default:'No Email' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ student.student_profile.student_number|default:'N/A' }}</td>
+                    <td>{{ student.student_profile.academic_profile.program.program_name|default:'N/A' }}</td>
+                    <td>
+                        {% if student.student_profile.cumulative_gpa %}
+                            {{ student.student_profile.cumulative_gpa|floatformat:2 }}
+                        {% else %}
+                            0.00
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge
+                            {% if student.account_status == 'ACTIVE' %}active
+                            {% elif student.account_status == 'GRADUATED' %}graduated
+                            {% elif student.account_status == 'LEAVE' %}on-leave
+                            {% elif student.account_status == 'SUSPENDED' %}inactive
+                            {% else %}inactive{% endif %}">
+                            {{ student.get_account_status_display|default:student.account_status|default:'Active' }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="action-link view-link" onclick="viewStudent(event, {{ student.id }}, '{{ student.get_full_name|escapejs|default:'Unknown' }}', '{{ student.student_profile.student_number|default:'N/A'|escapejs }}')">View</a>
+                        <a href="#" class="action-link" onclick="editStudent(event, {{ student.id }}, '{{ student.get_full_name|escapejs|default:'Unknown' }}', '{{ student.student_profile.student_number|default:'N/A'|escapejs }}')">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:40px; color:#999;">
+                        <i class="ti ti-user-off" style="font-size:48px; display:block; margin-bottom:12px; color:#ddd;"></i>
+                        <p style="font-size:16px; font-weight:500; color:#555;">No students found</p>
+                        <p style="font-size:13px;">Try adjusting your search or filters</p>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- No Results -->
+<div class="no-results" id="noResults" style="display:none;">
+    <i class="ti ti-search"></i>
+    <p>No students found matching your search criteria.</p>
+</div>
+
+<!-- Pagination -->
+<div class="records-pagination">
+    <div class="page-info">
+        Showing <strong id="startCount">{% if students %}{{ students.start_index|default:0 }}{% else %}0{% endif %}</strong> –
+        <strong id="endCount">{% if students %}{{ students.end_index|default:0 }}{% else %}0{% endif %}</strong> of
+        <strong id="totalCount">{{ total_students|default:0 }}</strong> students
+    </div>
+    <div class="page-btns">
+        {% if students.has_previous %}
+            <button onclick="goToPage({{ students.previous_page_number }})">‹</button>
+        {% else %}
+            <button disabled>‹</button>
+        {% endif %}
+
+        {% for i in students.paginator.page_range %}
+            {% if i == students.number %}
+                <a href="#" class="active" onclick="goToPage({{ i }})">{{ i }}</a>
+            {% elif i > students.number|add:'-3' and i < students.number|add:'3' %}
+                <a href="#" onclick="goToPage({{ i }})">{{ i }}</a>
+            {% elif i == 1 or i == students.paginator.num_pages %}
+                {% if i == 1 and students.number > 3 %}<span>…</span>{% endif %}
+                <a href="#" onclick="goToPage({{ i }})">{{ i }}</a>
+                {% if i == students.paginator.num_pages and students.number < students.paginator.num_pages|add:'-2' %}<span>…</span>{% endif %}
+            {% endif %}
+        {% empty %}
+            <a href="#" class="active">1</a>
+        {% endfor %}
+
+        {% if students.has_next %}
+            <button onclick="goToPage({{ students.next_page_number }})">›</button>
+        {% else %}
+            <button disabled>›</button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Toast -->
+<!-- <div class="notification-toast" id="notificationToast">
+    <span id="notificationMessage">Action completed</span>
+    <button onclick="closeNotification()">&times;</button>
+</div> -->
+
+<!-- Modal -->
+<div class="modal-overlay" id="studentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Student Details</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <div style="text-align:center; padding:30px; color:#999;">
+                <i class="ti ti-loader" style="font-size:32px; animation:spin 1s linear infinite;"></i>
+                <p style="margin-top:12px;">Loading student details...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js@9.0.1/public/assets/scripts/choices.min.js"></script>
+<script>
+// ============================================================
+// STUDENT RECORDS - COMPLETE JAVASCRIPT
+// ============================================================
+
+// ---------- CSRF ----------
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
+function initChoicesJS() {
+    const selects = document.querySelectorAll('.choices-select');
+    
+    if (typeof Choices === 'undefined') {
+        console.log('⚠️ Choices.js not loaded - retrying...');
+        setTimeout(initChoicesJS, 500);
+        return;
+    }
+    
+    selects.forEach(function(select) {
+        try {
+            // Don't reinitialize if already done
+            if (select._choicesInstance) {
+                return;
+            }
+            
+            const choices = new Choices(select, {
+                searchEnabled: true,
+                searchPlaceholderValue: 'Search...',
+                shouldSort: false,
+                position: 'auto',
+                placeholder: true,
+                placeholderValue: 'Select...',
+                itemSelectText: '',
+                classNames: {
+                    containerOuter: 'choices choices-select',
+                    containerInner: 'choices__inner',
+                    input: 'choices__input',
+                    inputCloned: 'choices__input--cloned',
+                    list: 'choices__list',
+                    listItems: 'choices__list--multiple',
+                    listSingle: 'choices__list--single',
+                    listDropdown: 'choices__list--dropdown',
+                    item: 'choices__item',
+                    itemSelectable: 'choices__item--selectable',
+                    itemDisabled: 'choices__item--disabled',
+                    itemChoice: 'choices__item--choice',
+                    placeholder: 'choices__placeholder',
+                    group: 'choices__group',
+                    groupHeading: 'choices__heading',
+                    button: 'choices__button',
+                    activeState: 'is-active',
+                    focusState: 'is-focused',
+                    openState: 'is-open',
+                    disabledState: 'is-disabled',
+                    highlightedState: 'is-highlighted',
+                    hiddenState: 'is-hidden',
+                    flippedState: 'is-flipped',
+                    loadingState: 'is-loading',
+                    noResults: 'has-no-results',
+                    noChoices: 'has-no-choices'
+                }
+            });
+            
+            select._choicesInstance = choices;
+            
+            select.addEventListener('change', function() {
+                filterRecords();
+            });
+            
+        } catch (e) {
+            console.log(' Error initializing #' + select.id + ':', e);
+        }
+    });
+}
+
+// ---------- STATS ANIMATION ----------
+function animateStats() {
+    const stats = document.querySelectorAll('.records-stat-number');
+    stats.forEach(stat => {
+        const target = parseInt(stat.textContent) || 0;
+        if (target > 0) {
+            let current = 0;
+            const duration = 1500;
+            const increment = target / (duration / 16);
+
+            function update() {
+                current += increment;
+                if (current < target) {
+                    stat.textContent = Math.floor(current);
+                    requestAnimationFrame(update);
+                } else {
+                    stat.textContent = target;
+                }
+            }
+            update();
+        }
+    });
+}
+
+// ---------- FILTER RECORDS ----------
+function filterRecords() {
+    const searchInput = document.getElementById('recordsSearch');
+    const statusFilter = document.getElementById('statusFilter');
+    const programFilter = document.getElementById('programFilter');
+
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const statusTerm = statusFilter ? statusFilter.value.toLowerCase() : '';
+    const programTerm = programFilter ? programFilter.value : '';
+
+    const rows = document.querySelectorAll('#recordsBody tr');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        if (row.querySelector('td[colspan]')) {
+            row.style.display = 'none';
+            return;
+        }
+
+        const text = row.textContent.toLowerCase();
+        const status = row.getAttribute('data-status') || '';
+        const program = row.getAttribute('data-program') || '';
+
+        const matchesSearch = !searchTerm || text.includes(searchTerm);
+        const matchesStatus = !statusTerm || status === statusTerm;
+        const matchesProgram = !programTerm || program === programTerm;
+
+        if (matchesSearch && matchesStatus && matchesProgram) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    const noResults = document.getElementById('noResults');
+    if (noResults) {
+        noResults.style.display = visibleCount === 0 ? 'flex' : 'none';
+    }
+
+    updateCounts();
+}
+
+// ---------- CLEAR FILTERS ----------
+function clearFilters() {
+    // Clear search
+    const searchInput = document.getElementById('recordsSearch');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Clear Choices.js selects
+    const statusSelect = document.getElementById('statusFilter');
+    const programSelect = document.getElementById('programFilter');
+    
+    if (statusSelect && statusSelect._choicesInstance) {
+        statusSelect._choicesInstance.setChoiceByValue('');
+    } else if (statusSelect) {
+        statusSelect.value = '';
+    }
+    
+    if (programSelect && programSelect._choicesInstance) {
+        programSelect._choicesInstance.setChoiceByValue('');
+    } else if (programSelect) {
+        programSelect.value = '';
+    }
+    
+    filterRecords();
+    showNotification('Filters cleared');
+}
+
+// ---------- UPDATE COUNTS ----------
+function updateCounts() {
+    const rows = document.querySelectorAll('#recordsBody tr:not([style*="display: none"])');
+    const visible = rows.length;
+
+    const startEl = document.getElementById('startCount');
+    const endEl = document.getElementById('endCount');
+    
+    if (startEl) startEl.textContent = visible > 0 ? 1 : 0;
+    if (endEl) endEl.textContent = visible;
+}
+
+// ---------- SORT TABLE ----------
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+    const tbody = document.getElementById('recordsBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    if (rows.length === 0) return;
+
+    if (sortDirection[columnIndex] === undefined) {
+        sortDirection[columnIndex] = 'asc';
+    } else if (sortDirection[columnIndex] === 'asc') {
+        sortDirection[columnIndex] = 'desc';
+    } else {
+        sortDirection[columnIndex] = 'asc';
+    }
+
+    const direction = sortDirection[columnIndex];
+
+    rows.sort((a, b) => {
+        const aCols = a.querySelectorAll('td');
+        const bCols = b.querySelectorAll('td');
+
+        let aVal = aCols[columnIndex] ? aCols[columnIndex].textContent.trim() : '';
+        let bVal = bCols[columnIndex] ? bCols[columnIndex].textContent.trim() : '';
+
+        const aNum = parseFloat(aVal);
+        const bNum = parseFloat(bVal);
+
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return direction === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+
+        return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+
+    // Update headers
+    const headers = document.querySelectorAll('#recordsTable thead th');
+    headers.forEach((th, index) => {
+        const icon = th.querySelector('.ti-chevron-up-down');
+        if (icon) {
+            if (index === columnIndex) {
+                icon.className = direction === 'asc' ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+            } else {
+                icon.className = 'ti ti-chevron-up-down';
+            }
+        }
+    });
+
+    showNotification('Sorted by ' + (headers[columnIndex] ? headers[columnIndex].textContent.trim() : 'column'));
+}
+
+// ---------- PAGINATION ----------
+function goToPage(page) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+}
+
+// ---------- VIEW STUDENT ----------
+// ---------- VIEW STUDENT ----------
+function viewStudent(event, studentId, name, studentIdNumber) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const modal = document.getElementById('studentModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    if (!modal) {
+        console.error('Modal element not found');
+        return;
+    }
+
+    modalTitle.textContent = 'Student Profile - ' + (name || 'Loading...');
+    modalBody.innerHTML = `
+        <div style="text-align:center; padding:30px; color:#999;">
+            <i class="ti ti-loader" style="font-size:32px; animation:spin 1s linear infinite;"></i>
+            <p style="margin-top:12px;">Loading student details...</p>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    fetch('/staff/api/student-detail/' + studentId + '/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const student = data.data;
+                const initials = (student.first_name ? student.first_name[0] : '') + (student.last_name ? student.last_name[0] : '') || '?';
+
+                let html = `
+                    <!-- Profile Header -->
+                    <div class="modal-profile-header">
+                        <div class="modal-avatar">
+                            ${student.profile_photo ? '<img src="' + student.profile_photo + '" alt="Profile">' : initials}
+                        </div>
+                        <div class="modal-profile-info">
+                            <div class="modal-profile-name">${student.name}</div>
+                            <div class="modal-profile-role">${student.student_id}</div>
+                            <div class="modal-profile-status">
+                                <span class="status-badge ${student.status.toLowerCase()}">${student.status_display}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details Grid -->
+                    <div class="modal-details-grid">
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-label">📧 Email</span>
+                            <span class="modal-detail-value">${student.email}</span>
+                        </div>
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-label">📚 Program</span>
+                            <span class="modal-detail-value">${student.program}</span>
+                        </div>
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-label">📊 GPA</span>
+                            <span class="modal-detail-value">${student.gpa}</span>
+                        </div>
+                        <div class="modal-detail-item">
+                            <span class="modal-detail-label">👨‍🏫 Advisor</span>
+                            <span class="modal-detail-value">${student.advisor}</span>
+                        </div>
+                    </div>
+                `;
+
+                // Enrollments
+                if (student.enrollments && student.enrollments.length > 0) {
+                    html += `
+                        <div class="modal-section">
+                            <div class="modal-section-title">📚 Enrollments</div>
+                            <div class="modal-section-list">
+                    `;
+                    student.enrollments.forEach(e => {
+                        html += `
+                            <div class="modal-list-item">
+                                <span class="modal-list-label">${e.term}</span>
+                                <span class="modal-list-value">${e.academic_standing} | ${e.credit_load} credits</span>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Research
+                if (student.research && student.research.length > 0) {
+                    html += `
+                        <div class="modal-section">
+                            <div class="modal-section-title">🔬 Research</div>
+                            <div class="modal-section-list">
+                    `;
+                    student.research.forEach(r => {
+                        html += `
+                            <div class="modal-list-item">
+                                <span class="modal-list-label">${r.title}</span>
+                                <span class="modal-list-value">${r.area} | ${r.mentor}</span>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Financial Aid
+                if (student.financial_aid && student.financial_aid.length > 0) {
+                    html += `
+                        <div class="modal-section">
+                            <div class="modal-section-title">💰 Financial Aid</div>
+                            <div class="modal-section-list">
+                    `;
+                    student.financial_aid.forEach(f => {
+                        html += `
+                            <div class="modal-list-item">
+                                <span class="modal-list-label">${f.type}</span>
+                                <span class="modal-list-value">$${f.amount} | ${f.year}</span>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Organizations
+                if (student.organizations && student.organizations.length > 0) {
+                    html += `
+                        <div class="modal-section">
+                            <div class="modal-section-title">🏛️ Organizations</div>
+                            <div class="modal-section-list">
+                    `;
+                    student.organizations.forEach(o => {
+                        html += `
+                            <div class="modal-list-item">
+                                <span class="modal-list-label">${o.name}</span>
+                                <span class="modal-list-value">${o.role}</span>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Actions
+                html += `
+                    <div class="modal-actions">
+                        <button class="modal-btn primary" onclick="closeModal()">
+                            <i class="ti ti-x"></i> Close
+                        </button>
+                        <button class="modal-btn edit" onclick="editStudentFromModal(${student.id}, '${student.name}', '${student.student_id}')">
+                            <i class="ti ti-edit"></i> Edit Student
+                        </button>
+                    </div>
+                `;
+
+                modalBody.innerHTML = html;
+            } else {
+                modalBody.innerHTML = `
+                    <div style="text-align:center; padding:30px; color:#dc2626;">
+                        <i class="ti ti-alert-circle" style="font-size:32px;"></i>
+                        <p style="margin-top:12px;">Error loading student details</p>
+                        <button class="modal-btn primary" onclick="closeModal()" style="margin-top:16px; padding:10px 24px; background:#c5050c; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:500;">Close</button>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalBody.innerHTML = `
+                <div style="text-align:center; padding:30px; color:#dc2626;">
+                    <i class="ti ti-alert-circle" style="font-size:32px;"></i>
+                    <p style="margin-top:12px;">Error loading student details</p>
+                    <button class="modal-btn primary" onclick="closeModal()" style="margin-top:16px; padding:10px 24px; background:#c5050c; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:500;">Close</button>
+                </div>
+            `;
+        });
+}
+
+// ---------- EDIT STUDENT ----------
+function editStudentFromModal(studentId, name, studentIdNumber) {
+    closeModal();
+    setTimeout(function() {
+        window.location.href = '/staff/student-edit/' + studentId + '/';
+    }, 300);
+}
+
+function editStudent(event, studentId, name, id) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    setTimeout(function() {
+        window.location.href = '/staff/student-edit/' + studentId + '/';
+    }, 300);
+}
+
+// ---------- CLOSE MODAL ----------
+function closeModal() {
+    const modal = document.getElementById('studentModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// ---------- NOTIFICATIONS ----------
+function showNotification(message) {
+    const toast = document.getElementById('notificationToast');
+    const msg = document.getElementById('notificationMessage');
+
+    if (!toast) {
+        console.log('Notification:', message);
+        return;
+    }
+
+    msg.textContent = message;
+    toast.classList.add('show');
+
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(function() {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function closeNotification() {
+    const toast = document.getElementById('notificationToast');
+    if (toast) {
+        toast.classList.remove('show');
+        clearTimeout(toast._timeout);
+    }
+}
+
+function exportData() {
+    window.location.href = '/staff/api/export-students/';
+    showNotification('Exporting student data...');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    animateStats();
+    
+
+    setTimeout(function() {
+        initChoicesJS();
+    }, 100);
+
+    if (typeof AOS !== 'undefined') {
+        AOS.init({ once: true, duration: 400 });
+    }
+
+    document.querySelectorAll('#recordsBody tr').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (!e.target.closest('a')) {
+                this.style.transition = 'background 0.2s';
+                this.style.background = 'rgba(197, 5, 12, 0.05)';
+                setTimeout(function() {
+                    this.style.background = '';
+                }.bind(this), 300);
+            }
+        });
+    });
+
+    updateCounts();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+        closeNotification();
+    }
+});
+
+// Click outside modal to close
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('studentModal');
+    if (modal && event.target === modal) {
+        closeModal();
+    }
+});
+
+// Make functions globally accessible
+window.viewStudent = viewStudent;
+window.closeModal = closeModal;
+window.editStudent = editStudent;
+window.editStudentFromModal = editStudentFromModal;
+window.showNotification = showNotification;
+window.closeNotification = closeNotification;
+window.filterRecords = filterRecords;
+window.clearFilters = clearFilters;
+window.sortTable = sortTable;
+window.goToPage = goToPage;
+window.exportData = exportData;
+window.initChoicesJS = initChoicesJS;
+
+
+</script>
+{% endblock %}

@@ -1,0 +1,500 @@
+<!-- **************************************** Rixie code **************************************************** -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Scheduling Support — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/scheduling.css' %}" />
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_scheduling %}active{% endblock %}
+
+{% block content %}
+
+<div class="sc-page-header">
+  <div>
+    <h1>Scheduling Support</h1>
+    <p>Manage class schedules, room bookings, and semester timetables across all departments.</p>
+  </div>
+  <div class="sc-header-actions">
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-download"></i><span>Export</span></button>
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-printer"></i><span>Print</span></button>
+    <button class="fd-btn fd-btn-primary"><i class="ti ti-plus"></i><span>New Schedule</span></button>
+  </div>
+</div>
+
+<!-- KPI Cards - Dynamic -->
+<div class="sc-kpi-strip">
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon red"><i class="ti ti-calendar-event"></i></div>
+      <span class="fd-kpi-label">Total Schedules</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ total_schedules|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">↑ {{ total_schedules_this_semester|default:'0' }}</span> this semester
+    </div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon blue"><i class="ti ti-check"></i></div>
+      <span class="fd-kpi-label">Confirmed</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ confirmed|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">{{ confirmed_percentage|default:'0' }}%</span> of total</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon orange"><i class="ti ti-clock"></i></div>
+      <span class="fd-kpi-label">Pending</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ pending|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="down">↑ {{ pending_increase|default:'0' }}</span> need review</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon green"><i class="ti ti-building"></i></div>
+      <span class="fd-kpi-label">Rooms Booked</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ rooms_booked|default:'0' }}">0</div>
+    <div class="fd-kpi-sub"><span class="neutral">of {{ total_rooms|default:'0' }}</span> total rooms</div>
+  </div>
+<div class="fd-kpi-card">
+    <div class="fd-kpi-icon purple">
+        <i class="fas fa-laptop-house"></i>
+    </div>
+
+    <div class="fd-kpi-content">
+        <div class="fd-kpi-value counter"
+             data-target="{{ online_classes|default:'0' }}">
+            0
+        </div>
+
+        <div class="fd-kpi-label">
+            Online Classes
+        </div>
+
+        <div class="fd-kpi-sub">
+            <span class="neutral">
+                Currently scheduled online
+            </span>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Quick Grid - Dynamic -->
+<!-- Quick Grid -->
+<div class="sc-quick-grid">
+
+  <!-- Add Time Slot -->
+  <div class="fd-quick-card" 
+       onclick="window.location.href='{% url 'new_schedule' uuid=user.uuid %}'">
+
+    <div class="fd-quick-icon blue">
+      <i class="ti ti-calendar-plus"></i>
+    </div>
+
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">
+        Add Time Slot
+      </div>
+
+      <div class="fd-quick-count">
+        Assign new class period
+      </div>
+    </div>
+
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+
+  </div>
+
+
+
+  <!-- View Timetable -->
+  <div class="fd-quick-card"
+       onclick="window.location.href='{% url 'view_timetable' uuid=user.uuid %}'">
+
+    <div class="fd-quick-icon purple">
+      <i class="ti ti-calendar-event"></i>
+    </div>
+
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">
+        View Timetable
+      </div>
+
+      <div class="fd-quick-count">
+        Check scheduled classes
+      </div>
+    </div>
+
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+
+  </div>
+
+
+
+
+  <!-- Faculty Availability -->
+  <div class="fd-quick-card"
+       onclick="window.location.href='{% url 'faculty_availability' uuid=user.uuid %}'">
+
+    <div class="fd-quick-icon green">
+      <i class="ti ti-user-check"></i>
+    </div>
+
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">
+        Faculty Availability
+      </div>
+
+      <div class="fd-quick-count">
+        Check instructor schedules
+      </div>
+    </div>
+
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+
+  </div>
+
+
+
+
+  <!-- Room Management -->
+  <div class="fd-quick-card"
+       onclick="window.location.href='{% url 'room_management' uuid=user.uuid %}'">
+
+    <div class="fd-quick-icon orange">
+      <i class="ti ti-building"></i>
+    </div>
+
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">
+        Room Management
+      </div>
+
+      <div class="fd-quick-count">
+        Manage classroom allocation
+      </div>
+    </div>
+
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+
+  </div>
+
+
+</div>
+
+<!-- Toolbar -->
+<div class="fd-toolbar">
+  <div class="fd-tabs">
+    <a href="?status=all" class="fd-tab {% if status_filter == 'all' %}active{% endif %}">
+      All <span class="fd-tab-badge">{{ total_schedules|default:'0' }}</span>
+    </a>
+    <a href="?status=confirmed" class="fd-tab {% if status_filter == 'confirmed' %}active{% endif %}">
+      Confirmed <span class="fd-tab-badge green">{{ confirmed|default:'0' }}</span>
+    </a>
+    <a href="?status=pending" class="fd-tab {% if status_filter == 'pending' %}active{% endif %}">
+      Pending <span class="fd-tab-badge orange">{{ pending|default:'0' }}</span>
+    </a>
+    
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div class="fd-search">
+      <i class="ti ti-search"></i>
+      <input type="text" id="scSearchInput" placeholder="Search course, room, instructor…" value="{{ search_query }}"
+        onkeydown="if(event.key==='Enter') scSubmitFilters()" />
+    </div>
+    <select class="sc-filter-select" id="scDaySelect" onchange="scSubmitFilters()">
+      <option value="">All Days</option>
+      <option value="MON" {% if day_filter == 'MON' %}selected{% endif %}>Monday</option>
+      <option value="TUE" {% if day_filter == 'TUE' %}selected{% endif %}>Tuesday</option>
+      <option value="WED" {% if day_filter == 'WED' %}selected{% endif %}>Wednesday</option>
+      <option value="THU" {% if day_filter == 'THU' %}selected{% endif %}>Thursday</option>
+      <option value="FRI" {% if day_filter == 'FRI' %}selected{% endif %}>Friday</option>
+    </select>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="fd-table-wrap">
+  <table class="fd-table" id="scTable">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Code</th>
+        <th>Sections</th>
+        <th>Capacity</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="scTableBody">
+      {% for schedule in schedules %}
+      <tr class="sc-row" data-course-id="{{ schedule.course_id }}" data-status="{{ schedule.status_lower }}">
+        <td>
+          <div class="fd-form-title">{{ schedule.course_name }}</div>
+          <div class="fd-form-id">{{ schedule.department }}</div>
+        </td>
+        <td><span class="fd-version">{{ schedule.course_code }}</span></td>
+        <td><span class="fd-dept">{{ schedule.total_sections }}</span></td>
+        <td><span class="fd-dept">{{ schedule.enrolled }}/{{ schedule.capacity }}</span></td>
+        <td>
+          <span
+            class="fd-status {% if schedule.status == 'CONFIRMED' %}active{% elif schedule.status == 'PENDING' %}pending{% elif schedule.status == 'CONFLICT' %}expiring{% else %}archived{% endif %}">
+            {{ schedule.status_display }}
+          </span>
+        </td>
+        <td>
+          <div class="fd-actions">
+            <button class="fd-action-btn view" title="View" data-course-id="{{ schedule.course_id }}">
+              <i class="ti ti-eye"></i>
+            </button>
+            <a href="{% url 'staff_schedule_edit' uuid=user.uuid course_id=schedule.course_id %}"
+              class="fd-action-btn edit" style="text-decoration:none;">
+              <i class="ti ti-pencil"></i>
+            </a>
+            
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;padding:24px;color:#888;">No schedules found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+<div class="fd-pagination">
+  <span class="fd-page-info">
+    Showing {{ schedules.start_index }}–{{ schedules.end_index }} of {{ paginator.count }} schedules
+  </span>
+  <div class="fd-page-controls">
+    {% if schedules.has_previous %}
+    <a class="fd-page-btn" href="?page={{ schedules.previous_page_number }}"><i class="ti ti-chevron-left"></i></a>
+    {% else %}
+    <button class="fd-page-btn" disabled><i class="ti ti-chevron-left"></i></button>
+    {% endif %}
+
+    {% for num in paginator.page_range %}
+    {% if num == schedules.number %}
+    <button class="fd-page-btn active">{{ num }}</button>
+    {% elif num == 1 or num == paginator.num_pages or num >= schedules.number|add:'-1' and num <=
+      schedules.number|add:'1' %} <a class="fd-page-btn" href="?page={{ num }}">{{ num }}</a>
+      {% endif %}
+      {% endfor %}
+
+      {% if schedules.has_next %}
+      <a class="fd-page-btn" href="?page={{ schedules.next_page_number }}"><i class="ti ti-chevron-right"></i></a>
+      {% else %}
+      <button class="fd-page-btn" disabled><i class="ti ti-chevron-right"></i></button>
+      {% endif %}
+  </div>
+</div>
+
+<!-- Bottom Grid - Dynamic -->
+<div class="fd-bottom-grid">
+
+  <!-- Department Overview -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title">
+        <i class="ti ti-building"></i>
+        Department Schedule Overview
+      </div>
+    </div>
+
+    <div class="fd-type-list">
+      {% for dept in department_overview %}
+      <div class="fd-type-row">
+        <span class="fd-type-label">
+          {{ dept.name }}
+        </span>
+        <div class="fd-type-track">
+          <div class="fd-type-fill academic"
+          style="width:{{ dept.total_classes }}%">
+        </div>
+      </div>
+      <span class="fd-type-pct">
+        {{ dept.total_classes }}
+      </span>
+    </div>
+    {% empty %}
+    <div class="fd-type-row">
+      No department data available
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Class Type Distribution -->
+<div class="fd-widget">
+  <div class="fd-widget-header">
+    <div class="fd-widget-title">
+      <i class="ti ti-layout-grid"></i>
+      Class Type Distribution
+    </div>
+  </div>
+
+  <div class="fd-type-list">
+    {% for item in class_type_data %}
+    <div class="fd-type-row">
+      <span class="fd-type-label">
+        {{ item.section_type }}
+      </span>
+      <div class="fd-type-track">
+        <div class="fd-type-fill blue"
+        style="width:{{ item.total }}%">
+      </div>
+    </div>
+    <span class="fd-type-pct">
+      {{ item.total }}
+    </span>
+  </div>
+  {% empty %}
+  <div class="fd-type-row">
+    No class type data
+  </div>
+  {% endfor %}
+</div>
+</div>
+
+<!-- Semester Status -->
+<div class="fd-widget">
+  <div class="fd-widget-header">
+    <div class="fd-widget-title">
+      <i class="ti ti-calendar"></i>
+      Semester Schedule Status
+    </div>
+  </div>
+
+  <div class="fd-type-list">
+    {% for sem in semester_status %}
+    <div class="fd-type-row">
+      <span class="fd-type-label">
+        {{ sem.semester_id__semester_code }}
+      </span>
+      <div class="fd-type-track">
+        <div class="fd-type-fill green"
+        style="width:{{ sem.total }}%">
+      </div>
+    </div>
+    <span class="fd-type-pct">
+      {{ sem.total }}
+    </span>
+  </div>
+  {% empty %}
+  <div class="fd-type-row">
+    No semester data
+  </div>
+  {% endfor %}
+</div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+  function scFilterTab(el, filter) {
+    document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#scTableBody .sc-row').forEach(row => {
+      const s = row.dataset.status;
+      let show = true;
+      if (filter === 'confirmed') show = s === 'confirmed';
+      else if (filter === 'pending') show = s === 'pending';
+      else if (filter === 'conflict') show = s === 'conflict';
+      else if (filter === 'cancelled') show = s === 'cancelled';
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  function scLiveSearch(val) {
+    const q = val.toLowerCase();
+    document.querySelectorAll('#scTableBody .sc-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+  }
+
+  function scDayFilter(val) {
+    const q = val.toLowerCase().slice(0, 2);
+    document.querySelectorAll('#scTableBody .sc-row').forEach(row => {
+      if (!val) { row.style.display = ''; return; }
+      const badge = row.querySelector('.sc-day-badge');
+      row.style.display = (badge && badge.textContent.toLowerCase().includes(q)) ? '' : 'none';
+    });
+  }
+
+  function scSubmitFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const search = document.getElementById('scSearchInput').value;
+    const day = document.getElementById('scDaySelect').value;
+    if (search) params.set('search', search); else params.delete('search');
+    if (day) params.set('day', day); else params.delete('day');
+    params.delete('page');
+    window.location.search = params.toString();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // Counter animation
+    const counters = document.querySelectorAll(".counter");
+    counters.forEach(counter => {
+      const target = parseInt(counter.dataset.target, 10);
+      if (isNaN(target)) return;
+      let current = 0;
+      const duration = 1500;
+      const increment = target / (duration / 16);
+      const updateCounter = () => {
+        current += increment;
+        if (current < target) {
+          counter.textContent = Math.floor(current).toLocaleString();
+          requestAnimationFrame(updateCounter);
+        } else {
+          counter.textContent = target.toLocaleString();
+        }
+      };
+      updateCounter();
+    });
+
+    // Choices.js for day filter
+    const dayFilter = document.getElementById("scDaySelect");
+    if (dayFilter) {
+      new Choices(dayFilter, {
+        searchEnabled: false,
+        itemSelectText: '',
+        shouldSort: false,
+        allowHTML: false,
+        position: 'bottom'
+      });
+    }
+  });
+
+  // New Schedule button
+  document.querySelector('.fd-btn-primary').addEventListener('click', () => {
+    window.location.href = "{% url 'new_schedule' uuid=user.uuid %}";
+  });
+
+  // View button
+  document.querySelectorAll('.fd-action-btn.view').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const courseId = e.currentTarget.closest('tr').dataset.courseId;
+      if (!courseId) { return; }
+      window.location.href = "{% url 'staff_scheduling_view' uuid=user.uuid %}" + "?course_id=" + courseId;
+    });
+  });
+</script>
+{% endblock %}
+
+<!-- **************************************** Rixie code **************************************************** -->

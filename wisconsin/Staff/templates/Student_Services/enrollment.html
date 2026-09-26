@@ -1,0 +1,570 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Enrollment Support — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'Student_Services/enrollment.css' %}" />
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_enrollment %}active{% endblock %}
+
+{% block content %}
+
+<div class="enrollment-page-header">
+  <div>
+    <h1>Enrollment Support</h1>
+    <p>Manage student enrollments, course registrations, and academic progress tracking.</p>
+  </div>
+  <div class="dash-date-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    {{ today|date:"d M Y, l" }}
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="enrollment-stats">
+  <div class="enrollment-stat-card" data-aos="fade-up" data-aos-delay="0">
+    <div class="enrollment-stat-number" data-count="2456">0</div>
+    <div class="enrollment-stat-label">Total Enrollments</div>
+    <div class="enrollment-stat-change up">↑ 8% from last semester</div>
+  </div>
+  <div class="enrollment-stat-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="enrollment-stat-number" data-count="1892">0</div>
+    <div class="enrollment-stat-label">Active Students</div>
+    <div class="enrollment-stat-change up">↑ 12% this year</div>
+  </div>
+  <div class="enrollment-stat-card" data-aos="fade-up" data-aos-delay="200">
+    <div class="enrollment-stat-number" data-count="342">0</div>
+    <div class="enrollment-stat-label">Waitlisted</div>
+    <div class="enrollment-stat-change down">↓ 5% from last year</div>
+  </div>
+  <div class="enrollment-stat-card" data-aos="fade-up" data-aos-delay="300">
+    <div class="enrollment-stat-number" data-count="14.2">0</div>
+    <div class="enrollment-stat-label">Avg. Credit Load</div>
+    <div class="enrollment-stat-change up">↑ 0.8 from last year</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="enrollment-actions">
+  <a href="#" class="action-btn primary" onclick="showNotification('New Enrollment form opened')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+    New Enrollment
+  </a>
+  <a href="#" class="action-btn" onclick="showNotification('Bulk Upload wizard started')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+    Bulk Upload
+  </a>
+  <a href="#" class="action-btn" onclick="showNotification('Schedule view loaded')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    View Schedule
+  </a>
+  <a href="#" class="action-btn" onclick="showNotification('Generating reports...')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+    Reports
+  </a>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="enrollment-search-filter">
+  <div class="search-wrapper">
+    <i class="ti ti-search"></i>
+    <input type="text" id="enrollmentSearch" placeholder="Search students, courses, or IDs..." onkeyup="filterTable()">
+  </div>
+  <div class="filter-wrapper">
+    <select id="statusFilter" onchange="filterTable()" class="filter-select">
+      <option value="all">All Status</option>
+      <option value="enrolled">Enrolled</option>
+      <option value="waitlist">Waitlisted</option>
+      <option value="pending">Pending</option>
+      <option value="dropped">Dropped</option>
+      <option value="completed">Completed</option>
+    </select>
+    <button class="btn-clear-filter" onclick="clearFilters()">
+      <i class="ti ti-rotate"></i> Reset
+    </button>
+  </div>
+</div>
+
+<!-- Enrollment Table -->
+<div class="enrollment-table-wrap">
+  <table class="enrollment-table" id="enrollmentTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Student <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(1)">Student ID <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(2)">Course <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(3)">Credits <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(4)">Status <i class="ti ti-chevron-up-down"></i></th>
+        <th>Progress</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <!-- Row 1 -->
+      <tr data-status="enrolled">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar">JD</div>
+            <div>
+              <div class="student-name">John Doe</div>
+              <div class="student-id">STU-2024-001</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2024-001</td>
+        <td>CS 540 - Database Systems</td>
+        <td><span class="credit-load">4 <span class="max">/ 18</span></span></td>
+        <td><span class="enrollment-status enrolled">Enrolled</span></td>
+        <td>
+          <div class="progress-bar-wrap">
+            <div class="progress-fill green" style="width:65%;"></div>
+          </div>
+        </td>
+        <td>
+          <a href="#" class="enrollment-action-link view-link" onclick="viewStudent(event, 'John Doe', 'STU-2024-001')">View</a>
+          <a href="#" class="enrollment-action-link" onclick="editStudent(event, 'John Doe', 'STU-2024-001')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 2 -->
+      <tr data-status="enrolled">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#2563eb;">AS</div>
+            <div>
+              <div class="student-name">Anna Staresinic</div>
+              <div class="student-id">STU-2025-042</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2025-042</td>
+        <td>MATH 340 - Calculus III</td>
+        <td><span class="credit-load">3 <span class="max">/ 15</span></span></td>
+        <td><span class="enrollment-status enrolled">Enrolled</span></td>
+        <td>
+          <div class="progress-bar-wrap">
+            <div class="progress-fill blue" style="width:42%;"></div>
+          </div>
+        </td>
+        <td>
+          <a href="#" class="enrollment-action-link view-link" onclick="viewStudent(event, 'Anna Staresinic', 'STU-2025-042')">View</a>
+          <a href="#" class="enrollment-action-link" onclick="editStudent(event, 'Anna Staresinic', 'STU-2025-042')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 3 -->
+      <tr data-status="waitlist">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#d97706;">MR</div>
+            <div>
+              <div class="student-name">Michael Rodriguez</div>
+              <div class="student-id">STU-2024-089</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2024-089</td>
+        <td>ME 310 - Thermodynamics</td>
+        <td><span class="credit-load">3 <span class="max">/ 12</span></span></td>
+        <td><span class="enrollment-status waitlist">Waitlisted</span></td>
+        <td>
+          <div class="progress-bar-wrap">
+            <div class="progress-fill yellow" style="width:20%;"></div>
+          </div>
+        </td>
+        <td>
+          <a href="#" class="enrollment-action-link view-link" onclick="viewStudent(event, 'Michael Rodriguez', 'STU-2024-089')">View</a>
+          <a href="#" class="enrollment-action-link" onclick="editStudent(event, 'Michael Rodriguez', 'STU-2024-089')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 4 -->
+      <tr data-status="enrolled">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#7c3aed;">SK</div>
+            <div>
+              <div class="student-name">Sarah Kim</div>
+              <div class="student-id">STU-2023-156</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2023-156</td>
+        <td>BIO 510 - Molecular Biology</td>
+        <td><span class="credit-load">4 <span class="max">/ 16</span></span></td>
+        <td><span class="enrollment-status enrolled">Enrolled</span></td>
+        <td>
+          <div class="progress-bar-wrap">
+            <div class="progress-fill green" style="width:78%;"></div>
+          </div>
+        </td>
+        <td>
+          <a href="#" class="enrollment-action-link view-link" onclick="viewStudent(event, 'Sarah Kim', 'STU-2023-156')">View</a>
+          <a href="#" class="enrollment-action-link" onclick="editStudent(event, 'Sarah Kim', 'STU-2023-156')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 5 -->
+      <tr data-status="dropped">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#16a34a;">EL</div>
+            <div>
+              <div class="student-name">Emily Larson</div>
+              <div class="student-id">STU-2025-203</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2025-203</td>
+        <td>PSY 320 - Cognitive Psychology</td>
+        <td><span class="credit-load">3 <span class="max">/ 15</span></span></td>
+        <td><span class="enrollment-status dropped">Dropped</span></td>
+        <td>
+          <div class="progress-bar-wrap">
+            <div class="progress-fill red" style="width:10%;"></div>
+          </div>
+        </td>
+        <td>
+          <a href="#" class="enrollment-action-link view-link" onclick="viewStudent(event, 'Emily Larson', 'STU-2025-203')">View</a>
+          <a href="#" class="enrollment-action-link" onclick="editStudent(event, 'Emily Larson', 'STU-2025-203')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 6 -->
+      <tr data-status="pending">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#dc2626;">JC</div>
+            <div>
+              <div class="student-name">James Chen</div>
+              <div class="student-id">STU-2026-018</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2026-018</td>
+        <td>BUS 310 - Marketing</td>
+        <td><span class="credit-load">3 <span class="max">/ 12</span></span></td>
+        <td><span class="enrollment-status pending">Pending</span></td>
+        <td>
+          <div class="progress-bar-wrap">
+            <div class="progress-fill yellow" style="width:5%;"></div>
+          </div>
+        </td>
+        <td>
+          <a href="#" class="enrollment-action-link view-link" onclick="viewStudent(event, 'James Chen', 'STU-2026-018')">View</a>
+          <a href="#" class="enrollment-action-link" onclick="editStudent(event, 'James Chen', 'STU-2026-018')">Edit</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- No Results Message -->
+<div class="no-results" id="noResults" style="display:none;">
+  <i class="ti ti-search"></i>
+  <p>No students found matching your search criteria.</p>
+</div>
+
+<!-- Notification Toast -->
+<div class="notification-toast" id="notificationToast">
+  <span id="notificationMessage">Action completed</span>
+  <button onclick="closeNotification()">&times;</button>
+</div>
+
+<!-- Modal for View/Edit -->
+<div class="modal-overlay" id="studentModal" onclick="closeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modalTitle">Student Details</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Dynamic content -->
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate stats numbers
+  animateStats();
+  
+  // Initialize AOS if available
+  if (typeof AOS !== 'undefined') {
+    AOS.init({ once: true, duration: 400 });
+  }
+  
+  // Add row click animation
+  document.querySelectorAll('#tableBody tr').forEach(row => {
+    row.addEventListener('click', function(e) {
+      if (!e.target.closest('a')) {
+        this.style.transition = 'background 0.2s';
+        this.style.background = 'rgba(197, 5, 12, 0.05)';
+        setTimeout(() => {
+          this.style.background = '';
+        }, 300);
+      }
+    });
+  });
+});
+
+
+function animateStats() {
+  const stats = document.querySelectorAll('.enrollment-stat-number');
+  stats.forEach(stat => {
+    const target = parseFloat(stat.getAttribute('data-count'));
+    const isDecimal = target % 1 !== 0;
+    const duration = 1500;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = eased * target;
+      
+      if (isDecimal) {
+        stat.textContent = current.toFixed(1);
+      } else {
+        stat.textContent = Math.floor(current);
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        if (isDecimal) {
+          stat.textContent = target.toFixed(1);
+        } else {
+          stat.textContent = target;
+        }
+      }
+    }
+    
+    requestAnimationFrame(update);
+  });
+}
+
+function filterTable() {
+  const searchInput = document.getElementById('enrollmentSearch');
+  const statusFilter = document.getElementById('statusFilter');
+  const searchTerm = searchInput.value.toLowerCase();
+  const statusTerm = statusFilter.value;
+  const rows = document.querySelectorAll('#tableBody tr');
+  let visibleCount = 0;
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const status = row.getAttribute('data-status');
+    
+    const matchesSearch = text.includes(searchTerm);
+    const matchesStatus = statusTerm === 'all' || status === statusTerm;
+    
+    if (matchesSearch && matchesStatus) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Show/hide no results message
+  const noResults = document.getElementById('noResults');
+  if (visibleCount === 0) {
+    noResults.style.display = 'flex';
+  } else {
+    noResults.style.display = 'none';
+  }
+}
+
+function clearFilters() {
+  document.getElementById('enrollmentSearch').value = '';
+  document.getElementById('statusFilter').value = 'all';
+  filterTable();
+  showNotification('Filters cleared');
+}
+
+
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+  const table = document.getElementById('enrollmentTable');
+  const tbody = document.getElementById('tableBody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  
+  // Toggle sort direction
+  if (sortDirection[columnIndex] === undefined) {
+    sortDirection[columnIndex] = 'asc';
+  } else if (sortDirection[columnIndex] === 'asc') {
+    sortDirection[columnIndex] = 'desc';
+  } else {
+    sortDirection[columnIndex] = 'asc';
+  }
+  
+  const direction = sortDirection[columnIndex];
+  
+  rows.sort((a, b) => {
+    const aCols = a.querySelectorAll('td');
+    const bCols = b.querySelectorAll('td');
+    
+    let aVal = aCols[columnIndex] ? aCols[columnIndex].textContent.trim() : '';
+    let bVal = bCols[columnIndex] ? bCols[columnIndex].textContent.trim() : '';
+    
+    // Handle numeric values
+    const aNum = parseFloat(aVal);
+    const bNum = parseFloat(bVal);
+    
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return direction === 'asc' ? aNum - bNum : bNum - aNum;
+    }
+    
+    return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+  
+  // Re-append sorted rows
+  rows.forEach(row => tbody.appendChild(row));
+  
+  // Update sort indicators
+  const headers = table.querySelectorAll('th');
+  headers.forEach((th, index) => {
+    const icon = th.querySelector('.ti-chevron-up-down');
+    if (icon) {
+      if (index === columnIndex) {
+        icon.className = direction === 'asc' ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+      } else {
+        icon.className = 'ti ti-chevron-up-down';
+      }
+    }
+  });
+  
+  showNotification(`Sorted by ${headers[columnIndex].textContent.trim()} (${direction})`);
+}
+
+function viewStudent(event, name, id) {
+  event.preventDefault();
+  const modal = document.getElementById('studentModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+  
+  modalTitle.textContent = `Student Profile - ${name}`;
+  modalBody.innerHTML = `
+    <div class="modal-student-info">
+      <div class="modal-avatar" style="background:#c5050c;">${name.split(' ').map(n => n[0]).join('')}</div>
+      <div class="modal-details">
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Student ID:</strong> ${id}</p>
+        <p><strong>Email:</strong> ${name.toLowerCase().replace(' ', '.')}@wisc.edu</p>
+        <p><strong>Major:</strong> Computer Science</p>
+        <p><strong>Academic Standing:</strong> <span style="color:#16a34a;">Good Standing</span></p>
+        <p><strong>GPA:</strong> 3.68</p>
+        <p><strong>Enrolled Courses:</strong> 4</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="closeModal()">Close</button>
+      <button class="modal-btn" onclick="closeModal(); showNotification('Editing ${name}')">Edit</button>
+    </div>
+  `;
+  
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+
+function editStudent(event, name, id) {
+  event.preventDefault();
+  showNotification(`Editing ${name} (${id})`);
+}
+
+
+function closeModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('studentModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeNotification();
+  }
+});
+
+function showNotification(message) {
+  const toast = document.getElementById('notificationToast');
+  const msg = document.getElementById('notificationMessage');
+  
+  msg.textContent = message;
+  toast.classList.add('show');
+  
+  // Auto-hide after 3 seconds
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+function closeNotification() {
+  const toast = document.getElementById('notificationToast');
+  toast.classList.remove('show');
+  clearTimeout(toast._timeout);
+}
+
+
+function handleResponsiveTable() {
+  const width = window.innerWidth;
+  const table = document.getElementById('enrollmentTable');
+  const rows = table.querySelectorAll('tr');
+  
+  if (width < 480) {
+    // Hide Student ID column on very small screens
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td, th');
+      if (cells.length > 1) {
+        cells[1].style.display = 'none';
+      }
+    });
+  } else {
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td, th');
+      if (cells.length > 1) {
+        cells[1].style.display = '';
+      }
+    });
+  }
+}
+
+// Run on load and resize
+window.addEventListener('load', handleResponsiveTable);
+window.addEventListener('resize', handleResponsiveTable);
+
+console.log('Enrollment Support loaded successfully!');
+</script>
+{% endblock %}

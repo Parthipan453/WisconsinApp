@@ -1,0 +1,1248 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}Dissertation Proposal Details{% endblock %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_student_dissertation %}active{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/student_dissertation_proposal_detail.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="proposal-detail-page">
+        <div class="proposal-detail-breadcrumb">
+            <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}">
+                <i class="ti ti-home"></i>
+                Dashboard
+            </a>
+            <i class="ti ti-chevron-right"></i>
+            <span>Proposal Details</span>
+        </div>
+        <div class="proposal-detail-header">
+            <div class="proposal-detail-header-main">
+                <div class="proposal-detail-header-icon">
+                    <i class="ti ti-file-description"></i>
+                </div>
+                <div class="proposal-detail-header-text">
+                    <span class="proposal-detail-eyebrow">PhD Dissertation</span>
+                    <h1>Dissertation Proposal</h1>
+                    <p>Review your proposal, advisor feedback, committee progress and final decision.</p>
+                </div>
+            </div>
+            <div class="proposal-detail-header-actions">
+                {% if proposal.status == "REJECTED" %}
+                    {% if latest_resubmission_request and latest_resubmission_request.status == "PENDING" %}
+                        <button type="button"
+                                class="proposal-detail-btn proposal-detail-btn-resubmission proposal-detail-btn-view-request"
+                                id="openResubmissionViewModal">
+                            <i class="ti ti-eye"></i>
+                            View Re-submission Request
+                        </button>
+                    {% else %}
+                        <button type="button"
+                                class="proposal-detail-btn proposal-detail-btn-resubmission"
+                                id="openResubmissionModal">
+                            <i class="ti ti-refresh"></i>
+                            Request Re-submission
+                        </button>
+                    {% endif %}
+                {% endif %}
+                {% if can_edit %}
+                    <a href="{% url 'Student:student_dissertation_proposal_edit' uuid=request.user.uuid %}"
+                       class="proposal-detail-btn proposal-detail-btn-secondary">
+                        <i class="ti ti-edit"></i>
+                        Edit Proposal
+                    </a>
+                {% endif %}
+                {% if can_submit %}
+                    <form method="post"
+                          action="{% url 'Student:student_dissertation_proposal_submit' uuid=request.user.uuid %}"
+                          class="proposal-submit-form">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="proposal-detail-btn proposal-detail-btn-primary"
+                                id="submitProposalButton">
+                            <i class="ti ti-send"></i>
+                            Submit Proposal
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="proposal-status-banner proposal-status-{{ proposal.status|lower }}">
+            <div class="proposal-status-icon">
+                {% if proposal.status == "APPROVED" %}
+                    <i class="ti ti-circle-check"></i>
+                {% elif proposal.status == "REJECTED" %}
+                    <i class="ti ti-circle-x"></i>
+                {% elif proposal.status == "REVISION_REQUIRED" %}
+                    <i class="ti ti-refresh-alert"></i>
+                {% elif proposal.status == "COMMITTEE_EVALUATION" %}
+                    <i class="ti ti-users"></i>
+                {% elif proposal.status == "FINAL_REVIEW" %}
+                    <i class="ti ti-gavel"></i>
+                {% elif proposal.status == "ADVISOR_REVIEW" %}
+                    <i class="ti ti-user-check"></i>
+                {% else %}
+                    <i class="ti ti-file-pencil"></i>
+                {% endif %}
+            </div>
+            <div class="proposal-status-content">
+                <span>Current Proposal Status</span>
+                <strong>{{ proposal.get_status_display }}</strong>
+                {% if proposal.status == "DRAFT" %}
+                    <p>Your proposal is saved as a draft. Complete the proposal and submit it for advisor review.</p>
+                {% elif proposal.status == "SUBMITTED" or proposal.status == "ADVISOR_REVIEW" %}
+                    <p>Your proposal has been submitted and is waiting for your advisor's review.</p>
+                {% elif proposal.status == "COMMITTEE_EVALUATION" %}
+                    <p>Your advisor has approved the proposal. It is now moving through committee evaluation.</p>
+                {% elif proposal.status == "FINAL_REVIEW" %}
+                    <p>Committee evaluation is complete. The chair faculty will finalize the proposal result.</p>
+                {% elif proposal.status == "REVISION_REQUIRED" %}
+                    <p>Revision is required. Review the feedback, update your proposal and resubmit it.</p>
+                {% elif proposal.status == "APPROVED" %}
+                    <p>Your dissertation proposal has been approved.</p>
+                {% elif proposal.status == "REJECTED" %}
+                    <p>Your dissertation proposal was rejected. Review the available remarks before taking the next step.</p>
+                {% endif %}
+            </div>
+            <div class="proposal-status-date">
+                {% if proposal.submission_date %}
+                    <span>Submitted</span>
+                    <strong>{{ proposal.submission_date|date:"M d, Y" }}</strong>
+                {% else %}
+                    <span>Submission</span>
+                    <strong>Not submitted</strong>
+                {% endif %}
+            </div>
+        </div>
+        <div class="proposal-detail-layout">
+            <main class="proposal-detail-main">
+                <section class="proposal-detail-card">
+                    <div class="proposal-detail-card-header">
+                        <div>
+                            <span class="proposal-detail-section-label">Proposal Information</span>
+                            <h2>Research Proposal</h2>
+                        </div>
+                        <span class="proposal-detail-id">Proposal #{{ proposal.proposal_id }}</span>
+                    </div>
+                    <div class="proposal-detail-card-body">
+                        <div class="proposal-title-block">
+                            <span>Proposal Title</span>
+                            <h3>{{ proposal.proposal_title }}</h3>
+                        </div>
+                        <div class="proposal-info-grid">
+                            <div class="proposal-info-item">
+                                <span>Submission Date</span>
+                                <strong>
+                                    {% if proposal.submission_date %}
+                                        {{ proposal.submission_date|date:"M d, Y" }}
+                                    {% else %}
+                                        Not submitted
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="proposal-info-item">
+                                <span>Hearing Date</span>
+                                <strong>
+                                    {% if proposal.hearing_date %}
+                                        {{ proposal.hearing_date|date:"M d, Y" }}
+                                    {% else %}
+                                        Not scheduled
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="proposal-info-item">
+                                <span>Advisor Review</span>
+                                <strong>{{ proposal.get_advisor_review_status_display }}</strong>
+                            </div>
+                            <div class="proposal-info-item">
+                                <span>Final Result</span>
+                                <strong>{{ proposal.get_result_display }}</strong>
+                            </div>
+                        </div>
+                        <div class="proposal-abstract">
+                            <div class="proposal-content-heading">
+                                <i class="ti ti-align-left"></i>
+                                <span>Abstract</span>
+                            </div>
+                            <div class="proposal-abstract-text">{{ proposal.abstract|linebreaksbr }}</div>
+                        </div>
+                        {% if proposal.proposal_file %}
+                            <div class="proposal-document-box">
+                                <div class="proposal-document-icon">
+                                    <i class="ti ti-file-type-pdf"></i>
+                                </div>
+                                <div class="proposal-document-info">
+                                    <span>Submitted Proposal Document</span>
+                                    <strong>{{ proposal.proposal_file.name|cut:"dissertation_proposals/" }}</strong>
+                                    <small>Uploaded proposal document</small>
+                                </div>
+                                <a href="{{ proposal.proposal_file.url }}"
+                                   target="_blank"
+                                   rel="noopener"
+                                   class="proposal-view-file">
+                                    <i class="ti ti-eye"></i>
+                                    View
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+                <section class="proposal-detail-card">
+                    <div class="proposal-detail-card-header">
+                        <div>
+                            <span class="proposal-detail-section-label">Advisor Review</span>
+                            <h2>Advisor Feedback</h2>
+                        </div>
+                        <span class="proposal-review-badge proposal-review-{{ proposal.advisor_review_status|lower }}">
+                            {{ proposal.get_advisor_review_status_display }}
+                        </span>
+                    </div>
+                    <div class="proposal-detail-card-body">
+                        <div class="review-meta">
+                            <div>
+                                <span>Reviewed By</span>
+                                <strong>
+                                    {% if advisor %}
+                                        {{ advisor.user.get_full_name }}
+                                    {% else %}
+                                        Advisor not assigned
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div>
+                                <span>Reviewed At</span>
+                                <strong>
+                                    {% if proposal.advisor_reviewed_at %}
+                                        {{ proposal.advisor_reviewed_at|date:"M d, Y · h:i A" }}
+                                    {% else %}
+                                        Not reviewed yet
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="review-remarks {% if not proposal.advisor_review_remarks %} review-remarks-empty {% endif %}">
+                            <div class="proposal-content-heading">
+                                <i class="ti ti-message-circle"></i>
+                                <span>Advisor Remarks</span>
+                            </div>
+                            {% if proposal.advisor_review_remarks %}
+                                <p>{{ proposal.advisor_review_remarks|linebreaksbr }}</p>
+                            {% else %}
+                                <p>No advisor remarks have been added yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+                <section class="proposal-detail-card">
+                    <div class="proposal-detail-card-header">
+                        <div>
+                            <span class="proposal-detail-section-label">Committee</span>
+                            <h2>Doctoral Committee</h2>
+                        </div>
+                        {% if committee %}
+                            <span class="committee-status-badge">{{ committee.get_approval_status_display }}</span>
+                        {% else %}
+                            <span class="committee-status-badge committee-status-pending">Not Assigned</span>
+                        {% endif %}
+                    </div>
+                    <div class="proposal-detail-card-body">
+                        {% if committee %}
+                            <div class="chair-highlight">
+                                <div class="chair-icon">
+                                    <i class="ti ti-gavel"></i>
+                                </div>
+                                <div>
+                                    <span>Chair Faculty</span>
+                                    <strong>
+                                        {% if chair_faculty %}
+                                            {{ chair_faculty.user.get_full_name }}
+                                        {% else %}
+                                            Not assigned
+                                        {% endif %}
+                                    </strong>
+                                    {% if chair_faculty %}
+                                        <small>
+                                            {% if chair_faculty.faculty_rank %}{{ chair_faculty.faculty_rank.rank_name }}{% endif %}
+                                            {% if chair_faculty.department %}· {{ chair_faculty.department.department_name }}{% endif %}
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="committee-members-heading">
+                                <span>Committee Members</span>
+                                <strong>{{ committee_members|length }}</strong>
+                            </div>
+                            {% if committee_members %}
+                                <div class="committee-member-list">
+                                    {% for member in committee_members %}
+                                        <div class="committee-member">
+                                            <div class="committee-member-avatar">
+                                                {% if member.faculty.user.profile_photo %}
+                                                    <img src="{{ member.faculty.user.profile_photo.url }}"
+                                                         alt="{{ member.faculty.user.get_full_name }}">
+                                                {% else %}
+                                                    {{ member.faculty.user.first_name|first }}{{ member.faculty.user.last_name|first }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="committee-member-info">
+                                                <strong>{{ member.faculty.user.get_full_name }}</strong>
+                                                <span>{{ member.get_role_display }}</span>
+                                            </div>
+                                            {% if member.department %}<small>{{ member.department.department_name }}</small>{% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="empty-state">
+                                    <i class="ti ti-users-off"></i>
+                                    <span>No committee members have been assigned yet.</span>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="ti ti-users-off"></i>
+                                <strong>Doctoral committee not assigned</strong>
+                                <span>Your committee information will appear here once it is assigned.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+            </main>
+            <aside class="proposal-detail-sidebar">
+                <section class="proposal-sidebar-card">
+                    <div class="proposal-sidebar-heading">
+                        <div class="proposal-sidebar-icon">
+                            <i class="ti ti-user"></i>
+                        </div>
+                        <div>
+                            <span>Student</span>
+                            <h3>{{ student.user.get_full_name }}</h3>
+                        </div>
+                    </div>
+                    <div class="student-sidebar-details">
+                        <div>
+                            <span>PhD Program</span>
+                            <strong>
+                                {% if phd_student.phd_program %}
+                                    {{ phd_student.phd_program.program_name }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div>
+                            <span>Department</span>
+                            <strong>
+                                {% if phd_student.phd_program.department %}
+                                    {{ phd_student.phd_program.department.department_name }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div>
+                            <span>Advisor</span>
+                            <strong>
+                                {% if advisor %}
+                                    {{ advisor.user.get_full_name }}
+                                {% else %}
+                                    Not assigned
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="proposal-sidebar-card">
+                    <div class="proposal-sidebar-title">
+                        <i class="ti ti-route"></i>
+                        <h3>Proposal Process</h3>
+                    </div>
+                    <div class="proposal-timeline">
+                        <div class="proposal-timeline-step timeline-current">
+                            <div class="timeline-marker">
+                                <i class="ti ti-pencil"></i>
+                            </div>
+                            <div>
+                                <strong>Student Creates</strong>
+                                <span>Prepare and submit proposal</span>
+                            </div>
+                        </div>
+                        <div class="timeline-line"></div>
+                        <div class="proposal-timeline-step {% if proposal.status == 'ADVISOR_REVIEW' or proposal.status == 'COMMITTEE_EVALUATION' or proposal.status == 'FINAL_REVIEW' or proposal.status == 'APPROVED' or proposal.status == 'REJECTED' %} timeline-complete {% elif proposal.status == 'SUBMITTED' %} timeline-current {% endif %}">
+                            <div class="timeline-marker">
+                                <i class="ti ti-user-check"></i>
+                            </div>
+                            <div>
+                                <strong>Advisor Review</strong>
+                                <span>Advisor reviews proposal</span>
+                            </div>
+                        </div>
+                        <div class="timeline-line"></div>
+                        <div class="proposal-timeline-step {% if proposal.status == 'COMMITTEE_EVALUATION' or proposal.status == 'FINAL_REVIEW' or proposal.status == 'APPROVED' or proposal.status == 'REJECTED' %} timeline-complete {% elif proposal.status == 'COMMITTEE_EVALUATION' %} timeline-current {% endif %}">
+                            <div class="timeline-marker">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div>
+                                <strong>Committee Evaluation</strong>
+                                <span>Committee members evaluate</span>
+                            </div>
+                        </div>
+                        <div class="timeline-line"></div>
+                        <div class="proposal-timeline-step {% if proposal.status == 'FINAL_REVIEW' or proposal.status == 'APPROVED' or proposal.status == 'REJECTED' %} timeline-complete {% elif proposal.status == 'FINAL_REVIEW' %} timeline-current {% endif %}">
+                            <div class="timeline-marker">
+                                <i class="ti ti-gavel"></i>
+                            </div>
+                            <div>
+                                <strong>Chair Finalizes</strong>
+                                <span>Chair publishes final result</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                {% if proposal.final_remarks %}
+                    <section class="proposal-sidebar-card proposal-final-remarks-card">
+                        <div class="proposal-sidebar-title">
+                            <div class="proposal-final-remarks-title">
+                                <i class="ti ti-message-2"></i>
+                                <div>
+                                    <span>Final Decision</span>
+                                    <h3>Chair Remarks</h3>
+                                </div>
+                            </div>
+                            <span class="proposal-result-badge proposal-result-{{ proposal.result|lower }}">
+                                {{ proposal.get_result_display }}
+                            </span>
+                        </div>
+                        <div class="proposal-final-remarks-content">
+                            <div class="proposal-final-remarks-message">
+                                <i class="ti ti-message-circle-2"></i>
+                                <p>{{ proposal.final_remarks|linebreaksbr }}</p>
+                            </div>
+                            <div class="proposal-finalized-meta">
+                                <div>
+                                    <span>Finalized By</span>
+                                    <strong>
+                                        {% if proposal.finalized_by %}
+                                            {{ proposal.finalized_by.user.get_full_name }}
+                                        {% else %}
+                                            Chair Faculty
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                {% if proposal.finalized_at %}
+                                    <div>
+                                        <span>Finalized At</span>
+                                        <strong>{{ proposal.finalized_at|date:"M d, Y · h:i A" }}</strong>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </section>
+                {% endif %}
+                {% if proposal.resubmission_count > 0 or latest_resubmission_request %}
+                    <section class="proposal-resubmission-card">
+                        <div class="proposal-resubmission-card-header">
+                            <div class="proposal-resubmission-card-icon">
+                                <i class="ti ti-refresh"></i>
+                            </div>
+                            <div class="proposal-resubmission-card-title">
+                                <span>RESUBMISSION JOURNEY</span>
+                                <h3>Your Next Attempt</h3>
+                            </div>
+                        </div>
+                        <div class="proposal-resubmission-card-body">
+                            <div class="proposal-resubmission-attempt">
+                                <div class="proposal-resubmission-attempt-icon">
+                                    <i class="ti ti-repeat"></i>
+                                </div>
+                                <div class="proposal-resubmission-attempt-content">
+                                    <span>RESUBMISSION COUNT</span>
+                                    <strong>
+                                        {% if latest_resubmission_request %}
+                                            #{{ latest_resubmission_request.submission_number }}
+                                        {% else %}
+                                            #{{ proposal.resubmission_count }}
+                                        {% endif %}
+                                    </strong>
+                                    <small>
+                                        {% if latest_resubmission_request %}
+                                            Current resubmission attempt
+                                        {% else %}
+                                            Resubmission attempt
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="proposal-resubmission-progress">
+                                <div class="proposal-resubmission-progress-label">
+                                    <span>YOUR JOURNEY</span>
+                                    <strong>
+                                        {% if latest_resubmission_request %}
+                                            Attempt {{ latest_resubmission_request.submission_number }}
+                                        {% else %}
+                                            Attempt {{ proposal.resubmission_count }}
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <div class="proposal-resubmission-progress-track">
+                                    <div class="proposal-resubmission-progress-fill"></div>
+                                </div>
+                            </div>
+                            <div class="proposal-resubmission-next">
+                                <div class="proposal-resubmission-next-icon">
+                                    <i class="ti ti-arrow-up-right"></i>
+                                </div>
+                                <div>
+                                    <span>WHAT HAPPENS NEXT?</span>
+                                    {% if proposal.status == "REJECTED" %}
+                                        <p>
+                                            Review the feedback carefully, strengthen your proposal
+                                            and prepare it for the next academic review.
+                                        </p>
+                                    {% elif proposal.status == "REVISION_REQUIRED" %}
+                                        <p>
+                                            Address the requested changes, update your proposal
+                                            and submit the revised version for review.
+                                        </p>
+                                    {% elif proposal.status == "APPROVED" %}
+                                        <p>
+                                            Your proposal has cleared this stage. Keep moving
+                                            forward toward your dissertation goals.
+                                        </p>
+                                    {% else %}
+                                        <p>
+                                            Continue working on your proposal and take the next
+                                            step in your dissertation journey.
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="proposal-resubmission-quote">
+                                <div class="proposal-resubmission-quote-icon">
+                                    <i class="ti ti-quote"></i>
+                                </div>
+                                <div class="proposal-resubmission-quote-content">
+                                    <span>KEEP GOING</span>
+                                    <p id="resubmissionMotivationalQuote">Every revision brings you one step closer to your goal.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                {% endif %}
+                <a href="{% url 'Student:phd_dashboard' uuid=uuid %}"
+                   class="proposal-workspace-link">
+                    <span>
+                        <i class="ti ti-arrow-left"></i>
+                        Back to PhD Workspace
+                    </span>
+                    <i class="ti ti-chevron-right"></i>
+                </a>
+            </aside>
+        </div>
+    </div>
+    {% if proposal.status == "REJECTED" %}
+        <div class="proposal-resubmission-modal"
+             id="resubmissionModal"
+             aria-hidden="true">
+            <div class="proposal-resubmission-overlay" data-close-resubmission></div>
+            <div class="proposal-resubmission-dialog"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="resubmissionModalTitle">
+                <div class="proposal-resubmission-header">
+                    <div class="proposal-resubmission-heading">
+                        <div class="proposal-resubmission-icon">
+                            <i class="ti ti-refresh"></i>
+                        </div>
+                        <div>
+                            <span>Proposal Re-submission</span>
+                            <h2 id="resubmissionModalTitle">Request Re-submission</h2>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="proposal-resubmission-close"
+                            data-close-resubmission
+                            aria-label="Close">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <form method="post"
+                      action="{% url 'Student:student_dissertation_proposal_resubmission_request' uuid=request.user.uuid %}"
+                      id="resubmissionRequestForm">
+                    {% csrf_token %}
+                    <div class="proposal-resubmission-body">
+                        <div class="proposal-resubmission-notice">
+                            <i class="ti ti-info-circle"></i>
+                            <div>
+                                <strong>Your proposal was rejected.</strong>
+                                <p>
+                                    You can request permission to revise and resubmit your dissertation proposal.
+                                    The request will be reviewed by the Chair Faculty.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="proposal-resubmission-proposal">
+                            <span>Current Proposal</span>
+                            <strong>{{ proposal.proposal_title }}</strong>
+                        </div>
+                        <div class="proposal-resubmission-field">
+                            <label for="resubmissionReason">
+                                Reason for Re-submission
+                                <span>*</span>
+                            </label>
+                            <textarea id="resubmissionReason"
+                                      name="reason"
+                                      rows="5"
+                                      minlength="20"
+                                      maxlength="1000"
+                                      placeholder="Explain why you are requesting permission to revise and resubmit your proposal..."
+                                      required></textarea>
+                            <div class="proposal-resubmission-field-footer">
+                                <small>Minimum 20 characters.</small>
+                                <small><span id="resubmissionCharCount">0</span>/1000</small>
+                            </div>
+                        </div>
+                        <div class="proposal-resubmission-field">
+                            <label for="resubmissionAssurance">
+                                Assurance
+                                <span>*</span>
+                            </label>
+                            <textarea id="resubmissionAssurance"
+                                      name="assurance"
+                                      rows="4"
+                                      minlength="20"
+                                      maxlength="1000"
+                                      placeholder="Provide your assurance that you will address the concerns raised and follow the required academic guidelines..."
+                                      required></textarea>
+                            <div class="proposal-resubmission-field-footer">
+                                <small>Explain how you will address the concerns.</small>
+                                <small><span id="resubmissionAssuranceCharCount">0</span>/1000</small>
+                            </div>
+                        </div>
+                        <div class="proposal-resubmission-declaration">
+                            <label class="proposal-resubmission-checkbox">
+                                <input type="checkbox"
+                                       id="studentDeclaration"
+                                       name="student_declaration"
+                                       required>
+                                <span class="proposal-resubmission-checkbox-mark">
+                                    <i class="ti ti-check"></i>
+                                </span>
+                                <span class="proposal-resubmission-checkbox-text">
+                                    <strong>Student Declaration</strong>
+                                    <small>
+                                        I confirm that the information provided in this request is accurate
+                                        and I understand that the revised dissertation proposal will be
+                                        subject to the required academic review and approval process.
+                                    </small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="proposal-resubmission-footer">
+                        <button type="button"
+                                class="proposal-resubmission-cancel"
+                                data-close-resubmission>Cancel</button>
+                        <button type="submit"
+                                class="proposal-resubmission-submit"
+                                id="submitResubmissionRequest">
+                            <i class="ti ti-send"></i>
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+    {% if latest_resubmission_request %}
+        <div class="proposal-resubmission-modal"
+             id="resubmissionViewModal"
+             aria-hidden="true">
+            <div class="proposal-resubmission-overlay" data-close-resubmission-view></div>
+            <div class="proposal-resubmission-dialog proposal-resubmission-view-dialog"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="resubmissionViewModalTitle">
+                <div class="proposal-resubmission-header">
+                    <div class="proposal-resubmission-heading">
+                        <div class="proposal-resubmission-icon">
+                            <i class="ti ti-file-description"></i>
+                        </div>
+                        <div>
+                            <span>Proposal Re-submission</span>
+                            <h2 id="resubmissionViewModalTitle">View Re-submission Request</h2>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="proposal-resubmission-close"
+                            data-close-resubmission-view
+                            aria-label="Close">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div class="proposal-resubmission-body proposal-resubmission-view-body">
+                    <div class="proposal-resubmission-request-status proposal-resubmission-request-status-{{ latest_resubmission_request.status|lower }}">
+                        <div class="proposal-resubmission-request-status-icon">
+                            {% if latest_resubmission_request.status == "PENDING" %}
+                                <i class="ti ti-clock"></i>
+                            {% elif latest_resubmission_request.status == "APPROVED" %}
+                                <i class="ti ti-circle-check"></i>
+                            {% else %}
+                                <i class="ti ti-circle-x"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span>Request Status</span>
+                            <strong>{{ latest_resubmission_request.get_status_display }}</strong>
+                            <small>Submitted {{ latest_resubmission_request.requested_at|date:"M d, Y · h:i A" }}</small>
+                        </div>
+                    </div>
+                    <div class="proposal-resubmission-proposal">
+                        <span>Current Proposal</span>
+                        <strong>{{ proposal.proposal_title }}</strong>
+                        <small>Re-submission Request #{{ latest_resubmission_request.submission_number }}</small>
+                    </div>
+                    <div class="proposal-resubmission-view-section">
+                        <div class="proposal-resubmission-view-label">
+                            <i class="ti ti-message-circle"></i>
+                            <span>Reason for Re-submission</span>
+                        </div>
+                        <div class="proposal-resubmission-view-content">{{ latest_resubmission_request.reason|linebreaksbr }}</div>
+                    </div>
+                    <div class="proposal-resubmission-view-section">
+                        <div class="proposal-resubmission-view-label">
+                            <i class="ti ti-shield-check"></i>
+                            <span>Student Assurance</span>
+                        </div>
+                        <div class="proposal-resubmission-view-content">{{ latest_resubmission_request.assurance|linebreaksbr }}</div>
+                    </div>
+                    <div class="proposal-resubmission-declaration proposal-resubmission-declaration-view">
+                        <div class="proposal-resubmission-checkbox">
+                            <span class="proposal-resubmission-checkbox-mark proposal-resubmission-checkbox-mark-static {% if latest_resubmission_request.student_declaration %}is-checked{% endif %}">
+                                <i class="ti ti-check"></i>
+                            </span>
+                            <span class="proposal-resubmission-checkbox-text">
+                                <strong>Student Declaration</strong>
+                                <small>
+                                    {% if latest_resubmission_request.student_declaration %}
+                                        Confirmed by the student at the time of request submission.
+                                    {% else %}
+                                        Student declaration was not confirmed.
+                                    {% endif %}
+                                </small>
+                            </span>
+                        </div>
+                    </div>
+                    {% if latest_resubmission_request.status != "PENDING" %}
+                        <div class="proposal-resubmission-review-box proposal-resubmission-review-{{ latest_resubmission_request.status|lower }}">
+                            <div class="proposal-resubmission-view-label">
+                                <i class="ti ti-user-check"></i>
+                                <span>Review Decision</span>
+                            </div>
+                            <strong>{{ latest_resubmission_request.get_status_display }}</strong>
+                            {% if latest_resubmission_request.review_remarks %}
+                                <p>{{ latest_resubmission_request.review_remarks|linebreaksbr }}</p>
+                            {% else %}
+                                <p>No review remarks were provided.</p>
+                            {% endif %}
+                            {% if latest_resubmission_request.reviewed_at %}
+                                <small>
+                                    Reviewed {{ latest_resubmission_request.reviewed_at|date:"M d, Y · h:i A" }}
+                                    {% if latest_resubmission_request.reviewed_by %}
+                                        by {{ latest_resubmission_request.reviewed_by.user.get_full_name }}
+                                    {% endif %}
+                                </small>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="proposal-resubmission-footer">
+                    <button type="button"
+                            class="proposal-resubmission-cancel"
+                            data-close-resubmission-view>Close</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <div class="proposal-detail-messages" id="proposalDetailMessages">
+        {% if messages %}
+            {% for message in messages %}<div data-message="{{ message|escape }}"></div>{% endfor %}
+        {% endif %}
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const submitForm = document.querySelector(".proposal-submit-form");
+            const submitButton = document.getElementById("submitProposalButton");
+
+            if (submitForm && submitButton) {
+
+                submitForm.addEventListener("submit", function (event) {
+
+                    event.preventDefault();
+
+                    Swal.fire({
+                        title: "Submit dissertation proposal?",
+                        text: "Once submitted, the proposal will move to your advisor for review.",
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Yes, submit",
+                        cancelButtonText: "Cancel",
+                        confirmButtonColor: "#c5050c",
+                        reverseButtons: true
+                    }).then(function (result) {
+
+                        if (result.isConfirmed) {
+
+                            submitButton.disabled = true;
+
+                            submitButton.innerHTML =
+                                '<i class="ti ti-loader-2 proposal-detail-spin"></i> Submitting...';
+
+                            submitForm.submit();
+                        }
+                    });
+                });
+            }
+
+
+            const resubmissionModal =
+                document.getElementById("resubmissionModal");
+
+            const openResubmissionModal =
+                document.getElementById("openResubmissionModal");
+
+            const resubmissionForm =
+                document.getElementById("resubmissionRequestForm");
+
+            const resubmissionReason =
+                document.getElementById("resubmissionReason");
+
+            const resubmissionCharCount =
+                document.getElementById("resubmissionCharCount");
+
+            const resubmissionAssurance =
+                document.getElementById("resubmissionAssurance");
+
+            const resubmissionAssuranceCharCount =
+                document.getElementById(
+                    "resubmissionAssuranceCharCount"
+                );
+
+            const studentDeclaration =
+                document.getElementById("studentDeclaration");
+
+            const resubmissionSubmit =
+                document.getElementById("submitResubmissionRequest");
+
+            const resubmissionViewModal =
+                document.getElementById("resubmissionViewModal");
+
+            const openResubmissionViewModal =
+                document.getElementById("openResubmissionViewModal");
+
+
+            function closeResubmissionModal() {
+
+                if (!resubmissionModal) {
+                    return;
+                }
+
+                resubmissionModal.classList.remove("is-open");
+
+                resubmissionModal.setAttribute(
+                    "aria-hidden",
+                    "true"
+                );
+
+                document.body.classList.remove(
+                    "proposal-modal-open"
+                );
+            }
+
+
+            function closeResubmissionViewModal() {
+
+                if (!resubmissionViewModal) {
+                    return;
+                }
+
+                resubmissionViewModal.classList.remove(
+                    "is-open"
+                );
+
+                resubmissionViewModal.setAttribute(
+                    "aria-hidden",
+                    "true"
+                );
+
+                document.body.classList.remove(
+                    "proposal-modal-open"
+                );
+            }
+
+
+            function openResubmissionViewRequestModal() {
+
+                if (!resubmissionViewModal) {
+                    return;
+                }
+
+                resubmissionViewModal.classList.add(
+                    "is-open"
+                );
+
+                resubmissionViewModal.setAttribute(
+                    "aria-hidden",
+                    "false"
+                );
+
+                document.body.classList.add(
+                    "proposal-modal-open"
+                );
+            }
+
+
+            function openResubmissionRequestModal() {
+
+                if (
+                    !resubmissionModal ||
+                    !resubmissionForm
+                ) {
+                    return;
+                }
+
+                if (
+                    resubmissionForm.dataset.submitting ===
+                    "true"
+                ) {
+                    return;
+                }
+
+                resubmissionModal.classList.add(
+                    "is-open"
+                );
+
+                resubmissionModal.setAttribute(
+                    "aria-hidden",
+                    "false"
+                );
+
+                document.body.classList.add(
+                    "proposal-modal-open"
+                );
+
+                window.setTimeout(function () {
+
+                    if (resubmissionReason) {
+                        resubmissionReason.focus();
+                    }
+
+                }, 120);
+            }
+
+
+            if (openResubmissionViewModal) {
+
+                openResubmissionViewModal.addEventListener(
+                    "click",
+                    openResubmissionViewRequestModal
+                );
+            }
+
+
+            if (resubmissionViewModal) {
+
+                resubmissionViewModal
+                    .querySelectorAll(
+                        "[data-close-resubmission-view]"
+                    )
+                    .forEach(function (element) {
+
+                        element.addEventListener(
+                            "click",
+                            closeResubmissionViewModal
+                        );
+                    });
+            }
+
+
+            if (openResubmissionModal) {
+
+                openResubmissionModal.addEventListener(
+                    "click",
+                    openResubmissionRequestModal
+                );
+            }
+
+
+            if (resubmissionModal) {
+
+                resubmissionModal
+                    .querySelectorAll(
+                        "[data-close-resubmission]"
+                    )
+                    .forEach(function (element) {
+
+                        element.addEventListener(
+                            "click",
+                            closeResubmissionModal
+                        );
+                    });
+            }
+
+
+            if (
+                resubmissionReason &&
+                resubmissionCharCount
+            ) {
+
+                resubmissionReason.addEventListener(
+                    "input",
+                    function () {
+
+                        resubmissionCharCount.textContent =
+                            resubmissionReason.value.length;
+                    }
+                );
+            }
+
+
+            if (
+                resubmissionAssurance &&
+                resubmissionAssuranceCharCount
+            ) {
+
+                resubmissionAssurance.addEventListener(
+                    "input",
+                    function () {
+
+                        resubmissionAssuranceCharCount.textContent =
+                            resubmissionAssurance.value.length;
+                    }
+                );
+            }
+
+
+            document.addEventListener(
+                "keydown",
+                function (event) {
+
+                    if (
+                        event.key === "Escape" &&
+                        resubmissionModal &&
+                        resubmissionModal.classList.contains(
+                            "is-open"
+                        )
+                    ) {
+
+                        closeResubmissionModal();
+
+                        return;
+                    }
+
+
+                    if (
+                        event.key === "Escape" &&
+                        resubmissionViewModal &&
+                        resubmissionViewModal.classList.contains(
+                            "is-open"
+                        )
+                    ) {
+
+                        closeResubmissionViewModal();
+                    }
+                }
+            );
+
+
+            if (
+                resubmissionForm &&
+                resubmissionSubmit
+            ) {
+
+                resubmissionForm.addEventListener(
+                    "submit",
+                    function (event) {
+
+                        if (
+                            !resubmissionReason ||
+                            resubmissionReason.value
+                                .trim()
+                                .length < 20
+                        ) {
+
+                            event.preventDefault();
+
+                            if (resubmissionReason) {
+                                resubmissionReason.focus();
+                            }
+
+                            Swal.fire({
+                                text: "Please provide a resubmission reason of at least 20 characters.",
+                                icon: "warning",
+                                confirmButtonColor: "#c5050c"
+                            });
+
+                            return;
+                        }
+
+
+                        if (
+                            !resubmissionAssurance ||
+                            resubmissionAssurance.value
+                                .trim()
+                                .length < 20
+                        ) {
+
+                            event.preventDefault();
+
+                            if (resubmissionAssurance) {
+                                resubmissionAssurance.focus();
+                            }
+
+                            Swal.fire({
+                                text: "Please provide an assurance of at least 20 characters.",
+                                icon: "warning",
+                                confirmButtonColor: "#c5050c"
+                            });
+
+                            return;
+                        }
+
+
+                        if (
+                            !studentDeclaration ||
+                            !studentDeclaration.checked
+                        ) {
+
+                            event.preventDefault();
+
+                            Swal.fire({
+                                text: "Please accept the student declaration before submitting the request.",
+                                icon: "warning",
+                                confirmButtonColor: "#c5050c"
+                            });
+
+                            return;
+                        }
+
+
+                        resubmissionSubmit.disabled = true;
+
+                        resubmissionSubmit.innerHTML =
+                            '<i class="ti ti-loader-2 proposal-detail-spin"></i> Submitting...';
+
+                        resubmissionForm.dataset.submitting =
+                            "true";
+                    }
+                );
+            }
+
+
+            const motivationalQuote =
+                document.getElementById(
+                    "resubmissionMotivationalQuote"
+                );
+
+
+            if (motivationalQuote) {
+
+                const quotes = [
+                    "Every revision brings you one step closer to your goal.",
+                    "Progress is not perfection. Keep improving, keep moving.",
+                    "A stronger proposal is built one revision at a time.",
+                    "Your setbacks do not define you. Your persistence does.",
+                    "Keep refining your work. Great research takes patience.",
+                    "Every challenge is another opportunity to make your work stronger.",
+                    "Do not stop at rejection. Let it become part of your progress.",
+                    "Your research journey is built through courage, patience and persistence.",
+                    "Small improvements today can create meaningful results tomorrow.",
+                    "Trust the process. Your hard work is shaping something valuable.",
+                    "Revision is not failure. It is another step toward excellence.",
+                    "Keep going. The work you are doing today will matter tomorrow.",
+                    "Strong researchers are built by the challenges they choose to overcome.",
+                    "Your next version can be better than your last. Keep building.",
+                    "One more attempt. One more improvement. One step closer."
+                ];
+
+
+                const quoteStorageKey =
+                    "dissertation_resubmission_last_quote";
+
+
+                let lastQuote =
+                    sessionStorage.getItem(
+                        quoteStorageKey
+                    );
+
+
+                let availableQuotes =
+                    quotes.filter(function (quote) {
+
+                        return quote !== lastQuote;
+                    });
+
+
+                if (availableQuotes.length === 0) {
+
+                    availableQuotes = quotes;
+                }
+
+
+                const randomIndex =
+                    Math.floor(
+                        Math.random() *
+                        availableQuotes.length
+                    );
+
+
+                const selectedQuote =
+                    availableQuotes[randomIndex];
+
+
+                motivationalQuote.textContent =
+                    selectedQuote;
+
+
+                sessionStorage.setItem(
+                    quoteStorageKey,
+                    selectedQuote
+                );
+            }
+
+
+            const messageNodes =
+                document.querySelectorAll(
+                    "#proposalDetailMessages [data-message]"
+                );
+
+
+            messageNodes.forEach(function (node) {
+
+                const message =
+                    node.getAttribute(
+                        "data-message"
+                    );
+
+
+                if (!message) {
+                    return;
+                }
+
+
+                Swal.fire({
+                    text: message,
+                    icon: "info",
+                    confirmButtonColor: "#c5050c"
+                });
+            });
+
+        });
+    </script>
+{% endblock %}

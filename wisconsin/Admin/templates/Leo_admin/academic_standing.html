@@ -1,0 +1,565 @@
+{% extends "dashboard_base.html" %} {% load static %} {% block title %} Academic
+Standing {% endblock %} {% block page_title %} Academic Standing {% endblock %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% block extra_css %}
+
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+/>
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css"
+/>
+
+<link
+  rel="stylesheet"
+  href="{% static 'css/Leo_admin/academic_standing.css' %}"
+/>
+
+<link
+rel="stylesheet"
+href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+/>
+
+{% endblock %} {% block content %}
+
+<div class="content-wrapper">
+  {% if messages %} {% for message in messages %}
+  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %} {% endif %}
+  <div class="breadcrumb-bar" data-aos="fade-down"  >
+    <a href="#">Dashboard</a>
+    <i class="ti ti-chevron-right"></i>
+    <span>Academic Standing</span>
+  </div>
+
+  <div class="page-header" data-aos="fade-up">
+    <div>
+      <h2 class="page-title">Academic Standings</h2>
+      <p class="page-subtitle">
+        Create, organize and manage academic standing categories based on GPA
+        requirements.
+      </p>
+    </div>
+
+    <div class="header-actions">
+
+    <button
+    class="btn btn-danger"
+    id="printBtn"
+    data-url="{% url 'academic_standing_print' %}"
+>
+    <i class="ti ti-printer"></i>
+    Print
+</button>
+
+<button
+    class="btn btn-success"
+    id="exportBtn"
+    data-url="{% url 'academic_standing_export' %}"
+>
+    <i class="ti ti-file-export"></i>
+    Export
+</button>
+
+    <button
+        class="btn btn-primary add-standing-btn"
+        data-bs-toggle="modal"
+        data-bs-target="#academicStandingModal"
+    >
+        <i class="ti ti-plus"></i>
+        Add Standing
+    </button>
+
+</div>
+  </div>
+
+  <div class="toolbar-card"  data-aos="fade-up"
+     data-aos-delay="100">
+    <div class="toolbar-left">
+   
+            <div class="search-box">
+                
+
+               <input
+    type="text"
+    id="searchInput"
+    data-url="{% url 'academic_standing_list' %}"
+    placeholder="Search..."
+    autocomplete="off"
+/>
+
+                <button type="button" class="search-btn">
+                    <i class="ti ti-search"></i>
+                </button>
+            </div>
+   
+    </div>
+
+    <div class="toolbar-right">
+        <span class="standing-count">
+            Total Standings :
+            <strong>{{ standings.paginator.count }}</strong>
+        </span>
+    </div>
+</div>
+
+  <div class="table-card"    data-aos="zoom-in-up"
+     data-aos-delay="200">
+    <div class="table-responsive">
+      <table class="table align-middle text-center" data-aos="fade-up">
+     <thead>
+    <tr>
+
+        <th class="table-head" width="70">
+            #
+        </th>
+
+        <th class="table-head">
+            <a
+                href="?sort=name&order={% if sort == 'name' and order == 'asc' %}desc{% else %}asc{% endif %}&search={{ search }}"
+                class="text-decoration-none text-dark d-flex align-items-center justify-content-center gap-1"
+            >
+                Standing Name
+
+                {% if sort == "name" %}
+                    {% if order == "asc" %}
+                        <i class="ti ti-arrow-up"></i>
+                    {% else %}
+                        <i class="ti ti-arrow-down"></i>
+                    {% endif %}
+                {% endif %}
+            </a>
+        </th>
+
+        <th class="table-head" width="170">
+            <a
+                href="?sort=gpa&order={% if sort == 'gpa' and order == 'asc' %}desc{% else %}asc{% endif %}&search={{ search }}"
+                class="text-decoration-none text-dark d-flex align-items-center justify-content-center gap-1"
+            >
+                Minimum GPA
+
+                {% if sort == "gpa" %}
+                    {% if order == "asc" %}
+                        <i class="ti ti-arrow-up"></i>
+                    {% else %}
+                        <i class="ti ti-arrow-down"></i>
+                    {% endif %}
+                {% endif %}
+            </a>
+        </th>
+
+        <th class="table-head">
+            <a
+                href="?sort=description&order={% if sort == 'description' and order == 'asc' %}desc{% else %}asc{% endif %}&search={{ search }}"
+                class="text-decoration-none text-dark d-flex align-items-center justify-content-center gap-1"
+            >
+                Description
+
+                {% if sort == "description" %}
+                    {% if order == "asc" %}
+                        <i class="ti ti-arrow-up"></i>
+                    {% else %}
+                        <i class="ti ti-arrow-down"></i>
+                    {% endif %}
+                {% endif %}
+            </a>
+        </th>
+
+        <th width="180" class="text-center table-head">
+            Actions
+        </th>
+
+    </tr>
+</thead>
+
+        <tbody id="standingTableBody">
+          {% for standing in standings %}
+          <tr>
+            <td>{{ standings.start_index|add:forloop.counter0 }}</td>
+
+            <td>
+    <strong
+        class="standing-name"
+        title="{{ standing.standing_name }}"
+    >
+        {{ standing.standing_name }}
+    </strong>
+</td>
+
+            <td>
+              <span class="badge bg-primary"> {{ standing.minimum_gpa }} </span>
+            </td>
+
+            <td>{{ standing.description }}</td>   
+
+         
+            <td class="text-center">
+              <div class="action-buttons">
+                <button
+    class="btn btn-sm btn-outline-primary edit-standing-btn"
+    data-bs-toggle="modal"
+    data-bs-target="#academicStandingModal"
+    data-id="{{ standing.standing_id }}"
+    data-name="{{ standing.standing_name }}"
+    data-gpa="{{ standing.minimum_gpa }}"
+    data-description="{{ standing.description }}"
+    {% if not standing.is_active %}disabled title="Inactive records cannot be edited"{% endif %}
+>
+    <i class="ti ti-edit"></i>
+</button>
+
+
+{% comment %} <form method="POST"
+    action="{% url 'academic_standing_delete' standing.standing_id %}"
+    class="delete-form"
+    style="display:inline;"
+>
+    {% csrf_token %}
+
+    <button
+        type="submit"
+        class="btn btn-sm btn-outline-danger"
+        title="Delete"
+    >
+        <i class="ti ti-trash"></i>
+    </button>
+</form> {% endcomment %}
+
+             {% if standing.is_active %}
+
+<form
+    method="POST"
+    action="{% url 'academic_standing_deactivate' standing.standing_id %}"
+    class="deactivate-form"
+    style="display:inline;"
+>
+    {% csrf_token %}
+
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-danger deactivate-btn"
+        data-standing-name="{{ standing.standing_name }}"
+        title="Deactivate"
+    >
+        <i class="ti ti-ban"></i>
+    </button>
+</form>
+
+{% else %}
+
+<form
+    method="POST"
+    action="{% url 'academic_standing_activate' standing.standing_id %}"
+    class="activate-form"
+>
+    {% csrf_token %}
+
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-success activate-btn"
+        title="Activate"
+    >
+        <i class="ti ti-plus"></i>
+    </button>
+</form>
+
+{% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state" data-aos="zoom-in">
+                <div class="empty-icon">
+                  <i class="ti ti-school"></i>
+                </div>
+
+                <h5>No Academic Standing Found</h5>
+
+                <p>Start by creating your first academic standing.</p>
+
+                <button
+                  class="btn btn-primary add-standing-btn"
+                  data-bs-toggle="modal"
+                  data-bs-target="#academicStandingModal"
+                >
+                  <i class="ti ti-plus"></i>
+                  Add Standing
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-footer">
+     <div>
+    Showing
+
+    <strong>{{ standings.start_index }}</strong>
+
+    to
+
+    <strong>{{ standings.end_index }}</strong>
+
+    of
+
+    <strong>{{ standings.paginator.count }}</strong>
+
+    entries
+</div>
+      <nav>
+    <ul class="pagination mb-0">
+
+        {% if standings.has_previous %}
+        <li class="page-item">
+            <a
+    class="page-link"
+    href="?page={{ standings.previous_page_number }}&search={{ search }}&sort={{ sort }}&order={{ order }}"
+>
+    Previous
+</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Previous</span>
+        </li>
+        {% endif %}
+
+        {% for page in standings.paginator.page_range %}
+
+        <li class="page-item {% if standings.number == page %}active{% endif %}">
+           <a
+    class="page-link"
+    href="?page={{ page }}&search={{ search }}&sort={{ sort }}&order={{ order }}"
+>
+    {{ page }}
+</a>
+        </li>
+
+        {% endfor %}
+
+        {% if standings.has_next %}
+        <li class="page-item">
+            <a
+    class="page-link"
+    href="?page={{ standings.next_page_number }}&search={{ search }}&sort={{ sort }}&order={{ order }}"
+>
+    Next
+</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Next</span>
+        </li>
+        {% endif %}
+
+    </ul>
+</nav>
+    </div>
+  </div>
+</div>
+
+<!-- Add Academic Standing Modal -->
+
+{% endblock %} {% block global_modal %}
+
+<div
+  class="modal fade"
+  id="academicStandingModal"
+  tabindex="-1"
+  aria-labelledby="academicStandingModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="academicStandingModalLabel">
+          <i class="ti ti-plus me-2" id="modalIcon"> </i>
+
+          <span id="modalTitle"> Add Academic Standing </span>
+        </h5>
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        <form
+          id="academicStandingForm"
+          method="POST"
+          action="{% url 'academic_standing_create' %}"
+          data-update-url="{% url 'academic_standing_update' 0 %}"
+          autocomplete="off"
+        >
+          {% csrf_token %}
+
+          <input type="hidden" id="standingId" name="standing_id" />
+          {% if form.errors %} 
+          {{ form.errors.get_json_data|json_script:"serverFormErrors" }} 
+          {% endif %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="standingName" class="form-label">
+                Standing Name
+              </label>
+
+              <input
+    type="text"
+    id="standingName"
+    name="standing_name"
+    class="form-control"
+    placeholder="Enter Standing Name"
+    value="{{ form.standing_name.value|default:'' }}"
+    required
+/>
+
+              <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="minimumGpa" class="form-label"> Minimum GPA </label>
+
+            <input
+    type="number"
+    id="minimumGpa"
+    name="minimum_gpa"
+    class="form-control"
+    placeholder="Example: 3.75"
+    value="{{ form.minimum_gpa.value|default:'' }}"
+    step="0.01"
+    min="0"
+    max="4"
+    required
+/>
+
+              <div class="invalid-feedback"></div>
+            </div>
+
+            <div class="col-12">
+              <label for="description" class="form-label"> Description </label>
+
+              <textarea
+                id="description"
+                name="description"
+                class="form-control"
+                rows="4"
+                placeholder="Enter Description"
+                required
+              >
+{{ form.description.value|default:'' }}</textarea
+              >
+
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          form="academicStandingForm"
+          id="saveStandingBtn"
+          class="btn btn-primary"
+        >
+          <i class="ti ti-device-floppy" id="saveIcon"> </i>
+
+          <span id="saveText"> Save Standing </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div
+    class="modal fade"
+    id="deactivateModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+               <h5 class="modal-title">
+    <i class="ti ti-alert-circle me-2 text-warning"></i>
+    Confirm Action
+</h5>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
+
+            </div>
+
+            <div class="modal-body text-center">
+
+                <i class="ti ti-alert-circle fs-1 text-warning mb-3"></i>
+
+                <p>
+    Are you sure you want to deactivate
+</p>
+
+<div id="deactivateStandingName"></div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    data-bs-dismiss="modal"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    id="confirmDeactivateBtn"
+                >
+                    Confirm
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %} {% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="{% static 'script/Leo_admin/academic_standing.js' %}"></script>
+
+
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="announce-page" data-aos="fade-up" role="main">
+
+        <header class="announce-page-header">
+            <div class="announce-page-heading">
+                <h1 class="announce-page-title">Announcements</h1>
+                <p class="announce-page-subtitle">Manage messages shown on the website and dashboard.</p>
+            </div>
+            {% if create_announcement %}
+                <a href="{% url 'Password:announcement_create' %}" class="announce-btn announce-btn-primary" aria-label="Create new announcement">
+                    <i data-lucide="plus" aria-hidden="true"></i>
+                    <span>New Announcement</span>
+                </a>
+            {% endif %}
+        </header>
+
+        <section class="announce-stats-row" aria-label="Announcement statistics">
+            <article class="announce-stat-card announce-stat-total">
+                <div class="announce-stat-icon" aria-hidden="true"><i data-lucide="megaphone"></i></div>
+                <div class="announce-stat-text">
+                    <span class="announce-stat-label">Total</span>
+                    <span class="announce-stat-value">{{ stats.total }}</span>
+                </div>
+            </article>
+            <article class="announce-stat-card announce-stat-active">
+                <div class="announce-stat-icon" aria-hidden="true"><i data-lucide="check-circle-2"></i></div>
+                <div class="announce-stat-text">
+                    <span class="announce-stat-label">Active</span>
+                    <span class="announce-stat-value">{{ stats.active }}</span>
+                </div>
+            </article>
+            <article class="announce-stat-card announce-stat-scheduled">
+                <div class="announce-stat-icon" aria-hidden="true"><i data-lucide="clock"></i></div>
+                <div class="announce-stat-text">
+                    <span class="announce-stat-label">Scheduled</span>
+                    <span class="announce-stat-value">{{ stats.scheduled }}</span>
+                </div>
+            </article>
+            <article class="announce-stat-card announce-stat-disabled">
+                <div class="announce-stat-icon" aria-hidden="true"><i data-lucide="pause-circle"></i></div>
+                <div class="announce-stat-text">
+                    <span class="announce-stat-label">Disabled</span>
+                    <span class="announce-stat-value">{{ stats.disabled }}</span>
+                </div>
+            </article>
+        </section>
+
+        <div class="announce-toolbar">
+            <div class="announce-filter-bar" role="tablist" aria-label="Filter by visibility">
+                <a href="{% url 'Password:announcement_list' %}"
+                   class="announce-filter-chip{% if not visibility_filter %} active{% endif %}"
+                   role="tab"
+                   aria-selected="{% if not visibility_filter %}true{% else %}false{% endif %}">
+                    All
+                </a>
+                <a href="?visibility=website"
+                   class="announce-filter-chip{% if visibility_filter == 'website' %} active{% endif %}"
+                   role="tab"
+                   aria-selected="{% if visibility_filter == 'website' %}true{% else %}false{% endif %}">
+                    <i data-lucide="globe" aria-hidden="true"></i>
+                    <span>Website</span>
+                </a>
+                <a href="?visibility=dashboard"
+                   class="announce-filter-chip{% if visibility_filter == 'dashboard' %} active{% endif %}"
+                   role="tab"
+                   aria-selected="{% if visibility_filter == 'dashboard' %}true{% else %}false{% endif %}">
+                    <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="?visibility=both"
+                   class="announce-filter-chip{% if visibility_filter == 'both' %} active{% endif %}"
+                   role="tab"
+                   aria-selected="{% if visibility_filter == 'both' %}true{% else %}false{% endif %}">
+                    <i data-lucide="layers" aria-hidden="true"></i>
+                    <span>Both</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="announce-grid" role="list">
+            {% for a in announcements %}
+            <article class="announce-card announce-card-{{ a.priority }}" data-id="{{ a.pk }}" role="listitem">
+                <div class="announce-card-status-col">
+                    <span class="announce-status announce-status-{{ a.status }}" role="status">{{ a.status|title }}</span>
+                    {% if a.is_pinned %}
+                        <span class="announce-pin-badge" data-bs-title="Pinned" aria-label="This announcement is pinned">
+                            <i data-lucide="pin" class="announce-pin-icon" aria-hidden="true"></i>
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="announce-card-main">
+                    <h3 class="announce-card-title">{{ a.title }}</h3>
+                    <p class="announce-card-message">{{ a.message|truncatewords:20 }}</p>
+
+                    <div class="announce-card-meta">
+                        <span class="announce-visibility-pill" aria-label="Visibility: {% if a.visibility == 'website' %}Website{% elif a.visibility == 'dashboard' %}Dashboard{% else %}Both{% endif %}">
+                            {% if a.visibility == 'website' %}
+                                <i data-lucide="globe" aria-hidden="true"></i> <span>Website</span>
+                            {% elif a.visibility == 'dashboard' %}
+                                <i data-lucide="layout-dashboard" aria-hidden="true"></i> <span>Dashboard</span>
+                            {% else %}
+                                <i data-lucide="layers" aria-hidden="true"></i> <span>Both</span>
+                            {% endif %}
+                        </span>
+                        <span class="announce-priority-pill announce-priority-{{ a.priority }}" aria-label="Priority: {{ a.get_priority_display }}">
+                            <span class="announce-priority-dot"></span>
+                            <span>{{ a.get_priority_display }}</span>
+                        </span>
+                    </div>
+
+                    <div class="announce-card-dates" aria-label="Announcement dates">
+                        <span><i data-lucide="calendar" aria-hidden="true"></i> <time datetime="{{ a.start_date|date:'c' }}">{{ a.start_date|date:"d M Y, H:i" }}</time></span>
+                        {% if a.end_date %}
+                            <span><i data-lucide="calendar-x" aria-hidden="true"></i> <time datetime="{{ a.end_date|date:'c' }}">{{ a.end_date|date:"d M Y, H:i" }}</time></span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if create_announcement or edit_announcement %}
+                    <div class="announce-card-actions">
+                        <button type="button"
+                                class="announce-btn-icon announce-toggle-btn"
+                                data-url="{% url 'Password:announcement_toggle' a.pk %}"
+                                data-bs-title="{% if a.is_active %}Disable{% else %}Enable{% endif %}"
+                                aria-label="{% if a.is_active %}Disable{% else %}Enable{% endif %} announcement">
+                            <i data-lucide="{% if a.is_active %}toggle-right{% else %}toggle-left{% endif %}" aria-hidden="true"></i>
+                        </button>
+                        {% if edit_announcement %} 
+                        <a href="{% url 'Password:announcement_edit' a.pk %}" class="announce-btn-icon" data-bs-title="Edit" aria-label="Edit announcement">
+                            <i data-lucide="pencil" aria-hidden="true"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </article>
+            {% empty %}
+            <div class="announce-empty-state" role="status">
+                <div class="announce-empty-illustration" aria-hidden="true">
+                    <i data-lucide="megaphone"></i>
+                </div>
+                <h3 class="announce-empty-title">No announcements yet</h3>
+                <p class="announce-empty-text">Create your first announcement to share updates with students and staff.</p>
+                <a href="{% url 'Password:announcement_create' %}" class="announce-btn announce-btn-primary">
+                    <i data-lucide="plus" aria-hidden="true"></i>
+                    <span>Create announcement</span>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+        <nav class="announce-pagination" aria-label="Pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="announce-btn-icon" aria-label="Previous page"><i data-lucide="chevron-left" aria-hidden="true"></i></a>
+            {% endif %}
+            <span class="announce-pagination-info" role="status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="announce-btn-icon" aria-label="Next page"><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            {% endif %}
+        </nav>
+        {% endif %}
+
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        if (!document.querySelector('link[href*="responsive.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '{% static "css/responsive.css" %}';
+            document.head.appendChild(link);
+        }
+
+        document.documentElement.style.overflowX = 'hidden';
+        document.body.style.overflowX = 'hidden';
+    </script>
+{% endblock %}

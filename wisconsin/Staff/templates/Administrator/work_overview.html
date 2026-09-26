@@ -1,0 +1,317 @@
+
+<!-- ********************************************** Arun code **************************************************** -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Work Overview — Staff Portal{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'Administrator/work_overview.css' %}">{% endblock %}
+
+{% block nav_admin_open %}open{% endblock %}
+{% block nav_admin_submenu %}open{% endblock %}
+{% block nav_work %}active{% endblock %}
+
+{% block content %}
+<!-- ══════════════════════════
+     PAGE HEADER
+══════════════════════════ -->
+<div class="wo-page-header" data-aos="fade-down">
+  <div>
+    <h1>Work Overview</h1>
+    <p>Your training, leave, certifications, and access at a glance.</p>
+  </div>
+  <div class="wo-header-actions">
+    <a href="{% url 'staff_leave_dashboard' uuid=user.uuid %}" class="wo-btn wo-btn-ghost text-decoration-none">
+      <i class="ti ti-calendar-plus"></i>
+      <span>Request Leave</span>
+    </a>
+    <a href="{% url 'staff_profile_settings' uuid=user.uuid %}" class="wo-btn wo-btn-primary text-decoration-none">
+      <i class="ti ti-user-edit"></i>
+      <span>Edit Profile</span>
+    </a>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     KPI STRIP
+══════════════════════════ -->
+<div class="wo-kpi-strip" data-aos="fade-up" data-aos-delay="50">
+
+  <div class="wo-kpi-card">
+    <div class="wo-kpi-top">
+      <span class="wo-kpi-icon green"><i class="ti ti-certificate"></i></span>
+      <span class="wo-kpi-label">Trainings Completed</span>
+    </div>
+    <div class="wo-kpi-value counter" data-target="{{ training_completed }}">0</div>
+    <div class="wo-kpi-sub"><span class="neutral">{{ training_in_progress }}</span> in progress</div>
+  </div>
+
+  <div class="wo-kpi-card">
+    <div class="wo-kpi-top">
+      <span class="wo-kpi-icon blue"><i class="ti ti-award"></i></span>
+      <span class="wo-kpi-label">Active Certifications</span>
+    </div>
+    <div class="wo-kpi-value counter" data-target="{{ certs_active }}">0</div>
+    {% if certs_expiring_soon %}
+      <div class="wo-kpi-sub"><span class="down">{{ certs_expiring_soon }}</span> expiring within 60 days</div>
+    {% else %}
+      <div class="wo-kpi-sub"><span class="neutral">—</span> none expiring soon</div>
+    {% endif %}
+  </div>
+
+  <div class="wo-kpi-card">
+    <div class="wo-kpi-top">
+      <span class="wo-kpi-icon orange"><i class="ti ti-hourglass"></i></span>
+      <span class="wo-kpi-label">My Pending Leave</span>
+    </div>
+    <div class="wo-kpi-value counter" data-target="{{ leave_pending }}">0</div>
+    <div class="wo-kpi-sub"><span class="up">{{ leave_approved }}</span> approved to date</div>
+  </div>
+
+  <div class="wo-kpi-card">
+    <div class="wo-kpi-top">
+      <span class="wo-kpi-icon red"><i class="ti ti-clipboard-check"></i></span>
+      <span class="wo-kpi-label">Approvals Awaiting You</span>
+    </div>
+    <div class="wo-kpi-value counter" data-target="{{ approvals_needed_count }}">0</div>
+    <div class="wo-kpi-sub"><span class="neutral">—</span> faculty & student leave</div>
+  </div>
+
+  <div class="wo-kpi-card">
+    <div class="wo-kpi-top">
+      <span class="wo-kpi-icon purple"><i class="ti ti-shield-lock"></i></span>
+      <span class="wo-kpi-label">Active Access Roles</span>
+    </div>
+    <div class="wo-kpi-value counter" data-target="{{ access_roles.count }}">0</div>
+    <div class="wo-kpi-sub"><span class="neutral">{{ team_members_active }}</span> active staff org-wide</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════
+     WORK PROFILE GRID
+══════════════════════════ -->
+<div class="wo-section-label" data-aos="fade-up" data-aos-delay="80">
+  <i class="ti ti-layout-grid"></i>
+  <span>My Work Profile</span>
+</div>
+
+<div class="wo-bottom-grid">
+
+  <!-- Training & Development -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-school"></i> Training & Development</span>
+      <a class="wo-widget-link" href="#">View all</a>
+    </div>
+    <div class="wo-activity-list">
+      {% for t in recent_training %}
+        <div class="wo-activity-item">
+          <div class="wo-act-icon {% if t.training_status == 'COMPLETED' %}green{% elif t.training_status == 'IN_PROGRESS' %}blue{% elif t.training_status == 'CANCELLED' %}red{% else %}orange{% endif %}">
+            <i class="ti {% if t.training_status == 'COMPLETED' %}ti-circle-check{% elif t.training_status == 'IN_PROGRESS' %}ti-loader{% else %}ti-clock{% endif %}"></i>
+          </div>
+          <div class="wo-act-body">
+            <div class="wo-act-text"><strong>{{ t.training_title }}</strong> — {{ t.get_training_status_display }}</div>
+            <div class="wo-act-time">
+              {{ t.provider|default:"Provider not specified" }}
+              {% if t.completion_date %} · completed {{ t.completion_date }}{% endif %}
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="wo-act-time">No training records yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- My Leave Requests -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-calendar-event"></i> My Leave Requests</span>
+      <a class="wo-widget-link" href="{% url 'staff_leave_dashboard' uuid=user.uuid %}">Manage leave</a>
+    </div>
+    <div class="wo-overdue-list">
+      {% for l in recent_leave %}
+        <div class="wo-overdue-item">
+          <div class="wo-overdue-dot {% if l.status == 'pending' %}medium{% elif l.status == 'approved' %}low{% else %}high{% endif %}"></div>
+          <div class="wo-overdue-body">
+            <div class="wo-overdue-name">{{ l.leave_type.name }}</div>
+            <div class="wo-overdue-meta">{{ l.start_date }} → {{ l.end_date }}</div>
+          </div>
+          <span class="wo-chip {% if l.status == 'pending' %}medium{% elif l.status == 'approved' %}low{% else %}high{% endif %}">
+            {{ l.display_status }}
+          </span>
+        </div>
+      {% empty %}
+        <div class="wo-overdue-meta">No leave requests on file.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Approvals Awaiting You -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-clipboard-check"></i> Approvals Awaiting You</span>
+      <a class="wo-widget-link" href="{% url 'staff_requests' uuid=user.uuid %}">View all</a>
+    </div>
+    <div class="wo-overdue-list">
+      {% for f in pending_faculty_leave %}
+        <a href="{% url 'staff_faculty_leave_detail' uuid=user.uuid leave_id=f.id %}" style="text-decoration:none; color:inherit; display:contents;">
+          <div class="wo-overdue-item">
+            <div class="wo-overdue-dot medium"></div>
+            <div class="wo-overdue-body">
+              <div class="wo-overdue-name">{{ f.faculty.get_full_name|default:"Faculty" }} — {{ f.leave_type.name }}</div>
+              <div class="wo-overdue-meta">{{ f.start_date }} → {{ f.end_date }}</div>
+            </div>
+            <span class="wo-chip medium">Faculty</span>
+          </div>
+        </a>
+      {% endfor %}
+      {% for s in pending_student_leave %}
+        <a href="{% url 'staff_student_leave_detail' uuid=user.uuid leave_id=s.id %}" style="text-decoration:none; color:inherit; display:contents;">
+          <div class="wo-overdue-item">
+            <div class="wo-overdue-dot medium"></div>
+            <div class="wo-overdue-body">
+              <div class="wo-overdue-name">{{ s.student.get_full_name }} — {{ s.leave_type.name }}</div>
+              <div class="wo-overdue-meta">{{ s.start_date }} → {{ s.end_date }}</div>
+            </div>
+            <span class="wo-chip medium">Student</span>
+          </div>
+        </a>
+      {% endfor %}
+      {% if not pending_faculty_leave and not pending_student_leave %}
+        <div class="wo-overdue-meta">Nothing awaiting your approval.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Certifications -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-award"></i> Certifications</span>
+      <a class="wo-widget-link" href="#">View all</a>
+    </div>
+    <div class="wo-overdue-list">
+      {% for c in upcoming_cert_expirations %}
+        <div class="wo-overdue-item">
+          <div class="wo-overdue-dot {% if c.is_urgent %}high{% else %}low{% endif %}"></div>
+          <div class="wo-overdue-body">
+            <div class="wo-overdue-name">{{ c.certification_name }}</div>
+            <div class="wo-overdue-meta">{{ c.issuing_organization }} · expires {{ c.expiration_date }}</div>
+          </div>
+          <span class="wo-chip {% if c.is_urgent %}high{% else %}low{% endif %}">
+            {% if c.is_urgent %}Expiring{% else %}Active{% endif %}
+          </span>
+        </div>
+      {% empty %}
+        <div class="wo-overdue-meta">No certifications expiring soon.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Resource Library (replaces Document Verification) -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-folder"></i> Resource Library</span>
+      <a class="wo-widget-link" href="{% url 'staff_downloads' uuid=user.uuid %}">View all ({{ total_resources }})</a>
+    </div>
+    <div class="wo-activity-list">
+      {% for r in recent_resources %}
+        <div class="wo-activity-item">
+          <div class="wo-act-icon blue"><i class="ti ti-file"></i></div>
+          <div class="wo-act-body">
+            <div class="wo-act-text"><strong>{{ r.title }}</strong> — {{ r.get_resource_type_display }}</div>
+            <div class="wo-act-time">v{{ r.version }} · {{ r.uploaded_at|date:"M d, Y" }} · {{ r.file_size_display }}</div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="wo-act-time">No resources uploaded yet. <a href="{% url 'staff_downloads' uuid=user.uuid %}">Upload one</a>.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Access & Security Roles -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-shield-lock"></i> Access & Security Roles</span>
+      <a class="wo-widget-link" href="{% url 'staff_account_security' uuid=user.uuid %}">Manage security</a>
+    </div>
+    <div class="wo-workload-list">
+      {% for r in access_roles %}
+        <div class="wo-workload-item">
+          <div class="wo-wl-avatar"><i class="ti ti-key"></i></div>
+          <div class="wo-wl-body">
+            <div class="wo-wl-name">{{ r.get_system_role_display }}</div>
+            <div class="wo-wl-bar-track"><div class="wo-wl-bar" style="width:100%"></div></div>
+          </div>
+          <span class="wo-wl-count">since {{ r.assigned_date }}</span>
+        </div>
+      {% empty %}
+        <div class="wo-wl-name">No active access roles assigned.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Team Snapshot -->
+  <div class="wo-widget">
+    <div class="wo-widget-header">
+      <span class="wo-widget-title"><i class="ti ti-users"></i> Team Snapshot</span>
+      <a class="wo-widget-link" href="#">Directory</a>
+    </div>
+    <div class="wo-activity-list">
+      <div class="wo-activity-item">
+        <div class="wo-act-icon green"><i class="ti ti-user-check"></i></div>
+        <div class="wo-act-body">
+          <div class="wo-act-text"><strong>{{ team_members_active }}</strong> active staff</div>
+          <div class="wo-act-time">out of {{ team_total }} total</div>
+        </div>
+      </div>
+      <div class="wo-activity-item">
+        <div class="wo-act-icon orange"><i class="ti ti-beach"></i></div>
+        <div class="wo-act-body">
+          <div class="wo-act-text"><strong>{{ team_on_leave }}</strong> currently on leave</div>
+        </div>
+      </div>
+      {% if latest_review %}
+        <div class="wo-activity-item">
+          <div class="wo-act-icon blue"><i class="ti ti-report"></i></div>
+          <div class="wo-act-body">
+            <div class="wo-act-text">Last review: <strong>{{ latest_review.get_performance_rating_display }}</strong></div>
+            <div class="wo-act-time">{{ latest_review.review_period }} · {{ latest_review.review_date }}</div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function animateCounters() {
+    document.querySelectorAll('.counter').forEach(counter => {
+      const target = Number(counter.dataset.target);
+      let current = 0;
+      const duration = 1200;
+      const increment = target / (duration / 16) || 1;
+
+      function update() {
+        current += increment;
+        if (current < target) {
+          counter.textContent = Math.floor(current);
+          requestAnimationFrame(update);
+        } else {
+          counter.textContent = target;
+        }
+      }
+      update();
+    });
+  }
+  window.addEventListener('load', animateCounters);
+</script>
+{% endblock %}
+
+
+<!-- ********************************************** Arun code **************************************************** -->

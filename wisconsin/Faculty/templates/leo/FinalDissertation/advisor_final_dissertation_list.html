@@ -1,0 +1,494 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Final Dissertation Reviews | Faculty Portal{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/leo/FinalDissertation/advisor_final_dissertation_list.css' %}">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+{% block content %}
+    <div class="afd-page">
+        <section class="afd-hero">
+            <div class="afd-hero-shape afd-hero-shape-one"></div>
+            <div class="afd-hero-shape afd-hero-shape-two"></div>
+            <div class="afd-hero-inner">
+                {% comment %} <div class="afd-breadcrumb">
+                    <a href="{% url 'faculty_dashboard' uuid=faculty.user.uuid %}">Faculty Dashboard</a>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Final Dissertation</span>
+                </div> {% endcomment %}
+                <div class="afd-heading-row">
+                    <div class="afd-heading-icon">
+                        <i class="ti ti-file-certificate"></i>
+                    </div>
+                    <div class="afd-heading-copy">
+                        <span class="afd-eyebrow">PHD FINAL STAGE</span>
+                        <h1>Final Dissertation Reviews</h1>
+                        <p>
+                            Review final dissertation submissions assigned to you
+                            and complete your advisor evaluation.
+                        </p>
+                    </div>
+                </div>
+                <div class="afd-summary-strip">
+                    <div class="afd-summary-item">
+                        <div class="afd-summary-icon">
+                            <i class="ti ti-users"></i>
+                        </div>
+                        <div class="afd-summary-copy">
+                            <strong>{{ total_submissions|default:0 }}</strong>
+                            <span>Students</span>
+                        </div>
+                    </div>
+                    <div class="afd-summary-item">
+                        <div class="afd-summary-icon">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                        <div class="afd-summary-copy">
+                            <strong>{{ pending_count|default:0 }}</strong>
+                            <span>Awaiting Review</span>
+                        </div>
+                    </div>
+                    <div class="afd-summary-item">
+                        <div class="afd-summary-icon">
+                            <i class="ti ti-circle-check"></i>
+                        </div>
+                        <div class="afd-summary-copy">
+                            <strong>{{ evaluated_count|default:0 }}</strong>
+                            <span>Evaluated</span>
+                        </div>
+                    </div>
+                    <div class="afd-summary-item">
+                        <div class="afd-summary-icon">
+                            <i class="ti ti-award"></i>
+                        </div>
+                        <div class="afd-summary-copy">
+                            <strong>{{ approved_count|default:0 }}</strong>
+                            <span>Approved</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <main class="afd-content">
+            <section class="afd-filter-card">
+                <div class="afd-filter-head">
+                    <div class="afd-filter-title">
+                        <span class="afd-section-label">REVIEW QUEUE</span>
+                        <h2>Final Dissertation Submissions</h2>
+                        <p>Find and review the latest dissertation submission for each student.</p>
+                    </div>
+                    <div class="afd-filter-count">
+                        <strong>{{ total_submissions|default:0 }}</strong>
+                        <span>students</span>
+                    </div>
+                </div>
+                <form method="get" class="afd-filters" id="afdFilterForm">
+                    <div class="afd-filter-field afd-search-field">
+                        <label for="afdSearch">Search</label>
+                        <div class="afd-input-wrap">
+                            <i class="ti ti-search"></i>
+                            <input type="text"
+                                   id="afdSearch"
+                                   name="search"
+                                   value="{{ search|default:'' }}"
+                                   placeholder="Student name, ID or program"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="afd-filter-field afd-status-field">
+                        <label for="afdStatus">Status</label>
+                        <select id="afdStatus" name="status" class="afd-choice">
+                            <option value="">All statuses</option>
+                            <option value="ADVISOR_REVIEW"
+                                    {% if request.GET.status == "ADVISOR_REVIEW" %}selected{% endif %}>
+                                Advisor Review
+                            </option>
+                            <option value="COMMITTEE_EVALUATION"
+                                    {% if request.GET.status == "COMMITTEE_EVALUATION" %}selected{% endif %}>
+                                Committee Evaluation
+                            </option>
+                            <option value="CHAIR_REVIEW"
+                                    {% if request.GET.status == "CHAIR_REVIEW" %}selected{% endif %}>
+                                Chair Review
+                            </option>
+                            <option value="APPROVED"
+                                    {% if request.GET.status == "APPROVED" %}selected{% endif %}>Approved</option>
+                            <option value="REVISION_REQUIRED"
+                                    {% if request.GET.status == "REVISION_REQUIRED" %}selected{% endif %}>
+                                Revision Required
+                            </option>
+                            <option value="REJECTED"
+                                    {% if request.GET.status == "REJECTED" %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    <div class="afd-filter-field afd-date-field">
+                        <label for="afdDate">Submission Date</label>
+                        <div class="afd-input-wrap afd-date-wrap" id="afdDateWrap">
+                            <i class="ti ti-calendar-event"></i>
+                            <input type="text"
+                                   id="afdDate"
+                                   name="date"
+                                   value="{{ selected_date|default:'' }}"
+                                   placeholder="Select date"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="afd-filter-actions">
+                        <button type="submit" class="afd-filter-submit" id="afdFilterSubmit">
+                            <i class="ti ti-adjustments-horizontal"></i>
+                            <span>Apply Filters</span>
+                        </button>
+                        <a href="{% url 'faculty_advisor_final_dissertation_list' uuid=faculty.user.uuid %}"
+                           class="afd-filter-reset"
+                           id="afdReset">
+                            <i class="ti ti-refresh"></i>
+                            <span>Reset</span>
+                        </a>
+                    </div>
+                </form>
+            </section>
+            <section class="afd-list-section">
+                {% if submissions %}
+                    <div class="afd-list-head">
+                        <div>
+                            <span class="afd-section-label">SUBMISSIONS</span>
+                            <h2>Advisor Review Queue</h2>
+                        </div>
+                        <div class="afd-list-meta">
+                            <i class="ti ti-users"></i>
+                            <span>
+                                {{ submissions|length }}
+                                student{{ submissions|length|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="afd-submission-list">
+                        {% for submission in submissions %}
+                            <article class="afd-submission-card">
+                                <div class="afd-card-accent"></div>
+                                <div class="afd-card-main">
+                                    <div class="afd-student-block">
+                                        <div class="afd-avatar">
+                                            {% if submission.phd_student.student.user.first_name %}
+                                                {{ submission.phd_student.student.user.first_name|slice:":1"|upper }}
+                                            {% else %}
+                                                <i class="ti ti-user"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="afd-student-copy">
+                                            <span class="afd-card-eyebrow">LATEST SUBMISSION</span>
+                                            <h3>
+                                                {% if submission.phd_student.student.user.get_full_name %}
+                                                    {{ submission.phd_student.student.user.get_full_name }}
+                                                {% else %}
+                                                    PhD Student
+                                                {% endif %}
+                                            </h3>
+                                            <div class="afd-student-meta">
+                                                <span>
+                                                    <i class="ti ti-id"></i>
+                                                    {{ submission.phd_student.student.student_number|default:"Student ID unavailable" }}
+                                                </span>
+                                                <span>
+                                                    <i class="ti ti-school"></i>
+                                                    {{ submission.phd_student.phd_program|default:"PhD Program" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="afd-submission-info">
+                                        <div class="afd-info-item">
+                                            <span>LATEST VERSION</span>
+                                            <strong>Submission {{ submission.submission_number }}</strong>
+                                        </div>
+                                        <div class="afd-info-item">
+                                            <span>SUBMITTED</span>
+                                            <strong>
+                                                {% if submission.submitted_at %}
+                                                    {{ submission.submitted_at|date:"M d, Y" }}
+                                                {% elif submission.submission_date %}
+                                                    {{ submission.submission_date|date:"M d, Y" }}
+                                                {% else %}
+                                                    Not available
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                        <div class="afd-info-item">
+                                            <span>RESUBMISSION</span>
+                                            <strong>{{ submission.resubmission_count|default:0 }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="afd-status-column">
+                                        {% if submission.status == "ADVISOR_REVIEW" %}
+                                            <span class="afd-status afd-status-pending">
+                                                <i class="ti ti-clock"></i>
+                                                Advisor Review
+                                            </span>
+                                        {% elif submission.status == "COMMITTEE_EVALUATION" %}
+                                            <span class="afd-status afd-status-info">
+                                                <i class="ti ti-users"></i>
+                                                Committee Evaluation
+                                            </span>
+                                        {% elif submission.status == "CHAIR_REVIEW" %}
+                                            <span class="afd-status afd-status-info">
+                                                <i class="ti ti-gavel"></i>
+                                                Chair Review
+                                            </span>
+                                        {% elif submission.status == "APPROVED" %}
+                                            <span class="afd-status afd-status-success">
+                                                <i class="ti ti-circle-check"></i>
+                                                Approved
+                                            </span>
+                                        {% elif submission.status == "REVISION_REQUIRED" %}
+                                            <span class="afd-status afd-status-warning">
+                                                <i class="ti ti-refresh"></i>
+                                                Revision Required
+                                            </span>
+                                        {% elif submission.status == "REJECTED" %}
+                                            <span class="afd-status afd-status-danger">
+                                                <i class="ti ti-circle-x"></i>
+                                                Rejected
+                                            </span>
+                                        {% else %}
+                                            <span class="afd-status afd-status-neutral">
+                                                <i class="ti ti-progress"></i>
+                                                {{ submission.status|cut:"_"|title }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="afd-card-footer">
+                                    <div class="afd-file-area">
+                                        <div class="afd-file-icon">
+                                            <i class="ti ti-file-type-pdf"></i>
+                                        </div>
+                                        <div class="afd-file-copy">
+                                            <strong>Final Dissertation</strong>
+                                            <span>Latest submitted manuscript</span>
+                                        </div>
+                                    </div>
+                                    <div class="afd-card-actions">
+                                        <a href="{% url 'faculty_advisor_final_dissertation_detail' uuid=faculty.user.uuid submission_id=submission.submission_id %}"
+                                           class="afd-action-secondary">
+                                            <span>View Details</span>
+                                            <i class="ti ti-arrow-up-right"></i>
+                                        </a>
+                                        {% if submission.can_evaluate %}
+                                            <a href="{% url 'faculty_advisor_final_dissertation_evaluate' uuid=faculty.user.uuid submission_id=submission.submission_id %}"
+                                               class="afd-action-primary"
+                                               data-evaluate-link="true">
+                                                <i class="ti ti-clipboard-check"></i>
+                                                <span>Evaluate</span>
+                                            </a>
+                                        {% elif submission.evaluation_submitted %}
+                                            <a href="{% url 'faculty_advisor_final_dissertation_evaluation_detail' uuid=faculty.user.uuid submission_id=submission.submission_id evaluation_id=submission.advisor_evaluation.evaluation_id %}"
+                                               class="afd-action-secondary">
+                                                <i class="ti ti-eye"></i>
+                                                <span>View Evaluation</span>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="afd-empty-state">
+                        <div class="afd-empty-icon">
+                            <i class="ti ti-file-off"></i>
+                        </div>
+                        <span class="afd-section-label">NO SUBMISSIONS FOUND</span>
+                        <h2>No final dissertations in your queue</h2>
+                        <p>
+                            There are currently no final dissertation submissions
+                            matching your review criteria.
+                        </p>
+                        <a href="{% url 'faculty_advisor_final_dissertation_list' uuid=faculty.user.uuid %}"
+                           class="afd-empty-action">
+                            <i class="ti ti-refresh"></i>
+                            Clear Filters
+                        </a>
+                    </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const statusSelect = document.getElementById("afdStatus");
+    const dateInput = document.getElementById("afdDate");
+    const dateWrap = document.getElementById("afdDateWrap");
+    const searchInput = document.getElementById("afdSearch");
+    const filterForm = document.getElementById("afdFilterForm");
+    const filterSubmit = document.getElementById("afdFilterSubmit");
+    const resetButton = document.getElementById("afdReset");
+    const evaluateLinks = document.querySelectorAll("[data-evaluate-link]");
+
+    let statusChoices = null;
+    let datePicker = null;
+
+    if (
+        statusSelect &&
+        typeof Choices !== "undefined"
+    ) {
+        statusChoices = new Choices(statusSelect, {
+            searchEnabled: false,
+            shouldSort: false,
+            itemSelectText: "",
+            allowHTML: false,
+            removeItemButton: false,
+            placeholder: true,
+            placeholderValue: "All statuses",
+            position: "bottom",
+            searchChoices: false,
+            closeOnSelect: true,
+            resetScrollPosition: false,
+            shouldSortItems: false
+        });
+    }
+
+    if (
+        dateInput &&
+        dateWrap &&
+        typeof flatpickr !== "undefined"
+    ) {
+        datePicker = flatpickr(dateInput, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altInputClass: "afd-date-display",
+            altFormat: "M d, Y",
+            allowInput: false,
+            disableMobile: true,
+            maxDate: "today",
+            appendTo: dateWrap,
+            positionElement: dateInput,
+            position: "auto",
+            static: false,
+            monthSelectorType: "static",
+            yearSelectorType: "static",
+            clickOpens: true,
+            closeOnSelect: true,
+            animate: false
+        });
+    }
+
+    if (filterForm) {
+        filterForm.addEventListener("submit", function () {
+
+            if (filterSubmit) {
+                filterSubmit.disabled = true;
+                filterSubmit.classList.add("is-loading");
+
+                const text = filterSubmit.querySelector("span");
+
+                if (text) {
+                    text.textContent = "Applying...";
+                }
+            }
+        });
+    }
+
+    if (resetButton) {
+        resetButton.addEventListener("click", function (event) {
+
+            const hasSearch =
+                searchInput &&
+                searchInput.value.trim().length > 0;
+
+            const hasStatus =
+                statusSelect &&
+                statusSelect.value !== "";
+
+            const hasDate =
+                dateInput &&
+                dateInput.value !== "";
+
+            if (
+                !hasSearch &&
+                !hasStatus &&
+                !hasDate
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            Swal.fire({
+                title: "Clear filters?",
+                text: "Your current search and filter selections will be removed.",
+                icon: "question",
+                showCancelButton: true,
+                showConfirmButton: true,
+                confirmButtonText: "Clear Filters",
+                cancelButtonText: "Keep Filters",
+                reverseButtons: true,
+                buttonsStyling: false,
+                allowOutsideClick: true,
+                allowEscapeKey: true,
+                customClass: {
+                    popup: "afd-swal-popup",
+                    title: "afd-swal-title",
+                    htmlContainer: "afd-swal-text",
+                    confirmButton: "afd-swal-confirm",
+                    cancelButton: "afd-swal-cancel"
+                }
+            }).then(function (result) {
+
+                if (result.isConfirmed) {
+                    window.location.href = resetButton.href;
+                }
+
+            });
+        });
+    }
+
+    evaluateLinks.forEach(function (link) {
+
+        link.addEventListener("click", function (event) {
+
+            event.preventDefault();
+
+            const target = this.href;
+
+            Swal.fire({
+                title: "Begin evaluation?",
+                text: "You are about to review the latest final dissertation submission for this student.",
+                icon: "info",
+                showCancelButton: true,
+                showConfirmButton: true,
+                confirmButtonText: "Continue",
+                cancelButtonText: "Cancel",
+                reverseButtons: true,
+                buttonsStyling: false,
+                allowOutsideClick: true,
+                allowEscapeKey: true,
+                customClass: {
+                    popup: "afd-swal-popup",
+                    title: "afd-swal-title",
+                    htmlContainer: "afd-swal-text",
+                    confirmButton: "afd-swal-confirm",
+                    cancelButton: "afd-swal-cancel"
+                }
+            }).then(function (result) {
+
+                if (result.isConfirmed) {
+                    window.location.href = target;
+                }
+
+            });
+        });
+    });
+
+});
+    </script>
+{% endblock %}

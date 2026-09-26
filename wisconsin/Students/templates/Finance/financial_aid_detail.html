@@ -1,0 +1,283 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}Financial Aid Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Breadcrumb -->
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'Student:student_dashboard' aid.student.user.uuid %}">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        
+                        <a href="{% url 'Student:student_financial_aid' aid.student.user.uuid %}">Financial Aid</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        Application #{{ aid.id }}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Main Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Financial Aid Application
+                    </h4>
+                    <span class="badge 
+                        {% if aid.status == 'approved' %}bg-success
+                        {% elif aid.status == 'rejected' %}bg-danger
+                        {% elif aid.status == 'pending' %}bg-warning
+                        {% else %}bg-secondary{% endif %} 
+                        fs-6">
+                        {{ aid.get_status_display }}
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <!-- Application Details -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Application ID</h6>
+                            <p class="fw-bold">#{{ aid.id }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Submission Date</h6>
+                            <p>{{ aid.created_at|date:"F d, Y" }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Student Info -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Student Name</h6>
+                            <p>{{ aid.student.user.get_full_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Student ID</h6>
+                            <p>{{ aid.student.student_id }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Email</h6>
+                            <p>{{ aid.student.user.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Program</h6>
+                            <p>{{ aid.student.program|default:"Not specified" }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Aid Details -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Aid Type</h6>
+                            <p>
+                                <span class="badge bg-info">
+                                    {{ aid.get_aid_type_display|default:"Not specified" }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Academic Year</h6>
+                            <p>{{ aid.academic_year|default:"Not specified" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Requested Amount</h6>
+                            <p class="fs-5 fw-bold text-primary">
+                                ${{ aid.requested_amount|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Approved Amount</h6>
+                            <p class="fs-5 fw-bold 
+                                {% if aid.approved_amount %}
+                                    text-success
+                                {% else %}
+                                    text-muted
+                                {% endif %}">
+                                ${{ aid.approved_amount|floatformat:2|default:"Pending" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Reason -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Reason for Request</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ aid.reason|linebreaks|default:"No reason provided." }}
+                        </div>
+                    </div>
+
+                    <!-- Supporting Documents -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Supporting Documents</h6>
+                        {% if aid.supporting_document %}
+                            <a href="{{ aid.supporting_document.url }}" 
+                               class="btn btn-outline-primary btn-sm" 
+                               target="_blank">
+                                <i class="fas fa-file-pdf me-1"></i>
+                                View Document
+                            </a>
+                        {% else %}
+                            <p class="text-muted">No documents uploaded.</p>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <!-- Status Timeline -->
+                    <div class="mb-4">
+                        <h6 class="text-muted">Application Timeline</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-clock text-muted me-2"></i>
+                                    Submitted
+                                </span>
+                                <span class="text-muted">
+                                    {{ aid.created_at|date:"F d, Y H:i" }}
+                                </span>
+                            </li>
+                            {% if aid.updated_at %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-edit text-warning me-2"></i>
+                                    Last Updated
+                                </span>
+                                <span class="text-muted">
+                                    {{ aid.updated_at|date:"F d, Y H:i" }}
+                                </span>
+                            </li>
+                            {% endif %}
+                            {% if aid.reviewed_at %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Reviewed
+                                </span>
+                                <span class="text-muted">
+                                    {{ aid.reviewed_at|date:"F d, Y H:i" }}
+                                </span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Admin Comments (if any) -->
+                    {% if aid.admin_comments %}
+                    <div class="mb-4">
+                        <h6 class="text-muted">Admin Comments</h6>
+                        <div class="p-3 bg-warning bg-opacity-10 rounded border border-warning">
+                            {{ aid.admin_comments|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="{% url 'Student:student_financial_aid' aid.student.user.uuid %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Back to List
+                        </a>
+                        
+                        {% if aid.status == 'pending' %}
+                        <a href="{% url 'Student:student_financial_aid_edit' aid.student.user.uuid aid.id %}" 
+                           class="btn btn-warning">
+                            <i class="fas fa-edit me-1"></i>
+                            Edit Application
+                        </a>
+                        <button type="button" 
+                                class="btn btn-danger" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#withdrawModal">
+                            <i class="fas fa-times me-1"></i>
+                            Withdraw
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Withdraw Modal -->
+{% if aid.status == 'pending' %}
+<div class="modal fade" id="withdrawModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Withdraw Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to withdraw this application?</p>
+                <p class="text-danger"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <form method="post" action="{% url 'withdraw_financial_aid' aid.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        Yes, Withdraw
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border-radius: 12px;
+        border: none;
+    }
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+    }
+    .badge {
+        padding: 8px 16px;
+        font-weight: 500;
+    }
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+        padding: 12px 0;
+    }
+    .list-group-item:first-child {
+        border-top: none;
+    }
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}

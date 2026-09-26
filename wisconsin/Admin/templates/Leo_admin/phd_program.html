@@ -1,0 +1,520 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% block title %}PhD Programs{% endblock title %}
+{% block page_title %}PhD Programs{% endblock page_title %}
+{% block extra_css %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+  <link rel="stylesheet" href="{% static 'css/Leo_admin/phd_program.css' %}">
+{% endblock %}
+{% block content %}
+  <div class="content-wrapper">
+    <div class="breadcrumb-bar" data-aos="fade-down">
+      <a href="#">Dashboard</a>
+      <i class="ti ti-chevron-right"></i>
+      <span>PhD Programs</span>
+    </div>
+    <div class="page-header" data-aos="fade-up">
+      <div class="page-heading">
+        <div class="page-heading-icon">
+          <i class="ti ti-school"></i>
+        </div>
+        <div>
+          <h2 class="page-title">PhD Programs</h2>
+          <p class="page-subtitle">Create, organize and manage PhD programs offered by the university.</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        {% comment %} <button type="button"
+                class="btn btn-danger"
+                id="printBtn"
+                data-url="{% url 'phd_program_print' %}">
+          <i class="ti ti-printer"></i>
+          Print
+        </button>
+        <button type="button"
+                class="btn btn-success"
+                id="exportBtn"
+                data-url="{% url 'phd_program_export' %}">
+          <i class="ti ti-file-export"></i>
+          Export
+        </button> {% endcomment %}
+        <button type="button"
+                class="btn btn-primary add-program-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#phdProgramModal">
+          <i class="ti ti-plus"></i>
+          Add Program
+        </button>
+      </div>
+    </div>
+    <div class="row g-4 mb-4" data-aos="fade-up" data-aos-delay="80">
+      <div class="col-xl-3 col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="stats-card stats-primary">
+          <div class="stats-card-body">
+            <div class="stats-icon">
+              <i class="ti ti-book-2"></i>
+            </div>
+            <div class="stats-content">
+              <span>Total Programs</span>
+              <strong>{{ programs.paginator.count }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3 col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="stats-card stats-success">
+          <div class="stats-card-body">
+            <div class="stats-icon">
+              <i class="ti ti-building-community"></i>
+            </div>
+            <div class="stats-content">
+              <span>Departments</span>
+              <strong>{{ department_count }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3 col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="stats-card stats-warning">
+          <div class="stats-card-body">
+            <div class="stats-icon">
+              <i class="ti ti-books"></i>
+            </div>
+            <div class="stats-content">
+              <span>Average Credits</span>
+              <strong>{{ average_credits }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3 col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="stats-card stats-danger">
+          <div class="stats-card-body">
+            <div class="stats-icon">
+              <i class="ti ti-calendar-time"></i>
+            </div>
+            <div class="stats-content">
+              <span>Average Duration</span>
+              <div class="stats-duration">
+                <strong>{{ average_duration }}</strong>
+                <small>Years</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="program-toolbar" data-aos="fade-up" data-aos-delay="120">
+      <div class="toolbar-search">
+        <div class="search-box">
+          <input type="text"
+                 id="searchInput"
+                 data-url="{% url 'phd_program_list' %}"
+                 placeholder="Search PhD programs..."
+                 autocomplete="off">
+          <button type="button" class="search-btn">
+            <i class="ti ti-search"></i>
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-info">
+        <span>Total Programs</span>
+        <strong id="programCount">{{ programs.paginator.count }}</strong>
+      </div>
+    </div>
+    <div class="program-grid-wrapper" data-aos="fade-up" data-aos-delay="180">
+      <div id="programTableBody" class="program-grid">
+        {% for program in programs %}
+          <article class="program-card">
+            <div class="program-card-top">
+              <div class="program-icon">
+                <i class="ti ti-school"></i>
+              </div>
+              <div class="program-card-actions">
+                <button type="button"
+                        class="program-action edit-program-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#phdProgramModal"
+                        data-id="{{ program.phd_program_id }}"
+                        data-program-name="{{ program.program_name | truncatechars:10 }}"
+                        data-department="{{ program.department.pk }}"
+                        data-degree-type="{{ program.degree_type }}"
+                        data-credits="{{ program.total_credits_required }}"
+                        data-residency="{{ program.residency_requirement }}"
+                        data-duration="{{ program.duration_years }}"
+                        data-description="{{ program.program_description|default:'' }}"
+                        data-status="{{ program.status }}"
+                        {% if program.status != "ACTIVE" %} disabled title="Inactive records cannot be edited" {% endif %}>
+                  <i class="ti ti-edit"></i>
+                </button>
+                {% if program.status == "ACTIVE" %}
+                  <form method="POST"
+                        action="{% url 'phd_program_deactivate' program.phd_program_id %}"
+                        class="deactivate-form"
+                        data-program-id="{{ program.phd_program_id }}">
+                    {% csrf_token %}
+                    <button type="button"
+                            class="program-action danger deactivate-btn"
+                            data-program-name="{{ program.program_name | truncatechars:10 }}">
+                      <i class="ti ti-ban"></i>
+                    </button>
+                  </form>
+                {% else %}
+                  <form method="POST"
+                        action="{% url 'phd_program_activate' program.phd_program_id %}"
+                        class="activate-form"
+                        data-program-id="{{ program.phd_program_id }}">
+                    {% csrf_token %}
+                    <button type="button"
+                            class="program-action success activate-btn"
+                            data-program-name="{{ program.program_name | truncatechars:10 }}">
+                      <i class="ti ti-check"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+            <div class="program-card-body">
+              <div class="program-card-title-row">
+                <a href="javascript:void(0)"
+                   class="program-details-link"
+                   data-bs-toggle="modal"
+                   data-bs-target="#programDetailsModal"
+                   data-program-name="{{ program.program_name | truncatechars:10 }}"
+                   data-department="{{ program.department }}"
+                   data-degree="{{ program.degree_type }}"
+                   data-credits="{{ program.total_credits_required }}"
+                   data-residency="{{ program.residency_requirement }}"
+                   data-duration="{{ program.duration_years }}"
+                   data-status="{{ program.status }}"
+                   data-description="{{ program.program_description|default:'' }}">{{ program.program_name | truncatechars:10 }}</a>
+                {% if program.status == "ACTIVE" %}
+                  <span class="status-badge active">
+                    <span></span>
+                    Active
+                  </span>
+                {% else %}
+                  <span class="status-badge inactive">
+                    <span></span>
+                    Inactive
+                  </span>
+                {% endif %}
+              </div>
+              <div class="program-department">
+                <i class="ti ti-building-community"></i>
+                <span>{{ program.department }}</span>
+              </div>
+              <div class="program-meta-grid">
+                <div class="program-meta-item">
+                  <div class="meta-icon degree">
+                    <i class="ti ti-school"></i>
+                  </div>
+                  <div>
+                    <span>Degree Type</span>
+                    <strong>{{ program.degree_type }}</strong>
+                  </div>
+                </div>
+                <div class="program-meta-item">
+                  <div class="meta-icon credits">
+                    <i class="ti ti-books"></i>
+                  </div>
+                  <div>
+                    <span>Credits</span>
+                    <strong>{{ program.total_credits_required }}</strong>
+                  </div>
+                </div>
+                <div class="program-meta-item">
+                  <div class="meta-icon duration">
+                    <i class="ti ti-calendar-time"></i>
+                  </div>
+                  <div>
+                    <span>Duration</span>
+                    <strong>{{ program.duration_years }} Years</strong>
+                  </div>
+                </div>
+                <div class="program-meta-item">
+                  <div class="meta-icon residency">
+                    <i class="ti ti-map-pin"></i>
+                  </div>
+                  <div>
+                    <span>Residency</span>
+                    <strong>{{ program.residency_requirement }}</strong>
+                  </div>
+                </div>
+              </div>
+              <button type="button"
+                      class="view-program-btn program-details-link"
+                      data-bs-toggle="modal"
+                      data-bs-target="#programDetailsModal"
+                      data-program-name="{{ program.program_name | truncatechars:10 }}"
+                      data-department="{{ program.department }}"
+                      data-degree="{{ program.degree_type }}"
+                      data-credits="{{ program.total_credits_required }}"
+                      data-residency="{{ program.residency_requirement }}"
+                      data-duration="{{ program.duration_years }}"
+                      data-status="{{ program.status }}"
+                      data-description="{{ program.program_description|default:'' }}">
+                View Program Details
+                <i class="ti ti-arrow-right"></i>
+              </button>
+            </div>
+          </article>
+        {% empty %}
+          <div class="empty-state">
+            <div class="empty-icon">
+              <i class="ti ti-school"></i>
+            </div>
+            <h5>No PhD Programs Found</h5>
+            <p>Start by creating your first PhD Program.</p>
+            <button type="button"
+                    class="btn btn-primary add-program-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#phdProgramModal">
+              <i class="ti ti-plus"></i>
+              Add Program
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="program-footer">
+        <div class="pagination-summary">
+          Showing
+          <strong>{{ programs.start_index }}</strong>
+          to
+          <strong>{{ programs.end_index }}</strong>
+          of
+          <strong>{{ programs.paginator.count }}</strong>
+          entries
+        </div>
+        <nav>
+          <ul class="pagination mb-0">
+            {% if programs.has_previous %}
+              <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ programs.previous_page_number }}&search={{ search }}&sort={{ sort }}&order={{ order }}">
+                  <i class="ti ti-chevron-left"></i>
+                  Previous
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">
+                  <i class="ti ti-chevron-left"></i>
+                  Previous
+                </span>
+              </li>
+            {% endif %}
+            {% for page in programs.paginator.page_range %}
+              <li class="page-item {% if programs.number == page %}active{% endif %}">
+                <a class="page-link"
+                   href="?page={{ page }}&search={{ search }}&sort={{ sort }}&order={{ order }}">{{ page }}</a>
+              </li>
+            {% endfor %}
+            {% if programs.has_next %}
+              <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ programs.next_page_number }}&search={{ search }}&sort={{ sort }}&order={{ order }}">
+                  Next
+                  <i class="ti ti-chevron-right"></i>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">
+                  Next
+                  <i class="ti ti-chevron-right"></i>
+                </span>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block global_modal %}
+  <div class="modal fade"
+       id="phdProgramModal"
+       tabindex="-1"
+       aria-labelledby="phdProgramModalLabel"
+       aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="phdProgramModalLabel">
+            <i class="ti ti-plus me-2" id="modalIcon"></i>
+            <span id="modalTitle">Add PhD Program</span>
+          </h5>
+          <button type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="phdProgramForm"
+                method="POST"
+                action="{% url 'phd_program_create' %}"
+                data-update-url="{% url 'phd_program_update' 0 %}"
+                {% if edit_program %} data-edit-id="{{ edit_program.pk }}" {% endif %}>
+            {% csrf_token %}
+            <input type="hidden" id="programId" name="phd_program_id">
+            {% if form.errors %}
+              {{ form.errors.get_json_data|json_script:"serverFormErrors" }}
+            {% endif %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="programName" class="form-label">Program Name</label>
+                {{ form.program_name }}
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="department" class="form-label">Department</label>
+                {{ form.department }}
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-12">
+                <label for="programDescription" class="form-label">Program Description</label>
+                {{ form.program_description }}
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="status" class="form-label">Status</label>
+                {{ form.status }}
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="creditsRequired" class="form-label">Credits Required</label>
+                {{ form.total_credits_required }}
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="residencyRequirement" class="form-label">Residency Requirement</label>
+                {{ form.residency_requirement }}
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label for="durationYears" class="form-label">Duration (Years)</label>
+                {{ form.duration_years }}
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit"
+                  form="phdProgramForm"
+                  id="saveProgramBtn"
+                  class="btn btn-primary">
+            <i class="ti ti-device-floppy" id="saveIcon"></i>
+            <span id="saveProgramText">Save Program</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade"
+       id="deactivateModal"
+       tabindex="-1"
+       aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content confirmation-modal">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="ti ti-alert-circle"></i>
+            Confirm Action
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="confirmation-icon">
+            <i class="ti ti-alert-circle"></i>
+          </div>
+          <h5>Deactivate PhD Program?</h5>
+          <p>Are you sure you want to deactivate this PhD Program?</p>
+          <div id="deactivateProgramName" class="confirmation-program-name"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeactivateBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade"
+       id="programDetailsModal"
+       tabindex="-1"
+       aria-labelledby="programDetailsModalLabel"
+       aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content program-details-modal-content">
+        <div class="modal-header program-details-header">
+          <div class="details-heading">
+            <div class="details-heading-icon">
+              <i class="ti ti-school"></i>
+            </div>
+            <div>
+              <h5 class="modal-title" id="programDetailsModalLabel">PhD Program Details</h5>
+              <span>Program information</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body program-details-body">
+          <div class="details-program-name" id="viewProgramName"></div>
+          <div class="details-grid">
+            <div class="detail-box">
+              <span>Department</span>
+              <strong id="viewDepartment"></strong>
+            </div>
+            <div class="detail-box">
+              <span>Degree Type</span>
+              <strong id="viewDegreeType"></strong>
+            </div>
+            <div class="detail-box">
+              <span>Status</span>
+              <strong id="viewStatus"></strong>
+            </div>
+            <div class="detail-box">
+              <span>Credits Required</span>
+              <strong id="viewCredits"></strong>
+            </div>
+            <div class="detail-box">
+              <span>Duration</span>
+              <strong id="viewDuration"></strong>
+            </div>
+            <div class="detail-box">
+              <span>Residency Requirement</span>
+              <strong id="viewResidency"></strong>
+            </div>
+          </div>
+          <div class="detail-description">
+            <span>Program Description</span>
+            <div id="viewDescription"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="{% static 'script/Leo_admin/phd_program.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,353 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}New Research Application{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/jordan/new_application.css' %}">
+{% endblock %}
+
+{% block nav_campus_open %}open{% endblock %}
+{% block nav_campus_submenu %}open{% endblock %}
+{% block nav_new_application %}active{% endblock %}
+
+{% block content %}
+<div class="new-application-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>New Research Application</h1>
+            <p>Submit a research project proposal to collaborate with faculty</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'Student:student_research_page' uuid=request.user.uuid %}">
+                <button class="research-btn secondary-btn">
+                    <i class="ti ti-arrow-left"></i> Back
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-file"></i>
+            </div>
+            <div>
+                <h3 id="statTotalProjects">0</h3>
+                <span>Total Applications</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-check"></i>
+            </div>
+            <div>
+                <h3 id="statActiveProjects">0</h3>
+                <span>Approved</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div>
+                <h3 id="statPendingProjects">0</h3>
+                <span>Pending</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon red">
+                <i class="ti ti-x"></i>
+            </div>
+            <div>
+                <h3 id="statRejectedProjects">0</h3>
+                <span>Rejected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Form -->
+    <div class="application-card card">
+        <div class="form-header">
+            <h2><i class="ti ti-send"></i> Submit Research Application</h2>
+            <p>Fill in the details below to apply for a research collaboration with faculty</p>
+        </div>
+
+        <form id="applicationForm" onsubmit="submitApplication(event)" novalidate>
+            <!-- Application Type Selection -->
+            <div class="form-section">
+                <h3><i class="ti ti-briefcase"></i> Application Type</h3>
+                <div class="application-type-grid">
+                    <div class="type-option" onclick="selectApplicationType(this, 'collaborate')">
+                        <i class="ti ti-users"></i>
+                        <div>
+                            <strong>Collaborate</strong>
+                            <p>Work with faculty on existing research</p>
+                        </div>
+                    </div>
+                    <div class="type-option" onclick="selectApplicationType(this, 'thesis')">
+                        <i class="ti ti-book"></i>
+                        <div>
+                            <strong>Thesis</strong>
+                            <p>Conduct research for your thesis/dissertation</p>
+                        </div>
+                    </div>
+                    <div class="type-option" onclick="selectApplicationType(this, 'external-funding')">
+                        <i class="ti ti-coin"></i>
+                        <div>
+                            <strong>External Funding</strong>
+                            <p>Seek funding for independent research</p>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="applicationType" value="">
+                <div class="validation-error" id="typeError" style="display: none;">Please select an application type</div>
+            </div>
+
+            <!-- Department Selection -->
+            <div class="form-section">
+                <h3><i class="ti ti-building"></i> Department</h3>
+                <div class="department-grid">
+                    <div class="dept-option" onclick="selectDepartment(this, 'computer-science')">
+                        <i class="ti ti-device-desktop"></i>
+                        <span>Computer Science</span>
+                    </div>
+                    <div class="dept-option" onclick="selectDepartment(this, 'engineering')">
+                        <i class="ti ti-settings"></i>
+                        <span>Engineering</span>
+                    </div>
+                    <div class="dept-option" onclick="selectDepartment(this, 'mathematics')">
+                        <i class="ti ti-calculator"></i>
+                        <span>Mathematics</span>
+                    </div>
+                    <div class="dept-option" onclick="selectDepartment(this, 'physics')">
+                        <i class="ti ti-atom"></i>
+                        <span>Physics</span>
+                    </div>
+                    <div class="dept-option" onclick="selectDepartment(this, 'biology')">
+                        <i class="ti ti-dna"></i>
+                        <span>Biology</span>
+                    </div>
+                    <div class="dept-option" onclick="selectDepartment(this, 'chemistry')">
+                        <i class="ti ti-flask"></i>
+                        <span>Chemistry</span>
+                    </div>
+                </div>
+                <input type="hidden" id="selectedDepartment" value="">
+                <div class="validation-error" id="deptError" style="display: none;">Please select a department</div>
+            </div>
+
+            <!-- Faculty Selection -->
+            <div class="form-section" id="facultySection" style="display: none;">
+                <h3><i class="ti ti-user-tie"></i> Faculty Supervisor</h3>
+                <div class="faculty-grid" id="facultyGrid">
+                    <!-- Faculty cards will be generated by JavaScript -->
+                </div>
+                <input type="hidden" id="selectedFaculty" value="">
+                <div class="validation-error" id="facultyError" style="display: none;">Please select a faculty supervisor</div>
+            </div>
+
+            <!-- Project Details -->
+            <div class="form-section">
+                <h3><i class="ti ti-file-text"></i> Project Details</h3>
+                
+                <div class="form-group">
+                    <label>Project Title <span class="required">*</span></label>
+                    <input type="text" id="projectTitle" class="form-input" placeholder="Enter a descriptive title for your research project" maxlength="200">
+                    <div class="validation-error" id="titleError" style="display: none;">Please enter a project title</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Research Area / Field <span class="required">*</span></label>
+                    <input type="text" id="researchArea" class="form-input" placeholder="e.g., Machine Learning, Quantum Physics, Renewable Energy">
+                    <div class="validation-error" id="areaError" style="display: none;">Please enter the research area</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Project Description <span class="required">*</span></label>
+                    <textarea id="projectDescription" class="form-input" rows="4" placeholder="Describe your research project in detail including background, objectives, and expected outcomes"></textarea>
+                    <div class="validation-error" id="descError" style="display: none;">Please enter a project description</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Project Objectives</label>
+                    <textarea id="projectObjectives" class="form-input" rows="3" placeholder="List your project objectives (one per line)"></textarea>
+                    <small class="form-hint">Enter each objective on a new line</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Proposed Start Date</label>
+                        <input type="date" id="startDate" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Expected Duration (months)</label>
+                        <input type="number" id="duration" class="form-input" placeholder="e.g., 6" min="1" max="36">
+                        <div class="validation-error" id="durationError" style="display: none;">Please enter a valid duration (1-36 months)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Funding Details -->
+            <div class="form-section" id="fundingSection">
+                <h3><i class="ti ti-coin"></i> Funding Information</h3>
+                
+                <div class="form-group">
+                    <label>Funding Source</label>
+                    <select id="fundingSource" class="form-input">
+                        <option value="university-grant">University Grant</option>
+                        <option value="external-grant">External Grant</option>
+                        <option value="self-funded">Self-Funded</option>
+                        <option value="department-funding">Department Funding</option>
+                        <option value="industry-sponsorship">Industry Sponsorship</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="fundingDetailsGroup" style="display: none;">
+                    <label>Funding Details</label>
+                    <textarea id="fundingDetails" class="form-input" rows="2" placeholder="Provide details about the funding source, amount, and conditions..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Estimated Budget ($)</label>
+                        <input type="number" id="estimatedBudget" class="form-input" placeholder="e.g., 5000" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Funding Status</label>
+                        <select id="fundingStatus" class="form-input">
+                            <option value="applied">Applied</option>
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending</option>
+                            <option value="not-applied">Not Applied</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team & Role -->
+            <div class="form-section">
+                <h3><i class="ti ti-users"></i> Team & Role</h3>
+                
+                <div class="form-group">
+                    <label>Your Role in the Project <span class="required">*</span></label>
+                    <select id="studentRole" class="form-input">
+                        <option value="">Select your role</option>
+                        <option value="Lead Researcher">Lead Researcher</option>
+                        <option value="Co-Researcher">Co-Researcher</option>
+                        <option value="Research Assistant">Research Assistant</option>
+                        <option value="Data Analyst">Data Analyst</option>
+                        <option value="Technical Writer">Technical Writer</option>
+                    </select>
+                    <div class="validation-error" id="roleError" style="display: none;">Please select your role</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Team Members</label>
+                    <div class="team-input-container">
+                        <div class="team-input-row">
+                            <input type="text" id="teamMemberName" class="form-input" placeholder="Enter team member name" style="flex: 1;">
+                            <select id="teamMemberRole" class="form-input" style="width: 150px;">
+                                <option value="Research Assistant">Research Assistant</option>
+                                <option value="Co-Researcher">Co-Researcher</option>
+                                <option value="Data Analyst">Data Analyst</option>
+                                <option value="Technical Writer">Technical Writer</option>
+                                <option value="Lab Assistant">Lab Assistant</option>
+                            </select>
+                            <button type="button" class="btn-add-member" onclick="addTeamMember()">
+                                <i class="ti ti-plus"></i> Add
+                            </button>
+                        </div>
+                        <div class="team-members-list" id="teamMembersList">
+                            <div class="empty-team-message">No team members added yet</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Team Roles Description</label>
+                    <textarea id="teamRolesDescription" class="form-input" rows="2" placeholder="Describe each team member's contribution to the project..."></textarea>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="form-section">
+                <h3><i class="ti ti-info-circle"></i> Additional Information</h3>
+                
+                <div class="form-group">
+                    <label>Why are you interested in this research?</label>
+                    <textarea id="motivation" class="form-input" rows="3" placeholder="Describe your motivation and interest in this research area..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Relevant Skills & Experience</label>
+                    <textarea id="skills" class="form-input" rows="3" placeholder="List your relevant skills, coursework, publications, or experience..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Availability (hours per week)</label>
+                    <input type="number" id="availability" class="form-input" placeholder="e.g., 15" min="1" max="40">
+                </div>
+            </div>
+
+            <!-- Terms & Submit -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="agreeTerms" style="margin-top: 2px;">
+                        <span>I confirm that all the information provided is accurate and I agree to the terms and conditions of the research collaboration.</span>
+                    </label>
+                    <div class="validation-error" id="termsError" style="display: none;">Please agree to the terms and conditions</div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="reset" class="btn-reset" onclick="resetForm()">
+                        <i class="ti ti-refresh"></i> Reset
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        <i class="ti ti-send"></i> Submit Application
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal-overlay" id="successModal" style="display: none;">
+    <div class="modal-content modal-success">
+        <div class="success-icon">
+            <i class="ti ti-check-circle"></i>
+        </div>
+        <h2>Application Submitted Successfully!</h2>
+        <p>Your research application has been sent to the faculty supervisor for review.</p>
+        <p style="color: var(--text-secondary); font-size: 14px;">You will be notified when the faculty responds to your application.</p>
+        <div style="display: flex; gap: 12px; margin-top: 20px; justify-content: center;">
+            <button class="filter-btn primary-btn" onclick="window.location.href='{% url 'Student:student_research_page' uuid=request.user.uuid %}'">
+                <i class="ti ti-arrow-left"></i> Back to Projects
+            </button>
+            <button class="filter-btn" onclick="window.location.href='{% url 'Student:student_dashboard' uuid=request.user.uuid %}'" style="background: var(--primary-blue);">
+                <i class="ti ti-dashboard"></i> Dashboard
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="{% static 'script/jordan/new_application.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,273 @@
+  <div class="apx-hero">
+    <div class="apx-hero__decor" aria-hidden="true">
+      <span class="apx-hero__blob apx-hero__blob--1"></span>
+      <span class="apx-hero__blob apx-hero__blob--2"></span>
+      <span class="apx-hero__ring"></span>
+      <span class="apx-hero__dots"></span>
+    </div>
+    <div class="apx-hero__inner">
+      <div class="apx-hero__copy">
+        <span class="apx-eyebrow"><i class="ti ti-building-skyscraper"></i> Admissions console</span>
+        <h2 class="apx-title apx-title__accent">{{ status_label }}</h2>
+        <p class="apx-subtitle">
+          {% if status == "submitted" %}
+          Applications that have been submitted, with their application fee payment status.
+          {% elif status == "admitted" %}
+          Applicants who received an admission offer, with their fee payment status.
+          {% elif status == "waitlisted" %}
+          Applicants placed on the waitlist, with their fee payment status.
+          {% else %}
+          Applicants whose applications were denied, with their fee payment status.
+          {% endif %}
+        </p>
+      </div>
+      <div class="apx-hero__stat">
+        <span class="apx-hero__stat-value">{{ stats.total }}</span>
+        <span class="apx-hero__stat-label">total {{ status_label|lower }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="apx-filter" aria-label="Application filters">
+    <form class="apx-search" method="get" role="search">
+      <i class="ti ti-search"></i>
+      <input type="hidden" name="status" value="{{ status }}">
+      <input type="hidden" name="payment" value="{{ payment }}">
+      <input type="hidden" name="view" value="{{ view_mode }}">
+      {% if assignment %}<input type="hidden" name="assignment" value="{{ assignment }}">{% endif %}
+      <input type="text" name="q" id="apx-search-input" value="{{ query }}" placeholder="Search name, reference, email…" autocomplete="off" aria-label="Search applications">
+      {% if query %}<a class="apx-search__clear" href="?status={{ status }}&payment={{ payment }}{% if assignment %}&assignment={{ assignment }}{% endif %}{% if view_mode == 'table' %}&view=table{% endif %}"><i class="ti ti-x"></i></a>{% endif %}
+    </form>
+
+    <div class="apx-filters">
+      <form method="get" class="apx-filter-item">
+        <label for="status-select">Status</label>
+        <input type="hidden" name="payment" value="{{ payment }}">
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        {% if assignment %}<input type="hidden" name="assignment" value="{{ assignment }}">{% endif %}
+        <select name="status" id="status-select" class="apx-filter__select" aria-label="Filter by status">
+          {% for item in status_items %}
+          <option value="{{ item.key }}" {% if status == item.key %}selected{% endif %}>{{ item.label }} ({{ item.count }})</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <form method="get" class="apx-filter-item">
+        <label for="payment-select">Payment</label>
+        <input type="hidden" name="status" value="{{ status }}">
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        {% if assignment %}<input type="hidden" name="assignment" value="{{ assignment }}">{% endif %}
+        <select name="payment" id="payment-select" class="apx-filter__select" aria-label="Filter by payment status">
+          {% for item in payment_items %}
+          <option value="{{ item.key }}" {% if payment == item.key %}selected{% endif %}>{{ item.label }} ({{ item.count }})</option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <form method="get" class="apx-filter-item">
+        <label for="assignment-select">Assignment</label>
+        <input type="hidden" name="status" value="{{ status }}">
+        <input type="hidden" name="payment" value="{{ payment }}">
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        <select name="assignment" id="assignment-select" class="apx-filter__select" aria-label="Filter by review assignment">
+          <option value="" {% if not assignment %}selected{% endif %}>All assignments</option>
+          <option value="assigned" {% if assignment == "assigned" %}selected{% endif %}>Assigned ({{ stats.assigned }})</option>
+          <option value="unassigned" {% if assignment == "unassigned" %}selected{% endif %}>Unassigned ({{ stats.unassigned }})</option>
+        </select>
+      </form>
+
+      {% if payment or query or assignment %}
+      <a class="apx-reset" href="?status={{ status }}"><i class="ti ti-rotate-clockwise-2"></i> Reset</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="apx-countline">
+    <span>
+      <strong>{{ page_obj.start_index|default:0 }}</strong>–<strong>{{ page_obj.end_index|default:0 }}</strong>
+      of <strong>{{ page_obj.paginator.count }}</strong> {{ status_label|lower }} application{{ page_obj.paginator.count|pluralize }}
+    </span>
+    <div class="apx-viewtoggle" aria-label="Change view">
+      <a class="apx-viewtoggle__btn {% if view_mode == 'cards' %}is-active{% endif %}"
+         href="?status={{ status }}&payment={{ payment }}{% if assignment %}&assignment={{ assignment }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}&view=cards" title="Card view">
+        <i class="ti ti-layout-grid"></i> Grid
+      </a>
+      <a class="apx-viewtoggle__btn {% if view_mode == 'table' %}is-active{% endif %}"
+         href="?status={{ status }}&payment={{ payment }}{% if assignment %}&assignment={{ assignment }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}&view=table" title="Table view">
+        <i class="ti ti-table"></i> Table
+      </a>
+    </div>
+  </div>
+
+  {% if page_obj.object_list %}
+
+  {% if view_mode == 'table' %}
+  <div class="apx-table-wrap">
+    <table class="apx-table">
+      <thead>
+        <tr>
+          <th>Applicant</th>
+          <th>Program</th>
+          <th>Submitted</th>
+          <th>Reviewer</th>
+          <th>Fee</th>
+          <th>Status</th>
+          <th class="apx-table__action-col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for app in page_obj %}
+        <tr>
+          <td>
+            <div class="apx-table__applicant">
+              <span class="apx-avatar apx-avatar--sm" data-name="{{ app.applicant.first_name }} {{ app.applicant.last_name }}" aria-hidden="true">
+                {{ app.applicant.first_name|slice:":1" }}{{ app.applicant.last_name|slice:":1" }}
+              </span>
+              <div>
+                <a class="apx-table__name" href="{% url 'application_detail' app.application_id %}">{{ app.applicant.first_name }} {{ app.applicant.last_name }}</a>
+                <span class="apx-table__ref">{{ app.Reference_id }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="apx-table__program">
+              <strong>{{ app.program|default:"—" }}</strong>
+              <small>{{ app.get_admission_level_display|default:"Program level" }}{% if app.admission_cycle %} · {{ app.admission_cycle }}{% endif %}</small>
+            </div>
+          </td>
+          <td>{{ app.submitted_date|date:"M d, Y"|default:"—" }}</td>
+          <td>
+            {% if app.review_assignment %}
+            <span class="apx-table__reviewer"><i class="ti ti-user-check"></i>{{ app.review_assignment.reviewer.get_full_name|default:app.review_assignment.reviewer.username }}</span>
+            {% else %}
+            <span class="apx-table__un"><i class="ti ti-user-minus"></i>Unassigned</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if app.waived %}
+            <span class="apx-badge apx-badge--waived"><i class="ti ti-discount-check"></i> Waived</span>
+            {% elif app.paid %}
+            <span class="apx-badge apx-badge--paid"><i class="ti ti-circle-check"></i> Paid</span>
+            {% else %}
+            <span class="apx-badge apx-badge--unpaid"><i class="ti ti-circle-x"></i> Not paid</span>
+            {% endif %}
+          </td>
+          <td><span class="apx-chip apx-chip--{{ app.status }}">{{ app.display_status }}</span></td>
+          <td class="apx-table__action-col">
+            <a class="apx-table__view" href="{% url 'application_detail' app.application_id %}" aria-label="Open application"><i class="ti ti-arrow-right"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="apx-grid">
+    {% for app in page_obj %}
+    <article class="apx-card apx-card--{{ app.status }}">
+      <div class="apx-card__head">
+        <span class="apx-avatar" data-name="{{ app.applicant.first_name }} {{ app.applicant.last_name }}" aria-hidden="true">
+          {{ app.applicant.first_name|slice:":1" }}{{ app.applicant.last_name|slice:":1" }}
+        </span>
+        <div class="apx-card__who">
+          <a class="apx-card__name" href="{% url 'application_detail' app.application_id %}">{{ app.applicant.first_name }} {{ app.applicant.last_name }}</a>
+          <span class="apx-card__email">{{ app.applicant.email }}</span>
+        </div>
+        <a class="apx-card__go" href="{% url 'application_detail' app.application_id %}" aria-label="Open application"><i class="ti ti-arrow-right"></i></a>
+      </div>
+
+      <div class="apx-card__chips">
+        <span class="apx-chip apx-chip--ref">{{ app.Reference_id }}</span>
+        <span class="apx-chip apx-chip--{{ app.status }}">{{ app.display_status }}</span>
+      </div>
+
+      <div class="apx-card__program">
+        <strong>{{ app.program|default:"—" }}</strong>
+        <small>{{ app.get_admission_level_display|default:"Program level" }}{% if app.admission_cycle %} · {{ app.admission_cycle }}{% endif %}</small>
+      </div>
+
+      <div class="apx-card__facts">
+        <div class="apx-card__fact">
+          <i class="ti ti-calendar"></i>
+          <div>
+            <span>Submitted</span>
+            <strong>{{ app.submitted_date|date:"M d, Y"|default:"—" }}</strong>
+          </div>
+        </div>
+        <div class="apx-card__fact">
+          {% if app.review_assignment %}<i class="ti ti-user-check"></i>{% else %}<i class="ti ti-user-minus"></i>{% endif %}
+          <div>
+            <span>Reviewer</span>
+            <strong>
+              {% if app.review_assignment %}
+              {{ app.review_assignment.reviewer.get_full_name|default:app.review_assignment.reviewer.username }}
+              {% else %}
+              Unassigned
+              {% endif %}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="apx-card__foot">
+        {% if app.waived %}
+        <span class="apx-badge apx-badge--waived"><i class="ti ti-discount-check"></i> Waived</span>
+        {% elif app.paid %}
+        <span class="apx-badge apx-badge--paid"><i class="ti ti-circle-check"></i> Paid</span>
+        {% else %}
+        <span class="apx-badge apx-badge--unpaid"><i class="ti ti-circle-x"></i> Not paid</span>
+        {% endif %}
+        <a class="apx-card__view" href="{% url 'application_detail' app.application_id %}">
+          View application <i class="ti ti-arrow-right"></i>
+        </a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="apx-empty">
+    <div class="apx-empty__icon"><i class="ti ti-search-off"></i></div>
+    <h5>No {{ status_label|lower }} applications found</h5>
+    <p>Try adjusting the payment or assignment filter, or clear the search.</p>
+  </div>
+  {% endif %}
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="apx-pager">
+    <span>
+      Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of
+      <strong>{{ page_obj.paginator.count }}</strong> entries
+    </span>
+    <nav>
+      <ul class="pagination mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status }}&payment={{ payment }}&view={{ view_mode }}{% if assignment %}&assignment={{ assignment }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}"><i class="ti ti-chevron-left"></i> Previous</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="ti ti-chevron-left"></i> Previous</span></li>
+        {% endif %}
+
+        {% for page in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == page %}active{% endif %}">
+          <a class="page-link" href="?page={{ page }}&status={{ status }}&payment={{ payment }}&view={{ view_mode }}{% if assignment %}&assignment={{ assignment }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}">{{ page }}</a>
+        </li>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status }}&payment={{ payment }}&view={{ view_mode }}{% if assignment %}&assignment={{ assignment }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}">Next <i class="ti ti-chevron-right"></i></a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next <i class="ti ti-chevron-right"></i></span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+

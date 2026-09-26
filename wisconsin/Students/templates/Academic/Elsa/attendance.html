@@ -1,0 +1,284 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}My Attendance - Wisconsin University{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/Academic/Elsa/attendance.css' %}">
+{% endblock %}
+
+
+{% block content %}
+
+
+<div>
+
+  <!-- ================= Header ================= -->
+  <div class="dashboard-header">
+    <div>
+      <h2 class="page-title"><i class="ti ti-calendar-check"></i> Attendance Dashboard</h2>
+      <p class="page-subtitle">Monitor your attendance, subject performance and daily records.</p>
+    </div>
+  </div>
+
+  <!-- ================= Top Section: Donut + Stats ================= -->
+  <div class="grid grid-top">
+
+    <div class="dashboard-card">
+      <h5 class="card-title">Overall Attendance</h5>
+
+        <div class="donut-wrapper">
+
+<div
+    class="attendance-donut {% if overall.total_classes == 0 %}empty{% endif %}"
+    style="
+        --present-pct: {{ overall.present_pct }}%;
+        --absent-pct: {{ overall.absent_pct }}%;
+        --late-pct: {{ overall.late_pct }}%;
+        --leave-pct: {{ overall.leave_pct }}%;
+        --halfday-pct: {{ overall.halfday_pct }}%;
+        --permission-pct: {{ overall.permission_pct }}%;
+    "
+>
+    <div class="donut-center">
+        <h2>{{ overall.attendance_pct }}%</h2>
+        <span>Overall Attendance</span>
+    </div>
+</div>
+
+            <div class="donut-center">
+                <h2>{{ overall.attendance_pct|default_if_none:0 }}%</h2>
+                <span>Attendance</span>
+            </div>
+
+        </div>
+
+      <div class="attendance-legend">
+        <div><span class="legend present"></span> Present <strong>{{ overall.present_count|default_if_none:0 }}</strong></div>
+        <div><span class="legend absent"></span> Absent <strong>{{ overall.absent_count|default_if_none:0 }}</strong></div>
+        <div><span class="legend late"></span> Late <strong>{{ overall.late_count|default_if_none:0 }}</strong></div>
+        <div><span class="legend leave"></span> Leave <strong>{{ overall.leave_count|default_if_none:0 }}</strong></div>
+        <div><span class="legend halfday"></span> Half day <strong>{{ overall.half_day_count|default_if_none:0 }}</strong></div>
+        <div><span class="legend permission"></span> Permission <strong>{{ overall.permission_count|default_if_none:0 }}</strong></div>
+      </div>
+    </div>
+
+    <div class="grid grid-stats">
+      <div class="stat-card">
+        <div><p>Total Classes</p><h3>{{ overall.total_classes|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-primary-soft"><i class="ti ti-books"></i></div>
+      </div>
+      <div class="stat-card">
+        <div><p>Present</p><h3>{{ overall.present_count|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-present-soft"><i class="ti ti-check"></i></div>
+      </div>
+      <div class="stat-card">
+        <div><p>Absent</p><h3>{{ overall.absent_count|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-absent-soft"><i class="ti ti-x"></i></div>
+      </div>
+      <div class="stat-card">
+        <div><p>Late</p><h3>{{ overall.late_count|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-late-soft"><i class="ti ti-clock"></i></div>
+      </div>
+      <div class="stat-card">
+        <div><p>Leave</p><h3>{{ overall.leave_count|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-leave-soft"><i class="ti ti-calendar-off"></i></div>
+      </div>
+      <div class="stat-card">
+        <div><p>Half day</p><h3>{{ overall.half_day_count|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-halfday-soft"><i class="ti ti-clock-hour-4"></i></div>
+      </div>
+      <div class="stat-card">
+        <div><p>Permission</p><h3>{{ overall.permission_count|default_if_none:0 }}</h3></div>
+        <div class="stat-icon bg-permission-soft"><i class="ti ti-note"></i></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= Date & Daily Attendance ================= -->
+  <div class="grid grid-date" style="margin-top:18px;">
+
+    <div class="dashboard-card attendance-date-card">
+      <h5 class="card-title"><i class="ti ti-calendar-event"></i> Attendance Date</h5>
+        <input type="date" id="attendanceDateInput" class="date-input" value="{{ selected_date|date:'Y-m-d' }}"
+                  onkeydown="return false;"
+                  onpaste="return false;"
+                  ondrop="return false;">
+      <div class="today-summary">
+          <div class="summary-item present"><h4>{{ today.present_count|default_if_none:0 }}</h4><span>Present</span></div>
+          <div class="summary-item absent"><h4>{{ today.absent_count|default_if_none:0 }}</h4><span>Absent</span></div>
+          <div class="summary-item late"><h4>{{ today.late_count|default_if_none:0 }}</h4><span>Late</span></div>
+          <div class="summary-item leave"><h4>{{ today.leave_count|default_if_none:0 }}</h4><span>Leave</span></div>
+          <div class="summary-item halfday"><h4>{{ today.half_day_count|default_if_none:0 }}</h4><span>Half day</span></div>
+          <div class="summary-item permission"><h4>{{ today.permission_count|default_if_none:0 }}</h4><span>Permission</span></div>
+      </div>
+    </div>
+
+    <div class="dashboard-card attendance-day-card">
+      <div class="daily-header">
+        <div>
+          <h5>{{ selected_date|date:"d F Y" }}</h5>
+          <small>{{ selected_date|date:"l" }} &bull; {{ day_sessions|length }} Scheduled Classes</small>
+        </div>
+      </div>
+
+      {% for session in day_sessions %}
+      <div class="attendance-item {{ session.status_class }}">
+        <div class="attendance-icon"><i class="ti ti-book"></i></div>
+        <div class="attendance-content">
+          <h6>{{ session.course_name }}</h6>
+          <small>{{ session.start_time|time:"g:i A" }} - {{ session.end_time|time:"g:i A" }}</small>
+            {% if session.room %}
+                <small>
+                    {{ session.building }} • {{ session.room }}
+                </small>
+            {% endif %}
+        </div>
+        <span class="badgee {{ session.status_class }}">
+            {% if session.status == "SCHEDULED" %}
+                Scheduled
+            {% elif session.status == "NOT_MARKED" %}
+                Not Marked
+            {% else %}
+                {{ session.status|capfirst }}
+            {% endif %}
+        </span>
+      </div>
+      {% empty %}
+      <p class="text-muted" style="padding:20px;text-align:center;">No classes scheduled for this date.</p>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <!-- ================= Subject Attendance ================= -->
+  <div class="dashboard-card" style="margin-top:18px;">
+    <h5 class="card-title">Subject Attendance</h5>
+
+    {% for subject in subject_attendance %}
+    <div class="subject-row"><strong>{{ subject.name }}</strong><span>{{ subject.pct }}%</span></div>
+    <div class="progress-track">
+      <div class="progress-fill {{ subject.bar_color }}" style="width:{{ subject.pct }}%"></div>
+    </div>
+    {% empty %}
+    <p class="text-muted" style="padding:12px 0;">No subject attendance data yet.</p>
+    {% endfor %}
+  </div>
+
+  <!-- ================= DOWNLOAD FILTER ================= -->
+  <div class="dashboard-card filter-card" style="margin-top:18px;">
+    <div class="card-title"><i class="ti ti-filter"></i> Download Attendance Report</div>
+
+    <form method="get" action="{% url 'Elsa:export_attendance' %}">
+      <div class="grid grid-filters">
+
+    <div class="field-group">
+      <label class="filter-label">Subject</label>
+      <select name="subject" class="filter-select choices-select">
+        <option value="all">All Subjects</option>
+        {% for subject in all_subjects %}
+          <option value="{{ subject.id }}">{{ subject.name }}</option>
+        {% empty %}
+          <option value="all">No subjects found</option>
+        {% endfor %}
+      </select>
+    </div>
+
+        <div class="field-group">
+          <label class="filter-label">From Date</label>
+          <input type="date" name="from_date" id="fromDateInput" class="filter-input" required
+                  onkeydown="return false;"
+                  onpaste="return false;"
+                  ondrop="return false;">
+          <small class="filter-field-error" id="fromDateError"></small>
+        </div>
+
+        <div class="field-group">
+          <label class="filter-label">To Date</label>
+          <input type="date" name="to_date" id="toDateInput" class="filter-input" required
+                  onkeydown="return false;"
+                  onpaste="return false;"
+                  ondrop="return false;">
+          <small class="filter-field-error" id="toDateError"></small>
+        </div>
+
+        <div class="field-group">
+          <label class="filter-label">Download Format</label>
+          <select name="format" class="filter-select choices-select">
+            <option value="pdf">PDF</option>
+            <option value="xlsx">Excel (.xlsx)</option>
+            <option value="csv">CSV</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="filter-label">&nbsp;</label>
+          <div class="filter-actions">
+            <button type="reset" class="btn btn-block"><i class="ti ti-refresh"></i> Reset</button>
+            <button type="submit" class="btn btn-primary btn-block"><i class="ti ti-download"></i> Download</button>
+          </div>
+        </div>
+
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= Attendance History ================= -->
+  <div class="dashboard-card" style="margin-top:18px; margin-bottom:24px;">
+    <h5 class="card-title">Attendance History</h5>
+
+    <div class="table-wrap">
+      <table class="attendance-table">
+        <thead>
+          <tr><th>Date</th><th>Subject</th><th>Faculty</th><th>Time</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for record in attendance_history %}
+          <tr>
+            <td>{{ record.date|date:"d M Y" }}</td>
+            <td>{{ record.course_name }}</td>
+            <td>{{ record.faculty_name }}</td>
+            <td>{{ record.start_time|time:"g:i A" }}</td>
+            <td class="status-cell"><span class="badgee {{ record.status_class }}">{{ record.status|capfirst }}</span></td>
+          </tr>
+          {% empty %}
+        <tr><td colspan="5" style="text-align:center;padding:24px;">No attendance history yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/Academic/Elsa/attendance.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".choices-select").forEach(function (element) {
+    new Choices(element, {
+      searchEnabled: false,
+      itemSelectText: "",
+      shouldSort: false,
+      shouldSortItems: false,
+      placeholder: true,
+    });
+  });
+});
+</script>
+{% endblock %}

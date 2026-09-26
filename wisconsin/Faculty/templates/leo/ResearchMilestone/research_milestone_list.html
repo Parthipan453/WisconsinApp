@@ -1,0 +1,2135 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Research Milestones | Faculty Portal{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/ResearchMilestone/research_milestone_list.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="rm-page">
+        <section class="rm-page-header">
+            <div class="rm-header-content">
+                {% comment %} <div class="rm-breadcrumb">
+                    <span>Research</span>
+                    <i class="bi bi-chevron-right"></i>
+                    <strong>Research Milestones</strong>
+                </div> {% endcomment %}
+                <div class="rm-title-row">
+                    <div class="rm-title-block">
+                        <div class="rm-title-icon">
+                            <i class="bi bi-diagram-3-fill"></i>
+                        </div>
+                        <div>
+                            <h1>Research Milestones</h1>
+                            <p>Monitor and manage research progress of your assigned PhD students.</p>
+                        </div>
+                    </div>
+                    {% if is_chair %}
+                        <a href="{% url 'research_milestone_create' uuid=request.user.uuid %}"
+                           class="rm-primary-btn">
+                            <i class="bi bi-plus-lg"></i>
+                            <span>Create Milestone</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        <section class="rm-stat-grid">
+            <div class="rm-stat-card">
+                <div class="rm-stat-icon total">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="rm-stat-content">
+                    <span>PhD Students</span>
+                    <strong id="rmStudentCount">{{ student_count }}</strong>
+                    <small>Assigned students</small>
+                </div>
+            </div>
+            <div class="rm-stat-card">
+                <div class="rm-stat-icon total">
+                    <i class="bi bi-diagram-3-fill"></i>
+                </div>
+                <div class="rm-stat-content">
+                    <span>Total Milestones</span>
+                    <strong id="rmTotalCount">{{ total_milestones }}</strong>
+                    <small>All milestone history</small>
+                </div>
+            </div>
+            <div class="rm-stat-card">
+                <div class="rm-stat-icon progress">
+                    <i class="bi bi-play-circle-fill"></i>
+                </div>
+                <div class="rm-stat-content">
+                    <span>In Progress</span>
+                    <strong id="rmProgressCount">{{ progress_count }}</strong>
+                    <small>Currently active</small>
+                </div>
+            </div>
+            <div class="rm-stat-card">
+                <div class="rm-stat-icon review">
+                    <i class="bi bi-eye-fill"></i>
+                </div>
+                <div class="rm-stat-content">
+                    <span>Under Review</span>
+                    <strong id="rmReviewCount">{{ review_count }}</strong>
+                    <small>Awaiting review</small>
+                </div>
+            </div>
+            <div class="rm-stat-card">
+                <div class="rm-stat-icon completed">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <div class="rm-stat-content">
+                    <span>Completed</span>
+                    <strong id="rmCompletedCount">{{ completed_count }}</strong>
+                    <small>Completed milestones</small>
+                </div>
+            </div>
+            <div class="rm-stat-card">
+                <div class="rm-stat-icon hold">
+                    <i class="bi bi-pause-circle-fill"></i>
+                </div>
+                <div class="rm-stat-content">
+                    <span>On Hold</span>
+                    <strong id="rmHoldCount">{{ hold_count }}</strong>
+                    <small>Temporarily paused</small>
+                </div>
+            </div>
+        </section>
+        <section class="rm-filter-card">
+            <div class="rm-filter-heading">
+                <div class="rm-filter-title">
+                    <div class="rm-filter-icon">
+                        <i class="bi bi-sliders2"></i>
+                    </div>
+                    <div>
+                        <h2>Find Students</h2>
+                        <p>Search and filter assigned PhD students</p>
+                    </div>
+                </div>
+                <button type="button" class="rm-reset-btn" id="rmResetFilters">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+            <div class="rm-filter-grid">
+                <div class="rm-filter-field rm-search-field">
+                    <label for="rmSearch">Search</label>
+                    <div class="rm-input-wrap">
+                        <i class="bi bi-search"></i>
+                        <input type="text"
+                               id="rmSearch"
+                               class="rm-form-control"
+                               placeholder="Search student or milestone...">
+                        <button type="button"
+                                id="rmClearSearch"
+                                class="rm-clear-search"
+                                aria-label="Clear search">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="rm-filter-field">
+                    <label for="rmStatusFilter">Current Status</label>
+                    <select id="rmStatusFilter" class="rm-select">
+                        <option value="">All statuses</option>
+                        <option value="NO_MILESTONE">No Milestone</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="SUBMITTED">Submitted</option>
+                        <option value="UNDER_REVIEW">Under Review</option>
+                        <option value="CHAIR_REVIEW_PENDING">Chair Review Pending</option>
+                        <option value="REVISION_REQUIRED">Revision Required</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="ON_HOLD">On Hold</option>
+                    </select>
+                </div>
+                <div class="rm-filter-field">
+                    <label for="rmStudentFilter">PhD Student</label>
+                    <select id="rmStudentFilter" class="rm-select">
+                        <option value="">All students</option>
+                        {% for card in student_cards %}
+                            <option value="{{ card.student.phd_student_id }}">{{ card.student.student.user.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="rm-result-summary">
+                <div>
+                    <i class="bi bi-list-ul"></i>
+                    <span id="rmResultText">Showing all students</span>
+                </div>
+                <span class="rm-result-count" id="rmVisibleCount">{{ student_count }}</span>
+            </div>
+        </section>
+        <section class="rm-list-section">
+            <div class="rm-section-header">
+                <div>
+                    <span class="rm-section-kicker">Research Tracking</span>
+                    <h2>Student Milestone Overview</h2>
+                </div>
+                <div class="rm-view-label">
+                    <i class="bi bi-layout-text-window-reverse"></i>
+                    <span>Current Milestones</span>
+                </div>
+            </div>
+            <div id="rmEmptyState" class="rm-empty-state">
+                <div class="rm-empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+                <h3>No students found</h3>
+                <p>No PhD students match your current search or filter criteria.</p>
+                <button type="button" class="rm-secondary-btn" id="rmEmptyReset">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Reset Filters
+                </button>
+            </div>
+            <div class="rm-student-list" id="rmStudentList">
+                {% for card in student_cards %}
+                    <article class="rm-student-card"
+                             data-student
+                             data-student-id="{{ card.student.phd_student_id }}"
+                             data-status="{{ card.display_status }}"
+                             data-search="{{ card.student.student.user.get_full_name|lower }} {% if card.latest %}{{ card.latest.milestone_title|lower }}{% endif %}">
+                        <div class="rm-card-main">
+                            <div class="rm-student-profile">
+                                <div class="rm-student-avatar">
+                                    {{ card.student.student.user.first_name|first|upper }}{{ card.student.student.user.last_name|first|upper }}
+                                </div>
+                                <div class="rm-student-text">
+                                    <span>PhD Student</span>
+                                    <strong>{{ card.student.student.user.get_full_name }}</strong>
+                                    {% if card.student.phd_program %}
+                                        <small>{{ card.student.phd_program }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if card.latest %}
+                                <div class="rm-current-milestone">
+                                    <div class="rm-current-heading">
+                                        <div>
+                                            <span>CURRENT MILESTONE</span>
+                                            <h3>{{ card.latest.milestone_title }}</h3>
+                                        </div>
+                                        <span class="rm-step-badge">Step {{ card.latest.sequence_number }}</span>
+                                    </div>
+                                    <div class="rm-status-row">
+                                        <span class="rm-status-badge status-{{ card.display_status|lower }}">
+                                            {% if card.display_status == "PENDING" %}
+                                                <i class="bi bi-clock"></i>
+                                                Pending
+                                            {% elif card.display_status == "IN_PROGRESS" %}
+                                                <i class="bi bi-play-circle"></i>
+                                                In Progress
+                                            {% elif card.display_status == "SUBMITTED" %}
+                                                <span class="rm-submitted-status">
+                                                    <span class="rm-submitted-pulse"></span>
+                                                    <i class="bi bi-check2-circle"></i>
+                                                    <span>Submitted</span>
+                                                </span>
+                                            {% elif card.display_status == "UNDER_REVIEW" %}
+                                                <i class="bi bi-eye"></i>
+                                                Under Review
+                                            {% elif card.display_status == "CHAIR_REVIEW_PENDING" %}
+                                                <i class="bi bi-shield-check"></i>
+                                                Chair Review Pending
+                                            {% elif card.display_status == "REVISION_REQUIRED" %}
+                                                <i class="bi bi-pencil-square"></i>
+                                                Revision Required
+                                            {% elif card.display_status == "COMPLETED" %}
+                                                <i class="bi bi-check-circle"></i>
+                                                Completed
+                                            {% elif card.display_status == "ON_HOLD" %}
+                                                <i class="bi bi-pause-circle"></i>
+                                                On Hold
+                                            {% else %}
+                                                <i class="bi bi-info-circle"></i>
+                                                {{ card.latest.get_status_display }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="rm-milestone-id">#RM-{{ card.latest.milestone_id }}</span>
+                                    </div>
+                                    <div class="rm-evaluation-panel">
+                                        {% if not card.latest_submission %}
+                                            <div class="rm-evaluation-state rm-state-waiting">
+                                                <div class="rm-evaluation-state-icon">
+                                                    <i class="bi bi-file-earmark-arrow-up"></i>
+                                                </div>
+                                                <div class="rm-evaluation-state-content">
+                                                    <span class="rm-evaluation-label">Student Submission</span>
+                                                    <strong>Submission Not Received</strong>
+                                                    <p>
+                                                        The student has not submitted the required research
+                                                        documents yet. Evaluation will become available after
+                                                        the submission is received.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        {% elif card.is_chair %}
+                                            <div class="rm-evaluation-top">
+                                                <div class="rm-evaluation-info">
+                                                    <div class="rm-evaluation-icon">
+                                                        <i class="bi bi-people"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-content">
+                                                        <span class="rm-evaluation-label">Committee Evaluation</span>
+                                                        <div class="rm-evaluation-count-line">
+                                                            <strong>{{ card.completed_committee_count|default:0 }}/{{ card.required_committee_count|default:0 }}</strong>
+                                                            <span>committee evaluations completed</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="rm-evaluation-badge {{ card.committee_evaluation_state|default:'pending' }}">
+                                                    <i class="bi {% if card.committee_evaluation_state == 'complete' %}bi-check-circle{% elif card.committee_evaluation_state == 'in_progress' %}bi-hourglass-split{% else %}bi-clock{% endif %}"></i>
+                                                    <span>{{ card.committee_evaluation_label|default:'Pending' }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="rm-evaluation-progress">
+                                                <div class="rm-evaluation-progress-header">
+                                                    <span>Evaluation Completion</span>
+                                                    <strong>{{ card.completed_committee_count|default:0 }}/{{ card.required_committee_count|default:0 }}</strong>
+                                                </div>
+                                                <div class="rm-evaluation-progress-track">
+                                                    <div class="rm-evaluation-progress-fill"
+                                                         style="width: {{ card.committee_evaluation_percentage|default:0 }}%">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% if card.chair_evaluation %}
+                                                <div class="rm-evaluation-state rm-state-completed">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-shield-check"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Chair Final Evaluation</span>
+                                                        <strong>Final Evaluation Completed</strong>
+                                                        <p>
+                                                            The Chair Faculty has completed the final evaluation
+                                                            for this research milestone.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% elif card.committee_evaluation_complete %}
+                                                <div class="rm-evaluation-state rm-state-ready">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-shield-check"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Chair Review</span>
+                                                        <strong>Ready for Final Evaluation</strong>
+                                                        <p>
+                                                            All current committee members have completed their
+                                                            evaluations. The Chair Faculty can now finalize
+                                                            this milestone.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% elif card.completed_committee_count|default:0 > 0 %}
+                                                <div class="rm-evaluation-state rm-state-progress">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-hourglass-split"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Committee Review</span>
+                                                        <strong>Evaluations In Progress</strong>
+                                                        <p>
+                                                            {{ card.completed_committee_count }}
+                                                            committee evaluation{{ card.completed_committee_count|pluralize }}
+                                                            completed. Waiting for the remaining committee members.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="rm-evaluation-state rm-state-waiting">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-clock"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Committee Review</span>
+                                                        <strong>Evaluations Not Started</strong>
+                                                        <p>
+                                                            No committee member has submitted an evaluation yet.
+                                                            Waiting for the current committee members to begin
+                                                            their evaluations.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% elif card.is_committee_member %}
+                                            <div class="rm-evaluation-top">
+                                                <div class="rm-evaluation-info">
+                                                    <div class="rm-evaluation-icon">
+                                                        <i class="bi bi-person-check"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-content">
+                                                        <span class="rm-evaluation-label">Your Evaluation</span>
+                                                        {% if card.faculty_evaluation %}
+                                                            <div class="rm-evaluation-count-line">
+                                                                <strong>Completed</strong>
+                                                                <span>Your evaluation has been submitted</span>
+                                                            </div>
+                                                        {% elif card.can_evaluate %}
+                                                            <div class="rm-evaluation-count-line">
+                                                                <strong>Pending</strong>
+                                                                <span>Your evaluation is required</span>
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="rm-evaluation-count-line">
+                                                                <strong>Pending</strong>
+                                                                <span>Evaluation is not currently available</span>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                {% if card.faculty_evaluation %}
+                                                    <div class="rm-evaluation-badge completed"><i class="bi bi-check-circle"></i><span>Submitted</span></div>
+                                                {% else %}
+                                                    <div class="rm-evaluation-badge pending">Pending</div>
+                                                {% endif %}
+                                            </div>
+                                            {% if card.faculty_evaluation %}
+                                                <div class="rm-evaluation-progress">
+                                                    <div class="rm-evaluation-progress-header">
+                                                        <span>Your Evaluation</span>
+                                                        <strong>Submitted</strong>
+                                                    </div>
+                                                    <div class="rm-evaluation-progress-track">
+                                                        <div class="rm-evaluation-progress-fill" style="width: 100%"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="rm-evaluation-state rm-state-completed">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Your Review</span>
+                                                        <strong>Evaluation Submitted</strong>
+                                                        <p>
+                                                            Your evaluation has been submitted successfully
+                                                            and is now available to the Chair Faculty.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% elif card.can_evaluate %}
+                                                <div class="rm-evaluation-state rm-state-action">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-clipboard-check"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Action Required</span>
+                                                        <strong>Your Evaluation Is Pending</strong>
+                                                        <p>
+                                                            Please complete your evaluation of this research
+                                                            milestone.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="rm-evaluation-state rm-state-waiting">
+                                                    <div class="rm-evaluation-state-icon">
+                                                        <i class="bi bi-clock"></i>
+                                                    </div>
+                                                    <div class="rm-evaluation-state-content">
+                                                        <span class="rm-evaluation-label">Evaluation Status</span>
+                                                        <strong>Evaluation Pending</strong>
+                                                        <p>
+                                                            Your evaluation is not currently available for
+                                                            submission.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    {% if card.latest.description %}
+                                        <p class="rm-description">{{ card.latest.description|truncatechars:180 }}</p>
+                                    {% endif %}
+                                    <div class="rm-card-meta">
+                                        <div class="rm-meta-item">
+                                            <i class="bi bi-calendar-event"></i>
+                                            <div>
+                                                <span>Target Date</span>
+                                                <strong>
+                                                    {% if card.latest.expected_completion_date %}
+                                                        {{ card.latest.expected_completion_date|date:"d M Y" }}
+                                                    {% else %}
+                                                        Not set
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                        <div class="rm-meta-item">
+                                            <i class="bi bi-graph-up-arrow"></i>
+                                            <div>
+                                                <span>Progress</span>
+                                                <strong>{{ card.latest.current_progress_percentage|default:"0" }}%</strong>
+                                            </div>
+                                        </div>
+                                        <div class="rm-meta-item">
+                                            <i class="bi bi-clock-history"></i>
+                                            <div>
+                                                <span>Updated</span>
+                                                <strong>{{ card.latest.updated_at|date:"d M Y" }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="rm-progress-wrap">
+                                        <div class="rm-progress-header">
+                                            <span>Research Progress</span>
+                                            <strong>{{ card.latest.current_progress_percentage|default:"0" }}%</strong>
+                                        </div>
+                                        <div class="rm-progress-track">
+                                            <div class="rm-progress-fill"
+                                                 style="width: {{ card.latest.current_progress_percentage|default:0 }}%">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="rm-no-current">
+                                    <div class="rm-no-current-icon">
+                                        <i class="bi bi-hourglass-split"></i>
+                                    </div>
+                                    <div>
+                                        <span>Current Milestone</span>
+                                        <h3>No Milestone Assigned</h3>
+                                        <p>This student does not have a research milestone yet.</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="rm-card-actions">
+                            {% if card.latest %}
+                                <a href="{% url 'research_milestone_detail' uuid=request.user.uuid milestone_id=card.latest.milestone_id %}"
+                                   class="rm-action-btn view">
+                                    <i class="bi bi-eye"></i>
+                                    <span>View</span>
+                                </a>
+                                {% if card.latest_submission %}
+                                    {% if card.is_committee_member %}
+                                        {% if card.can_evaluate %}
+                                            <a href="{% url 'research_milestone_evaluate' uuid=request.user.uuid milestone_id=card.latest.milestone_id %}"
+                                               class="rm-action-btn evaluate">
+                                                <i class="bi bi-clipboard-check"></i>
+                                                <span>Evaluate</span>
+                                            </a>
+                                        {% elif card.faculty_evaluation %}
+                                            <span class="rm-action-btn submitted-evaluation">
+                                                <i class="bi bi-check2-circle"></i>
+                                                <span>Evaluation Submitted</span>
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if card.is_chair %}
+                                        {% if card.chair_evaluation %}
+                                            <span class="rm-action-btn chair-submitted">
+                                                <i class="bi bi-shield-check"></i>
+                                                <span>Final Evaluation Submitted</span>
+                                            </span>
+                                        {% elif card.committee_evaluation_complete %}
+                                            <a href="{% url 'research_milestone_evaluate' uuid=request.user.uuid milestone_id=card.latest.milestone_id %}"
+                                               class="rm-action-btn chair-finalize">
+                                                <i class="bi bi-shield-check"></i>
+                                                <span>Finalize Evaluation</span>
+                                            </a>
+                                        {% elif card.completed_committee_count|default:0 > 0 %}
+                                            <span class="rm-action-btn chair-progress"
+                                                  title="Committee evaluations are currently in progress">
+                                                <i class="bi bi-hourglass-split"></i>
+                                                <span>Evaluations In Progress</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="rm-action-btn chair-waiting"
+                                                  title="Waiting for committee members to submit evaluations">
+                                                <i class="bi bi-clock-history"></i>
+                                                <span>Evaluations Not Started</span>
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                {% if card.is_chair %}
+                                    {% if card.latest.status != "COMPLETED" %}
+                                        <a href="{% url 'research_milestone_update' uuid=request.user.uuid milestone_id=card.latest.milestone_id %}"
+                                           class="rm-action-btn edit">
+                                            <i class="bi bi-pencil-square"></i>
+                                            <span>Edit</span>
+                                        </a>
+                                    {% endif %}
+                                    {% if card.latest.status != "COMPLETED" and card.latest.status != "ON_HOLD" %}
+                                        <button type="button"
+                                                class="rm-action-btn hold"
+                                                data-hold-url="{% url 'research_milestone_hold' uuid=request.user.uuid milestone_id=card.latest.milestone_id %}"
+                                                onclick="confirmMilestoneHold(this)">
+                                            <i class="bi bi-pause-circle"></i>
+                                            <span>Hold</span>
+                                        </button>
+                                    {% endif %}
+                                    {% if card.latest.status == "ON_HOLD" %}
+                                        <button type="button"
+                                                class="rm-action-btn activate"
+                                                data-activate-url="{% url 'research_milestone_activate' uuid=request.user.uuid milestone_id=card.latest.milestone_id %}"
+                                                onclick="confirmMilestoneActivate(this)">
+                                            <i class="bi bi-play-circle"></i>
+                                            <span>Activate</span>
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                            <button type="button"
+                                    class="rm-action-btn history"
+                                    data-history-id="{{ card.student.phd_student_id }}">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Milestone History</span>
+                            </button>
+                        </div>
+                        <div class="rm-history-data"
+                             id="history-{{ card.student.phd_student_id }}"
+                             hidden>
+                            {% for milestone in card.history %}
+                                <div class="rm-history-item-data"
+                                     data-sequence="{{ milestone.sequence_number }}"
+                                     data-title="{{ milestone.milestone_title|escape }}"
+                                     data-description="{{ milestone.description|default:''|escape }}"
+                                     data-status="{{ milestone.get_status_display|escape }}"
+                                     data-status-code="{{ milestone.status|lower }}"
+                                     data-date="{% if milestone.expected_completion_date %}{{ milestone.expected_completion_date|date:'d M Y' }}{% else %}Not set{% endif %}"
+                                     data-progress="{{ milestone.current_progress_percentage|default:'0' }}"
+                                     data-updated="{{ milestone.updated_at|date:'d M Y' }}"></div>
+                            {% empty %}
+                                <div class="rm-history-item-data" data-empty="true"></div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="rm-no-data">
+                        <div class="rm-no-data-icon">
+                            <i class="bi bi-diagram-3"></i>
+                        </div>
+                        <h3>No PhD Students Assigned</h3>
+                        <p>There are currently no active PhD students assigned to you.</p>
+                        {% if is_chair %}
+                            <a href="{% url 'research_milestone_create' uuid=request.user.uuid %}"
+                               class="rm-primary-btn">
+                                <i class="bi bi-plus-lg"></i>
+                                Create First Milestone
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="rm-pagination-wrap" id="rmPaginationWrap">
+                    <div class="rm-pagination-info">
+                        <span id="rmPaginationInfo">Showing {{ student_count }} students</span>
+                    </div>
+                    <div class="rm-pagination" id="rmPagination">
+                        <button type="button"
+                                class="rm-page-btn rm-page-prev"
+                                id="rmPagePrev"
+                                aria-label="Previous page">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <div class="rm-page-numbers" id="rmPageNumbers"></div>
+                        <button type="button"
+                                class="rm-page-btn rm-page-next"
+                                id="rmPageNext"
+                                aria-label="Next page">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div class="rm-history-overlay" id="rmHistoryOverlay">
+        <div class="rm-history-modal" id="rmHistoryModal">
+            <div class="rm-history-header">
+                <div class="rm-history-title">
+                    <div class="rm-history-icon">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <span>RESEARCH TIMELINE</span>
+                        <h2 id="rmHistoryStudent">Milestone History</h2>
+                    </div>
+                </div>
+                <button type="button"
+                        class="rm-history-close"
+                        id="rmHistoryClose"
+                        aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="rm-history-body">
+                <div class="rm-history-summary">
+                    <div>
+                        <span>Total Milestones</span>
+                        <strong id="rmHistoryCount">0</strong>
+                    </div>
+                    <div>
+                        <span>Latest Step</span>
+                        <strong id="rmHistoryLatest">-</strong>
+                    </div>
+                </div>
+                <div class="rm-history-timeline" id="rmHistoryTimeline"></div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const studentCards = Array.from(
+                document.querySelectorAll("[data-student]")
+            );
+
+            const ITEMS_PER_PAGE = 3;
+
+            let filteredCards = [...studentCards];
+            let currentPage = 1;
+
+
+            const searchInput =
+                document.getElementById("rmSearch");
+
+            const statusFilter =
+                document.getElementById("rmStatusFilter");
+
+            const studentFilter =
+                document.getElementById("rmStudentFilter");
+
+            const resetButton =
+                document.getElementById("rmResetFilters");
+
+            const emptyResetButton =
+                document.getElementById("rmEmptyReset");
+
+            const clearSearch =
+                document.getElementById("rmClearSearch");
+
+            const emptyState =
+                document.getElementById("rmEmptyState");
+
+            const studentList =
+                document.getElementById("rmStudentList");
+
+            const visibleCount =
+                document.getElementById("rmVisibleCount");
+
+            const resultText =
+                document.getElementById("rmResultText");
+
+
+            const paginationWrap =
+                document.getElementById("rmPaginationWrap");
+
+            const paginationInfo =
+                document.getElementById("rmPaginationInfo");
+
+            const pageNumbers =
+                document.getElementById("rmPageNumbers");
+
+            const pagePrev =
+                document.getElementById("rmPagePrev");
+
+            const pageNext =
+                document.getElementById("rmPageNext");
+
+
+            const studentChoices = new Choices(
+                studentFilter,
+                {
+                    searchEnabled: true,
+                    shouldSort: false,
+                    itemSelectText: "",
+                    searchPlaceholderValue:
+                        "Search student...",
+                    noResultsText:
+                        "No student found",
+                    noChoicesText:
+                        "No students available",
+                    allowHTML: false,
+                    removeItemButton: true
+                }
+            );
+
+
+            const statusChoices = new Choices(
+                statusFilter,
+                {
+                    searchEnabled: false,
+                    shouldSort: false,
+                    itemSelectText: "",
+                    allowHTML: false
+                }
+            );
+
+
+            function normalize(value) {
+
+                return (value || "")
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+
+            }
+
+
+            function getTotalPages() {
+
+                return Math.max(
+                    1,
+                    Math.ceil(
+                        filteredCards.length /
+                        ITEMS_PER_PAGE
+                    )
+                );
+
+            }
+
+
+            function renderPagination() {
+
+                const totalItems =
+                    filteredCards.length;
+
+                const totalPages =
+                    getTotalPages();
+
+
+                if (currentPage > totalPages) {
+                    currentPage = totalPages;
+                }
+
+
+                pageNumbers.innerHTML = "";
+
+
+                if (totalItems <= ITEMS_PER_PAGE) {
+
+                    paginationWrap.classList.add(
+                        "is-hidden"
+                    );
+
+                    return;
+
+                }
+
+
+                paginationWrap.classList.remove(
+                    "is-hidden"
+                );
+
+
+                pagePrev.disabled =
+                    currentPage === 1;
+
+                pageNext.disabled =
+                    currentPage === totalPages;
+
+
+                pagePrev.setAttribute(
+                    "aria-disabled",
+                    currentPage === 1
+                        ? "true"
+                        : "false"
+                );
+
+
+                for (
+                    let page = 1;
+                    page <= totalPages;
+                    page++
+                ) {
+
+                    const button =
+                        document.createElement("button");
+
+                    button.type = "button";
+
+                    button.className =
+                        "rm-page-number";
+
+                    button.textContent =
+                        page;
+
+                    button.setAttribute(
+                        "aria-label",
+                        `Go to page ${page}`
+                    );
+
+
+                    if (page === currentPage) {
+
+                        button.classList.add(
+                            "active"
+                        );
+
+                        button.setAttribute(
+                            "aria-current",
+                            "page"
+                        );
+
+                    }
+
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            if (
+                                page === currentPage
+                            ) {
+                                return;
+                            }
+
+
+                            currentPage = page;
+
+                            renderCurrentPage();
+
+                            scrollToMilestoneList();
+
+                        }
+                    );
+
+
+                    pageNumbers.appendChild(
+                        button
+                    );
+
+                }
+
+
+                const start =
+                    (
+                        (currentPage - 1) *
+                        ITEMS_PER_PAGE
+                    ) + 1;
+
+                const end =
+                    Math.min(
+                        currentPage *
+                        ITEMS_PER_PAGE,
+                        totalItems
+                    );
+
+
+                paginationInfo.textContent =
+                    `Showing ${start}–${end} of ${totalItems} students`;
+
+            }
+
+
+            function renderCurrentPage() {
+
+                const totalItems =
+                    filteredCards.length;
+
+                const totalPages =
+                    getTotalPages();
+
+
+                if (
+                    currentPage >
+                    totalPages
+                ) {
+
+                    currentPage =
+                        totalPages;
+
+                }
+
+
+                studentCards.forEach(
+                    function (card) {
+
+                        card.style.display =
+                            "none";
+
+                    }
+                );
+
+
+                const startIndex =
+                    (
+                        currentPage - 1
+                    ) * ITEMS_PER_PAGE;
+
+                const endIndex =
+                    startIndex +
+                    ITEMS_PER_PAGE;
+
+
+                const pageCards =
+                    filteredCards.slice(
+                        startIndex,
+                        endIndex
+                    );
+
+
+                pageCards.forEach(
+                    function (card) {
+
+                        card.style.display =
+                            "";
+
+                    }
+                );
+
+
+                if (totalItems === 0) {
+
+                    emptyState.classList.add(
+                        "show"
+                    );
+
+                    studentList.classList.add(
+                        "filtered-empty"
+                    );
+
+                    paginationWrap.classList.add(
+                        "is-hidden"
+                    );
+
+                    return;
+
+                }
+
+
+                emptyState.classList.remove(
+                    "show"
+                );
+
+                studentList.classList.remove(
+                    "filtered-empty"
+                );
+
+
+                renderPagination();
+
+            }
+
+
+            function scrollToMilestoneList() {
+
+                const section =
+                    document.querySelector(
+                        ".rm-list-section"
+                    );
+
+
+                if (!section) {
+                    return;
+                }
+
+
+                const top =
+                    section.getBoundingClientRect().top +
+                    window.scrollY -
+                    25;
+
+
+                window.scrollTo(
+                    {
+                        top: top,
+                        behavior: "smooth"
+                    }
+                );
+
+            }
+
+
+            function applyFilters() {
+
+                const searchValue =
+                    normalize(
+                        searchInput.value
+                    );
+
+                const statusValue =
+                    statusFilter.value;
+
+                const studentValue =
+                    studentFilter.value;
+
+
+                filteredCards =
+                    studentCards.filter(
+                        function (card) {
+
+                            const cardSearch =
+                                normalize(
+                                    card.dataset.search
+                                );
+
+
+                            const cardStatus =
+                                card.dataset.status;
+
+
+                            const cardStudent =
+                                card.dataset.studentId;
+
+
+                            const matchesSearch =
+                                !searchValue ||
+                                cardSearch.includes(
+                                    searchValue
+                                );
+
+
+                            const matchesStatus =
+                                !statusValue ||
+                                cardStatus ===
+                                statusValue;
+
+
+                            const matchesStudent =
+                                !studentValue ||
+                                cardStudent ===
+                                studentValue;
+
+
+                            return (
+                                matchesSearch &&
+                                matchesStatus &&
+                                matchesStudent
+                            );
+
+                        }
+                    );
+
+
+                currentPage = 1;
+
+
+                const visible =
+                    filteredCards.length;
+
+
+                visibleCount.textContent =
+                    visible;
+
+
+                if (
+                    !searchValue &&
+                    !statusValue &&
+                    !studentValue
+                ) {
+
+                    resultText.textContent =
+                        "Showing all students";
+
+                } else {
+
+                    resultText.textContent =
+                        `Showing ${visible} matching students`;
+
+                }
+
+
+                renderCurrentPage();
+
+            }
+
+
+            function resetFilters() {
+
+                searchInput.value = "";
+
+
+                statusChoices.removeActiveItems();
+
+                statusChoices.setChoiceByValue(
+                    ""
+                );
+
+
+                studentChoices.removeActiveItems();
+
+                studentChoices.setChoiceByValue(
+                    ""
+                );
+
+
+                clearSearch.classList.remove(
+                    "show"
+                );
+
+
+                currentPage = 1;
+
+
+                applyFilters();
+
+            }
+
+
+            searchInput.addEventListener(
+                "input",
+                function () {
+
+                    clearSearch.classList.toggle(
+                        "show",
+                        searchInput.value
+                            .trim()
+                            .length > 0
+                    );
+
+
+                    applyFilters();
+
+                }
+            );
+
+
+            statusFilter.addEventListener(
+                "change",
+                function () {
+
+                    applyFilters();
+
+                }
+            );
+
+
+            studentFilter.addEventListener(
+                "change",
+                function () {
+
+                    applyFilters();
+
+                }
+            );
+
+
+            clearSearch.addEventListener(
+                "click",
+                function () {
+
+                    searchInput.value = "";
+
+                    clearSearch.classList.remove(
+                        "show"
+                    );
+
+                    searchInput.focus();
+
+                    applyFilters();
+
+                }
+            );
+
+
+            resetButton.addEventListener(
+                "click",
+                function () {
+
+                    resetFilters();
+
+                }
+            );
+
+
+            emptyResetButton.addEventListener(
+                "click",
+                function () {
+
+                    resetFilters();
+
+                }
+            );
+
+
+            pagePrev.addEventListener(
+                "click",
+                function () {
+
+                    if (
+                        currentPage <= 1
+                    ) {
+                        return;
+                    }
+
+
+                    currentPage--;
+
+                    renderCurrentPage();
+
+                    scrollToMilestoneList();
+
+                }
+            );
+
+
+            pageNext.addEventListener(
+                "click",
+                function () {
+
+                    const totalPages =
+                        getTotalPages();
+
+
+                    if (
+                        currentPage >=
+                        totalPages
+                    ) {
+                        return;
+                    }
+
+
+                    currentPage++;
+
+                    renderCurrentPage();
+
+                    scrollToMilestoneList();
+
+                }
+            );
+
+
+            const historyOverlay =
+                document.getElementById(
+                    "rmHistoryOverlay"
+                );
+
+
+            const historyModal =
+                document.getElementById(
+                    "rmHistoryModal"
+                );
+
+
+            const historyClose =
+                document.getElementById(
+                    "rmHistoryClose"
+                );
+
+
+            const historyStudent =
+                document.getElementById(
+                    "rmHistoryStudent"
+                );
+
+
+            const historyCount =
+                document.getElementById(
+                    "rmHistoryCount"
+                );
+
+
+            const historyLatest =
+                document.getElementById(
+                    "rmHistoryLatest"
+                );
+
+
+            const historyTimeline =
+                document.getElementById(
+                    "rmHistoryTimeline"
+                );
+
+
+            function escapeHTML(value) {
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                div.textContent =
+                    value || "";
+
+
+                return div.innerHTML;
+
+            }
+
+
+            function getStatusClass(
+                statusCode
+            ) {
+
+                return (
+                    "status-" +
+                    normalize(statusCode)
+                );
+
+            }
+
+
+            function getStatusIcon(
+                statusCode
+            ) {
+
+                const icons = {
+
+                    pending:
+                        "bi bi-clock",
+
+                    in_progress:
+                        "bi bi-play-circle",
+
+                    submitted:
+                        "bi bi-send",
+
+                    under_review:
+                        "bi bi-eye",
+
+                    chair_review_pending:
+                        "bi bi-shield-check",
+
+                    revision_required:
+                        "bi bi-pencil-square",
+
+                    completed:
+                        "bi bi-check-circle",
+
+                    on_hold:
+                        "bi bi-pause-circle"
+
+                };
+
+
+                return (
+                    icons[
+                        normalize(statusCode)
+                    ] ||
+                    "bi bi-info-circle"
+                );
+
+            }
+
+
+            function openHistory(card) {
+
+                if (!card) {
+                    return;
+                }
+
+
+                const historyId =
+                    card.dataset.studentId;
+
+
+                const studentNameElement =
+                    card.querySelector(
+                        ".rm-student-text strong"
+                    );
+
+
+                const studentName =
+                    studentNameElement
+                        ? studentNameElement
+                            .textContent
+                            .trim()
+                        : "Milestone History";
+
+
+                const dataContainer =
+                    document.getElementById(
+                        "history-" +
+                        historyId
+                    );
+
+
+                if (!dataContainer) {
+                    return;
+                }
+
+
+                const historyItems =
+                    Array.from(
+                        dataContainer.querySelectorAll(
+                            ".rm-history-item-data"
+                        )
+                    );
+
+
+                historyStudent.textContent =
+                    studentName;
+
+
+                historyTimeline.innerHTML =
+                    "";
+
+
+                if (
+                    historyItems.length === 0 ||
+                    (
+                        historyItems[0]
+                            .dataset
+                            .empty === "true"
+                    )
+                ) {
+
+                    historyTimeline.innerHTML = `
+
+                        <div class="rm-history-empty">
+
+                            <div>
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+
+                            <h3>
+                                No milestone history
+                            </h3>
+
+                            <p>
+                                This student does not have
+                                any research milestones yet.
+                            </p>
+
+                        </div>
+
+                    `;
+
+
+                    historyCount.textContent =
+                        "0";
+
+
+                    historyLatest.textContent =
+                        "-";
+
+                } else {
+
+                    historyCount.textContent =
+                        historyItems.length;
+
+
+                    historyLatest.textContent =
+                        "Step " +
+                        historyItems[0]
+                            .dataset
+                            .sequence;
+
+
+                    historyItems.forEach(
+                        function (
+                            item,
+                            index
+                        ) {
+
+                            const sequence =
+                                item.dataset.sequence;
+
+                            const title =
+                                item.dataset.title;
+
+                            const description =
+                                item.dataset.description;
+
+                            const status =
+                                item.dataset.status;
+
+                            const statusCode =
+                                item.dataset.statusCode;
+
+                            const targetDate =
+                                item.dataset.date;
+
+                            const progress =
+                                item.dataset.progress;
+
+                            const updated =
+                                item.dataset.updated;
+
+
+                            const timelineItem =
+                                document.createElement(
+                                    "div"
+                                );
+
+
+                            timelineItem.className =
+                                "rm-history-entry";
+
+
+                            timelineItem.innerHTML = `
+
+                                <div class="rm-history-line">
+
+                                    <div class="rm-history-dot">
+                                        ${escapeHTML(sequence)}
+                                    </div>
+
+                                    ${
+                                        index <
+                                        historyItems.length - 1
+                                            ? `
+                                                <div class="rm-history-connector">
+                                                </div>
+                                              `
+                                            : ""
+                                    }
+
+                                </div>
+
+
+                                <div class="rm-history-content">
+
+                                    <div class="rm-history-entry-top">
+
+                                        <div>
+
+                                            <span class="rm-history-step">
+                                                STEP
+                                                ${escapeHTML(sequence)}
+                                            </span>
+
+                                            <h3>
+                                                ${escapeHTML(title)}
+                                            </h3>
+
+                                        </div>
+
+
+                                        <span class=" rm-status-badge ${getStatusClass( statusCode )} ">
+
+                                            <i class="${getStatusIcon( statusCode )}">
+                                            </i>
+
+                                            ${escapeHTML(status)}
+
+                                        </span>
+
+                                    </div>
+
+
+                                    ${
+                                        description
+                                            ? `
+                                                <p class=" rm-history-description ">
+
+                                                    ${escapeHTML(
+                                                        description
+                                                    )}
+
+                                                </p>
+                                              `
+                                            : ""
+                                    }
+
+
+                                    <div class="rm-history-meta">
+
+                                        <div>
+
+                                            <i class="bi bi-calendar-event"></i>
+
+                                            <span>
+                                                Target
+                                            </span>
+
+                                            <strong>
+                                                ${escapeHTML(
+                                                    targetDate
+                                                )}
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <i class="bi bi-graph-up-arrow"></i>
+
+                                            <span>
+                                                Progress
+                                            </span>
+
+                                            <strong>
+                                                ${escapeHTML(
+                                                    progress
+                                                )}%
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <i class="bi bi-clock-history"></i>
+
+                                            <span>
+                                                Updated
+                                            </span>
+
+                                            <strong>
+                                                ${escapeHTML(
+                                                    updated
+                                                )}
+                                            </strong>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            `;
+
+
+                            historyTimeline.appendChild(
+                                timelineItem
+                            );
+
+                        }
+                    );
+
+                }
+
+
+                historyOverlay.classList.add(
+                    "show"
+                );
+
+
+                document.body.classList.add(
+                    "rm-modal-open"
+                );
+
+
+                requestAnimationFrame(
+                    function () {
+
+                        historyModal.classList.add(
+                            "show"
+                        );
+
+                    }
+                );
+
+            }
+
+
+            function closeHistory() {
+
+                historyModal.classList.remove(
+                    "show"
+                );
+
+
+                setTimeout(
+                    function () {
+
+                        historyOverlay.classList.remove(
+                            "show"
+                        );
+
+
+                        document.body.classList.remove(
+                            "rm-modal-open"
+                        );
+
+                    },
+                    180
+                );
+
+            }
+
+
+            document.querySelectorAll(
+                ".rm-action-btn.history"
+            ).forEach(
+                function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            const card =
+                                button.closest(
+                                    "[data-student]"
+                                );
+
+
+                            openHistory(card);
+
+                        }
+                    );
+
+                }
+            );
+
+
+            historyClose.addEventListener(
+                "click",
+                function () {
+
+                    closeHistory();
+
+                }
+            );
+
+
+            historyOverlay.addEventListener(
+                "click",
+                function (event) {
+
+                    if (
+                        event.target ===
+                        historyOverlay
+                    ) {
+
+                        closeHistory();
+
+                    }
+
+                }
+            );
+
+
+            document.addEventListener(
+                "keydown",
+                function (event) {
+
+                    if (
+                        event.key === "Escape" &&
+                        historyOverlay.classList.contains(
+                            "show"
+                        )
+                    ) {
+
+                        closeHistory();
+
+                    }
+
+                }
+            );
+
+
+            {% if messages %}
+
+                {% for message in messages %}
+
+                    Swal.fire({
+
+                        icon:
+                            "{% if message.tags == 'success' %}"
+                                + "success"
+                            + "{% elif message.tags == 'warning' %}"
+                                + "warning"
+                            + "{% elif message.tags == 'error' %}"
+                                + "error"
+                            + "{% else %}"
+                                + "info"
+                            + "{% endif %}",
+
+
+                        title:
+                            "{% if message.tags == 'success' %}"
+                                + "Success"
+                            + "{% elif message.tags == 'warning' %}"
+                                + "Notice"
+                            + "{% elif message.tags == 'error' %}"
+                                + "Unable to continue"
+                            + "{% else %}"
+                                + "Information"
+                            + "{% endif %}",
+
+
+                        text:
+                            "{{ message|escapejs }}",
+
+
+                        confirmButtonColor:
+                            "#C5050C",
+
+
+                        confirmButtonText:
+                            "OK",
+
+
+                        customClass: {
+
+                            popup:
+                                "rm-swal-popup",
+
+                            confirmButton:
+                                "rm-swal-confirm"
+
+                        }
+
+                    });
+
+                {% endfor %}
+
+            {% endif %}
+
+
+            applyFilters();
+
+        });
+
+
+        function confirmMilestoneHold(button) {
+
+            const url =
+                button.dataset.holdUrl;
+
+
+            Swal.fire({
+
+                icon: "warning",
+
+                title:
+                    "Put milestone on hold?",
+
+                text:
+                    "This will pause active research tracking for this milestone.",
+
+                showCancelButton: true,
+
+                confirmButtonText:
+                    "Yes, put on hold",
+
+                cancelButtonText:
+                    "Cancel",
+
+                confirmButtonColor:
+                    "#C5050C",
+
+                cancelButtonColor:
+                    "#64748B",
+
+                reverseButtons: true,
+
+                customClass: {
+
+                    popup:
+                        "rm-swal-popup",
+
+                    confirmButton:
+                        "rm-swal-confirm",
+
+                    cancelButton:
+                        "rm-swal-cancel"
+
+                }
+
+            }).then(
+                function (result) {
+
+                    if (
+                        !result.isConfirmed
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    submitMilestoneAction(
+                        url,
+                        "Putting milestone on hold..."
+                    );
+
+                }
+            );
+
+        }
+
+
+        function confirmMilestoneActivate(button) {
+
+            const url =
+                button.dataset.activateUrl;
+
+
+            Swal.fire({
+
+                icon: "question",
+
+                title:
+                    "Activate milestone?",
+
+                text:
+                    "This will resume active research tracking for this milestone.",
+
+                showCancelButton: true,
+
+                confirmButtonText:
+                    "Yes, activate",
+
+                cancelButtonText:
+                    "Cancel",
+
+                confirmButtonColor:
+                    "#C5050C",
+
+                cancelButtonColor:
+                    "#64748B",
+
+                reverseButtons: true,
+
+                customClass: {
+
+                    popup:
+                        "rm-swal-popup",
+
+                    confirmButton:
+                        "rm-swal-confirm",
+
+                    cancelButton:
+                        "rm-swal-cancel"
+
+                }
+
+            }).then(
+                function (result) {
+
+                    if (
+                        !result.isConfirmed
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    submitMilestoneAction(
+                        url,
+                        "Activating milestone..."
+                    );
+
+                }
+            );
+
+        }
+
+
+        function submitMilestoneAction(
+            url,
+            loadingText
+        ) {
+
+            const form =
+                document.createElement(
+                    "form"
+                );
+
+
+            form.method =
+                "POST";
+
+
+            form.action =
+                url;
+
+
+            form.style.display =
+                "none";
+
+
+            const csrfInput =
+                document.createElement(
+                    "input"
+                );
+
+
+            csrfInput.type =
+                "hidden";
+
+
+            csrfInput.name =
+                "csrfmiddlewaretoken";
+
+
+            csrfInput.value =
+                getCookie(
+                    "csrftoken"
+                );
+
+
+            form.appendChild(
+                csrfInput
+            );
+
+
+            document.body.appendChild(
+                form
+            );
+
+
+            Swal.fire({
+
+                title:
+                    loadingText,
+
+                allowOutsideClick:
+                    false,
+
+                allowEscapeKey:
+                    false,
+
+                showConfirmButton:
+                    false,
+
+                customClass: {
+
+                    popup:
+                        "rm-swal-popup"
+
+                },
+
+                didOpen:
+                    function () {
+
+                        Swal.showLoading();
+
+                        form.submit();
+
+                    }
+
+            });
+
+        }
+
+        function getCookie(name) {
+
+            let cookieValue = null;
+
+
+            document.cookie
+                .split(";")
+                .forEach(
+                    function (cookie) {
+
+                        cookie =
+                            cookie.trim();
+
+
+                        if (
+                            cookie.startsWith(
+                                name + "="
+                            )
+                        ) {
+
+                            cookieValue =
+                                decodeURIComponent(
+                                    cookie.substring(
+                                        name.length + 1
+                                    )
+                                );
+
+                        }
+
+                    }
+                );
+
+
+            return cookieValue;
+
+        }
+
+    </script>
+{% endblock extra_js %}

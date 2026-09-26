@@ -1,0 +1,1104 @@
+{% extends "staff_base.html" %}
+{% load static %}
+{% block title %}
+    {% if is_update %}
+        Update Video Evidence
+    {% else %}
+        Add Video Evidence
+    {% endif %}
+    — University of Wisconsin
+{% endblock %}
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_video_evidence %}active{% endblock %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+          rel="stylesheet">
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_staff/video_evidence/video_evidence_form.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="ve-form-page">
+        <div class="ve-form-header">
+            <div class="ve-form-heading">
+                <div class="ve-form-icon">
+                    <i class="ti ti-video-plus"></i>
+                </div>
+                <div>
+                    <div style="font-weight:800 !important" class="ve-breadcrumb">
+                        Video Evidence <i class="ti ti-chevron-right"></i>
+                        {% if is_update %}
+                            Update
+                        {% else %}
+                            Add
+                        {% endif %}
+                    </div>
+                    <h1>
+                        {% if is_update %}
+                            Update Video Evidence
+                        {% else %}
+                            Add Video Evidence
+                        {% endif %}
+                    </h1>
+                    <p>
+                        {% if is_update %}
+                            Update the selected PhD workflow video evidence record.
+                        {% else %}
+                            Upload and link a video recording to a completed PhD academic workflow record.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'Leo_Staff:video_evidence_dashboard' request.user.uuid %}"
+               class="ve-back-btn">
+                <i class="ti ti-arrow-left"></i><span>Back to Evidence</span>
+            </a>
+        </div>
+        {% if form_errors %}
+            <div class="ve-alert">
+                <div class="ve-alert-icon">
+                    <i class="ti ti-alert-circle"></i>
+                </div>
+                <div class="ve-alert-content">
+                    <strong>Please review the following:</strong>
+                    <ul>
+                        {% for error in form_errors %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+        <div class="ve-stat-grid">
+            <div class="ve-stat-card">
+                <div class="ve-stat-icon">
+                    <i class="ti ti-users"></i>
+                </div>
+                <div><span class="ve-stat-label">PhD Students</span><strong>{{ phd_students|length }}</strong></div>
+            </div>
+            <div class="ve-stat-card">
+                <div class="ve-stat-icon">
+                    <i class="ti ti-category"></i>
+                </div>
+                <div><span class="ve-stat-label">Evidence Types</span><strong>{{ evidence_type_choices|length }}</strong></div>
+            </div>
+            <div class="ve-stat-card">
+                <div class="ve-stat-icon">
+                    <i class="ti ti-shield-check"></i>
+                </div>
+                <div><span class="ve-stat-label">Supported Formats</span><strong>4</strong></div>
+            </div>
+            <div class="ve-stat-card">
+                <div class="ve-stat-icon">
+                    <i class="ti ti-user-shield"></i>
+                </div>
+                <div><span class="ve-stat-label">Uploaded By</span><strong>Staff</strong></div>
+            </div>
+        </div>
+        <div class="ve-main-grid">
+            <div class="ve-form-card">
+                <div class="ve-card-header">
+                    <div>
+                        <span class="ve-card-kicker">
+                            {% if is_update %}
+                                Evidence Record
+                            {% else %}
+                                Evidence Details
+                            {% endif %}
+                        </span>
+                        <h2>
+                            {% if is_update %}
+                                Update Evidence Information
+                            {% else %}
+                                Video Evidence Information
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <div class="ve-secure-badge"><i class="ti ti-lock"></i> Secure Upload</div>
+                </div>
+                <form method="post"
+                      enctype="multipart/form-data"
+                      id="videoEvidenceForm"
+                      novalidate>
+                    {% csrf_token %}
+                    <div class="ve-form-section">
+                        <div class="ve-section-title">
+                            <div class="ve-section-number">01</div>
+                            <div>
+                                <h3>Evidence Association</h3>
+                                <p>Select the student and the completed academic workflow record.</p>
+                            </div>
+                        </div>
+                        <div class="ve-field-grid">
+                            <div class="ve-field">
+                                <label for="evidenceStudent">PhD Student <span>*</span></label>
+                                <select name="phd_student" id="evidenceStudent" required>
+                                    <option value="">Select PhD Student</option>
+                                    {% for student in phd_students %}
+                                        <option value="{{ student.pk }}"
+                                                {% if video_evidence and video_evidence.phd_student_id == student.pk %}selected{% endif %}>{{ student.student.user.get_full_name|default:student.student.user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small>Select the PhD student whose completed workflow record owns the recording.</small>
+                            </div>
+                            <div class="ve-field">
+                                <label for="evidenceType">Evidence Type <span>*</span></label>
+                                <select name="evidence_type" id="evidenceType" required>
+                                    <option value="">Select Evidence Type</option>
+                                    {% for value, label in evidence_type_choices %}
+                                        <option value="{{ value }}"
+                                                {% if video_evidence and video_evidence.evidence_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small>Available target records are loaded from the selected student's workflow data.</small>
+                            </div>
+                            <div class="ve-field ve-field-full">
+                                <label for="evidenceTarget">Target Academic Record <span>*</span></label>
+                                <select name="target" id="evidenceTarget" required>
+                                    
+                                </select>
+                                <small id="targetHelp">Select a student and evidence type to load eligible records.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ve-form-section">
+                        <div class="ve-section-title">
+                            <div class="ve-section-number">02</div>
+                            <div>
+                                <h3>Target Information</h3>
+                                <p>The date and workflow status are fetched from the selected record.</p>
+                            </div>
+                        </div>
+                        <div class="ve-target-summary" id="targetSummary">
+                            <div class="ve-target-empty">
+                                <div class="ve-target-empty-icon">
+                                    <i class="ti ti-file-search"></i>
+                                </div>
+                                <div><strong>No target selected</strong><span>Choose an eligible academic record above.</span></div>
+                            </div>
+                        </div>
+                        <div class="ve-date-field">
+                            <label for="targetDate">Target Date</label>
+                            <div class="ve-input-icon-wrap">
+                                <i class="ti ti-calendar"></i>
+                                <input type="text"
+                                       id="targetDate"
+                                       class="ve-form-control"
+                                       placeholder="Fetched from target record"
+                                       readonly>
+                            </div>
+                            <small>This value is automatically fetched from the selected academic record. It is not entered or stored separately.</small>
+                        </div>
+                    </div>
+                    <div class="ve-form-section">
+                        <div class="ve-section-title">
+                            <div class="ve-section-number">03</div>
+                            <div>
+                                <h3>Video Upload</h3>
+                                <p>Select the recording linked to the completed target record.</p>
+                            </div>
+                        </div>
+                        <div class="ve-upload-box" id="videoUploadBox">
+                            <input type="file"
+                                   name="video"
+                                   id="videoFile"
+                                   accept=".mp4,.webm,.ogg,.mov,video/mp4,video/webm,video/ogg,video/quicktime"
+                                   {% if not is_update %}required{% endif %}>
+                            <div class="ve-upload-icon">
+                                <i class="ti ti-cloud-upload"></i>
+                            </div>
+                            <div class="ve-upload-title">
+                                {% if is_update %}
+                                    Select a new video to replace the current file
+                                {% else %}
+                                    Drop video here or click to browse
+                                {% endif %}
+                            </div>
+                            <div class="ve-upload-text">MP4, WebM, OGG or MOV</div>
+                            <div class="ve-selected-file" id="selectedFileName">
+                                {% if video_evidence and video_evidence.video %}Current file: {{ video_evidence.video.name|cut:"phd/video_evidence/" }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="ve-video-preview" id="uploadVideoPreview">
+                            <div class="ve-preview-header">
+                                <span><i class="ti ti-player-play"></i> Video Preview</span>
+                                <button type="button" id="removeVideoPreview" class="ve-preview-remove">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            </div>
+                            <video id="uploadPreviewPlayer" controls preload="metadata" playsinline>
+                            </video>
+                        </div>
+                        {% if is_update and video_evidence.video %}
+                            <div class="ve-current-file">
+                                <div class="ve-current-file-icon">
+                                    <i class="ti ti-video"></i>
+                                </div>
+                                <div class="ve-current-file-info"><span>Current Evidence File</span><strong>{{ video_evidence.video.name|cut:"phd/video_evidence/" }}</strong></div>
+                                <a href="{{ video_evidence.video.url }}"
+                                   target="_blank"
+                                   rel="noopener"
+                                   class="ve-file-open"><i class="ti ti-external-link"></i> Open</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="ve-form-section">
+                        <div class="ve-section-title">
+                            <div class="ve-section-number">04</div>
+                            <div>
+                                <h3>Review & Confirmation</h3>
+                                <p>Confirm the dynamically loaded association before saving.</p>
+                            </div>
+                        </div>
+                        <div class="ve-review-grid">
+                            <div class="ve-review-item"><span>Student</span><strong id="reviewStudent">—</strong></div>
+                            <div class="ve-review-item"><span>Evidence Type</span><strong id="reviewEvidence">—</strong></div>
+                            <div class="ve-review-item"><span>Target</span><strong id="reviewTarget">—</strong></div>
+                            <div class="ve-review-item"><span>Target Date</span><strong id="reviewDate">—</strong></div>
+                        </div>
+                    </div>
+                    <div class="ve-form-footer">
+                        <a href="{% url 'Leo_Staff:video_evidence_dashboard' request.user.uuid %}"
+                           class="ve-cancel-btn"><i class="ti ti-arrow-left"></i> Cancel</a>
+                        <button type="submit" class="ve-submit-btn" id="submitEvidenceBtn">
+                            <i class="ti {% if is_update %}ti-device-floppy{% else %}ti-upload{% endif %}"></i><span>
+                                {% if is_update %}
+                                    Update Evidence
+                                {% else %}
+                                    Upload Evidence
+                                {% endif %}
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <aside class="ve-side-column">
+                <div class="ve-tip-card">
+                    <div class="ve-side-header">
+                        <div class="ve-side-icon">
+                            <i class="ti ti-bulb"></i>
+                        </div>
+                        <div>
+                            <span>Quick Tips</span>
+                            <h3 style="font-weight:800 !important">Before You Upload</h3>
+                        </div>
+                    </div>
+                    <div class="ve-tip-list">
+                        <div class="ve-tip-item">
+                            <i class="ti ti-circle-check"></i>
+                            <div><strong>Verify the student</strong><span>The target records are filtered to the selected PhD student.</span></div>
+                        </div>
+                        <div class="ve-tip-item">
+                            <i class="ti ti-circle-check"></i>
+                            <div><strong>Choose the completed record</strong><span>Only workflow records eligible for evidence are presented.</span></div>
+                        </div>
+                        <div class="ve-tip-item">
+                            <i class="ti ti-circle-check"></i>
+                            <div><strong>Preview before saving</strong><span>Play the selected file to confirm that the recording is readable.</span></div>
+                        </div>
+                        <div class="ve-tip-item">
+                            <i class="ti ti-circle-check"></i>
+                            <div><strong>Keep the original evidence</strong><span>Use a clear and identifiable source recording.</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ve-info-card">
+                    <div class="ve-side-header">
+                        <div class="ve-side-icon">
+                            <i class="ti ti-shield-lock"></i>
+                        </div>
+                        <div>
+                            <span>Security</span>
+                            <h3 style="font-weight:800 !important">Evidence Handling</h3>
+                        </div>
+                    </div>
+                    <div class="ve-info-list">
+                        <div><span>Supported</span><strong>MP4 · WebM · OGG · MOV</strong></div>
+                        <div><span>Storage</span><strong>Protected media storage</strong></div>
+                        <div><span>Audit</span><strong>Uploader & timestamps recorded</strong></div>
+                    </div>
+                </div>
+                <div class="ve-faq-card">
+                    <div class="ve-side-header">
+                        <div class="ve-side-icon">
+                            <i class="ti ti-help"></i>
+                        </div>
+                        <div>
+                            <span>FAQ</span>
+                            <h3 style="font-weight:800 !important">Dynamic Target Rules</h3>
+                        </div>
+                    </div>
+                    <div class="ve-faq-list">
+                        <details>
+                            <summary>Why is the target date not editable?<i class="ti ti-chevron-down"></i></summary>
+                            <p>The date comes directly from the selected academic workflow record, so staff cannot enter a conflicting date.</p>
+                        </details>
+                        <details>
+                            <summary>Why does an exam not appear?<i class="ti ti-chevron-down"></i></summary>
+                            <p>The examination must be completed and all required faculty evaluations must be submitted before it becomes eligible for video evidence.</p>
+                        </details>
+                        <details>
+                            <summary>What if the student has no exam?<i class="ti ti-chevron-down"></i></summary>
+                            <p>The target selector reports that no examination has been created instead of showing unrelated records.</p>
+                        </details>
+                        <details>
+                            <summary>Can an existing video be updated?<i class="ti ti-chevron-down"></i></summary>
+                            <p>Yes. Update mode keeps the same workflow rules and optionally allows the video file to be replaced.</p>
+                        </details>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+window.videoEvidenceConfig = {
+    targetUrl: "{% url 'Leo_Staff:video_evidence_create' request.user.uuid %}",
+    initialStudentId: "{% if video_evidence %}{{ video_evidence.phd_student_id }}{% endif %}",
+    initialEvidenceType: "{% if video_evidence %}{{ video_evidence.evidence_type }}{% endif %}",
+    initialTargetId: "{% if video_evidence %}{{ video_evidence.target_object_id }}{% endif %}"
+};
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const studentSelect = document.getElementById("evidenceStudent");
+    const evidenceTypeSelect = document.getElementById("evidenceType");
+    const targetSelect = document.getElementById("evidenceTarget");
+    const targetHelp = document.getElementById("targetHelp");
+    const targetSummary = document.getElementById("targetSummary");
+    const targetDate = document.getElementById("targetDate");
+    const videoFile = document.getElementById("videoFile");
+    const uploadBox = document.getElementById("videoUploadBox");
+    const uploadPreview = document.getElementById("uploadVideoPreview");
+    const uploadPlayer = document.getElementById("uploadPreviewPlayer");
+    const selectedFileName = document.getElementById("selectedFileName");
+    const removePreview = document.getElementById("removeVideoPreview");
+    const form = document.getElementById("videoEvidenceForm");
+    const submitButton = document.getElementById("submitEvidenceBtn");
+
+    const reviewStudent = document.getElementById("reviewStudent");
+    const reviewEvidence = document.getElementById("reviewEvidence");
+    const reviewTarget = document.getElementById("reviewTarget");
+    const reviewDate = document.getElementById("reviewDate");
+
+    if (
+        !studentSelect ||
+        !evidenceTypeSelect ||
+        !targetSelect ||
+        !form
+    ) {
+        return;
+    }
+
+    const config = window.videoEvidenceConfig || {};
+
+    const initialStudentId =
+        config.initialStudentId ||
+        studentSelect.dataset.initialValue ||
+        "";
+
+    const initialEvidenceType =
+        config.initialEvidenceType ||
+        evidenceTypeSelect.dataset.initialValue ||
+        "";
+
+    const initialTargetId =
+        config.initialTargetId ||
+        targetSelect.dataset.initialValue ||
+        "";
+
+    const targetUrl =
+        config.targetUrl ||
+        window.location.href;
+
+    const studentChoices = new Choices(studentSelect, {
+        searchEnabled: true,
+        searchPlaceholderValue: "Search students...",
+        itemSelectText: "",
+        shouldSort: false,
+        allowHTML: false,
+        placeholder: true,
+        placeholderValue: "Select PhD Student",
+        noResultsText: "No students found",
+        noChoicesText: "No students available"
+    });
+
+    const evidenceChoices = new Choices(evidenceTypeSelect, {
+        searchEnabled: true,
+        searchPlaceholderValue: "Search evidence types...",
+        itemSelectText: "",
+        shouldSort: false,
+        allowHTML: false,
+        placeholder: true,
+        placeholderValue: "Select Evidence Type",
+        noResultsText: "No evidence type found",
+        noChoicesText: "No evidence types available"
+    });
+
+    const targetChoices = new Choices(targetSelect, {
+        searchEnabled: true,
+        searchPlaceholderValue: "Search target records...",
+        itemSelectText: "",
+        shouldSort: false,
+        allowHTML: false,
+        placeholder: false,
+        searchResultLimit: 20,
+        noResultsText: "No matching records",
+        noChoicesText: "Select a student and evidence type"
+    });
+
+    function resetTarget() {
+        targetChoices.removeActiveItems();
+        targetChoices.clearChoices();
+
+        targetChoices.setChoices(
+            [
+                {
+                    value: "",
+                    label: "Select target academic record",
+                    disabled: true
+                }
+            ],
+            "value",
+            "label",
+            true
+        );
+
+        targetChoices.setChoiceByValue("");
+
+        if (targetSummary) {
+            targetSummary.innerHTML = `
+                <div class="ve-target-empty">
+                    <div class="ve-target-empty-icon">
+                        <i class="ti ti-file-search"></i>
+                    </div>
+                    <div>
+                        <strong>No target academic record selected</strong>
+                        <span>Select an eligible academic record to continue.</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (targetDate) {
+            targetDate.value = "";
+        }
+
+        if (reviewTarget) {
+            reviewTarget.textContent = "—";
+        }
+
+        if (reviewDate) {
+            reviewDate.textContent = "—";
+        }
+    }
+
+    function setNoTargets(message) {
+        targetChoices.removeActiveItems();
+        targetChoices.clearChoices();
+
+        targetChoices.setChoices(
+            [
+                {
+                    value: "",
+                    label: message || "No eligible academic records available",
+                    disabled: true
+                }
+            ],
+            "value",
+            "label",
+            true
+        );
+
+        targetChoices.setChoiceByValue("");
+
+        if (targetDate) {
+            targetDate.value = "";
+        }
+
+        if (reviewTarget) {
+            reviewTarget.textContent = "—";
+        }
+
+        if (reviewDate) {
+            reviewDate.textContent = "—";
+        }
+
+        if (targetSummary) {
+            targetSummary.innerHTML = `
+                <div class="ve-target-empty">
+                    <div class="ve-target-empty-icon">
+                        <i class="ti ti-file-off"></i>
+                    </div>
+                    <div>
+                        <strong>No eligible academic record</strong>
+                        <span>${escapeHtml(message || "No eligible academic records are available.")}</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function updateStudentReview() {
+        if (!reviewStudent) {
+            return;
+        }
+
+        const value = studentSelect.value;
+
+        if (!value) {
+            reviewStudent.textContent = "—";
+            return;
+        }
+
+        const selected = Array.from(studentSelect.options).find(
+            option => option.value === value
+        );
+
+        reviewStudent.textContent = selected
+            ? selected.textContent.trim()
+            : "—";
+    }
+
+    function updateEvidenceReview() {
+        if (!reviewEvidence) {
+            return;
+        }
+
+        const value = evidenceTypeSelect.value;
+
+        if (!value) {
+            reviewEvidence.textContent = "—";
+            return;
+        }
+
+        const selected = Array.from(evidenceTypeSelect.options).find(
+            option => option.value === value
+        );
+
+        reviewEvidence.textContent = selected
+            ? selected.textContent.trim()
+            : "—";
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) {
+            return "";
+        }
+
+        const date = new Date(`${dateString}T00:00:00`);
+
+        if (Number.isNaN(date.getTime())) {
+            return dateString;
+        }
+
+        return date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        });
+    }
+
+    function renderTarget(target) {
+        const formattedDate = formatDate(target.date);
+
+        if (targetSummary) {
+            targetSummary.innerHTML = `
+                <div class="ve-target-main">
+                    <div class="ve-target-icon">
+                        <i class="ti ti-file-description"></i>
+                    </div>
+
+                    <div class="ve-target-content">
+                        <strong>${escapeHtml(target.title || "Academic Record")}</strong>
+                        <span>${escapeHtml(target.meta || "Academic workflow record")}</span>
+                    </div>
+                </div>
+
+                <div class="ve-target-status">
+                    <span class="ve-status-dot"></span>
+                    ${escapeHtml(target.status || "Available")}
+                </div>
+            `;
+        }
+
+        if (targetDate) {
+            targetDate.value = formattedDate || "Date not available";
+        }
+
+        if (reviewTarget) {
+            reviewTarget.textContent =
+                target.title || "—";
+        }
+
+        if (reviewDate) {
+            reviewDate.textContent =
+                formattedDate || "—";
+        }
+    }
+
+    function populateTargets(targets, selectedTargetId = "") {
+        targetChoices.removeActiveItems();
+        targetChoices.clearChoices();
+
+        if (!targets.length) {
+            return;
+        }
+
+        const choices = targets.map(target => ({
+            value: String(target.id),
+            label: target.title || "Academic Record",
+            selected: String(target.id) === String(selectedTargetId),
+            customProperties: {
+                date: target.date || "",
+                status: target.status || "",
+                meta: target.meta || "",
+                eligible: target.eligible !== false,
+                reason: target.reason || ""
+            }
+        }));
+
+        targetChoices.setChoices(
+            choices,
+            "value",
+            "label",
+            true
+        );
+
+        if (selectedTargetId) {
+            targetChoices.setChoiceByValue(
+                String(selectedTargetId)
+            );
+
+            const selectedItem =
+                targetChoices.getValue();
+
+            if (
+                selectedItem &&
+                selectedItem.value &&
+                selectedItem.customProperties
+            ) {
+                renderTarget({
+                    id: selectedItem.value,
+                    title: selectedItem.label,
+                    date: selectedItem.customProperties.date,
+                    status: selectedItem.customProperties.status,
+                    meta: selectedItem.customProperties.meta
+                });
+            }
+        }
+    }
+
+    async function loadTargets(selectedTargetId = "") {
+        const studentId = studentSelect.value;
+        const evidenceType = evidenceTypeSelect.value;
+
+        resetTarget();
+
+        if (!studentId || !evidenceType) {
+            if (targetHelp) {
+                targetHelp.textContent =
+                    "Select a student and evidence type to load eligible academic records.";
+            }
+            return;
+        }
+
+        if (targetHelp) {
+            targetHelp.textContent =
+                "Checking academic workflow records...";
+        }
+
+        targetChoices.disable();
+
+        try {
+            const url = new URL(targetUrl, window.location.origin);
+
+            url.searchParams.set("load_targets", "1");
+            url.searchParams.set("student_id", studentId);
+            url.searchParams.set("evidence_type", evidenceType);
+
+            const response = await fetch(
+                url.toString(),
+                {
+                    method: "GET",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Accept": "application/json"
+                    },
+                    credentials: "same-origin"
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Target records could not be loaded."
+                );
+            }
+
+            const data = await response.json();
+
+            const targets = Array.isArray(data.targets)
+                ? data.targets
+                : [];
+
+            if (!targets.length) {
+                setNoTargets(
+                    data.message ||
+                    "No eligible academic records are available for this student."
+                );
+
+                if (targetHelp) {
+                    targetHelp.textContent =
+                        data.message ||
+                        "No eligible academic records are available for this student.";
+                }
+
+                return;
+            }
+
+            populateTargets(
+                targets,
+                selectedTargetId
+            );
+
+            if (targetHelp) {
+                targetHelp.textContent =
+                    targets.length === 1
+                        ? "One eligible academic record is available."
+                        : `${targets.length} eligible academic records are available.`;
+            }
+
+            if (
+                !selectedTargetId &&
+                targets.length === 1
+            ) {
+                targetChoices.setChoiceByValue(
+                    String(targets[0].id)
+                );
+
+                const selectedItem =
+                    targetChoices.getValue();
+
+                if (
+                    selectedItem &&
+                    selectedItem.customProperties
+                ) {
+                    renderTarget({
+                        id: selectedItem.value,
+                        title: selectedItem.label,
+                        date: selectedItem.customProperties.date,
+                        status: selectedItem.customProperties.status,
+                        meta: selectedItem.customProperties.meta
+                    });
+                }
+            }
+        } catch (error) {
+            setNoTargets(
+                "Unable to load academic records. Please try again."
+            );
+
+            if (targetHelp) {
+                targetHelp.textContent =
+                    "Unable to check academic records. Please try again.";
+            }
+        } finally {
+            targetChoices.enable();
+        }
+    }
+
+    function escapeHtml(value) {
+        const element =
+            document.createElement("div");
+
+        element.textContent =
+            value || "";
+
+        return element.innerHTML;
+    }
+
+    function showVideoPreview(file) {
+        if (!file) {
+            return;
+        }
+
+        const allowedTypes = [
+            "video/mp4",
+            "video/webm",
+            "video/ogg",
+            "video/quicktime"
+        ];
+
+        const allowedExtensions = [
+            "mp4",
+            "webm",
+            "ogg",
+            "mov"
+        ];
+
+        const extension = file.name
+            .split(".")
+            .pop()
+            .toLowerCase();
+
+        if (
+            file.type &&
+            !allowedTypes.includes(file.type) &&
+            !allowedExtensions.includes(extension)
+        ) {
+            videoFile.value = "";
+
+            selectedFileName.textContent =
+                "Unsupported video format.";
+
+            uploadPreview.classList.remove("show");
+
+            return;
+        }
+
+        const objectUrl =
+            URL.createObjectURL(file);
+
+        uploadPlayer.src =
+            objectUrl;
+
+        uploadPreview.classList.add("show");
+
+        selectedFileName.textContent =
+            `${file.name} · ${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function clearVideoPreview() {
+        if (uploadPlayer) {
+            uploadPlayer.pause();
+            uploadPlayer.removeAttribute("src");
+            uploadPlayer.load();
+        }
+
+        uploadPreview.classList.remove("show");
+
+        if (
+            videoFile &&
+            videoFile.files &&
+            !videoFile.files.length
+        ) {
+            selectedFileName.textContent = "";
+        }
+    }
+
+    studentSelect.addEventListener(
+        "change",
+        function () {
+            updateStudentReview();
+            loadTargets();
+        }
+    );
+
+    evidenceTypeSelect.addEventListener(
+        "change",
+        function () {
+            updateEvidenceReview();
+            loadTargets();
+        }
+    );
+
+    targetSelect.addEventListener(
+        "change",
+        function () {
+            const selectedItem =
+                targetChoices.getValue();
+
+            if (
+                !selectedItem ||
+                !selectedItem.value ||
+                !selectedItem.customProperties
+            ) {
+                return;
+            }
+
+            const properties =
+                selectedItem.customProperties;
+
+            if (properties.eligible === false) {
+                setNoTargets(
+                    properties.reason ||
+                    "This academic record is not currently eligible for video evidence."
+                );
+
+                return;
+            }
+
+            renderTarget({
+                id: selectedItem.value,
+                title: selectedItem.label,
+                date: properties.date,
+                status: properties.status,
+                meta: properties.meta
+            });
+        }
+    );
+
+    videoFile.addEventListener(
+        "change",
+        function () {
+            const file =
+                this.files[0];
+
+            if (!file) {
+                clearVideoPreview();
+                return;
+            }
+
+            showVideoPreview(file);
+        }
+    );
+
+    uploadBox.addEventListener(
+        "click",
+        function () {
+            videoFile.click();
+        }
+    );
+
+    uploadBox.addEventListener(
+        "dragover",
+        function (event) {
+            event.preventDefault();
+            uploadBox.classList.add("dragging");
+        }
+    );
+
+    uploadBox.addEventListener(
+        "dragleave",
+        function () {
+            uploadBox.classList.remove("dragging");
+        }
+    );
+
+    uploadBox.addEventListener(
+        "drop",
+        function (event) {
+            event.preventDefault();
+
+            uploadBox.classList.remove("dragging");
+
+            const files =
+                event.dataTransfer.files;
+
+            if (!files.length) {
+                return;
+            }
+
+            const file =
+                files[0];
+
+            const dataTransfer =
+                new DataTransfer();
+
+            dataTransfer.items.add(file);
+
+            videoFile.files =
+                dataTransfer.files;
+
+            showVideoPreview(file);
+        }
+    );
+
+    if (removePreview) {
+        removePreview.addEventListener(
+            "click",
+            function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                videoFile.value = "";
+
+                clearVideoPreview();
+            }
+        );
+    }
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+            const studentId =
+                studentSelect.value;
+
+            const evidenceType =
+                evidenceTypeSelect.value;
+
+            const targetId =
+                targetSelect.value;
+
+            if (!studentId) {
+                event.preventDefault();
+                studentChoices.showDropdown();
+                return;
+            }
+
+            if (!evidenceType) {
+                event.preventDefault();
+                evidenceChoices.showDropdown();
+                return;
+            }
+
+            if (!targetId) {
+                event.preventDefault();
+                targetChoices.showDropdown();
+                return;
+            }
+
+            if (
+                !videoFile.files.length &&
+                !initialTargetId
+            ) {
+                event.preventDefault();
+                videoFile.click();
+                return;
+            }
+
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add("loading");
+
+                const buttonText =
+                    submitButton.querySelector("span");
+
+                if (buttonText) {
+                    buttonText.textContent =
+                        submitButton.dataset.update === "true"
+                            ? "Updating..."
+                            : "Uploading...";
+                }
+            }
+        }
+    );
+
+    updateStudentReview();
+    updateEvidenceReview();
+
+    resetTarget();
+
+    if (initialStudentId) {
+        studentChoices.setChoiceByValue(
+            String(initialStudentId)
+        );
+    }
+
+    if (initialEvidenceType) {
+        evidenceChoices.setChoiceByValue(
+            String(initialEvidenceType)
+        );
+    }
+
+    if (
+        initialStudentId &&
+        initialEvidenceType
+    ) {
+        loadTargets(initialTargetId);
+    }
+});        
+    </script>
+{% endblock %}

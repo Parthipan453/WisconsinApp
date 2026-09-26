@@ -1,0 +1,194 @@
+{% extends "Applicants/builder/base.html" %}
+{% load static %}
+{% block title %}{% if doc_req %}Edit Doc Requirement{% else %}New Doc Requirement{% endif %}{% endblock %}
+{% block mobile_title %}{% if doc_req %}Edit Doc Req{% else %}New Doc Req{% endif %}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_dashboard.css' %}">
+<style>
+  .bld-preset-info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;margin:12px 0;font-size:12px;color:#1e40af;display:none}
+  .bld-preset-info strong{display:block;margin-bottom:2px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="bld-dash-hero">
+  <a href="{% url 'builder_doc_req_list' %}" class="bld-back-link" style="color:rgba(255,255,255,0.85)">&larr; Back to Doc Requirements</a>
+  <h1>{% if doc_req %}Edit Document Requirement{% else %}New Document Requirement{% endif %}</h1>
+  <p>{% if doc_req %}Update document type, scope, and file settings{% else %}Select applicant type and document type from UW System presets{% endif %}</p>
+</div>
+<div class="bld-card bld-form-card">
+  <div class="bld-card-body">
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="bld-form-section-title">Applicant Type &amp; Scope</div>
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Applicant Type *</label>
+          <select name="applicant_type" class="bld-input" required>
+            <option value="">Select type...</option>
+            {% for val, label in applicant_types %}
+            <option value="{{ val }}" {% if doc_req and doc_req.applicant_type == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">University</label>
+          <select name="university" class="bld-input">
+            <option value="">All Universities</option>
+            {% for uni in universities %}
+            <option value="{{ uni.pk }}" {% if doc_req and doc_req.university_id == uni.pk %}selected{% endif %}>{{ uni.university_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:200px">
+          <label class="bld-label">Degree Level</label>
+          <select name="degree_level" class="bld-input">
+            <option value="">All Degrees</option>
+            {% for deg in degrees %}
+            <option value="{{ deg.pk }}" {% if doc_req and doc_req.degree_level_id == deg.pk %}selected{% endif %}>{{ deg.degree_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Program</label>
+          <select name="program" class="bld-input">
+            <option value="">All Programs</option>
+            {% for prog in programs %}
+            <option value="{{ prog.pk }}" {% if doc_req and doc_req.program_id == prog.pk %}selected{% endif %}>{{ prog.program_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="bld-form-section-title">Document</div>
+      <input type="hidden" name="name" id="docName" value="{{ doc_req.name|default:'' }}">
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Document Type *</label>
+          <select name="code" class="bld-input" id="docPreset" required>
+            <option value="">Select document type...</option>
+            {% for p in presets %}
+            <option value="{{ p.code }}" data-name="{{ p.name }}" data-cat="{{ p.category }}" data-ext="{{ p.extensions }}" data-max="{{ p.max_files }}" {% if doc_req and doc_req.code == p.code %}selected{% endif %}>{{ p.name }} ({{ p.code }})</option>
+            {% endfor %}
+            <option value="__custom" {% if doc_req and doc_req.code not in preset_codes %}selected{% endif %}>Custom document...</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="presetInfo" class="bld-preset-info">
+        <i class="ti ti-info-circle"></i>
+        <span id="presetInfoText"></span>
+      </div>
+
+      <div id="customFields" style="display:none">
+        <div class="bld-form-row">
+          <div class="bld-form-group" style="width:180px">
+            <label class="bld-label">Custom Code *</label>
+            <input type="text" name="custom_code" class="bld-input" pattern="[a-z0-9_]+" placeholder="e.g. my_custom_doc">
+          </div>
+          <div class="bld-form-group bld-flex-1">
+            <label class="bld-label">Custom Name *</label>
+            <input type="text" name="custom_name" class="bld-input" placeholder="e.g. My Custom Document">
+          </div>
+        </div>
+      </div>
+
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:200px">
+          <label class="bld-label">Category *</label>
+          <select name="category" class="bld-input" id="docCategory" required>
+            {% for val, label in categories %}
+            <option value="{{ val }}" {% if doc_req and doc_req.category == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Description</label>
+          <input type="text" name="description" class="bld-input" id="docDesc" value="{{ doc_req.description|default:'' }}" placeholder="Optional">
+        </div>
+      </div>
+
+      <div class="bld-form-row" style="margin-top:8px">
+        <label class="bld-checkbox"><input type="checkbox" name="is_required" id="docRequired" {% if not doc_req or doc_req.is_required %}checked{% endif %}> Required</label>
+      </div>
+
+      <div class="bld-form-section-title">File Settings</div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:120px">
+          <label class="bld-label">Max MB</label>
+          <input type="number" name="max_file_size_mb" class="bld-input" min="1" value="{{ doc_req.max_file_size_mb|default:'10' }}">
+        </div>
+        <div class="bld-form-group" style="width:80px">
+          <label class="bld-label">Max Files</label>
+          <input type="number" name="max_files" class="bld-input" min="1" id="docMaxFiles" value="{{ doc_req.max_files|default:'1' }}">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Extensions</label>
+          <input type="text" name="allowed_extensions" class="bld-input" id="docExtensions" value="{{ doc_req.allowed_extensions|default:'.pdf,.doc,.docx,.jpg,.png' }}" placeholder=".pdf,.jpg,.png">
+        </div>
+      </div>
+
+      <div class="bld-form-section-title">Ordering</div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:100px">
+          <label class="bld-label">Sort Order</label>
+          <input type="number" name="sort_order" class="bld-input" min="0" value="{{ doc_req.sort_order|default:'0' }}">
+        </div>
+      </div>
+
+      <div class="bld-form-actions">
+        <a href="{% url 'builder_doc_req_list' %}" class="bld-btn bld-btn-outline">Cancel</a>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-{% if doc_req %}check{% else %}plus{% endif %}"></i> {% if doc_req %}Save{% else %}Create{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function(){
+  var preset = document.getElementById('docPreset');
+  var customFields = document.getElementById('customFields');
+  var info = document.getElementById('presetInfo');
+  var infoText = document.getElementById('presetInfoText');
+  var catSelect = document.getElementById('docCategory');
+  var maxFiles = document.getElementById('docMaxFiles');
+  var extensions = document.getElementById('docExtensions');
+  var docName = document.getElementById('docName');
+
+  var presets = {
+    {% for p in presets %}
+    "{{ p.code }}": {name:"{{ p.name }}", cat:"{{ p.category }}", ext:"{{ p.extensions }}", max:{{ p.max_files }}, desc:"{{ p.name }} required for application"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  };
+
+  function applyPreset(){
+    var val = preset.value;
+    if(val === '__custom'){
+      customFields.style.display = '';
+      info.style.display = 'none';
+      docName.value = '';
+      return;
+    }
+    customFields.style.display = 'none';
+    var p = presets[val];
+    if(p){
+      catSelect.value = p.cat;
+      maxFiles.value = p.max;
+      extensions.value = p.ext;
+      docName.value = p.name;
+      info.style.display = '';
+      infoText.textContent = p.desc;
+    } else {
+      info.style.display = 'none';
+    }
+  }
+
+  preset.addEventListener('change', applyPreset);
+  applyPreset();
+})();
+</script>
+{% endblock %}

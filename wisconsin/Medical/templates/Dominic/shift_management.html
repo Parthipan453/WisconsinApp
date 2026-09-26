@@ -1,0 +1,451 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Shift Management{% endblock %}
+{% block page_title %}Shift Management{% endblock %}
+
+{% block extra_css %}
+    <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard_staff_focus.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/staff_schedule.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/shift_management.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/shift_calendar_modern.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="sched-page">
+
+      <div class="sched-hero">
+          <div class="sched-hero__left">
+              <span class="sched-hero__icon"><i data-lucide="calendar-cog"></i></span>
+              <div>
+                  <h1>Shift Management</h1>
+                  <p>{% if is_admin_view %}Create shift slots across every department{% else %}Create shift slots for {{ staff_profile.department.department_name }}{% endif %} — staff assignment is a separate step below.</p>
+              </div>
+          </div>
+          <div class="sched-hero__actions">
+            <button type="button" class="med-btn med-btn--solid-red-back">
+              <a href="{% url 'Medical:staff_schedule' %}">
+                <i data-lucide="arrow-left"></i> Back to Shift Schedule
+              </a>
+            </button>
+            {% has_permission "shift_create" as can_create_medical_shift %}
+            {% if can_create_medical_shift %}
+              <button type="button" class="med-btn med-btn--solid-red" id="openCreateShiftBtn">
+                  <i data-lucide="plus"></i> Create Shift
+              </button>
+            {% endif %}
+          </div>
+      </div>
+
+      <div class="shiftmgmt-list">
+          <p class="sched-list__hint"><i data-lucide="info"></i> Shifts created here are slots only — click the <i data-lucide="user-plus"></i> icon on a row to assign medical staff to it.</p>
+
+          <div class="table-responsive med-table-wrap">
+              <table class="table med-table align-middle mb-0">
+                  <thead>
+                      <tr>
+                          <th>Shift</th>
+                          <th>Hospital</th>
+                          <th>Department</th>
+                          <th>Type</th>
+                          <th>Date Range</th>
+                          <th>Active Days</th>
+                          <th>Time</th>
+                          <th>Rooms</th>
+                          <th class="text-end">Actions</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for shift in shifts %}
+                          <tr>
+                              <td>
+                                  <span class="med-badge shiftmgmt-label shiftmgmt-label--{{ shift.color_class }}">{{ shift.shift_label }}</span>
+                              </td>
+                              <td>{{ shift.hospital.hospital_name|default:"—" }}</td>
+                              <td>{{ shift.department.department_name }}</td>
+                              <td>
+                                  <span class="med-badge {% if shift.recurrence_type == 'DAILY' %}med-badge--critical{% elif shift.recurrence_type == 'WEEKLY' %}med-badge--upcoming{% else %}med-badge--done{% endif %}">
+                                      {{ shift.get_recurrence_type_display }}
+                                  </span>
+                              </td>
+                              <td>
+                                  {% if shift.start_date == shift.end_date %}
+                                      {{ shift.start_date|date:"M d, Y" }}
+                                  {% else %}
+                                      {{ shift.start_date|date:"M d" }} – {{ shift.end_date|date:"M d, Y" }}
+                                  {% endif %}
+                              </td>
+                              <td>
+                                  <div class="shiftmgmt-days">
+                                      {% for day_code in shift.active_weekdays %}
+                                          <span class="shiftmgmt-day-chip">{{ day_code|slice:":3" }}</span>
+                                      {% endfor %}
+                                  </div>
+                              </td>
+                              <td>
+                                  {{ shift.start_time|time:"h:i A" }} – {{ shift.end_time|time:"h:i A" }}
+                                  {% if shift.has_hospital_hours_conflict %}
+                                      <span class="med-badge med-badge--critical shiftmgmt-hours-warning"
+                                            title="{{ shift.hospital_hours_conflicts|join:" • " }}">
+                                          <i data-lucide="alert-triangle"></i> Outside current hours
+                                      </span>
+                                  {% endif %}
+                              </td>
+                              <td>{{ shift.assigned_room_count|default:"—" }}</td>
+                              <td class="text-end">
+                                  <button type="button" class="sched-row-btn sched-row-btn--assign" data-shift-id="{{ shift.pk }}" title="Assign Staff">
+                                      <i data-lucide="user-plus"></i>
+                                  </button>
+                                  {% has_permission "shift_update" as can_edit_shift %}
+                                  {% if can_edit_shift %}
+                                    <button type="button" class="sched-row-btn sched-row-btn--edit" data-shift-id="{{ shift.pk }}" title="Edit">
+                                        <i data-lucide="pencil"></i>
+                                    </button>
+                                  {% endif %}
+                                  <button type="button" class="sched-row-btn sched-row-btn--delete" data-shift-id="{{ shift.pk }}" data-shift-name="{{ shift.shift_type }} - {{ shift.department.department_name }}" title="Delete">
+                                      <i data-lucide="trash-2"></i>
+                                  </button>
+                              </td>
+                          </tr>
+                      {% empty %}
+                          <tr><td colspan="9" class="text-muted small">No shifts created yet. Click "Create Shift" to get started.</td></tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+
+  </div>
+{% endblock %}
+
+{% block global_modal %}
+
+  <div class="modal fade med-modal" id="shiftFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content med-modal__content">
+        <div class="modal-header med-modal__header">
+          <h5 class="modal-title"><i data-lucide="calendar-plus"></i> <span id="shiftFormModalTitle">Create Shift</span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'Medical:shift_create' %}" id="shiftForm" novalidate>
+          {% csrf_token %}
+          <div class="modal-body med-modal__body">
+
+            <div class="shiftmgmt-form-banner d-none" id="shiftFormErrorBanner" role="alert">
+              <i data-lucide="alert-triangle"></i>
+              <div>
+                <strong>Please fix the following before saving:</strong>
+                <ul id="shiftFormErrorList"></ul>
+              </div>
+            </div>
+
+            <div class="sched-type-toggle" id="recurrenceToggle">
+              <button type="button" class="sched-type-btn is-active" data-recurrence="DAILY"><i data-lucide="calendar"></i> Daily</button>
+              <button type="button" class="sched-type-btn" data-recurrence="WEEKLY"><i data-lucide="calendar-range"></i> Weekly</button>
+              <button type="button" class="sched-type-btn" data-recurrence="MONTHLY"><i data-lucide="calendar-days"></i> Monthly</button>
+            </div>
+            <input type="hidden" name="recurrence_type" id="id_recurrence_type" value="DAILY">
+
+            <div class="row g-3 mt-1">
+              <div class="col-md-6">
+                <label class="med-modal__label">Hospital</label>
+                <div class="med-custom-select" id="shiftHospitalCustomSelect">
+                    <button type="button" class="med-custom-select__trigger" id="shiftHospitalTrigger">
+                        <span class="med-custom-select__avatar" id="shiftHospitalIcon"><i data-lucide="hospital"></i></span>
+                        <span class="med-custom-select__label" id="shiftHospitalLabel">Select Hospital</span>
+                        <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                    </button>
+                    <div class="med-custom-select__panel" id="shiftHospitalPanel" hidden>
+                        <div class="med-custom-select__search">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="shiftHospitalSearch" placeholder="Search hospital..." autocomplete="off">
+                        </div>
+                        <ul class="med-custom-select__list" id="shiftHospitalList"></ul>
+                    </div>
+                </div>
+                <div class="med-visually-hidden">{{ shift_form.hospital }}</div>
+                <small class="shiftmgmt-field-error d-none" id="err_hospital"></small>
+              </div>
+              <div class="col-md-6">
+                <label class="med-modal__label">Department</label>
+                <div class="med-custom-select" id="shiftDepartmentCustomSelect">
+                    <button type="button" class="med-custom-select__trigger" id="shiftDepartmentTrigger">
+                        <span class="med-custom-select__avatar" id="shiftDepartmentIcon"><i data-lucide="building-2"></i></span>
+                        <span class="med-custom-select__label" id="shiftDepartmentLabel">Select Department</span>
+                        <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                    </button>
+                    <div class="med-custom-select__panel" id="shiftDepartmentPanel" hidden>
+                        <div class="med-custom-select__search">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="shiftDepartmentSearch" placeholder="Search department..." autocomplete="off">
+                        </div>
+                        <ul class="med-custom-select__list" id="shiftDepartmentList"></ul>
+                    </div>
+                </div>
+                <div class="med-visually-hidden">{{ shift_form.department }}</div>
+                <small class="shiftmgmt-field-error d-none" id="err_department"></small>
+              </div>
+
+              <div class="col-md-6">
+                <label class="med-modal__label">Shift Label</label>
+                {{ shift_form.shift_label }}
+                <small class="shiftmgmt-field-error d-none" id="err_shift_label"></small>
+              </div>
+              <div class="col-md-6">
+                <label class="med-modal__label">Shift Type</label>
+                <div class="med-custom-select" id="shiftTypeCustomSelect">
+                    <button type="button" class="med-custom-select__trigger" id="shiftTypeTrigger">
+                        <span class="med-custom-select__avatar" id="shiftTypeIcon"><i data-lucide="sun"></i></span>
+                        <span class="med-custom-select__label" id="shiftTypeLabel">Select Shift Type</span>
+                        <i data-lucide="chevron-down" class="med-custom-select__chevron"></i>
+                    </button>
+                    <div class="med-custom-select__panel" id="shiftTypePanel" hidden>
+                        <ul class="med-custom-select__list" id="shiftTypeList"></ul>
+                    </div>
+                </div>
+                <div class="med-visually-hidden">{{ shift_form.shift_type }}</div>
+                <small class="shiftmgmt-field-error d-none" id="err_shift_type"></small>
+              </div>
+
+              <div class="col-md-6">
+                <label class="med-modal__label" id="startDateLabel">Date</label>
+                {{ shift_form.start_date }}
+                <small class="shiftmgmt-hint" id="startDateHint">Pick the exact date this shift applies to.</small>
+                <small class="shiftmgmt-field-error d-none" id="err_start_date"></small>
+              </div>
+              <div class="col-md-3">
+                <label class="med-modal__label">Start Time</label>
+                {{ shift_form.start_time }}
+                <small class="shiftmgmt-field-error d-none" id="err_start_time"></small>
+              </div>
+              <div class="col-md-3">
+                <label class="med-modal__label">End Time</label>
+                {{ shift_form.end_time }}
+                <small class="shiftmgmt-field-error d-none" id="err_end_time"></small>
+              </div>
+
+              <div class="col-12 d-none" id="hospitalHoursPanel">
+                <div class="shiftmgmt-hours-hint" id="hospitalHoursCard">
+                  <span class="shiftmgmt-hours-hint__icon"><i data-lucide="clock"></i></span>
+                  <span class="shiftmgmt-hours-hint__body">
+                    <strong class="shiftmgmt-hours-hint__label" id="hospitalHoursLabel">Working Hours</strong>
+                    <span class="shiftmgmt-hours-hint__text" id="hospitalHoursText">Select a hospital to see its working hours.</span>
+                  </span>
+                </div>
+                <div class="shiftmgmt-hours-conflict d-none" id="workingHoursConflict">
+                  <i data-lucide="calendar-x"></i>
+                  <span id="workingHoursConflictText"></span>
+                </div>
+              </div>
+
+              <div class="col-12 d-none" id="weekdayPatternField">
+                <label class="med-modal__label">Active Days <small>(uncheck to exclude a day)</small></label>
+                <div class="shiftmgmt-weekday-picker">
+                  {% for checkbox in shift_form.weekday_pattern %}
+                    <label class="shiftmgmt-weekday-chip">
+                      {{ checkbox.tag }}
+                      <span>{{ checkbox.choice_label|slice:":3" }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+                <small class="shiftmgmt-field-error d-none" id="err_weekday_pattern"></small>
+              </div>
+
+            </div>
+          </div>
+          <div class="med-modal__footer sched-modal-footer">
+            <div class="sched-footer-right ms-auto">
+              <button type="button" class="med-btn--ghost-dark-outline" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="med-form-modern__submit" id="shiftFormSubmitBtn"><i data-lucide="check"></i> <span id="shiftFormSubmitLabel">Create Shift</span></button>
+            </div>
+          </div>
+        </form>
+        <datalist id="shiftLabelSuggestions">
+          <option value="Morning Rounds">
+          <option value="Afternoon Coverage">
+          <option value="Evening Shift">
+          <option value="Night Watch">
+          <option value="ICU Cover">
+          <option value="Weekend OPD">
+          <option value="On-Call">
+        </datalist>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade med-modal" id="shiftAssignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content med-modal__content">
+        <div class="modal-header med-modal__header">
+          <h5 class="modal-title"><i data-lucide="users"></i> Assign Staff — <span id="assignModalShiftLabel">Shift</span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body med-modal__body">
+
+          <h6 class="shiftassign-subhead">Currently Assigned</h6>
+          <div id="assignedStaffList" class="shiftassign-assigned-list">
+            <p class="text-muted small mb-0" id="assignedEmptyMsg">No staff assigned yet.</p>
+          </div>
+
+          <hr class="med-modal__divider">
+
+          <form method="post" id="assignStaffForm" action="">
+            {% csrf_token %}
+            <h6 class="shiftassign-subhead">Add Staff</h6>
+
+            <div class="shiftmgmt-form-banner d-none" id="assignFormErrorBanner" role="alert">
+              <i data-lucide="alert-triangle"></i>
+              <div>
+                <strong>Please fix the following before saving:</strong>
+                <ul id="assignFormErrorList"></ul>
+              </div>
+            </div>
+
+            <div class="sched-multiselect">
+              <div class="sched-multiselect__search">
+                <i data-lucide="search"></i>
+                <input type="text" id="assignStaffSearch" placeholder="Search staff..." autocomplete="off">
+              </div>
+              <div class="sched-multiselect__list" id="assignStaffList"></div>
+            </div>
+            <div class="sched-selected-count"><span id="assignSelectedCount">0</span> staff selected</div>
+
+            <div class="col-12 mt-3">
+              <small class="text-muted"><i data-lucide="info" style="width:13px;height:13px;vertical-align:-2px;"></i> Pick a room per staff member in the list above — each selected staff can have a different room, or none.</small>
+            </div>
+
+            <label class="shiftassign-rangetoggle mt-3" for="id_custom_range">
+              <span class="shiftassign-rangetoggle__icon"><i data-lucide="calendar-range"></i></span>
+              <span class="shiftassign-rangetoggle__text">
+                <strong>Customize date range for these staff</strong>
+                <small>Default = full shift range</small>
+              </span>
+              <span class="shiftassign-rangetoggle__switch">
+                <input class="shiftassign-rangetoggle__input" type="checkbox" name="custom_range" id="id_custom_range">
+                <span class="shiftassign-rangetoggle__slider"></span>
+              </span>
+            </label>
+            <div class="row g-3 mt-2 d-none" id="customRangeFields">
+              <div class="col-md-6">
+                <label class="med-modal__label">Start Date</label>
+                <input type="date" name="assignment_start_date" id="id_assignment_start_date" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="med-modal__label">End Date</label>
+                <input type="date" name="assignment_end_date" id="id_assignment_end_date" class="form-control">
+              </div>
+            </div>
+
+            <div class="sched-modal-footer mt-3">
+              <div class="sched-footer-right ms-auto">
+                <button type="button" class="med-btn--ghost-dark-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="med-form-modern__submit" id="assignFormSubmitBtn"><i data-lucide="check"></i> Assign Selected</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade med-modal" id="editAssignmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content med-modal__content">
+        <div class="modal-header med-modal__header">
+          <h5 class="modal-title"><i data-lucide="calendar-clock"></i> Edit Coverage Dates</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" id="editAssignmentForm" action="">
+          {% csrf_token %}
+          <div class="modal-body med-modal__body">
+            <p class="small text-muted mb-3" id="editAssignmentStaffName">Staff Member</p>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="med-modal__label">Start Date</label>
+                <input type="date" name="assignment_start_date" id="id_edit_start_date" class="form-control">
+              </div>
+              <div class="col-6">
+                <label class="med-modal__label">End Date</label>
+                <input type="date" name="assignment_end_date" id="id_edit_end_date" class="form-control">
+              </div>
+            </div>
+          </div>
+          <div class="med-modal__footer sched-modal-footer">
+            <div class="sched-footer-right ms-auto">
+              <button type="button" class="med-btn--ghost-dark-outline" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="med-form-modern__submit"><i data-lucide="check"></i> Save</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade med-modal" id="removeAssignmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content med-modal__content">
+        <div class="modal-header med-modal__header">
+          <h5 class="modal-title"><i data-lucide="alert-triangle"></i> Remove Staff</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body med-modal__body">
+          <p class="mb-0">Remove <strong id="removeAssignmentName">this staff member</strong> from this shift?</p>
+        </div>
+        <div class="med-modal__footer sched-modal-footer">
+          <div class="sched-footer-right ms-auto">
+            <button type="button" class="med-btn--ghost-dark-outline" data-bs-dismiss="modal">Cancel</button>
+            <form method="post" id="removeAssignmentForm" action="">
+              {% csrf_token %}
+              <button type="submit" class="med-btn--danger-solid"><i data-lucide="trash-2"></i> Yes, Remove</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade med-modal" id="deleteShiftModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content med-modal__content">
+        <div class="modal-header med-modal__header">
+          <h5 class="modal-title"><i data-lucide="alert-triangle"></i> Remove Shift</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body med-modal__body">
+          <p class="mb-0">Remove <strong id="deleteShiftName">this shift</strong>? This cannot be undone.</p>
+        </div>
+        <div class="med-modal__footer sched-modal-footer">
+          <div class="sched-footer-right ms-auto">
+            <button type="button" class="med-btn--ghost-dark-outline" data-bs-dismiss="modal">Cancel</button>
+            <form method="post" id="deleteShiftForm" action="">
+              {% csrf_token %}
+              <button type="submit" class="med-btn--danger-solid"><i data-lucide="trash-2"></i> Yes, Remove</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+      window.shiftConfig = {
+          createUrl: "{% url 'Medical:shift_create' %}",
+          editUrlTemplate: "{% url 'Medical:shift_edit' 0 %}".replace('/0/', '/__ID__/'),
+          deleteUrlTemplate: "{% url 'Medical:shift_delete' 0 %}".replace('/0/', '/__ID__/'),
+          assignmentsUrlTemplate: "{% url 'Medical:shift_assignments' 0 %}".replace('/0/', '/__ID__/'),
+          assignCreateUrlTemplate: "{% url 'Medical:shift_assignment_create' 0 %}".replace('/0/', '/__ID__/'),
+          assignmentEditUrlTemplate: "{% url 'Medical:shift_assignment_edit' 0 %}".replace('/0/', '/__ID__/'),
+          assignmentDeleteUrlTemplate: "{% url 'Medical:shift_assignment_delete' 0 %}".replace('/0/', '/__ID__/'),
+          departmentsByHospitalUrlTemplate: "{% url 'Medical:departments_by_hospital' 0 %}".replace('/0/', '/__ID__/'),
+          hospitalWorkingHoursUrlTemplate: "{% url 'Medical:hospital_working_hours' 0 %}".replace('/0/', '/__ID__/'),
+          isAdminView: {{ is_admin_view|yesno:"true,false" }}
+      };
+  </script>
+  <script src="{% static 'js/Dominic/shift_management.js' %}"></script>
+{% endblock %}

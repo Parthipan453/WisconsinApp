@@ -1,0 +1,382 @@
+{% extends 'faculty_base.html' %} {% load static %} {% block title %}My
+Courses{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rupa/teaching/my_courses.css' %}" />
+
+{% endblock %} 
+
+{% block content %}
+
+<div class="courses-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>My Courses</h1>
+      <p>Manage and monitor your assigned courses</p>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="icon red">
+        <i class="ti ti-book"></i>
+      </div>
+      <div>
+        <h3>{{ total_courses }}</h3>
+        <span>Total Courses</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="icon green">
+        <i class="ti ti-users"></i>
+      </div>
+      <div>
+        <h3>{{ total_students }}</h3>
+        <span>Total Students</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="icon blue">
+        <i class="ti ti-clock"></i>
+      </div>
+      <div>
+        <h3>{{ weekly_hours }} hrs</h3>
+        <span>Weekly Load</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="icon orange">
+        <i class="ti ti-chart-bar"></i>
+      </div>
+      <div>
+      <h3>{{ active_sections }}</h3>
+<span>Active Sections</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Section -->
+<div class="card progress-card">
+
+    <div class="card-header">
+        <h3>Teaching Summary</h3>
+    </div>
+
+    <div class="summary-grid">
+
+        <div class="summary-box">
+            <div class="summary-icon red">
+                <i class="ti ti-clock"></i>
+            </div>
+
+            <div>
+                <span>Teaching Load</span>
+                <h4>{{ weekly_hours }} hrs/week</h4>
+            </div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-icon blue">
+                <i class="ti ti-book"></i>
+            </div>
+
+            <div>
+                <span>Assigned Sections</span>
+                <h4>{{ assigned_sections }} Sections</h4>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+  <!-- Filter Bar -->
+  <div class="card filter-card">
+    <form method="get" class="filter-bar" id="filterForm">
+      
+      <div class="filter-group search-group">
+        <i class="ti ti-search"></i>
+        <input
+    type="text"
+    name="q"
+    placeholder="Search course name or code..."
+    value="{{ request.GET.q }}"
+    oninput="
+        clearTimeout(window.searchTimer);
+        window.searchTimer = setTimeout(() => {
+            document.getElementById('filterForm').submit();
+        }, 500);
+    "
+/>
+      </div>
+
+      <div class="filter-group">
+        <label for="semester">Semester</label>
+        <select name="semester" id="semester" onchange="this.form.submit()">
+
+          <option value="">All Semesters</option>
+
+          {% for sem in semesters %}
+
+          <option
+              value="{{ sem.semester_id }}"
+              {% if sem.semester_id|stringformat:"s" == selected_semester_id|stringformat:"s" %}
+              selected
+              {% endif %}
+          >
+              {{ sem }}
+          </option>
+
+          {% endfor %}
+
+      </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="type">Type</label>
+        <select name="type" id="type" onchange="this.form.submit()">
+    <option value="" {% if not selected_type %}selected{% endif %}>
+        All Types
+    </option>
+
+    <option value="LEC" {% if selected_type == "LEC" %}selected{% endif %}>
+        Lecture
+    </option>
+
+    <option value="LAB" {% if selected_type == "LAB" %}selected{% endif %}>
+        Lab
+    </option>
+
+    <option value="TUT" {% if selected_type == "TUT" %}selected{% endif %}>
+        Tutorial
+    </option>
+
+    <option value="SEM" {% if selected_type == "SEM" %}selected{% endif %}>
+        Seminar
+    </option>
+
+    <option value="DIS" {% if selected_type == "DIS" %}selected{% endif %}>
+        Discussion
+    </option>
+</select>
+      </div>
+      <div class="filter-group">
+    <a href="{% url 'my_courses_page' request.user.uuid %}"
+       class="btn-apply">
+        <i class="ti ti-x"></i>
+        Clear
+    </a>
+</div>
+      
+    </form>
+  </div>
+
+  <!-- Assigned Courses (Full Width) -->
+  <div class="card courses-card">
+    <div class="card-header">
+      <h3>Assigned Courses</h3>
+    </div>
+
+    <!-- Course Cards -->
+    <div class="course-cards-grid">
+      {% for item in course_data %}
+      <div class="course-card">
+
+        <div class="course-card-header">
+          <div>
+            <h4>{{ item.section.course.course_code }}</h4>
+            <p>{{ item.section.course.course_name }}</p>
+          </div>
+          <span class="type-badge type-{{ item.section.section_type|lower }}">
+            {{ item.section.get_section_type_display }}
+          </span>
+        </div>
+
+        <div class="course-card-meta">
+          <span><i class="ti ti-layout-grid"></i> Section {{ item.section.section_number }}</span>
+          <span><i class="ti ti-user"></i> {{ item.assignment.get_role_display }}</span>
+        </div>
+
+        <div class="course-card-schedule">
+          {% if item.schedule %}
+            <div class="schedule-row">
+              <i class="ti ti-calendar"></i>
+              <span>{{ item.schedule.get_day_of_week_display }}</span>
+            </div>
+            <div class="schedule-row">
+              <i class="ti ti-clock"></i>
+              <span>{{ item.schedule.start_time|time:"g:i A" }} - {{ item.schedule.end_time|time:"g:i A" }}</span>
+            </div>
+            <div class="schedule-row">
+              <i class="ti ti-map-pin"></i>
+              <span>
+                {{ item.schedule.building }}
+                {% if item.schedule.room %} · Room {{ item.schedule.room }}{% endif %}
+              </span>
+            </div>
+          {% else %}
+            <div class="schedule-row text-muted">
+              <i class="ti ti-calendar-off"></i>
+              <span>Not Scheduled</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="course-card-enrollment">
+          <div class="enrollment-top">
+            <span>Enrollment</span>
+            <span>{{ item.student_count }}/{{ item.section.capacity }}</span>
+          </div>
+          <div class="capacity-bar">
+            <div
+              class="capacity-fill {% if item.capacity_pct >= 90 %}capacity-high{% elif item.capacity_pct >= 60 %}capacity-mid{% else %}capacity-low{% endif %}"
+              style="width:{{ item.capacity_pct }}%;"
+            ></div>
+          </div>
+        </div>
+
+        <div class="course-card-actions">
+          <a href="{% url 'attendance_page' uuid=request.user.uuid %}" class="action-icon" title="Take Attendance"><i class="ti ti-clipboard-check"></i></a>
+          <a href="{% url 'course_grade_dashboard' %}" class="action-icon" title="Enter Grades"><i class="ti ti-edit"></i></a>
+          <a href="{% url 'class_roster_page' uuid=request.user.uuid %}" class="action-icon" title="View Roster"><i class="ti ti-users"></i></a>
+          <a href="#" class="action-icon" title="Upload Materials"><i class="ti ti-upload"></i></a>
+        </div>
+
+      </div>
+      {% empty %}
+      <div class="text-center" style="grid-column:1/-1; padding:30px;">
+        No courses match your filters.
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+            <a href="?page=1&q={{ request.GET.q|urlencode }}&semester={{ request.GET.semester|urlencode }}&type={{ request.GET.type|urlencode }}">
+                First
+            </a>
+
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q|urlencode }}&semester={{ request.GET.semester|urlencode }}&type={{ request.GET.type|urlencode }}">
+                Previous
+            </a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="active">{{ num }}</span>
+            {% else %}
+                <a href="?page={{ num }}&q={{ request.GET.q|urlencode }}&semester={{ request.GET.semester|urlencode }}&type={{ request.GET.type|urlencode }}">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q|urlencode }}&semester={{ request.GET.semester|urlencode }}&type={{ request.GET.type|urlencode }}">
+                Next
+            </a>
+
+            <a href="?page={{ page_obj.paginator.num_pages }}&q={{ request.GET.q|urlencode }}&semester={{ request.GET.semester|urlencode }}&type={{ request.GET.type|urlencode }}">
+                Last
+            </a>
+        {% endif %}
+
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Bottom Row: Distribution + Recent Activities -->
+  <div class="bottom-grid">
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Course Distribution</h3>
+      </div>
+
+      <div class="donut-wrapper">
+        <canvas id="distributionChart" width="130" height="130"></canvas>
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot red-dot"></span>
+            <span>Theory ({{ theory_pct }}%)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot green-dot"></span>
+            <span>Lab ({{ lab_pct }}%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card activity-card">
+      <div class="card-header">
+        <h3>Recent Activities</h3>
+      </div>
+
+      <div class="activity-timeline">
+        {% if course_data %}
+          {% for item in course_data|slice:":4" %}
+          <div class="activity-item">
+            <div class="activity-marker type-{{ item.section.section_type|lower }}">
+              <i class="ti ti-user-check"></i>
+            </div>
+            <div class="activity-body">
+              <p class="activity-text">
+                Assigned as <strong>{{ item.assignment.get_role_display }}</strong>
+                for <strong>{{ item.section.course.course_code }}</strong>
+              </p>
+              <span class="activity-sub">
+                {{ item.section.course.course_name }} · Section {{ item.section.section_number }}
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="activity-empty">
+            <i class="ti ti-calendar-off"></i>
+            <span>No recent activities</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("distributionChart");
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Theory", "Lab"],
+        datasets: [
+          {
+            data: [{{ theory_pct|default:0 }}, {{ lab_pct|default:0 }}],
+            backgroundColor: ["#ef4444", "#16a34a"],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: {
+        cutout: "75%",
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true },
+        },
+      },
+    });
+  });
+</script>
+
+{% endblock %}

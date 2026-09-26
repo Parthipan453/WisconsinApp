@@ -1,0 +1,148 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Applications · Admissions{% endblock %}
+{% block page_title %}Applications{% endblock %}
+
+{% block body_attrs %}data-notif-list-url="{% url 'recent_notifications_ajax' request.user.uuid %}" data-notif-read-url="{% url 'mark_all_notifications_read' request.user.uuid %}" data-notif-view-url="{% url 'staff_notifications' request.user.uuid %}"{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="{% static 'css/Eric/applications_studio.css' %}" />
+{% endblock %}
+
+{% block content %}
+
+<div class="apx-page">
+
+  <div id="apxAjaxRegion"
+       data-live-app="me"
+       data-live-event="ready_for_decision decision_made status_changed assignment_created admin_queue_changed documents_changed materials_requested"
+       data-live-url="{% url 'applications' %}?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}partial=region">
+  {% include "Eric/partials/applications_region.html" %}
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% include "notifications/live.html" with live_app_id="me" %}
+<script>
+    var _apxReqId = 0;
+
+    window.addEventListener('live:swapped', function () {
+        if (typeof initPage === 'function') initPage();
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initPage();
+        window.addEventListener('popstate', function () {
+            ajaxLoad(window.location.href);
+        });
+    });
+
+    function initPage() {
+        colorAvatars();
+        initChoices();
+        bindSearch();
+        bindNavLinks();
+    }
+
+    function colorAvatars() {
+        document.querySelectorAll('.apx-avatar').forEach(function (el) {
+            var name = el.getAttribute('data-name') || '?';
+            var h = 0;
+            for (var i = 0; i < name.length; i++) {
+                h = (h * 31 + name.charCodeAt(i)) % 360;
+            }
+            var warm = 345 + (h % 41);
+            if (warm > 360) warm -= 360;
+            el.style.background = 'linear-gradient(135deg, hsl(' + warm + ', 62%, 46%), hsl(' + ((warm + 22) % 360) + ', 68%, 30%))';
+        });
+    }
+
+    function initChoices() {
+        if (typeof Choices === 'undefined') return;
+        document.querySelectorAll('.apx-filter__select').forEach(function (select) {
+            if (select._apxChoices) { select._apxChoices.destroy(); }
+            var instance = new Choices(select, {
+                searchEnabled: false,
+                shouldSort: false,
+                itemSelectText: '',
+                allowHTML: false,
+            });
+            select._apxChoices = instance;
+            select.addEventListener('change', function () {
+                ajaxLoad(formUrl(select.form));
+            });
+        });
+    }
+
+    function bindSearch() {
+        var input = document.getElementById('apx-search-input');
+        if (!input) return;
+        var timer = null;
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                ajaxLoad(formUrl(input.form));
+            }, 450);
+        });
+        input.form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            ajaxLoad(formUrl(input.form));
+        });
+    }
+
+    function bindNavLinks() {
+        document.querySelectorAll('.apx-viewtoggle__btn, .apx-pager .page-link, .apx-reset, .apx-search__clear').forEach(function (a) {
+            if (a.dataset.apxBound) return;
+            a.dataset.apxBound = '1';
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                ajaxLoad(a.getAttribute('href'));
+            });
+        });
+    }
+
+    function formUrl(form) {
+        return window.location.pathname + '?' + new URLSearchParams(new FormData(form)).toString();
+    }
+
+    function ajaxLoad(url) {
+        var reqId = ++_apxReqId;
+        var active = document.activeElement;
+        var isSearch = active && active.id === 'apx-search-input';
+        var caret = isSearch ? active.selectionStart : 0;
+        var fetchUrl = url + (url.indexOf('?') === -1 ? '?' : '&') + '_apx=' + Date.now();
+
+        fetch(fetchUrl)
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(function (html) {
+                if (reqId !== _apxReqId) return;
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var region = doc.getElementById('apxAjaxRegion');
+                if (!region) { window.location.href = url; return; }
+                document.getElementById('apxAjaxRegion').innerHTML = region.innerHTML;
+                window.history.pushState(null, '', url);
+                initPage();
+                if (isSearch) {
+                    var ni = document.getElementById('apx-search-input');
+                    if (ni) {
+                        ni.focus();
+                        var pos = Math.min(caret, ni.value.length);
+                        ni.setSelectionRange(pos, pos);
+                    }
+                }
+            })
+            .catch(function () {
+                if (reqId !== _apxReqId) return;
+                window.location.href = url;
+            });
+    }
+</script>
+{% endblock %}

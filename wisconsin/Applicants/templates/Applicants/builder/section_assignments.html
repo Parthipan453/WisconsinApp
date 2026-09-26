@@ -1,0 +1,125 @@
+{% extends "Applicants/builder/base.html" %}
+{% load static %}
+{% block title %}Section Assignments — {{ form_def.name }}{% endblock %}
+{% block mobile_title %}Section Assignments{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/Applicants/builder_dashboard.css' %}">{% endblock %}
+{% block content %}
+<div class="bld-list-page">
+<div class="bld-dash-hero" style="margin-bottom:0">
+  <a href="{% url 'builder_form_edit' form_def.pk %}" class="bld-back-link" style="color:rgba(255,255,255,0.85)">&larr; Back to Form</a>
+  <h1>Section Assignments</h1>
+  <p>{{ form_def.name }} &middot; {{ assignments|length }} section assignment{{ assignments|length|pluralize }}</p>
+  <div class="bld-dash-hero-actions">
+    <a href="{% url 'builder_assignments' form_def.pk %}" class="bld-btn"><i class="ti ti-link"></i> Form Assignments</a>
+  </div>
+</div>
+
+<div class="bld-assign-grid">
+  <div class="bld-card">
+    <div class="bld-card-header"><h2 class="bld-h2"><i class="ti ti-link"></i> Current Assignments</h2>
+      <div style="margin-left:auto" class="bld-hide-sm">{{ assignments|length }} total</div>
+    </div>
+    <div class="bld-card-body">
+    <div class="bld-table-wrap">
+      <table class="bld-table">
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>University</th>
+            <th>Degree Level</th>
+            <th>Applicant Type</th>
+            <th>Program</th>
+            <th>Required</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assignments %}
+          <tr>
+            <td>{{ a.section.title }}</td>
+            <td>{{ a.university.university_name|default:"All" }}</td>
+            <td>{{ a.degree_level.degree_name|default:"All" }}</td>
+            <td>{{ a.applicant_type|default:"All" }}</td>
+            <td>{{ a.program.program_name|default:"All" }}</td>
+            <td>{% if a.is_required %}<span class="bld-badge bld-badge-red">Required</span>{% else %}<span class="bld-badge">Optional</span>{% endif %}</td>
+            <td>
+              <form method="POST" action="{% url 'builder_section_assignment_delete' a.pk %}" onsubmit="return confirm('Delete this section assignment?')" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="bld-btn-icon bld-btn-icon-danger"><i class="ti ti-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="bld-empty">No section assignments. Sections without assignments are shown to all applicants.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+
+  <div class="bld-card">
+    <div class="bld-card-header"><h2 class="bld-h2"><i class="ti ti-plus-circle"></i> Add Section Assignment</h2></div>
+    <div class="bld-card-body">
+    <p style="margin:0 0 14px;color:var(--bld-muted);font-size:12px">Assign a section to specific applicant scopes. Leave a field blank for "all".</p>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="bld-form-group">
+        <label class="bld-label">Section</label>
+        <select name="section" class="bld-input" required>
+          <option value="">Select section</option>
+          {% for s in sections %}
+          <option value="{{ s.pk }}">{{ s.title }} <code>({{ s.code }})</code></option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">University</label>
+        <select name="university" class="bld-input">
+          <option value="">All Universities</option>
+          {% for u in universities %}
+          <option value="{{ u.pk }}">{{ u.university_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Degree Level</label>
+        <select name="degree_level" class="bld-input">
+          <option value="">All Levels</option>
+          {% for d in degrees %}
+          <option value="{{ d.pk }}">{{ d.degree_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Applicant Type</label>
+        <select name="applicant_type" class="bld-input">
+          <option value="">All Types</option>
+          {% for val, label in applicant_types %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Program</label>
+        <select name="program" class="bld-input">
+          <option value="">All Programs</option>
+          {% for p in programs %}
+          <option value="{{ p.pk }}">{{ p.program_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:100px">
+          <label class="bld-label">Sort Order</label>
+          <input type="number" name="sort_order" class="bld-input" value="1">
+        </div>
+        <label class="bld-checkbox"><input type="checkbox" name="is_required" checked> Required</label>
+      </div>
+      <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-plus"></i> Add Assignment</button>
+    </form>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}

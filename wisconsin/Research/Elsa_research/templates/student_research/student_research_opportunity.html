@@ -1,0 +1,264 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Research - Wisconsin University{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_opportunity %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/student_research/stu_research_opportunity.css' %}">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+{% endblock %}
+
+
+{% block content %}
+<div class="student-research-container">
+<div class="pagee-header">
+    <h2>Research Opportunities</h2>
+    <p>
+        Explore research projects offered by faculty members.
+    </p>
+</div>
+<!-- FILTER SECTION -->
+<div class="filter-card">
+    <div class="filter-header">
+        <h3>
+            Find Research Opportunities
+        </h3>
+        <button type="submit"
+                form="research-filter"
+                class="filter-btn">
+            Apply Filter
+        </button>
+    </div>
+<form method="GET"
+      id="research-filter">
+<div class="filter-grid">
+    <!-- Search -->
+    <div class="filter-group">
+        <label>
+            Search
+        </label>
+        <input type="text"
+               name="search"
+               placeholder="Title or skills..."
+              value="{{ request.GET.search }}">
+    </div>
+    <!-- Department -->
+    <div class="filter-group">
+        <label>
+            Department
+        </label>
+        <select name="department"
+                class="choices-select">
+            <option value="">
+                All Departments
+            </option>
+            {% for dept in departments %}
+            <option value="{{ dept.department_id }}"
+            {% if request.GET.department == dept.department_id|stringformat:"s" %}
+                selected
+            {% endif %}>
+                {{ dept.department_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <!-- Faculty -->
+    <div class="filter-group">
+        <label>
+            Faculty Mentor
+        </label>
+        <select name="faculty"
+                class="choices-select">
+            <option value="">
+                All Mentors
+            </option>
+            {% for mentor in mentors %}
+            <option value="{{ mentor.pk }}"
+            {% if request.GET.faculty == mentor.pk|stringformat:"s" %}
+                selected
+            {% endif %}>
+                {{ mentor }}
+            </option>
+            {% endfor %} 
+        </select>
+    </div>
+    <!-- Deadline -->
+   <div class="filter-group">
+       <label>
+            Deadline
+        </label>
+        <select name="deadline"
+                class="choices-select">
+            <option value="">
+                Any Deadline
+            </option>
+            <option value="7">
+                Within 7 Days
+            </option>
+            <option value="15">
+                Within 15 Days
+            </option>
+            <option value="30">
+                Within 30 Days
+            </option>
+        </select>
+    </div>
+</div>
+</form>
+</div>
+<h3>
+Total Opportunities: {{ page_obj.paginator.count }}
+</h3>
+<div class="research-card-grid">
+{% for opportunity in page_obj %}
+<div class="research-card">
+    <div class="stu-card-header">
+        <h3>
+            {{ opportunity.title }}
+        </h3>
+        <span class="dept-badge">
+            {{ opportunity.faculty.department.department_name }}
+        </span>
+    </div>
+   <p class="short-description">
+        {{ opportunity.short_description|truncatechars:120 }}
+    </p>
+    <div class="card-info">
+        <div class="detail-item">
+            <span class="rc-detail-label">
+                <i class="bi bi-person-workspace"></i>Opportunity By
+            </span>
+            <span class="rc-detail-value">
+                {{ opportunity.faculty.user.first_name }} {{ opportunity.faculty.user.last_name }}
+            </span> 
+        </div>
+        <div class="detail-item">
+            <span class="rc-detail-label">
+                <i class="bi bi-people"></i>Total Slots
+            </span>
+            <span class="rc-detail-value">
+                {{ opportunity.available_slots }} Slots
+            </span> 
+        </div>
+        <div class="detail-item">
+            <span class="rc-detail-label">
+                <i class="bi bi-calendar-event"></i>Application Deadline
+            </span>
+            <span class="rc-detail-value">
+                {{ opportunity.application_deadline|date:"d M Y" }}
+            </span> 
+        </div>
+    </div>
+
+<div class="skill-list">
+    {% for skill in opportunity.skill_list %}
+        <span class="skill-badge">
+            {{ skill|upper }}
+        </span>
+    {% empty %}
+        <span class="skill-empty">
+            No skills specified
+        </span>
+    {% endfor %}
+</div>
+    <a href="{% url 'Elsa_research:view_research' opportunity.research_id uuid %}"
+       class="view-btn">
+        View Details
+    </a>
+</div>
+{% empty %}
+<div class="empty-card">
+    <h3>
+        No research opportunities available.
+    </h3>
+</div>
+{% endfor %}
+</div>
+<div class="rc-pagination-wrapper">
+
+    <div class="rc-pagination-info">
+        Showing
+        {{ page_obj.start_index }}–{{ page_obj.end_index }}
+        of {{ page_obj.paginator.count }} Members
+    </div>
+
+    <div class="rc-pagination">
+
+        <!-- Previous -->
+        {% if page_obj.has_previous %}
+            <a class="rc-page-btn"
+               href="?page={{ page_obj.previous_page_number }}&search={{ request.GET.search }}&department={{ request.GET.department }}&faculty={{ request.GET.faculty }}&deadline={{ request.GET.deadline }}">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        {% else %}
+            <span class="rc-page-btn disabled">
+                <i class="ti ti-chevron-left"></i>
+            </span>
+        {% endif %}
+
+        <!-- Page Numbers -->
+        {% for num in page_obj.paginator.page_range %}
+
+            {% if num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+
+                {% if page_obj.number == num %}
+                    <span class="rc-page-btn active">
+                        {{ num }}
+                    </span>
+                {% else %}
+                    <a class="rc-page-btn"
+                       href="?page={{ num }}&search={{ request.GET.search }}&department={{ request.GET.department }}&faculty={{ request.GET.faculty }}&deadline={{ request.GET.deadline }}">
+                        {{ num }}
+                    </a>
+                {% endif %}
+
+            {% elif num == 2 and page_obj.number > 4 %}
+                <span class="rc-page-dots">...</span>
+
+            {% elif num == page_obj.paginator.num_pages|add:"-1" and page_obj.number < page_obj.paginator.num_pages|add:"-3" %}
+                <span class="rc-page-dots">...</span>
+
+            {% endif %}
+
+        {% endfor %}
+
+        <!-- Next -->
+        {% if page_obj.has_next %}
+            <a class="rc-page-btn"
+               href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}&department={{ request.GET.department }}&faculty={{ request.GET.faculty }}&deadline={{ request.GET.deadline }}">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+        {% else %}
+            <span class="rc-page-btn disabled">
+                <i class="ti ti-chevron-right"></i>
+            </span>
+        {% endif %}
+
+    </div>
+
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/student_research/student_research_opportunity.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    document.querySelectorAll(".choices-select").forEach(function(element){
+        new Choices(element, {
+            searchEnabled: false,
+            itemSelectText: '',
+            shouldSort: false,
+            shouldSortItems: false
+        });
+    });
+});
+</script>
+{% endblock %}

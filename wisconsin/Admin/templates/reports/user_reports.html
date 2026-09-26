@@ -1,0 +1,418 @@
+<!-- /* swetha's  code  */ -->
+
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="{% static 'css/reports/user_reports.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="ur-page">
+
+    <div class="ur-header" >
+        <div>
+            <h1 class="ur-title">User Reports</h1>
+
+            <nav class="ur-breadcrumb">
+                <a href="#">Dashboard</a>
+                <span>›</span>
+                <a href="#">Reports</a>
+                <span>›</span>
+                <span class="active">User Reports</span>
+            </nav>
+        </div>
+
+        <div class="ur-export" >
+            <button class="ur-btn" id="exportBtn">
+                Export Report
+                <span>▼</span>
+            </button>
+
+            <!-- export menuuuu -->
+            <div class="ur-export-menu" id="exportMenu">
+
+                <!-- PDF Dropdown -->
+                <div class="ur-submenu">
+                    <a href="#" class="ur-submenu-btn">
+                        <i class="fa-solid fa-file-pdf"></i> Export PDF ▸
+                    </a>
+
+                    <div class="ur-submenu-content">
+
+                        <!-- All Users -->
+                        <a href="{% url 'export_users_pdf' %}">
+                            All Users
+                        </a>
+
+                        <!-- Role -->
+
+                        <div class="ur-submenu">
+                            <a href="#" class="ur-submenu-btn roleBtn">
+                                Role ▸
+                            </a>
+
+                            <div class="ur-submenu-content roleMenu">
+                                <a href="{% url 'export_users_pdf' %}?role=student">Student</a>
+                                <a href="{% url 'export_users_pdf' %}?role=staff">Staff</a>
+                                <a href="{% url 'export_users_pdf' %}?role=faculty">Faculty</a>
+                                <a href="{% url 'export_users_pdf' %}?role=admin">Admin</a>
+                            </div>
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="ur-submenu">
+                            <a href="#" class="ur-submenu-btn genderBtn">
+                                Gender ▸
+                            </a>
+
+                            <div class="ur-submenu-content genderMenu">
+                                <a href="{% url 'export_users_pdf' %}?gender=male">Male</a>
+                                <a href="{% url 'export_users_pdf' %}?gender=female">Female</a>
+                                <a href="{% url 'export_users_pdf' %}?gender=transgender">Transgender</a>
+                                <a href="{% url 'export_users_pdf' %}?gender=non_binary">Non Binary</a>
+                                <a href="{% url 'export_users_pdf' %}?gender=prefer_not_to_say">
+                                    Prefer Not To Say
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="ur-submenu">
+                            <a href="#" class="ur-submenu-btn statusBtn">
+                                Status ▸
+                            </a>
+
+                            <div class="ur-submenu-content statusMenu">
+                                <a href="{% url 'export_users_pdf' %}?status=ACTIVE">Active</a>
+                                <a href="{% url 'export_users_pdf' %}?status=INACTIVE">Inactive</a>
+                                <a href="{% url 'export_users_pdf' %}?status=PENDING">Pending</a>
+                                <a href="{% url 'export_users_pdf' %}?status=SUSPENDED">Suspended</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Excel -->
+                <a href="{% url 'export_users_excel' %}" class="excelBtn">
+                    <i class="fa-solid fa-file-excel"></i> Export Excel
+                </a>
+
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Stats -->
+
+    <div class="ur-stats" data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+        <div class="ur-stat-card" role="listitem"  data-aos="fade-up" data-aos-delay="100">
+            <div class="ur-stat-card__icon ur-stat-card__icon--total" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+            </div>
+
+            <div class="ur-card" >
+                <h5>Total Users</h5>
+                <h2>{{total_users}}</h2>
+                <p class="{% if total_growth >= 0 %}growth-up{% else %}growth-down{% endif %}">
+                    {% if total_growth >= 0 %}
+                        ↑ {{ total_growth }}%
+                    {% else %}
+                        ↓ {{ total_growth|floatformat:1|cut:"-" }}%
+                    {% endif %}
+                    from last month
+                </p>
+            </div>
+        </div>
+        <div class="ur-stat-card" role="listitem"  data-aos="fade-up" data-aos-delay="160">
+            <div class="ur-stat-card__icon ur-stat-card__icon--active" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                    <circle cx="19" cy="8" r="3" fill="currentColor" stroke="none" />
+                </svg>
+            </div>
+
+            <div class="ur-card">
+                <h5>Active Users</h5>
+                <h2>{{active_users}}</h2>
+               <p class="{% if total_growth >= 0 %}growth-up{% else %}growth-down{% endif %}">
+                    {% if acitve_growth >= 0 %}
+                        ↑ {{ active_growth }}%
+                    {% else %}
+                        ↓ {{ active_growth|floatformat:1|cut:"-" }}%
+                    {% endif %}
+                    from last month
+                </p>
+            </div>
+        </div>
+
+        <div class="ur-stat-card" role="listitem"  data-aos="fade-up" data-aos-delay="220">
+            <div class="ur-stat-card__icon ur-stat-card__icon--student" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M12 3L2 8l10 5 10-5-10-5z" />
+                    <path d="M2 8v6c0 3.3 4.5 6 10 6s10-2.7 10-6V8" />
+                </svg>
+            </div>
+            <div class="ur-card" >
+                <h5>Students</h5>
+                <h2>{{students}}</h2>
+                <p class="{% if total_growth >= 0 %}growth-up{% else %}growth-down{% endif %}">
+                    {% if student_growth >= 0 %}
+                        ↑ {{ student_growth }}%
+                    {% else %}
+                        ↓ {{ student_growth|floatformat:1|cut:"-" }}%
+                    {% endif %}
+                    from last month
+                </p>
+            </div>
+        </div>
+        <div class="ur-stat-card" role="listitem"  data-aos="fade-up" data-aos-delay="280">
+            <div class="ur-stat-card__icon ur-stat-card__icon--faculty" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M8 4v16M16 4v16M3 12h18" />
+                </svg>
+            </div>
+            <div class="ur-card">
+                <h5>Faculty</h5>
+                <h2>{{faculty}}</h2>
+                <p class="{% if total_growth >= 0 %}growth-up{% else %}growth-down{% endif %}">
+                    {% if faculty_growth >= 0 %}
+                        ↑ {{ faculty_growth }}%
+                    {% else %}
+                        ↓ {{ faculty_growth|floatformat:1|cut:"-" }}%
+                    {% endif %}
+                    from last month
+                </p>
+            </div>
+
+        </div>
+        <div class="ur-stat-card" role="listitem"  data-aos="fade-up" data-aos-delay="320">
+            <div class="ur-stat-card__icon ur-stat-card__icon--admin" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
+                </svg>
+            </div>
+            <div class="ur-card">
+                <h5>Admin</h5>
+                <h2>{{admins}}</h2>
+                <p class="{% if total_growth >= 0 %}growth-up{% else %}growth-down{% endif %}">
+                    {% if admin_growth >= 0 %}
+                        ↑ {{ admin_growth }}%
+                    {% else %}
+                        ↓ {{ admin_growth|floatformat:1|cut:"-" }}%
+                    {% endif %}
+                    from last month
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Charts -->
+
+    <div class="ur-grid" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+        <div class="ur-chart-card" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:240 }}">
+            <h3>User Registration Trend</h3>
+            <canvas id="registrationChart"></canvas>
+        </div>
+
+        <div class="ur-chart-card" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:240 }}">
+            <!-- <h3>Gender Report</h3> -->
+            <canvas id="genderChart" height="150"
+                style="display:block ; box-sizing: border-box; height: 200px;"></canvas>
+        </div>
+        <div class="ur-chart-card" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:240 }}">
+            <h3>Account Status</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Table -->
+<div id="recent-users-container" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+
+    <div class="ur-table-card" >
+        <!-- Search -->
+        <div class="ur-toolbar">
+            <div class="ur-table-header">Recent Registrations</div>
+            <div class="ur-search-wrap">
+                <svg class="ur-search-wrap__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="17" y1="17" x2="22" y2="22" />
+                </svg>
+                <input id="ur-search" class="ur-search" type="search" placeholder="Search user..."
+                    aria-label="Search users" autocomplete="off" value="{{ search_query }}" />
+            </div>
+        </div>
+
+        <!-- Table -->
+
+        <div class="ur-table-wrap">
+            <div class="ur-table-scroll">
+                <table class="ur-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">USER</th>
+                            <th scope="col">UNIVERSITY ID</th>
+                            <th scope="col">EMAIL</th>
+                            <th scope="col">ROLE</th>
+                            <th scope="col">GENDER</th>
+                            <th scope="col">STATUS</th>
+                            <th scope="col">CREATED ON</th>
+
+                        </tr>
+                    </thead>
+
+                    <tbody id="ur-tbody">
+                        {% for user in recent_users %}
+                        <tr>
+                            <!-- <td>Kumar</td> -->
+                            <td>
+                                <div class="ur-user-cell">
+                                    <!-- <div class="ur-avatar">{{user.first_name|default:user.username|slice:":1"|upper}} -->
+                                    <div class="ur-avatar">
+                                        {% if user.profile_photo %}
+                                        <img src=" {{ user.profile_photo.url}}" alt="{{ user.username }}">
+                                        {% else %}
+                                        {{ user.first_name|default:user.username|slice:":1"|upper }}
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="ur-user-info">
+                                        <div class="ur-user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                                        <div class="ur-user-sub"> {{user.role.role_name}}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ user.university_id }}</td>
+                            <td>{{ user.email }}</td>
+                            <!-- <td><span class="ur-badge ur-badge--student">{{ user.role.role_name }}</span></td> -->
+                            <td>
+                                {% if user.is_student %}
+                                <span class="ur-badge ur-badge--student">
+                                    <i class="fa-solid fa-graduation-cap"></i> Student
+                                </span>
+
+                                {% elif user.is_faculty %}
+                                <span class="ur-badge ur-badge--faculty">
+                                    <i class="fa-solid fa-book-open-reader"></i> Faculty
+                                </span>
+
+                                {% elif user.is_admin %}
+                                <span class="ur-badge ur-badge--admin">
+                                    <i class="fa-solid fa-shield-halved"></i> Administrator
+                                </span>
+                                {% else %}
+                                <span class="ur-badge ur-badge--staff">
+                                    <i class="fa-solid fa-bag-shopping"></i> Staff
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.get_gender_display }}</td>
+                            <td><span class="ur-status 
+                                {% if user.account_status == 'ACTIVE' %}
+                                    ur-status--active 
+                                {% elif user.account_status == 'INACTIVE' %} 
+                                    ur-status--inactive 
+                                {% elif user.account_status == 'PENDING' %} 
+                                    ur-status--pending 
+                                {% else %}
+                                    ur-status--suspended 
+                                {% endif %} ">
+                                    <span class="ur-status__dot"></span>
+                                    {{ user.get_account_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ user.created_at|date:"d M Y" }}</td>
+                        </tr>
+                          {% empty %}
+
+                        <tr id="noResultsRow" style="display:none;">
+                            <td colspan="7" class="ur-no-results">
+                                No Results Found
+                            </td>
+                        </tr>
+                           {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Footer / Pagination ── -->
+    <div class="ur-footer" id="recent-users">
+        <p class="ur-footer__count">
+            Showing {{ recent_users.start_index }}
+            to {{ recent_users.end_index }}
+            of {{ recent_users.paginator.count }} results
+        </p>
+
+        <nav class="ur-pagination">
+
+            {% if recent_users.has_previous %}
+            <!-- <a href="?page={{ recent_users.previous_page_number }}#recent-users" class="ur-page-btn">‹</a> -->
+             <a href="?q={{ search_query|urlencode }}&page={{ recent_users.previous_page_number }}#recent-users"
+                class="ur-page-btn">‹</a>
+            {% else %}
+            <span class="ur-page-btn ur-page-btn--disabled">‹</span>
+            {% endif %}
+
+            {% for num in recent_users.paginator.page_range %}
+            {% if recent_users.number == num %}
+            <span class="ur-page-btn active">{{ num }}</span>
+            {% else %}
+            <!-- <a href="?page={{ num }}#recent-users" class="ur-page-btn">{{ num }}</a> -->
+             <a href="?q={{ search_query|urlencode }}&page={{ num }}#recent-users"
+                class="ur-page-btn">
+                    {{ num }}
+                </a>
+            {% endif %}
+            {% endfor %}
+
+            {% if recent_users.has_next %}
+            <!-- <a href="?page={{ recent_users.next_page_number }}#recent-users" class="ur-page-btn">›</a> -->
+             <a href="?q={{ search_query|urlencode }}&page={{ recent_users.next_page_number }}#recent-users" class="ur-page-btn">›</a>
+            {% else %}
+            <span class="ur-page-btn ur-page-btn--disabled">›</span>
+            {% endif %}
+        </nav>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ registration_years|json_script:"registration-years" }}
+{{ registration_counts|json_script:"registration-counts" }}
+
+{{ male_count|json_script:"male-count" }}
+{{ female_count|json_script:"female-count" }}
+{{ transgender_count|json_script:"transgender-count" }}
+{{ non_binary_count|json_script:"non-binary-count" }}
+{{ other_count|json_script:"other-count" }}
+{{ prefer_not_say_count|json_script:"prefer-not-say-count" }}
+
+{{ active_count|json_script:"active-count" }}
+{{ inactive_count|json_script:"inactive-count" }}
+{{ pending_count|json_script:"pending-count" }}
+{{ suspended_count|json_script:"suspended-count" }}
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="{% static 'script/reports/user_reports.js' %}"></script>
+{% endblock %}

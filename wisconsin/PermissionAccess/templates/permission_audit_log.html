@@ -1,0 +1,208 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Audit Log{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_role_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/permission_audit_log.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="al-page">
+
+  <div class="al-header" data-aos="fade-down">
+    <div class="al-header__row">  
+      <div>
+        <div class="al-header__eyebrow">Access Control</div>
+        <h1>Audit Log</h1>
+        <p>A record of every access change and blocked attempt on this system</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="al-summary" data-aos="fade-up" data-aos-delay="30">
+    <div class="al-summary-chip">
+      <div class="al-summary-chip__icon"><i data-lucide="file-text"></i></div>
+      <div>
+        <div class="al-summary-chip__val">{{ total_logs }}</div>
+        <div class="al-summary-chip__lbl">Total Entries</div>
+      </div>
+    </div>
+    <div class="al-summary-chip">
+      <div class="al-summary-chip__icon" style="background: var(--al-d-bg); color: var(--al-d);"><i data-lucide="alert-triangle"></i></div>
+      <div>
+        <div class="al-summary-chip__val">{{ filtered_count }}</div>
+        <div class="al-summary-chip__lbl">Filtered Results</div>
+      </div>
+    </div>
+    <div class="al-summary-chip">
+      <div class="al-summary-chip__icon" style="background: var(--al-r-bg); color: var(--al-r);"><i data-lucide="layout-list"></i></div>
+      <div>
+        <div class="al-summary-chip__val">{{ page_obj.paginator.num_pages }}</div>
+        <div class="al-summary-chip__lbl">Pages</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pm-tabs" data-aos="fade-up" data-aos-delay="40">
+    <button type="button" class="pm-tab {% if role_scope == 'all' %}is-active{% endif %}" data-set-role-scope="all">
+      <i data-lucide="layout-grid"></i> All Activity
+      <span class="pm-tab__count">{{ role_scope_all_count }}</span>
+    </button>
+    <button type="button" class="pm-tab {% if role_scope == 'user' %}is-active{% endif %}" data-set-role-scope="user">
+      <i data-lucide="users"></i> Organization Roles
+      <span class="pm-tab__count">{{ role_scope_user_count }}</span>
+    </button>
+    <button type="button" class="pm-tab {% if role_scope == 'medical' %}is-active{% endif %}" data-set-role-scope="medical">
+      <i data-lucide="stethoscope"></i> Medical Roles
+      <span class="pm-tab__count">{{ role_scope_medical_count }}</span>
+    </button>
+  </div>
+
+  <form method="get" id="auditFilterForm" data-aos="fade-up" data-aos-delay="50">
+    <input type="hidden" name="role_scope" id="roleScopeInput" value="{{ role_scope }}">
+    <div class="al-filters">
+
+      <div class="al-filter-group">
+        <label class="al-filter-label" for="actionFilterTrigger">Activity Type</label>
+        <div class="al-custom-select" id="actionCustomSelect">
+          <input type="hidden" name="action" id="actionFilterInput" value="{{ action_filter }}">
+          <button type="button" class="al-cs-trigger" id="actionFilterTrigger">
+            <i data-lucide="sliders-horizontal" class="al-cs-icon"></i>
+            <span class="al-cs-value"></span>
+            <i data-lucide="chevron-down" class="al-cs-arrow"></i>
+          </button>
+          <ul class="al-cs-options">
+            <li class="al-cs-option {% if not action_filter %}is-selected{% endif %}" data-value="">All Activity</li>
+            {% for value, label in action_choices %}
+            <li class="al-cs-option {% if action_filter == value %}is-selected{% endif %}" data-value="{{ value }}">{{ label }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="al-filter-group">
+        <label class="al-filter-label" for="userFilter">Performed By</label>
+        <div class="al-filter-input-wrap">
+          <i data-lucide="search"></i>
+          <input type="text" name="user" id="userFilter" class="al-filter-input"
+                 value="{{ user_filter }}" placeholder="Search by email">
+        </div>
+      </div>
+
+      <div class="al-filter-actions">
+        <button type="submit" class="al-btn-apply">
+          <i data-lucide="filter"></i> Apply
+        </button>
+        {% if action_filter or user_filter or role_scope != "all" %}
+        <a href="{% url 'Permission:permission_audit_log' %}" class="al-btn-clear">
+          Clear
+        </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </form>
+
+  <div data-aos="fade-up" data-aos-delay="70">
+    <div class="al-section-head">
+      <h2 class="al-section-title">
+        <i data-lucide="activity"></i>
+        Activity Log
+      </h2>
+      <span class="al-section-hint">
+        <i data-lucide="lock"></i> <span>Entries cannot be edited or deleted</span>
+      </span>
+    </div>
+
+    {% if logs %}
+      <div class="al-timeline">
+        {% for log in logs %}
+        <div class="al-row al-row--{{ log.action }}">
+          <div class="al-icon al-icon--{{ log.action }}">
+            {% spaceless %}
+            <i data-lucide="{% if log.action == 'unauthorized_attempt' %}alert-triangle{% elif log.action == 'permission_assigned' %}plus-circle{% elif log.action == 'permission_removed' %}minus-circle{% elif log.action == 'page_access_changed' %}lock{% elif log.action == 'administrator_setup' %}shield-check{% elif log.action == 'role_updated' %}refresh-cw{% else %}edit{% endif %}"></i>
+            {% endspaceless %}
+          </div>
+
+          <div class="al-body">
+            <div class="al-top">
+              <span class="al-badge al-badge--{{ log.action }}">{{ log.get_action_display }}</span>
+              <span class="al-time">{{ log.timestamp|date:"d M Y, h:i A" }}</span>
+              <button type="button" class="atl-btn-view" data-log-id="{{ log.id }}" title="View full details">
+                <i data-lucide="eye"></i> <span>View</span>
+              </button>
+            </div>
+            <p class="al-desc">{{ log.friendly_description }}</p>
+            <div class="al-meta">
+              <span><i data-lucide="user"></i> {{ log.action_by|default:"System" }}</span>
+              {% if log.target_role %}
+              <span><i data-lucide="shield"></i> {{ log.target_role.role_name }}</span>
+              {% endif %}
+              {% if log.ip_address %}
+              <span><i data-lucide="globe"></i> {{ log.ip_address }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="al-empty">
+        <i data-lucide="inbox"></i>
+        <p>No audit entries match the current filters.</p>
+      </div>
+    {% endif %}
+
+    {% if is_paginated %}
+    <div class="al-pagination">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}{% if role_scope != "all" %}&role_scope={{ role_scope }}{% endif %}" class="al-page-link">
+        <i data-lucide="chevron-left"></i> <span>Previous</span>
+      </a>
+      {% else %}
+      <span class="al-page-link al-page-link--disabled">
+        <i data-lucide="chevron-left"></i> <span>Previous</span>
+      </span>
+      {% endif %}
+
+      <span class="al-page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}{% if role_scope != "all" %}&role_scope={{ role_scope }}{% endif %}" class="al-page-link">
+        <span>Next</span> <i data-lucide="chevron-right"></i>
+      </a>
+      {% else %}
+      <span class="al-page-link al-page-link--disabled">
+        <span>Next</span> <i data-lucide="chevron-right"></i>
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{{ atl_rows|json_script:"atl-rows-data" }}
+
+<div class="atl-modal-overlay" id="atlModalOverlay" hidden>
+  <div class="atl-modal">
+    <div class="atl-modal__head">
+      <h3 class="atl-modal__title">Event Details</h3>
+      <button type="button" class="atl-modal__close" id="atlModalClose" aria-label="Close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="atl-modal__body" id="atlModalBody">
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'script/permission_audit_log.js' %}"></script>
+{% endblock %}

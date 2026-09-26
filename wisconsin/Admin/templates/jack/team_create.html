@@ -1,0 +1,305 @@
+{% extends "dashboard_base.html" %}
+
+{% load static %}
+
+{% block title %}{% if form.instance.team_id %}Edit Team{% else %}Create Team{% endif %}{% endblock %}
+{% block page_title %}{% if form.instance.team_id %}Edit Team{% else %}Create Team{% endif %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/jack/team_create.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="tf-dashboard">
+
+  <div class="tf-header-glass row g-0">
+    <div class="col-12">
+      <div class="tf-header-content">
+        <div class="tf-header-left">
+          <div class="tf-logo d-flex align-items-center gap-2">
+            <i class="ti ti-users"></i>
+            <span>Team<span class="tf-highlight">Hub</span></span>
+          </div>
+          <div class="tf-breadcrumb d-flex align-items-center gap-1">
+            <i class="ti ti-home"></i>
+            <i class="ti ti-chevron-right"></i>
+            <a href="{% url 'teams' %}">Teams</a>
+            <i class="ti ti-chevron-right"></i>
+            <span>{% if form.instance.team_id %}Edit{% else %}Create{% endif %}</span>
+          </div>
+        </div>
+        <div class="tf-header-right ms-md-auto">
+          <a href="{% url 'teams' %}" class="tf-btn tf-btn-glass">
+            <i class="ti ti-arrow-left"></i> Back
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tf-form-wrapper">
+    <div class="tf-form-glass">
+      <div class="tf-form-title">
+        <i class="ti ti-{% if form.instance.team_id %}edit{% else %}plus{% endif %}"></i>
+        {% if form.instance.team_id %}Edit Team{% else %}Create New Team{% endif %}
+      </div>
+      <div class="tf-form-subtitle">
+        {% if form.instance.team_id %}
+          Editing <strong>{{ form.instance.team_name }}</strong> ({{ form.instance.team_code }})
+        {% else %}
+          Fill in the details below to create a new team
+        {% endif %}
+      </div>
+
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="tf-form-section-title">
+          <i class="ti ti-info-circle"></i> Basic Information
+        </div>
+
+        <div class="tf-form-row">
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_team_code">
+              Team Code <span class="tf-required">*</span>
+            </label>
+            <input type="text" name="team_code" id="id_team_code" 
+                   class="tf-form-control" 
+                   placeholder="Enter team code..."
+                   value="{{ form.team_code.value|default:'' }}">
+            {% if form.team_code.errors %}
+              <div class="tf-form-error">{{ form.team_code.errors.0 }}</div>
+            {% endif %}
+            <div class="tf-form-help-text">Unique identifier for the team (e.g., FCB-M-01)</div>
+          </div>
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_team_name">
+              Team Name <span class="tf-required">*</span>
+            </label>
+            <input type="text" name="team_name" id="id_team_name" 
+                   class="tf-form-control" 
+                   placeholder="Enter team name..."
+                   value="{{ form.team_name.value|default:'' }}">
+            {% if form.team_name.errors %}
+              <div class="tf-form-error">{{ form.team_name.errors.0 }}</div>
+            {% endif %}
+            <div class="tf-form-help-text">Full name of the team</div>
+          </div>
+        </div>
+
+        <div class="tf-form-group">
+          <label class="tf-form-label" for="id_icon">
+            Team Icon <span class="tf-optional">(optional)</span>
+          </label>
+          <div class="tf-image-preview-container">
+            <div class="tf-image-upload-wrapper">
+              <input type="file" name="icon" id="id_icon" class="tf-form-control-file" accept="image/*">
+              {% if form.icon.errors %}
+                <div class="tf-form-error">{{ form.icon.errors.0 }}</div>
+              {% endif %}
+              <div class="tf-form-help-text">Upload a square image (recommended: 64x64px)</div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="tf-form-divider">
+
+        <div class="tf-form-section-title">
+          <i class="ti ti-medal"></i> Sport & Founded Year
+        </div>
+
+        <div class="tf-form-row">
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_sport_type">
+              Sport Type <span class="tf-required">*</span>
+            </label>
+            <select name="sport_type" id="id_sport_type" class="tf-form-control ss-form-select">
+              <option value="">Select Sport Type</option>
+              {% for sport in sports %}
+                <option value="{{ sport.id }}" {% if form.sport_type.value|stringformat:"s" == sport.id|stringformat:"s" %}selected{% endif %}>
+                  {{ sport.sport_name }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if form.sport_type.errors %}
+              <div class="tf-form-error">{{ form.sport_type.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_founded_year">
+              Founded Year <span class="tf-required">*</span>
+            </label>
+            <input type="text"
+                  name="founded_year"
+                  id="id_founded_year"
+                  class="tf-form-control"
+                  placeholder="Enter founded year..."
+                  value="{{ form.founded_year.value|default:'' }}"
+                  maxlength="4"
+                  inputmode="numeric"
+                  oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4);">
+            {% if form.founded_year.errors %}
+              <div class="tf-form-error">{{ form.founded_year.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% comment %} <div class="tf-form-group">
+            <label class="tf-form-label" for="id_gender_category">
+              Gender Category <span class="tf-required">*</span>
+            </label>
+            <select name="gender_category" id="id_gender_category" class="tf-form-control">
+              <option value="">Select Gender</option>
+              <option value="MALE" {% if form.gender_category.value == "MALE" %}selected{% endif %}>Male</option>
+              <option value="FEMALE" {% if form.gender_category.value == "FEMALE" %}selected{% endif %}>Female</option>
+              <option value="TRANSGENDER" {% if form.gender_category.value == "TRANSGENDER" %}selected{% endif %}>Transgender</option>
+              <option value="NON_BINARY" {% if form.gender_category.value == "NON_BINARY" %}selected{% endif %}>Non-binary</option>
+              <option value="OTHER" {% if form.gender_category.value == "OTHER" %}selected{% endif %}>Other</option>
+              <option value="PREFER_NOT_TO_SAY" {% if form.gender_category.value == "PREFER_NOT_TO_SAY" %}selected{% endif %}>Prefer not to say</option>
+            </select>
+            {% if form.gender_category.errors %}
+              <div class="tf-form-error">{{ form.gender_category.errors.0 }}</div>
+            {% endif %}
+          </div> {% endcomment %}
+        </div>
+
+        <hr class="tf-form-divider">
+
+        <div class="tf-form-section-title">
+          <i class="ti ti-flag"></i> Division & Club
+        </div>
+
+        <div class="tf-form-row">
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_division">
+              Division <span class="tf-required">*</span>
+            </label>
+            <input type="text" name="division" id="id_division" 
+                   class="tf-form-control" 
+                   placeholder="Enter division name..."
+                   value="{{ form.division.value|default:'' }}">
+            {% if form.division.errors %}
+              <div class="tf-form-error">{{ form.division.errors.0 }}</div>
+            {% endif %}
+            <div class="tf-form-help-text">League or division name (e.g., Premier League, NBA)</div>
+          </div>
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_club">
+              Club <span class="tf-optional">(optional)</span>
+            </label>
+            <select name="club" id="id_club" class="tf-form-control ss-form-select">
+              <option value="">Select Club</option>
+              {% for club in clubs %}
+                <option value="{{ club.id }}" {% if form.club.value|stringformat:"s" == club.id|stringformat:"s" %}selected{% endif %}>
+                  {{ club }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if form.club.errors %}
+              <div class="tf-form-error">{{ form.club.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% comment %} <div class="tf-form-group">
+            <label class="tf-form-label" for="id_season">
+              Season <span class="tf-required">*</span>
+            </label>
+            <input type="text" name="season" id="id_season" 
+                   class="tf-form-control" 
+                   placeholder="Enter season..."
+                   value="{{ form.season.value|default:'' }}">
+            {% if form.season.errors %}
+              <div class="tf-form-error">{{ form.season.errors.0 }}</div>
+            {% endif %}
+            <div class="tf-form-help-text">Season year (e.g., 2024-2025)</div>
+          </div> {% endcomment %}
+        </div>
+
+        <hr class="tf-form-divider">
+
+        <div class="tf-form-section-title">
+          <i class="ti ti-building"></i> Coach & Facility
+        </div>
+
+        <div class="tf-form-row">
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_head_coach">
+              Head Coach <span class="tf-optional">(optional)</span>
+            </label>
+            <select name="head_coach" id="id_head_coach" class="tf-form-control ss-form-select">
+              <option value="">Select Head Coach</option>
+              {% for coach in coaches %}
+                <option value="{{ coach.coach_id }}" {% if form.head_coach.value|stringformat:"s" == coach.coach_id|stringformat:"s" %}selected{% endif %}>
+                  {{ coach }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if form.head_coach.errors %}
+              <div class="tf-form-error">{{ form.head_coach.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="tf-form-group">
+            <label class="tf-form-label" for="id_home_facility">
+              Home Facility <span class="tf-optional">(optional)</span>
+            </label>
+            <select name="home_facility" id="id_home_facility" class="tf-form-control ss-form-select">
+              <option value="">Select Home Facility</option>
+              {% for facility in facilities %}
+                <option value="{{ facility.facility_id }}" {% if form.home_facility.value|stringformat:"s" == facility.facility_id|stringformat:"s" %}selected{% endif %}>
+                  {{ facility }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if form.home_facility.errors %}
+              <div class="tf-form-error">{{ form.home_facility.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <hr class="tf-form-divider">
+
+        {% comment %} <div class="tf-form-section-title">
+          <i class="ti ti-calendar"></i> Additional Information
+        </div> {% endcomment %}
+
+        <div class="tf-form-row-3">
+          <div class="tf-form-group">
+            <label class="tf-form-label">Status</label>
+            <div class="tf-form-check-group">
+              <label class="tf-form-check">
+                <input type="checkbox" name="status" id="id_status" 
+                       {% if form.status.value %}checked{% endif %} class="tf-form-check-input">
+                Active
+              </label>
+            </div>
+            {% if form.status.errors %}
+              <div class="tf-form-error">{{ form.status.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="tf-form-actions">
+          <button type="submit" class="tf-btn tf-btn-success">
+            <i class="ti ti-device-floppy"></i>
+            {% if form.instance.team_id %}Update Team{% else %}Create Team{% endif %}
+          </button>
+          <a href="{% url 'teams' %}" class="tf-btn tf-btn-glass">
+            <i class="ti ti-arrow-left"></i> Back
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="{% static 'script/jack/team_create.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+{% endblock %}

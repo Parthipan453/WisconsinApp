@@ -1,0 +1,470 @@
+{% load review_extras %}
+  {% if assignment.status == "assigned" %}
+  {# Pre-review: materials checklist + start-review workflow #}
+  {% include "Eric/partials/application_sections.html" %}
+
+  {% else %}
+
+  {% if app.admission_cycle.application_deadline and app.admission_cycle.application_deadline < "now"|date:"Y-m-d" %}
+  <div style="margin:16px 0 0;padding:12px 16px;background:#fef3cd;border:1px solid #ffc107;border-radius:8px;display:flex;align-items:center;gap:10px;">
+    <i class="ti ti-alert-triangle" style="color:#856404;font-size:18px;"></i>
+    <div>
+      <strong style="color:#856404;">Application deadline has passed</strong>
+      <span style="color:#856404;font-size:13px;margin-left:6px;">Cycle deadline: {{ app.admission_cycle.application_deadline|date:"F j, Y" }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ──────────────── MANUAL REVIEW WORKSPACE ──────────────── #}
+  <div class="prm-mr-workspace">
+
+      <div class="prm-mr-progress prm-card" data-section-total="{{ section_total }}">
+        <div class="prm-mr-progress__track">
+          <div class="prm-mr-progress__fill" style="width:{{ section_reviews|progress_pct:section_total }}%"></div>
+        </div>
+        <div class="prm-mr-progress__stats">
+          <span class="prm-mr-stat prm-mr-stat--done"><i class="ti ti-circle-check"></i> <span class="prm-stat-reviewed">{{ section_reviews|count_status:"reviewed" }}</span> reviewed</span>
+          <span class="prm-mr-stat prm-mr-stat--issue"><i class="ti ti-flag"></i> <span class="prm-stat-issue">{{ section_reviews|count_status:"issue" }}</span> issue{{ section_reviews|count_status:"issue"|pluralize }}</span>
+          <span class="prm-mr-stat prm-mr-stat--todo"><i class="ti ti-circle-dashed"></i> <span class="prm-stat-pending">{{ section_reviews|count_not_reviewed:section_total }}</span> pending</span>
+          <span class="prm-mr-progress__label"><span class="prm-stat-done-total">{{ section_reviews|count_status:"reviewed"|add:section_reviews|count_status:"issue" }}</span>/{{ section_total }} sections</span>
+        </div>
+      </div>
+
+      {# ── Review status ── #}
+      <div class="prm-card">
+        <div class="prm-card__head">
+          <i class="ti ti-clipboard-check"></i>
+          <span class="prm-card__title">Review status</span>
+        </div>
+        <div class="prm-mr-panel__body">
+          <div class="prm-mr-panel__row"><span>Assignment</span><b>{{ assignment.get_status_display }}</b></div>
+          {% if assignment.recommendation %}
+          <div class="prm-mr-panel__row"><span>Recommendation</span><b>{{ assignment.get_recommendation_display }}</b></div>
+          {% endif %}
+          {% if assignment.is_verified %}
+          <div class="prm-banner prm-banner--success" style="margin:6px 0 0;">
+            <i class="ti ti-circle-check"></i>
+            <div><b>Recommendation submitted</b> — ready for the admission decision.</div>
+          </div>
+          {% endif %}
+          {% if assignment.status == "decided" %}
+          <div class="prm-banner prm-banner--success" style="margin:6px 0 0;">
+            <i class="ti ti-scale"></i>
+            <div>Final decision: <b>{{ app.get_status_display }}</b>.</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Findings ── #}
+      <div class="prm-card">
+        <div class="prm-card__head">
+          <i class="ti ti-flag"></i>
+          <span class="prm-card__title">Findings</span>
+          <span class="prm-card__sub">{{ section_reviews|section_findings|length }}</span>
+        </div>
+        <div class="prm-mr-findings">
+          {% with findings=section_reviews|section_findings %}
+          {% if findings %}
+          {% for f in findings %}
+          <div class="prm-mr-finding">
+            <div class="prm-mr-finding__title"><i class="ti ti-flag"></i> {{ f.section_title }}</div>
+            {% if f.note %}<div class="prm-mr-finding__note">{{ f.note }}</div>{% else %}<div class="prm-mr-finding__note is-muted">No note provided.</div>{% endif %}
+            <div class="prm-mr-finding__meta">
+              {% if f.reviewed_by %}by {{ f.reviewed_by.get_full_name|default:f.reviewed_by.username }}{% endif %}
+              {% if f.reviewed_at %} · {{ f.reviewed_at|date:"M d · H:i" }}{% endif %}
+            </div>
+            <div class="prm-mr-finding__status is-open">Open</div>
+          </div>
+          {% endfor %}
+          <p class="prm-hint" style="padding:10px 16px;">Mark a section as <b>Reviewed</b> to resolve its finding.</p>
+          {% else %}
+          <p class="prm-hint" style="padding:14px 20px;">No findings yet. Flag a section with <b>Issue Found</b> to add one here.</p>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      {# ── Section cards ── #}
+      {% for s in section_defs %}
+      {% if s.code != 'academics' and s.code != 'essays' and s.code != 'additional' %}
+      {% with s_status=section_reviews|review_status:s.code s_note=section_reviews|review_note:s.code s_internal_note=section_reviews|review_internal_note:s.code %}
+      <section class="prm-card prm-mr-section" id="mr-{{ s.code }}">
+        <div class="prm-card__head">
+          <i class="ti {{ s.icon }}"></i>
+          <span class="prm-card__title">{{ s.title }}</span>
+          {% if s_status == 'reviewed' %}
+          <span class="prm-chip prm-chip--green"><i class="ti ti-check"></i> Reviewed</span>
+          {% elif s_status == 'issue' %}
+          <span class="prm-chip prm-chip--red"><i class="ti ti-flag"></i> Issue Found</span>
+          {% elif s_status == 'issue_solved' %}
+          <span class="prm-chip prm-chip--blue"><i class="ti ti-tool"></i> Issue Solved</span>
+          {% else %}
+          <span class="prm-chip prm-chip--gray"><i class="ti ti-clock"></i> Not Reviewed</span>
+          {% endif %}
+        </div>
+
+        <div class="prm-mr-section__body">
+          {% if s.code == 'application_info' %}
+          <div class="prm-fields">
+            <div class="prm-field"><span class="prm-field__label">University</span><span class="prm-field__value">{{ app.university }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Program</span><span class="prm-field__value">{{ app.program|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Backup program</span><span class="prm-field__value">{{ app.backup_program|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Degree level</span><span class="prm-field__value">{{ app.degree_level|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Admission level</span><span class="prm-field__value">{{ app.get_admission_level_display|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Term / cycle</span><span class="prm-field__value">{{ app.admission_cycle|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Campus</span><span class="prm-field__value">{{ app.campus_name }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Apply method</span><span class="prm-field__value">{{ app.get_apply_method_display|default:"—" }}</span></div>
+          </div>
+
+          {% elif s.code == 'personal_info' %}
+          <div class="prm-fields">
+            <div class="prm-field"><span class="prm-field__label">First name</span><span class="prm-field__value">{{ applicant.first_name }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Last name</span><span class="prm-field__value">{{ applicant.last_name }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Email</span><span class="prm-field__value">{{ applicant.email }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Mobile</span><span class="prm-field__value">{{ applicant.mobile_number|default:profile.phone|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Date of birth</span><span class="prm-field__value">{{ profile.date_of_birth|default:applicant.date_of_birth|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Gender</span><span class="prm-field__value">{{ profile.get_gender_display|default:profile.gender|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Nationality</span><span class="prm-field__value">{{ profile.nationality|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Country</span><span class="prm-field__value">{{ profile.country|default:"—" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">State / City</span><span class="prm-field__value">{{ profile.state|default:"—" }}{% if profile.state and profile.city %}, {% endif %}{{ profile.city|default:"" }}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Address</span><span class="prm-field__value">{{ profile.address_line1|default:"—" }}{% if profile.address_line2 %}, {{ profile.address_line2 }}{% endif %}</span></div>
+            <div class="prm-field"><span class="prm-field__label">Postal code</span><span class="prm-field__value">{{ profile.postal_code|default:"—" }}</span></div>
+          </div>
+
+          {% elif s.code == 'documents' %}
+          <div class="prm-table-wrap">
+            <table class="prm-table">
+              <thead><tr><th>Document</th><th>Type</th><th>Uploaded</th><th>Verification</th><th>Action</th></tr></thead>
+              <tbody>
+              {% for doc in documents %}
+              <tr>
+                <td>{% if doc.file_path %}<a href="/media/{{ doc.file_path|urlencode }}" target="_blank" rel="noopener">{{ doc.file_name }}</a>{% else %}{{ doc.file_name }}{% endif %}</td>
+                <td>{{ doc.get_doc_type_display|default:"—" }}</td>
+                <td>{{ doc.uploaded_at|date:"M d, Y" }}</td>
+                <td>
+                  {% if doc.is_verified %}<span class="prm-chip prm-chip--green">Verified{% if doc.verified_by %} · {{ doc.verified_by }}{% endif %}</span>
+                  {% else %}<span class="prm-chip prm-chip--orange">Not verified</span>{% endif %}
+                </td>
+                <td>
+                  <a class="prm-btn prm-btn--ghost prm-btn--sm" href="{% url 'verify_document' request.user.uuid app.application_id doc.pk %}">
+                    {% if doc.is_verified %}<i class="ti ti-rotate"></i> Unverify{% else %}<i class="ti ti-check"></i> Verify{% endif %}
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="prm-hint">No documents uploaded yet.</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if issue_email_draft and issue_email_draft.section_title == s.title %}
+        <div class="prm-email-draft" style="margin:0 0 12px;border-left:4px solid #e8590c;background:#fff8f5;border-radius:6px;padding:12px 14px;">
+          <p style="margin:0 0 6px;font-size:13px;color:#666;"><b>To:</b> {{ issue_email_draft.to }}</p>
+          <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;white-space:pre-wrap;margin:6px 0 10px;">{{ issue_email_draft.body }}</div>
+          <a id="prm-gmail-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to={{ issue_email_draft.to|urlencode }}&su={{ issue_email_draft.subject|urlencode }}&body={{ issue_email_draft.body|urlencode }}" target="_blank" rel="noopener" class="prm-btn prm-btn--primary prm-btn--sm" style="text-decoration:none;">
+            <i class="ti ti-brand-gmail"></i> Open in Gmail
+          </a>
+        </div>
+        {% endif %}
+
+        <form class="prm-mr-verdict" method="post" action="{% url 'save_section_review' request.user.uuid app.application_id %}" data-applicant-email="{{ app.applicant.email }}" data-section-title="{{ s.title }}" data-reference-id="{{ app.Reference_id }}">
+          {% csrf_token %}
+          <input type="hidden" name="section_code" value="{{ s.code }}">
+          <div class="prm-mr-verdict__label">Review against original documents</div>
+          <div class="prm-mr-verdict__note">
+            <textarea name="internal_note" rows="2" class="prm-textarea" placeholder="Internal note for admission committee — is this section correct or misleading?">{{ s_internal_note }}</textarea>
+          </div>
+          <div class="prm-mr-verdict__btns">
+            {% if s_status == 'reviewed' %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok is-active">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            {% else %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            <button type="submit" name="status" value="issue" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--issue">
+              <i class="ti ti-flag"></i> Issue Found
+            </button>
+            <button type="submit" name="status" value="issue_solved" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--solved">
+              <i class="ti ti-tool"></i> Issue Solved
+            </button>
+            {% endif %}
+          </div>
+        </form>
+      </section>
+      {% endwith %}
+      {% endif %}
+      {% endfor %}
+
+      {# ── Offline section: per-section cards from extracted PDF ── #}
+      {% if app.apply_method == "offline" %}
+
+      {% if app.offline_form_pdf %}
+      <div class="prm-banner prm-banner--info" style="margin:0;">
+        <i class="ti ti-file-text"></i>
+        <div>
+          Submitted as a printed form — <b>{{ offline_pdf_name }}</b>.
+          <a href="{{ app.offline_form_pdf.url }}" target="_blank" rel="noopener" class="prm-btn prm-btn--ghost prm-btn--sm" style="display:inline-flex;margin-left:8px;"><i class="ti ti-download"></i> Open PDF</a>
+          <form method="post" action="{% url 'extract_offline_pdf' request.user.uuid app.application_id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="prm-btn prm-btn--ghost prm-btn--sm"><i class="ti ti-refresh"></i> Re-extract text</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if offline_sections %}
+      {% for sec in offline_sections %}
+      {% with sec_status=section_reviews|review_status:sec.code sec_note=section_reviews|review_note:sec.code sec_internal_note=section_reviews|review_internal_note:sec.code %}
+      <section class="prm-card prm-mr-section" id="mr-{{ sec.code }}">
+        <div class="prm-card__head">
+          <i class="ti ti-checklist"></i>
+          <span class="prm-card__title">{{ sec.title }}</span>
+          {% if sec_status == 'reviewed' %}
+          <span class="prm-chip prm-chip--green"><i class="ti ti-check"></i> Reviewed</span>
+          {% elif sec_status == 'issue' %}
+          <span class="prm-chip prm-chip--red"><i class="ti ti-flag"></i> Issue Found</span>
+          {% elif sec_status == 'issue_solved' %}
+          <span class="prm-chip prm-chip--blue"><i class="ti ti-tool"></i> Issue Solved</span>
+          {% else %}
+          <span class="prm-chip prm-chip--gray"><i class="ti ti-clock"></i> Not Reviewed</span>
+          {% endif %}
+        </div>
+        <div class="prm-mr-section__body">
+          <div class="prm-fields">
+            {% for field in sec.fields %}
+            <div class="prm-field">
+              <span class="prm-field__label">{{ field.label }}</span>
+              <span class="prm-field__value">{{ field.value }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% if issue_email_draft and issue_email_draft.section_title == sec.title %}
+        <div class="prm-email-draft" style="margin:0 0 12px;border-left:4px solid #e8590c;background:#fff8f5;border-radius:6px;padding:12px 14px;">
+          <p style="margin:0 0 6px;font-size:13px;color:#666;"><b>To:</b> {{ issue_email_draft.to }}</p>
+          <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;white-space:pre-wrap;margin:6px 0 10px;">{{ issue_email_draft.body }}</div>
+          <a id="prm-gmail-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to={{ issue_email_draft.to|urlencode }}&su={{ issue_email_draft.subject|urlencode }}&body={{ issue_email_draft.body|urlencode }}" target="_blank" rel="noopener" class="prm-btn prm-btn--primary prm-btn--sm" style="text-decoration:none;">
+            <i class="ti ti-brand-gmail"></i> Open in Gmail
+          </a>
+        </div>
+        {% endif %}
+
+        <form class="prm-mr-verdict" method="post" action="{% url 'save_section_review' request.user.uuid app.application_id %}" data-applicant-email="{{ app.applicant.email }}" data-section-title="{{ sec.title }}" data-reference-id="{{ app.Reference_id }}">
+          {% csrf_token %}
+          <input type="hidden" name="section_code" value="{{ sec.code }}">
+          <div class="prm-mr-verdict__label">Review against original documents</div>
+          <div class="prm-mr-verdict__note">
+            <textarea name="internal_note" rows="2" class="prm-textarea" placeholder="Internal note for admission committee — is this section correct or misleading?">{{ sec_internal_note }}</textarea>
+          </div>
+          <div class="prm-mr-verdict__btns">
+            {% if sec_status == 'reviewed' %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok is-active">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            {% else %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            <button type="submit" name="status" value="issue" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--issue">
+              <i class="ti ti-flag"></i> Issue Found
+            </button>
+            <button type="submit" name="status" value="issue_solved" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--solved">
+              <i class="ti ti-tool"></i> Issue Solved
+            </button>
+            {% endif %}
+          </div>
+        </form>
+      </section>
+      {% endwith %}
+      {% endfor %}
+
+      {% elif offline_test_scores %}
+      {# Fallback: only test scores, no section widgets #}
+      {% with ts_status=section_reviews|review_status:"academics" ts_note=section_reviews|review_note:"academics" ts_internal_note=section_reviews|review_internal_note:"academics" %}
+      <section class="prm-card prm-mr-section" id="mr-test-scores">
+        <div class="prm-card__head">
+          <i class="ti ti-chart-bar"></i>
+          <span class="prm-card__title">Academic Background: Test Scores</span>
+          {% if ts_status == 'reviewed' %}
+          <span class="prm-chip prm-chip--green"><i class="ti ti-check"></i> Reviewed</span>
+          {% elif ts_status == 'issue' %}
+          <span class="prm-chip prm-chip--red"><i class="ti ti-flag"></i> Issue Found</span>
+          {% elif ts_status == 'issue_solved' %}
+          <span class="prm-chip prm-chip--blue"><i class="ti ti-tool"></i> Issue Solved</span>
+          {% else %}
+          <span class="prm-chip prm-chip--gray"><i class="ti ti-clock"></i> Not Reviewed</span>
+          {% endif %}
+        </div>
+        <div class="prm-mr-section__body">
+          <div class="prm-fields">
+            {% for t in offline_test_scores %}
+            <div class="prm-field">
+              <span class="prm-field__label">{{ t.test }}{% if t.date %} · {{ t.date }}{% endif %}</span>
+              <span class="prm-field__value"><b>{{ t.score }}</b></span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% if issue_email_draft and issue_email_draft.section_title == "Academic Information" %}
+        <div class="prm-email-draft" style="margin:0 0 12px;border-left:4px solid #e8590c;background:#fff8f5;border-radius:6px;padding:12px 14px;">
+          <p style="margin:0 0 6px;font-size:13px;color:#666;"><b>To:</b> {{ issue_email_draft.to }}</p>
+          <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;white-space:pre-wrap;margin:6px 0 10px;">{{ issue_email_draft.body }}</div>
+          <a id="prm-gmail-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to={{ issue_email_draft.to|urlencode }}&su={{ issue_email_draft.subject|urlencode }}&body={{ issue_email_draft.body|urlencode }}" target="_blank" rel="noopener" class="prm-btn prm-btn--primary prm-btn--sm" style="text-decoration:none;">
+            <i class="ti ti-brand-gmail"></i> Open in Gmail
+          </a>
+        </div>
+        {% endif %}
+
+        <form class="prm-mr-verdict" method="post" action="{% url 'save_section_review' request.user.uuid app.application_id %}" data-applicant-email="{{ app.applicant.email }}" data-section-title="Academic Information" data-reference-id="{{ app.Reference_id }}">
+          {% csrf_token %}
+          <input type="hidden" name="section_code" value="academics">
+          <div class="prm-mr-verdict__label">Review against original documents</div>
+          <div class="prm-mr-verdict__note">
+            <textarea name="internal_note" rows="2" class="prm-textarea" placeholder="Internal note for admission committee — is this section correct or misleading?">{{ ts_internal_note }}</textarea>
+          </div>
+          <div class="prm-mr-verdict__btns">
+            {% if ts_status == 'reviewed' %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok is-active">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            {% else %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            <button type="submit" name="status" value="issue" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--issue">
+              <i class="ti ti-flag"></i> Issue Found
+            </button>
+            <button type="submit" name="status" value="issue_solved" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--solved">
+              <i class="ti ti-tool"></i> Issue Solved
+            </button>
+            {% endif %}
+          </div>
+        </form>
+      </section>
+      {% endwith %}
+
+      {% else %}
+      <p class="prm-hint" style="padding:14px 0;">No data could be extracted from this PDF.</p>
+      {% endif %}
+
+      {% else %}
+
+      {% for fg in form_groups %}
+      {% with fg_idx=forloop.counter0|stringformat:"s" %}
+      {% with fg_code="academics_"|add:fg_idx %}
+      {% with fg_status=section_reviews|review_status:fg_code fg_note=section_reviews|review_note:fg_code fg_internal_note=section_reviews|review_internal_note:fg_code %}
+      <section class="prm-card prm-mr-section" id="mr-{{ fg_code }}">
+        <div class="prm-card__head">
+          <i class="ti ti-book"></i>
+          <span class="prm-card__title">{{ fg.response.section.title }}</span>
+          {% if fg.response.repeat_index %}<span class="prm-sect__repeat">#{{ fg.response.repeat_index|add:"1" }}</span>{% endif %}
+          {% if fg.response.is_complete %}
+          <span class="prm-sect__badge prm-sect__badge--complete">Complete</span>
+          {% else %}
+          <span class="prm-sect__badge prm-sect__badge--incomplete">Incomplete</span>
+          {% endif %}
+          {% if fg_status == 'reviewed' %}
+          <span class="prm-chip prm-chip--green"><i class="ti ti-check"></i> Reviewed</span>
+          {% elif fg_status == 'issue' %}
+          <span class="prm-chip prm-chip--red"><i class="ti ti-flag"></i> Issue Found</span>
+          {% elif fg_status == 'issue_solved' %}
+          <span class="prm-chip prm-chip--blue"><i class="ti ti-tool"></i> Issue Solved</span>
+          {% else %}
+          <span class="prm-chip prm-chip--gray"><i class="ti ti-clock"></i> Not Reviewed</span>
+          {% endif %}
+        </div>
+        <div class="prm-mr-section__body">
+          {% if fg.fields %}
+          <div class="prm-fields">
+            {% for field in fg.fields %}
+            <div class="prm-field">
+              <span class="prm-field__label">{{ field.field.label }}</span>
+              <span class="prm-field__value{% if not field.value %} is-empty{% endif %}">
+                {% if field.file_url %}<a href="/media/{{ field.file_url|urlencode }}" target="_blank" rel="noopener">{{ field.value }}</a>
+                {% elif field.value %}{{ field.value }}{% else %}—{% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="prm-hint" style="padding:0 20px 14px;">No responses recorded for this section.</p>
+          {% endif %}
+        </div>
+        {% if issue_email_draft and issue_email_draft.section_title == group.response.section.title %}
+        <div class="prm-email-draft" style="margin:0 0 12px;border-left:4px solid #e8590c;background:#fff8f5;border-radius:6px;padding:12px 14px;">
+          <p style="margin:0 0 6px;font-size:13px;color:#666;"><b>To:</b> {{ issue_email_draft.to }}</p>
+          <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;white-space:pre-wrap;margin:6px 0 10px;">{{ issue_email_draft.body }}</div>
+          <a id="prm-gmail-btn" href="https://mail.google.com/mail/?view=cm&fs=1&to={{ issue_email_draft.to|urlencode }}&su={{ issue_email_draft.subject|urlencode }}&body={{ issue_email_draft.body|urlencode }}" target="_blank" rel="noopener" class="prm-btn prm-btn--primary prm-btn--sm" style="text-decoration:none;">
+            <i class="ti ti-brand-gmail"></i> Open in Gmail
+          </a>
+        </div>
+        {% endif %}
+
+        <form class="prm-mr-verdict" method="post" action="{% url 'save_section_review' request.user.uuid app.application_id %}" data-applicant-email="{{ app.applicant.email }}" data-section-title="{{ group.response.section.title }}" data-reference-id="{{ app.Reference_id }}">
+          {% csrf_token %}
+          <input type="hidden" name="section_code" value="{{ fg_code }}">
+          <div class="prm-mr-verdict__label">Review against original documents</div>
+          <div class="prm-mr-verdict__note">
+            <textarea name="internal_note" rows="2" class="prm-textarea" placeholder="Internal note for admission committee — is this section correct or misleading?">{{ fg_internal_note }}</textarea>
+          </div>
+          <div class="prm-mr-verdict__btns">
+            {% if fg_status == 'reviewed' %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok is-active">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            {% else %}
+            <button type="submit" name="status" value="reviewed" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--ok">
+              <i class="ti ti-circle-check"></i> Reviewed
+            </button>
+            <button type="submit" name="status" value="issue" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--issue">
+              <i class="ti ti-flag"></i> Issue Found
+            </button>
+            <button type="submit" name="status" value="issue_solved" class="prm-btn prm-mr-verdict__btn prm-mr-verdict__btn--solved">
+              <i class="ti ti-tool"></i> Issue Solved
+            </button>
+            {% endif %}
+          </div>
+        </form>
+      </section>
+      {% endwith %}{% endwith %}{% endwith %}
+      {% endfor %}
+      {% endif %}
+
+      {# ── Review history ── #}
+      {% if logs %}
+      <div class="prm-card">
+        <div class="prm-card__head">
+          <i class="ti ti-list-details"></i>
+          <span class="prm-card__title">Review history</span>
+        </div>
+        <div class="prm-timeline">
+          {% for log in logs|slice:":8" %}
+          <div class="prm-timeline__item">
+            <span class="prm-timeline__dot prm-timeline__dot--gray"></span>
+            <div class="prm-timeline__body">
+              <div class="prm-timeline__title">{{ log.new_value|default:log.old_value|default:log.field_name }}</div>
+              <div class="prm-timeline__meta">by {{ log.actor|default:"—" }}</div>
+            </div>
+            <span class="prm-timeline__when">{{ log.timestamp|date:"M d · H:i" }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── Staff workflow sidebar ── #}
+      {% if assignment.status != "assigned" %}
+      {% include "Eric/partials/staff_workflow.html" %}
+      {% endif %}
+
+      <a class="prm-btn prm-btn--ghost" href="{% url 'my_reviews' request.user.uuid %}" style="width:100%;">
+        <i class="ti ti-arrow-left"></i> Back to my reviews
+      </a>
+  </div>
+  {% endif %}

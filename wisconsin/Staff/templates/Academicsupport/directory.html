@@ -1,0 +1,507 @@
+<!-- ******************************************** Arun Code ************************************************************ -->
+ 
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Faculty & Staff Directory — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/directory.css' %}" />
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_directory %}active{% endblock %}
+
+{% block content %}
+
+<div class="dr-page-header">
+  <div>
+    <h1>Faculty &amp; Staff Directory</h1>
+    <p>Search and browse all faculty, staff, and department contacts across the university.</p>
+  </div>
+  <div class="dr-header-actions">
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-download"></i><span>Export</span></button>
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-printer"></i><span>Print</span></button>
+  </div>
+</div>
+
+<div class="dr-kpi-strip">
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon red"><i class="ti ti-users"></i></div>
+      <span class="fd-kpi-label">Total Staff</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ total_staff }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">↑ 12</span> this semester</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon blue"><i class="ti ti-school"></i></div>
+      <span class="fd-kpi-label">Faculty</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ faculty_count }}">0</div>
+    <div class="fd-kpi-sub"><span class="neutral">—</span> no change</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon green"><i class="ti ti-building"></i></div>
+      <span class="fd-kpi-label">Departments</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ departments_count }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">↑ 1</span> new this year</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon orange"><i class="ti ti-user-check"></i></div>
+      <span class="fd-kpi-label">Active Now</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ active_count }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">93%</span> of total</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon purple"><i class="ti ti-user-off"></i></div>
+      <span class="fd-kpi-label">On Leave</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ leave_count }}">0</div>
+    <div class="fd-kpi-sub"><span class="down">↑ 3</span> this month</div>
+  </div>
+</div>
+
+<div class="fd-toolbar">
+  <div class="fd-tabs">
+    <a class="fd-tab {% if tab_filter == 'all' or not tab_filter %}active{% endif %}" href="?tab=all">
+      All <span class="fd-tab-badge">{{ total_staff }}</span>
+    </a>
+    <a class="fd-tab {% if tab_filter == 'faculty' %}active{% endif %}" href="?tab=faculty">
+      Faculty <span class="fd-tab-badge blue">{{ faculty_count }}</span>
+    </a>
+    <a class="fd-tab {% if tab_filter == 'staff' %}active{% endif %}" href="?tab=staff">
+      Staff <span class="fd-tab-badge purple">{{ staff_count }}</span>
+    </a>
+    <a class="fd-tab {% if tab_filter == 'active' %}active{% endif %}" href="?tab=active">
+      Active <span class="fd-tab-badge green">{{ active_count }}</span>
+    </a>
+    <a class="fd-tab {% if tab_filter == 'leave' %}active{% endif %}" href="?tab=leave">
+      On Leave <span class="fd-tab-badge orange">{{ leave_count }}</span>
+    </a>
+  </div>
+  <form method="get" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="hidden" name="tab" value="{{ tab_filter }}">
+    <div class="fd-search">
+      <i class="ti ti-search"></i>  
+      <input type="text" name="search" id="directorySearch" value="{{ search_query }}"
+            placeholder="Search by name, ID, department…" autocomplete="off" />
+    </div>
+    <select class="dr-dept-filter" name="department" id="deptFilter">
+      <option value="">All Departments</option>
+      {% for dept in all_departments %}
+        <option value="{{ dept.department_id }}" {% if dept_filter == dept.department_id|stringformat:"s" %}selected{% endif %}>
+          {{ dept.department_name }}
+        </option>
+      {% endfor %}
+    </select>
+    <button class="fd-btn fd-btn-ghost" type="submit"><i class="ti ti-filter"></i></button>
+    <button class="fd-btn fd-btn-ghost" type="button" onclick="toggleViewMode()">
+      <i class="ti ti-layout-grid" id="viewIcon"></i>
+    </button>
+  </form>
+</div>
+
+<div class="fd-table-wrap" id="tableView">
+  <table class="fd-table" id="dirTable">
+    <thead>
+      <tr>
+        <th>Person</th>
+        <th>Employee ID</th>
+        <th>Department</th>
+        <th>Job Title</th>
+        <th>Employment</th>
+        <th>Status</th>
+        <th>Contact</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="dirTableBody">
+      {% for member in directory_members %}
+      <tr class="dir-row" data-name="{{ member.full_name|lower }}" data-id="{{ member.employee_id|lower }}" data-department="{{ member.department_name|lower }}" data-title="{{ member.job_title|lower }}" data-email="{{ member.email|lower }}">
+        <td>
+          <div class="dr-person">
+            <div class="dr-avatar" style="background:{{ member.avatar_bg }};color:{{ member.avatar_fg }}">
+              {% if member.photo_url %}
+                <img src="{{ member.photo_url }}" alt="{{ member.full_name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+              {% else %}
+                {{ member.initials }}
+              {% endif %}
+            </div>
+            <div>
+              <div class="dr-name">{{ member.full_name }}</div>
+              <div class="dr-email">{{ member.email }}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="dr-id-badge">{{ member.employee_id }}</span></td>
+        <td><span class="fd-dept">{{ member.department_name }}</span></td>
+        <td><div class="dr-title-text">{{ member.job_title }}</div></td>
+        <td><span class="fd-cat-badge">{{ member.employment_type_display }}</span></td>
+        <td>
+          <span class="fd-status {% if member.employment_status == 'ACTIVE' %}active{% elif member.employment_status == 'LEAVE' %}pending{% else %}archived{% endif %}">
+            {{ member.employment_status_display }}
+          </span>
+        </td>
+        <td>
+          <div class="dr-contact-cell">
+            {% if member.phone %}<span class="dr-phone"><i class="ti ti-phone"></i> {{ member.phone }}</span>{% endif %}
+          </div>
+        </td>
+        <td>
+          <div class="fd-actions">
+            <button class="fd-action-btn view"
+                    onclick="openMemberModal(this)"
+                    title="View profile">
+              <i class="ti ti-eye"></i>
+            </button>
+            <a class="fd-action-btn contact"
+              href="mailto:{{ member.email }}"
+              title="Email {{ member.full_name }}">
+              <i class="ti ti-mail"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;padding:2rem;">No entries found.</td></tr>
+      {% endfor %}
+
+      <tr id="noResultsRow" style="display:none;">
+        <td colspan="8" style="text-align:center;padding:40px;">
+            <i class="ti ti-search-off" style="font-size:40px;color:#999;"></i>
+            <div style="margin-top:10px;font-size:18px;font-weight:600;">
+                No matching records found
+            </div>
+            <div style="color:#777;">
+                Try searching by Name, Employee ID, Department or Job Title.
+            </div>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<div class="dr-card-grid" id="cardView" style="display:none;">
+  {% for member in directory_members %}
+  <div class="dr-card">
+    <div class="dr-card-avatar" style="{% if member.photo_url %}background-image:url('{{ member.photo_url }}');background-size:cover;{% else %}background:{{ member.avatar_bg }};color:{{ member.avatar_fg }}{% endif %}">
+      {% if not member.photo_url %}{{ member.initials }}{% endif %}
+    </div>
+    <div class="dr-card-name">{{ member.full_name }}</div>
+    <div class="dr-card-title">{{ member.job_title }}</div>
+    <div class="dr-card-dept"><i class="ti ti-building"></i> {{ member.department_name }}</div>
+    <div class="dr-card-email"><i class="ti ti-mail"></i> {{ member.email }}</div>
+    <div class="dr-card-footer">
+      <span class="fd-status {% if member.employment_status == 'ACTIVE' %}active{% elif member.employment_status == 'LEAVE' %}pending{% else %}archived{% endif %}">
+        {{ member.employment_status_display }}
+      </span>
+      <div class="fd-actions">
+        <button class="fd-action-btn view" onclick="openMemberModal('{{ member.kind }}', {{ member.id }})" title="View profile">
+          <i class="ti ti-eye"></i>
+        </button>
+        <a class="fd-action-btn download" href="mailto:{{ member.email }}" title="Email {{ member.full_name }}">
+          <i class="ti ti-mail"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <p style="grid-column:1/-1;text-align:center;padding:2rem;">No entries found.</p>
+  {% endfor %}
+</div>
+
+<div class="fd-pagination">
+  <span class="fd-page-info">
+    Showing {{ directory_members.start_index }}–{{ directory_members.end_index }} of {{ total_staff }} entries
+  </span>
+  <div class="fd-page-controls">
+    {% if directory_members.has_previous %}
+      <a class="fd-page-btn" href="?page={{ directory_members.previous_page_number }}&search={{ search_query }}&tab={{ tab_filter }}"><i class="ti ti-chevron-left"></i></a>
+    {% else %}
+      <button class="fd-page-btn" disabled><i class="ti ti-chevron-left"></i></button>
+    {% endif %}
+
+    {% for num in directory_members.paginator.page_range %}
+      {% if num == directory_members.number %}
+        <button class="fd-page-btn active">{{ num }}</button>
+      {% elif num > directory_members.number|add:"-3" and num < directory_members.number|add:"3" %}
+        <a class="fd-page-btn" href="?page={{ num }}&search={{ search_query }}&tab={{ tab_filter }}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+
+    {% if directory_members.has_next %}
+      <a class="fd-page-btn" href="?page={{ directory_members.next_page_number }}&search={{ search_query }}&tab={{ tab_filter }}"><i class="ti ti-chevron-right"></i></a>
+    {% else %}
+      <button class="fd-page-btn" disabled><i class="ti ti-chevron-right"></i></button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="fd-bottom-grid">
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-chart-pie"></i> By Department</div>
+      <a href="#" class="fd-widget-link">View all</a>
+    </div>
+    <div class="fd-type-list">
+      {% for dept in top_departments %}
+      <div class="fd-type-row">
+        <span class="fd-type-label">{{ dept.name }}</span>
+        <div class="fd-type-track"><div class="fd-type-fill hr" style="width:{{ dept.pct }}%"></div></div>
+        <span class="fd-type-pct">{{ dept.total }}</span>
+      </div>
+      {% empty %}
+      <p>No department data yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div id="memberModal" class="fd-modal-overlay" onclick="if(event.target === this) closeMemberModal()">
+  <div class="fd-modal-box">
+    <button class="fd-modal-close" onclick="closeMemberModal()" type="button">
+      <i class="ti ti-x"></i>
+    </button>
+    <div id="memberModalContent">
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+  let currentView = 'table';
+
+  function filterTab(el, filter) {
+    document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const rows = document.querySelectorAll('#dirTableBody .dir-row');
+    rows.forEach(row => {
+      const status = row.dataset.status;
+      let show = true;
+      if (filter === 'faculty') show = row.querySelector('.dr-title-text')?.textContent.toLowerCase().includes('professor');
+      else if (filter === 'staff') show = !row.querySelector('.dr-title-text')?.textContent.toLowerCase().includes('professor');
+      else if (filter === 'active') show = status === 'active';
+      else if (filter === 'leave') show = status === 'leave';
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  function liveSearch(val) {
+    const q = val.toLowerCase();
+    document.querySelectorAll('#dirTableBody .dir-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) || row.dataset.dept.includes(q) ? '' : 'none';
+    });
+  }
+
+  function applyFilters() {
+    const dept = document.getElementById('deptFilter').value.toLowerCase();
+    document.querySelectorAll('#dirTableBody .dir-row').forEach(row => {
+      row.style.display = (!dept || row.dataset.dept.includes(dept)) ? '' : 'none';
+    });
+  }
+
+function openMemberModal(btn) {
+  const row = btn.closest("tr");
+
+  const name  = row.querySelector(".dr-name")?.innerText || "";
+  const email = row.querySelector(".dr-email")?.innerText || "";
+  const empId = row.querySelector(".dr-id-badge")?.innerText || "";
+  const dept  = row.querySelector(".fd-dept")?.innerText || "";
+  const title = row.querySelector(".dr-title-text")?.innerText || "";
+  const phone = row.querySelector(".dr-phone")?.innerText || "";
+  const status = row.querySelector(".fd-status")?.innerText || "";
+
+  const avatarDiv = row.querySelector(".dr-avatar");
+  let avatarInner = "";
+
+  if (avatarDiv.querySelector("img")) {
+    const imgSrc = avatarDiv.querySelector("img").src;
+    avatarInner = `style="background-image:url('${imgSrc}');background-size:cover;"`;
+  } else {
+    avatarInner = `style="background:${avatarDiv.style.background};color:${avatarDiv.style.color}"`;
+  }
+
+  let statusClass = "inactive";
+  if (status.toLowerCase().includes("active")) statusClass = "active";
+  else if (status.toLowerCase().includes("leave")) statusClass = "leave";
+
+  document.getElementById("memberModalContent").innerHTML = `
+    <div class="fd-modal-banner"></div>
+    <div class="fd-modal-avatar" ${avatarInner}>
+      ${!avatarDiv.querySelector("img") ? avatarDiv.innerText : ""}
+    </div>
+    <div class="fd-modal-body">
+      <div class="fd-modal-name">${name}</div>
+      <div class="fd-modal-role">${title} · ${dept}</div>
+      <span class="fd-modal-status ${statusClass}">${status}</span>
+      <div class="fd-modal-info">
+        <div class="fd-modal-row">
+          <i class="ti ti-mail"></i>
+          <div>
+            <span class="label">Email</span>
+            ${email}
+          </div>
+        </div>
+        <div class="fd-modal-row">
+          <i class="ti ti-phone"></i>
+          <div>
+            <span class="label">Phone</span>
+            ${phone || "—"}
+          </div>
+        </div>
+        <div class="fd-modal-row">
+          <i class="ti ti-id-badge-2"></i>
+          <div>
+            <span class="label">Employee ID</span>
+            ${empId}
+          </div>
+        </div>
+      </div>
+      <div class="fd-modal-actions">
+        <a href="mailto:${email}" class="primary">
+          <i class="ti ti-mail"></i> Email
+        </a>
+        ${phone ? `<a href="tel:${phone}"><i class="ti ti-phone"></i> Call</a>` : ""}
+      </div>
+    </div>
+  `;
+  document.getElementById("memberModal").classList.add("active");
+}
+
+function closeMemberModal() {
+  document.getElementById("memberModal").classList.remove("active");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeMemberModal();
+});
+
+  function toggleViewMode() {
+    const icon = document.getElementById('viewIcon');
+    const table = document.getElementById('tableView');
+    const cards = document.getElementById('cardView');
+    if (currentView === 'table') {
+      table.style.display = 'none';
+      cards.style.display = 'grid';
+      icon.className = 'ti ti-list';
+      currentView = 'card';
+    } else {
+      cards.style.display = 'none';
+      table.style.display = 'block';
+      icon.className = 'ti ti-layout-grid';
+      currentView = 'table';
+    }
+  }
+</script>
+<script>
+
+const deptSelectEl = document.querySelector('.dr-dept-filter');
+let deptChoices;
+if (deptSelectEl) {
+  deptChoices = new Choices(deptSelectEl, {
+    searchEnabled: true,
+    searchPlaceholderValue: "Search department…",
+    itemSelectText: '',
+    shouldSort: false,
+    placeholder: true
+  });
+
+  deptChoices.containerOuter.element.classList.add('dr-dept-choices');
+
+  deptSelectEl.addEventListener('change', function () {
+    this.closest('form').submit();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const counters = document.querySelectorAll(".counter");
+
+  const animateCounter = (counter) => {
+    const target = parseInt(counter.dataset.target, 10);
+    let current = 0;
+
+    const duration = 1500;
+    const increment = target / (duration / 16);
+
+    const updateCounter = () => {
+      current += increment;
+
+      if (current < target) {
+        counter.textContent = Math.floor(current);
+        requestAnimationFrame(updateCounter);
+      } else {
+        counter.textContent = target;
+      }
+    };
+
+    updateCounter();
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animateCounter(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+
+  counters.forEach((counter) => observer.observe(counter));
+});
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchBox = document.getElementById("directorySearch");
+    const rows = document.querySelectorAll("#dirTableBody .dir-row");
+
+    searchBox.addEventListener("keyup", function () {
+
+        const value = this.value.trim().toLowerCase();
+
+        rows.forEach(function(row){
+
+            const name = row.dataset.name || "";
+            const id = row.dataset.id || "";
+            const dept = row.dataset.department || "";
+            const title = row.dataset.title || "";
+            const email = row.dataset.email || "";
+
+            const matched =
+                name.includes(value) ||
+                id.includes(value) ||
+                dept.includes(value) ||
+                title.includes(value) ||
+                email.includes(value);
+
+            row.style.display = matched ? "" : "none";
+
+        });
+
+    });
+
+});
+
+</script>
+{% endblock %}
+
+
+<!-- ******************************************** Arun Code ************************************************************ -->

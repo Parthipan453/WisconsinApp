@@ -1,0 +1,317 @@
+<!-- /* kali's code */ -->
+
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/audit_log.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="audit" id="auditPage" data-aos="fade-up">
+
+    <!-- ============ PAGE HEADER ============ -->
+    <div class="audit__header" data-aos="fade-down">
+        <div class="audit__header-text">
+            <h1 class="audit__title"><i data-lucide="file-clock"></i> Audit Logs</h1>
+            <p class="audit__subtitle">Complete activity history across all users and modules</p>
+        </div>
+        <div class="audit__header-actions">
+            <button class="audit__btn audit__btn--ghost" id="filterToggleBtn" data-tooltip="Filters">
+                <i data-lucide="filter"></i><span>Filters</span>
+            </button>
+            <button class="audit__btn audit__btn--ghost" id="refreshBtn" data-tooltip="Refresh">
+                <i data-lucide="refresh-cw"></i><span>Refresh</span>
+            </button>
+            <!-- <div class="audit__export-wrap">
+                <button class="audit__btn audit__btn--ghost" id="exportBtn">
+                    <i data-lucide="download"></i><span>Export</span>
+                    <i data-lucide="chevron-down" class="audit__export-chevron"></i>
+                </button>
+                <div class="audit__export-menu" id="exportMenu" hidden>
+                    <button class="audit__export-item" data-format="csv"><i data-lucide="file-spreadsheet"></i> Export as CSV</button>
+                    <button class="audit__export-item" data-format="pdf"><i data-lucide="file-text"></i> Export as PDF</button>
+                    <button class="audit__export-item" data-format="json"><i data-lucide="braces"></i> Export as JSON</button>
+                </div>
+            </div> -->
+            <button class="audit__btn audit__btn--primary" id="liveToggleBtn">
+                <i data-lucide="radio"></i><span>Live: Off</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ STAT CARDS ============ -->
+    <div class="audit__stats" id="auditStats">
+        <div class="audit-stat-card" data-aos="fade-up" data-aos-delay="0">
+            <div class="audit-stat-card__icon audit-stat-card__icon--blue"><i data-lucide="list-checks"></i></div>
+            <div class="audit-stat-card__body">
+                <span class="audit-stat-card__label">Total Logs</span>
+                <span class="audit-stat-card__value" data-counter="0">0</span>
+                <span class="audit-stat-card__trend audit-stat-card__trend--up"><i data-lucide="trending-up"></i> all time</span>
+            </div>
+        </div>
+        <div class="audit-stat-card" data-aos="fade-up" data-aos-delay="50">
+            <div class="audit-stat-card__icon audit-stat-card__icon--purple"><i data-lucide="calendar-clock"></i></div>
+            <div class="audit-stat-card__body">
+                <span class="audit-stat-card__label">Today's Logs</span>
+                <span class="audit-stat-card__value" data-counter="0">0</span>
+                <span class="audit-stat-card__trend">since midnight</span>
+            </div>
+        </div>
+        <div class="audit-stat-card" data-aos="fade-up" data-aos-delay="100">
+            <div class="audit-stat-card__icon audit-stat-card__icon--green"><i data-lucide="circle-check-big"></i></div>
+            <div class="audit-stat-card__body">
+                <span class="audit-stat-card__label">Success</span>
+                <span class="audit-stat-card__value" data-counter="0">0</span>
+                <span class="audit-stat-card__trend audit-stat-card__trend--up" id="successPctTrend">0% rate</span>
+            </div>
+        </div>
+        <div class="audit-stat-card" data-aos="fade-up" data-aos-delay="150">
+            <div class="audit-stat-card__icon audit-stat-card__icon--red"><i data-lucide="circle-x"></i></div>
+            <div class="audit-stat-card__body">
+                <span class="audit-stat-card__label">Failed</span>
+                <span class="audit-stat-card__value" data-counter="0">0</span>
+                <span class="audit-stat-card__trend audit-stat-card__trend--down" id="failedPctTrend">0% rate</span>
+            </div>
+        </div>
+        <div class="audit-stat-card" data-aos="fade-up" data-aos-delay="200">
+            <div class="audit-stat-card__icon audit-stat-card__icon--amber"><i data-lucide="users-round"></i></div>
+            <div class="audit-stat-card__body">
+                <span class="audit-stat-card__label">Active Users</span>
+                <span class="audit-stat-card__value" data-counter="0">0</span>
+                <span class="audit-stat-card__trend">distinct actors</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ CHARTS ============ -->
+    <div class="audit__charts">
+        <div class="audit-card audit-card--chart audit-card--span2" data-aos="fade-up">
+            <div class="audit-card__head">
+                <h3><i data-lucide="activity"></i> Daily Activity</h3>
+                <div class="audit-card__head-actions">
+                    <select class="audit-mini-select" id="activityRangeSelect">
+                        <option value="7">Last 7 days</option>
+                        <option value="14">Last 14 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="audit-card__chart-wrap"><canvas id="activityChart"></canvas></div>
+        </div>
+        <div class="audit-card audit-card--chart" data-aos="fade-up" data-aos-delay="50">
+            <div class="audit-card__head">
+                <h3><i data-lucide="pie-chart"></i> Action Distribution</h3>
+            </div>
+            <div class="audit-card__chart-wrap">
+                <canvas id="actionChart"></canvas>
+            </div>
+        </div>
+        <div class="audit-card audit-card--chart" data-aos="fade-up" data-aos-delay="100">
+            <div class="audit-card__head">
+                <h3><i data-lucide="shield-check"></i> Status Breakdown</h3>
+            </div>
+            <div class="audit-card__chart-wrap">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        <div class="audit-card audit-card--chart audit-card--span2" data-aos="fade-up" data-aos-delay="150">
+            <div class="audit-card__head">
+                <h3><i data-lucide="layout-grid"></i> Module-wise Logs</h3>
+            </div>
+            <div class="audit-card__chart-wrap">
+                <canvas id="moduleChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+  
+    
+    <div class="audit-card audit-filters" id="filtersCard" hidden>
+        <div class="audit-filters__head">
+            <h3><i data-lucide="filter"></i> Filters</h3>
+            <div class="audit-filters__head-actions">
+                <button class="audit__btn audit__btn--text" id="clearFiltersBtn">
+                     Clear all</button>
+                <button class="audit-filters__close" id="filtersCloseBtn" aria-label="Close filters"><i data-lucide="x"></i></button>
+            </div>
+        </div>
+        <div class="audit-filters__grid">
+            <div class="audit-field audit-field--search">
+                <i data-lucide="search" class="audit-field__icon"></i>
+                <input type="search" id="filterSearch" placeholder="Search description, object, request URL...">
+            </div>
+
+            <div class="audit-field">
+                <label>Date From</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="audit-field">
+                <label>Date To</label>
+                <input type="date" id="filterDateTo">
+            </div>
+
+            <div class="audit-field">
+                <label>User</label>
+                <select id="filterUser"><option value="">All Users</option></select>
+            </div>
+
+            <div class="audit-field">
+                <label>Action</label>
+                <select id="filterAction"><option value="">All Actions</option></select>
+            </div>
+
+            <div class="audit-field">
+                <label>Module</label>
+                <select id="filterModule"><option value="">All Modules</option></select>
+            </div>
+
+            <div class="audit-field">
+                <label>Status</label>
+                <select id="filterStatus">
+                    <option value="">All Status</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="FAILED">Failed</option>
+                </select>
+            </div>
+
+            <div class="audit-field">
+                <label>Browser</label>
+                <select id="filterBrowser"><option value="">All Browsers</option></select>
+            </div>
+
+            <div class="audit-field">
+                <label>Device</label>
+                <select id="filterDevice"><option value="">All Devices</option></select>
+            </div>
+        </div>
+        <div class="audit-filters__chips" id="activeFiltersChips"></div>
+    </div>
+
+    <!-- ============ TABLE ============ -->
+    <div class="audit-card audit-table-card" data-aos="fade-up">
+        <div class="audit-table-card__head">
+            <h3><i data-lucide="table"></i> Audit Trail <span class="audit-table-card__count" id="resultCount">0 records</span></h3>
+            <div class="audit-table-card__head-actions">
+                <label class="audit-page-size">
+                    Rows
+                    <select id="pageSizeSelect">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="audit-table-wrap">
+            <table class="audit-table" id="auditTable">
+                <thead>
+                    <tr>
+                        <th class="audit-th-expand"></th>
+                        <th data-sort="timestamp">Timestamp <i data-lucide="chevrons-up-down"></i></th>
+                        <th data-sort="user">User <i data-lucide="chevrons-up-down"></i></th>
+                        <th data-sort="action">Action <i data-lucide="chevrons-up-down"></i></th>
+                        <th data-sort="module">Module <i data-lucide="chevrons-up-down"></i></th>
+                        <th data-sort="object">Object</th>
+                        <th data-sort="ip_address">IP Address</th>
+                        <th data-sort="device">Device</th>
+                        <th data-sort="status">Status <i data-lucide="chevrons-up-down"></i></th>
+                        <th class="audit-th-actions">Details</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                    
+                </tbody>
+            </table>
+
+            <!-- LOADING STATE -->
+            <div class="audit-state audit-state--loading" id="auditLoadingState">
+                <div class="audit-skeleton-row" style="--d:0s"></div>
+                <div class="audit-skeleton-row" style="--d:.08s"></div>
+                <div class="audit-skeleton-row" style="--d:.16s"></div>
+                <div class="audit-skeleton-row" style="--d:.24s"></div>
+                <div class="audit-skeleton-row" style="--d:.32s"></div>
+                <p><i data-lucide="loader-circle" class="audit-spin"></i> Loading audit records...</p>
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div class="audit-state audit-state--empty" id="auditEmptyState" hidden>
+                <div class="audit-state__icon"><i data-lucide="search-x"></i></div>
+                <h4>No audit records found</h4>
+                <p>Try adjusting your filters or search terms to find what you're looking for.</p>
+                <button class="audit__btn audit__btn--ghost" id="emptyStateClearBtn"><i data-lucide="rotate-ccw"></i> Reset Filters</button>
+            </div>
+        </div>
+
+        <div class="audit-table-card__foot">
+            <span class="audit-pagination__info" id="paginationInfo">Showing 0 of 0</span>
+            <div class="audit-pagination" id="paginationControls"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block global_modal %}
+{{ block.super }}
+
+<div class="audit-modal" id="auditDetailModal" hidden>
+    <div class="audit-modal__backdrop" id="auditModalBackdrop"></div>
+    <div class="audit-modal__panel" role="dialog" aria-modal="true" aria-labelledby="auditModalTitle">
+        <div class="audit-modal__head">
+            <div>
+                <h3 id="auditModalTitle"><i data-lucide="file-search"></i> Audit Record Detail</h3>
+                <span class="audit-modal__id" id="auditModalRequestId"></span>
+            </div>
+            <button class="audit-modal__close" id="auditModalCloseBtn" aria-label="Close"><i data-lucide="x"></i></button>
+        </div>
+
+        <div class="audit-modal__body" id="auditModalBody">
+            <div class="audit-detail-grid">
+                <div class="audit-detail-section">
+                    <h4><i data-lucide="info"></i> Event Information</h4>
+                    <dl class="audit-detail-list" id="dlEventInfo"></dl>
+                </div>
+                <div class="audit-detail-section">
+                    <h4><i data-lucide="monitor-smartphone"></i> Request &amp; Device</h4>
+                    <dl class="audit-detail-list" id="dlRequestInfo"></dl>
+                </div>
+            </div>
+
+            <div class="audit-detail-section audit-detail-section--full">
+                <h4><i data-lucide="message-square-text"></i> Description</h4>
+                <p class="audit-detail-description" id="auditModalDescription"></p>
+            </div>
+
+            <div class="audit-detail-section audit-detail-section--full">
+                <h4><i data-lucide="git-compare"></i> Data Changes</h4>
+                <div class="audit-json-compare">
+                    <div class="audit-json-pane">
+                        <span class="audit-json-pane__label audit-json-pane__label--before"><i data-lucide="minus-circle"></i> Before</span>
+                        <pre id="jsonBefore">—</pre>
+                    </div>
+                    <div class="audit-json-pane">
+                        <span class="audit-json-pane__label audit-json-pane__label--after"><i data-lucide="plus-circle"></i> After</span>
+                        <pre id="jsonAfter">—</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+<script>
+    window.AUDIT_LOG_API_URL = "{% url 'audit_log_json' %}";
+</script>
+<script src="{% static 'script/audit_log.js' %}"></script>
+{% endblock %}

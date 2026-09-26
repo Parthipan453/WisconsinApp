@@ -1,0 +1,2014 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Choose Academic Program — {{ department.department_name }} | University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<style>
+  /* Breadcrumb & Date Row */
+  .enrollment-breadcrumb-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .enrollment-breadcrumb-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+  }
+
+  .enrollment-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin: 0;
+  }
+
+  .enrollment-breadcrumb a {
+    color: #c5050c;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .enrollment-breadcrumb a:hover {
+    text-decoration: underline;
+  }
+
+  .enrollment-breadcrumb .separator {
+    color: #9ca3af;
+  }
+
+  .enrollment-breadcrumb .active {
+    color: #c5050c;
+    font-weight: 600;
+  }
+
+  .dash-date-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .dash-date-badge svg {
+    width: 16px;
+    height: 16px;
+    color: #ef4444;
+  }
+
+  /* Main Header Grid Layout */
+  .dept-detail-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 1024px) {
+    .dept-detail-header-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  .dept-header-left-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    flex-grow: 1;
+  }
+
+  .dept-header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  /* Back Button styling matching Wisconsin red style */
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    color: #c5050c;
+    background-color: #ffffff;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .back-btn:hover {
+    background-color: #fef2f2;
+    border-color: #fca5a5;
+  }
+
+  /* Circle Badge in the middle */
+  .dept-large-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #c5050c;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px rgba(197, 5, 12, 0.2);
+  }
+
+  .dept-info-text h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+  }
+
+  .dept-info-text p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Top Right Stats Cards */
+  .dept-header-stats {
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .dept-header-stats {
+      width: 100%;
+      flex-direction: column;
+    }
+  }
+
+  .dept-stat-card-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 18px;
+    min-width: 130px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .dept-stat-card-mini.border-red { border-left: 3px solid #ef4444; }
+  .dept-stat-card-mini.border-blue { border-left: 3px solid #3b82f6; }
+  .dept-stat-card-mini.border-green { border-left: 3px solid #10b981; }
+
+  .dept-stat-mini-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dept-stat-card-mini.border-red .dept-stat-mini-icon { background: #fef2f2; color: #ef4444; }
+  .dept-stat-card-mini.border-blue .dept-stat-mini-icon { background: #eff6ff; color: #3b82f6; }
+  .dept-stat-card-mini.border-green .dept-stat-mini-icon { background: #ecfdf5; color: #10b981; }
+
+  .dept-stat-mini-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .dept-stat-mini-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dept-stat-mini-val {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.2;
+  }
+
+  .dept-stat-mini-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  /* Subheader row */
+  .programs-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .programs-header-info h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+  }
+
+  .programs-header-info p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .programs-header-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .prog-search-wrapper {
+    position: relative;
+    width: 260px;
+  }
+
+  .prog-search-wrapper input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #1f2937;
+    background-color: #ffffff;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .prog-search-wrapper input:focus {
+    border-color: #c5050c;
+  }
+
+  .prog-search-wrapper .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: #9ca3af;
+  }
+
+  .prog-sort-wrapper {
+    position: relative;
+  }
+
+  .prog-sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.15s ease;
+  }
+
+  .prog-sort-btn:hover {
+    background-color: #f9fafb;
+  }
+
+  .prog-sort-btn .sort-icon,
+  .prog-sort-btn .chevron-icon {
+    width: 16px;
+    height: 16px;
+    color: #6b7280;
+  }
+
+  .prog-sort-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    width: 180px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 10;
+    display: none;
+  }
+
+  .prog-sort-dropdown.show {
+    display: block;
+  }
+
+  .prog-sort-dropdown a {
+    display: block;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    color: #374151;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+  }
+
+  .prog-sort-dropdown a:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
+  /* Programs Cards Grid */
+  .programs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 1024px) {
+    .programs-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Program Card */
+  .prog-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    height: 100%;
+  }
+
+  .prog-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  }
+
+  .prog-card.accent-red { border-top: 4px solid #ef4444; }
+  .prog-card.accent-blue { border-top: 4px solid #3b82f6; }
+  .prog-card.accent-green { border-top: 4px solid #10b981; }
+  .prog-card.accent-orange { border-top: 4px solid #f97316; }
+
+  /* Header area to align title heights */
+  .prog-card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 125px;
+    width: 100%;
+  }
+
+  /* Degree badge */
+  .prog-degree-badge-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .prog-degree-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .prog-degree-badge.bg-red { background-color: #fef2f2; color: #ef4444; }
+  .prog-degree-badge.bg-blue { background-color: #eff6ff; color: #3b82f6; }
+  .prog-degree-badge.bg-green { background-color: #ecfdf5; color: #10b981; }
+  .prog-degree-badge.bg-orange { background-color: #fff7ed; color: #f97316; }
+
+  .prog-degree-badge svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .prog-title {
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 16px 0;
+  }
+
+  /* Stats Split */
+  .prog-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 12px 0;
+    margin-bottom: 16px;
+  }
+
+  .prog-stat-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+
+  .prog-stat-col.left-col {
+    border-right: 1px solid #e5e7eb;
+  }
+
+  .prog-stat-col svg {
+    width: 16px;
+    height: 16px;
+    color: #6b7280;
+  }
+
+  .prog-stat-col strong {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* Program Description */
+  .prog-desc {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  /* Outlined Enter Button */
+  .prog-enter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    background: transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: auto;
+  }
+
+  .prog-enter-btn.btn-red { border: 1px solid #fee2e2; color: #ef4444; }
+  .prog-enter-btn.btn-red:hover { background-color: #fef2f2; border-color: #fca5a5; }
+
+  .prog-enter-btn.btn-blue { border: 1px solid #dbeafe; color: #3b82f6; }
+  .prog-enter-btn.btn-blue:hover { background-color: #eff6ff; border-color: #93c5fd; }
+
+  .prog-enter-btn.btn-green { border: 1px solid #d1fae5; color: #10b981; }
+  .prog-enter-btn.btn-green:hover { background-color: #ecfdf5; border-color: #6ee7b7; }
+
+  .prog-enter-btn.btn-orange { border: 1px solid #ffedd5; color: #f97316; }
+  .prog-enter-btn.btn-orange:hover { background-color: #fff7ed; border-color: #fdba74; }
+
+  .prog-enter-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+  }
+
+  .prog-enter-btn:hover svg {
+    transform: translateX(4px);
+  }
+
+  /* Pagination */
+  .programs-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+  }
+
+  .programs-pagination .page-info {
+    font-size: 13px;
+    color: #555;
+  }
+
+  .programs-pagination .page-btns {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .programs-pagination .page-btns button {
+    padding: 6px 12px;
+    border: 1px solid #ebebeb;
+    border-radius: 6px;
+    font-size: 12px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 32px;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .programs-pagination .page-btns button:hover:not(:disabled) {
+    border-color: #c5050c;
+    background: #fafafa;
+  }
+
+  .programs-pagination .page-btns button.active {
+    background: #c5050c;
+    color: #fff;
+    border-color: #c5050c;
+  }
+
+  .programs-pagination .page-btns button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 600px) {
+    .programs-pagination {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+    .programs-pagination .page-btns {
+      justify-content: center;
+    }
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1024px) {
+    .dept-header-stats {
+      flex-wrap: wrap;
+    }
+
+    .prog-search-wrapper {
+      width: 220px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .programs-section-header {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .programs-header-controls {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .prog-sort-btn {
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .enrollment-breadcrumb {
+      flex-wrap: wrap;
+    }
+
+    .dept-header-left-col {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .programs-grid {
+      gap: 20px;
+      margin-top: 20px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .dept-detail-header-row {
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+
+    .programs-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      margin-top: 24px;
+      margin-bottom: 20px;
+    }
+
+    .programs-header-controls {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .prog-search-wrapper {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+    }
+
+    .programs-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .dept-header-left-col {
+      gap: 12px;
+    }
+
+    .dept-header-title-row {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .dept-large-badge {
+      width: 48px;
+      height: 48px;
+      font-size: 1.0625rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 1.3rem;
+    }
+
+    .dept-header-stats {
+      gap: 12px;
+    }
+
+    .prog-card {
+      padding: 20px;
+      border-radius: 14px;
+    }
+
+    .prog-card-header {
+      min-height: 115px;
+    }
+
+    .prog-degree-badge {
+      width: 44px;
+      height: 44px;
+    }
+
+    .prog-degree-badge svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .prog-title {
+      font-size: 1rem;
+      margin-bottom: 14px;
+    }
+
+    .programs-grid {
+      gap: 16px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .enrollment-breadcrumb-row {
+      margin-bottom: 18px;
+    }
+
+    .enrollment-breadcrumb {
+      font-size: 0.8rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.8rem;
+      padding: 6px 12px;
+    }
+
+    .back-btn {
+      padding: 8px 14px;
+      font-size: 0.8125rem;
+    }
+
+    .dept-header-left-col {
+      gap: 10px;
+    }
+
+    .dept-large-badge {
+      width: 44px;
+      height: 44px;
+      font-size: 1rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 1.15rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.8125rem;
+    }
+
+    .dept-stat-card-mini {
+      padding: 10px 14px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .dept-stat-mini-icon {
+      width: 32px;
+      height: 32px;
+    }
+
+    .dept-stat-mini-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .dept-stat-mini-val {
+      font-size: 1rem;
+    }
+
+    .programs-header-info h2 {
+      font-size: 1.1rem;
+    }
+
+    .programs-header-info p {
+      font-size: 0.8125rem;
+    }
+
+    .programs-header-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .prog-search-wrapper {
+      width: 100%;
+    }
+
+    .prog-sort-wrapper {
+      width: 100%;
+    }
+
+    .prog-sort-btn {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .prog-sort-dropdown {
+      width: 100%;
+      right: 0;
+      left: 0;
+    }
+
+    .prog-card {
+      padding: 16px;
+    }
+
+    .prog-card-header {
+      min-height: 105px;
+    }
+
+    .prog-degree-badge {
+      width: 40px;
+      height: 40px;
+    }
+
+    .prog-degree-badge svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .prog-title {
+      font-size: 0.9375rem;
+      margin-bottom: 12px;
+    }
+
+    .prog-stats-row {
+      padding: 10px 0;
+      margin-bottom: 12px;
+    }
+
+    .prog-stat-col {
+      font-size: 0.8125rem;
+      gap: 6px;
+    }
+
+    .prog-stat-col svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .prog-desc {
+      font-size: 0.8125rem;
+      margin-bottom: 20px;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.8125rem;
+      padding: 9px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .enrollment-breadcrumb {
+      font-size: 0.75rem;
+      gap: 6px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      gap: 6px;
+    }
+
+    .dash-date-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .back-btn {
+      padding: 7px 12px;
+      font-size: 0.75rem;
+      gap: 6px;
+    }
+
+    .dept-large-badge {
+      width: 40px;
+      height: 40px;
+      font-size: 0.9375rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 1.0625rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.75rem;
+    }
+
+    .prog-search-wrapper input {
+      font-size: 0.8125rem;
+      padding: 8px 10px 8px 32px;
+    }
+
+    .prog-search-wrapper .search-icon {
+      left: 10px;
+      width: 14px;
+      height: 14px;
+    }
+
+    .prog-sort-btn {
+      font-size: 0.8125rem;
+      padding: 8px 10px;
+    }
+
+    .prog-sort-btn .sort-icon,
+    .prog-sort-btn .chevron-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .prog-card-header {
+      min-height: 100px;
+    }
+
+    .prog-degree-badge {
+      width: 38px;
+      height: 38px;
+    }
+
+    .prog-title {
+      font-size: 0.875rem;
+    }
+
+    .prog-desc {
+      font-size: 0.75rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .enrollment-breadcrumb-row {
+      gap: 10px;
+    }
+
+    .dept-header-left-col {
+      gap: 8px;
+    }
+
+    .back-btn {
+      padding: 6px 10px;
+      font-size: 0.6875rem;
+    }
+
+    .dept-large-badge {
+      width: 36px;
+      height: 36px;
+      font-size: 0.8125rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 0.9375rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.6875rem;
+    }
+
+    .dept-stat-card-mini {
+      padding: 8px 12px;
+      gap: 10px;
+    }
+
+    .dept-stat-mini-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .dept-stat-mini-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .dept-stat-mini-val {
+      font-size: 0.9375rem;
+    }
+
+    .dept-stat-mini-label {
+      font-size: 0.6875rem;
+    }
+
+    .prog-card {
+      padding: 14px;
+    }
+
+    .prog-degree-badge {
+      width: 36px;
+      height: 36px;
+    }
+
+    .prog-degree-badge svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .prog-title {
+      font-size: 0.8125rem;
+      margin-bottom: 10px;
+    }
+
+    .prog-stat-col {
+      font-size: 0.75rem;
+    }
+
+    .prog-stat-col svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.75rem;
+      padding: 8px;
+      gap: 6px;
+    }
+
+    .prog-enter-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .programs-pagination .page-btns button {
+      padding: 5px 9px;
+      font-size: 11px;
+      min-width: 28px;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .dept-header-left-col {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .dept-header-title-row {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .dept-header-stats {
+      gap: 10px;
+    }
+
+    .prog-search-wrapper input {
+      font-size: 0.75rem;
+      padding: 7px 8px 7px 28px;
+    }
+
+    .prog-search-wrapper .search-icon {
+      left: 8px;
+      width: 13px;
+      height: 13px;
+    }
+
+    .prog-sort-btn {
+      font-size: 0.75rem;
+      padding: 7px 8px;
+    }
+
+    .prog-sort-dropdown a {
+      font-size: 0.8125rem;
+      padding: 7px 10px;
+    }
+
+    .prog-card-header {
+      min-height: 95px;
+    }
+
+    .prog-title {
+      font-size: 0.75rem;
+    }
+
+    .programs-pagination .page-info {
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 280px) {
+    .enrollment-breadcrumb-row {
+      margin-bottom: 14px;
+    }
+
+    .enrollment-breadcrumb {
+      font-size: 0.6875rem;
+      gap: 5px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.6875rem;
+      padding: 4px 8px;
+    }
+
+    .dash-date-badge svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .back-btn {
+      padding: 6px 8px;
+      font-size: 0.625rem;
+      gap: 5px;
+    }
+
+    .back-btn svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .dept-large-badge {
+      width: 32px;
+      height: 32px;
+      font-size: 0.75rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 0.875rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.625rem;
+    }
+
+    .dept-stat-card-mini {
+      padding: 7px 10px;
+      gap: 8px;
+    }
+
+    .dept-stat-mini-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .dept-stat-mini-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .dept-stat-mini-val {
+      font-size: 0.875rem;
+    }
+
+    .dept-stat-mini-label {
+      font-size: 0.625rem;
+    }
+
+    .programs-header-info h2 {
+      font-size: 0.9375rem;
+    }
+
+    .programs-header-info p {
+      font-size: 0.6875rem;
+    }
+
+    .prog-card {
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .prog-card-header {
+      min-height: 90px;
+    }
+
+    .prog-degree-badge {
+      width: 32px;
+      height: 32px;
+    }
+
+    .prog-degree-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .prog-title {
+      font-size: 0.6875rem;
+      margin-bottom: 8px;
+    }
+
+    .prog-stat-col {
+      font-size: 0.6875rem;
+      gap: 4px;
+    }
+
+    .prog-stat-col svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .prog-desc {
+      font-size: 0.6875rem;
+      margin-bottom: 16px;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.6875rem;
+      padding: 7px;
+    }
+
+    .programs-pagination .page-btns button {
+      padding: 4px 8px;
+      font-size: 10px;
+      min-width: 26px;
+    }
+  }
+
+  @media (max-width: 240px) {
+    .enrollment-breadcrumb {
+      font-size: 0.625rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.625rem;
+      padding: 3px 6px;
+    }
+
+    .dash-date-badge svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .back-btn {
+      font-size: 0.5625rem;
+      padding: 5px 6px;
+    }
+
+    .back-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .dept-large-badge {
+      width: 28px;
+      height: 28px;
+      font-size: 0.6875rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 0.8125rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.5625rem;
+    }
+
+    .prog-search-wrapper input {
+      font-size: 0.6875rem;
+      padding: 6px 6px 6px 24px;
+      border-radius: 6px;
+    }
+
+    .prog-search-wrapper .search-icon {
+      left: 6px;
+      width: 12px;
+      height: 12px;
+    }
+
+    .prog-sort-btn {
+      font-size: 0.6875rem;
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+
+    .prog-sort-btn .sort-icon,
+    .prog-sort-btn .chevron-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    .prog-sort-dropdown a {
+      font-size: 0.75rem;
+      padding: 6px 8px;
+    }
+
+    .prog-card {
+      padding: 10px;
+    }
+
+    .prog-card-header {
+      min-height: 85px;
+    }
+
+    .prog-degree-badge {
+      width: 30px;
+      height: 30px;
+    }
+
+    .prog-degree-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .prog-title {
+      font-size: 0.625rem;
+      margin-bottom: 6px;
+    }
+
+    .prog-stat-col {
+      font-size: 0.625rem;
+    }
+
+    .prog-stat-col svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .prog-desc {
+      font-size: 0.625rem;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.625rem;
+      padding: 6px;
+      gap: 4px;
+    }
+
+    .prog-enter-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  @media (max-width: 220px) {
+    .dept-header-left-col {
+      gap: 8px;
+    }
+
+    .programs-header-controls {
+      gap: 8px;
+    }
+
+    .prog-card-header {
+      min-height: 80px;
+    }
+
+    .prog-title {
+      font-size: 0.5625rem;
+    }
+
+    .prog-stat-col {
+      font-size: 0.5625rem;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.5625rem;
+      padding: 5px;
+    }
+  }
+
+  @media (max-width: 200px) {
+    .enrollment-breadcrumb-row {
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .enrollment-breadcrumb {
+      font-size: 0.5625rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.5625rem;
+    }
+
+    .dash-date-badge svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .back-btn {
+      font-size: 0.5rem;
+      padding: 4px 5px;
+    }
+
+    .back-btn svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .dept-large-badge {
+      width: 26px;
+      height: 26px;
+      font-size: 0.625rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 0.75rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.5rem;
+    }
+
+    .dept-stat-mini-val {
+      font-size: 0.8125rem;
+    }
+
+    .dept-stat-mini-label {
+      font-size: 0.5625rem;
+    }
+
+    .programs-header-info h2 {
+      font-size: 0.8125rem;
+    }
+
+    .programs-header-info p {
+      font-size: 0.625rem;
+    }
+
+    .prog-search-wrapper input {
+      font-size: 0.625rem;
+      padding: 5px 5px 5px 20px;
+    }
+
+    .prog-search-wrapper .search-icon {
+      left: 5px;
+      width: 11px;
+      height: 11px;
+    }
+
+    .prog-sort-btn {
+      font-size: 0.625rem;
+      padding: 5px 6px;
+    }
+
+    .prog-sort-dropdown a {
+      font-size: 0.6875rem;
+    }
+
+    .prog-card {
+      padding: 8px;
+    }
+
+    .prog-card-header {
+      min-height: 75px;
+    }
+
+    .prog-degree-badge {
+      width: 26px;
+      height: 26px;
+    }
+
+    .prog-degree-badge svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .prog-title {
+      font-size: 0.5rem;
+    }
+
+    .prog-stats-row {
+      padding: 8px 0;
+      margin-bottom: 10px;
+    }
+
+    .prog-desc {
+      font-size: 0.5625rem;
+      margin-bottom: 14px;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.5rem;
+      padding: 5px;
+    }
+
+    .prog-enter-btn svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .programs-pagination .page-btns button {
+      padding: 3px 6px;
+      font-size: 9px;
+      min-width: 22px;
+    }
+
+    .programs-pagination .page-info {
+      font-size: 10px;
+    }
+  }
+
+  @media (max-width: 180px) {
+    .enrollment-breadcrumb-row {
+      margin-bottom: 10px;
+    }
+
+    .enrollment-breadcrumb {
+      font-size: 0.5rem;
+      gap: 4px;
+    }
+
+    .dash-date-badge {
+      font-size: 0.5rem;
+      padding: 2px 4px;
+    }
+
+    .dash-date-badge svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    .back-btn {
+      font-size: 0.4375rem;
+      padding: 4px;
+    }
+
+    .back-btn svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .dept-large-badge {
+      width: 24px;
+      height: 24px;
+      font-size: 0.5625rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 0.6875rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.4375rem;
+    }
+
+    .dept-stat-card-mini {
+      padding: 6px 8px;
+    }
+
+    .dept-stat-mini-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .dept-stat-mini-icon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .dept-stat-mini-val {
+      font-size: 0.75rem;
+    }
+
+    .dept-stat-mini-label {
+      font-size: 0.5rem;
+    }
+
+    .prog-card-header {
+      min-height: 70px;
+    }
+
+    .prog-degree-badge {
+      width: 24px;
+      height: 24px;
+    }
+
+    .prog-degree-badge svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .prog-title {
+      font-size: 0.4375rem;
+      margin-bottom: 4px;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.4375rem;
+      padding: 4px;
+    }
+
+    .prog-enter-btn svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
+
+  @media (max-width: 165px) {
+    .enrollment-breadcrumb {
+      font-size: 0.4375rem;
+    }
+
+    .dash-date-badge {
+      font-size: 0.4375rem;
+      padding: 2px 3px;
+    }
+
+    .dash-date-badge svg {
+      width: 8px;
+      height: 8px;
+    }
+
+    .back-btn {
+      font-size: 0.375rem;
+      padding: 3px 4px;
+    }
+
+    .back-btn svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    .dept-large-badge {
+      width: 22px;
+      height: 22px;
+      font-size: 0.5rem;
+    }
+
+    .dept-info-text h1 {
+      font-size: 0.625rem;
+    }
+
+    .dept-info-text p {
+      font-size: 0.375rem;
+    }
+
+    .prog-search-wrapper input {
+      font-size: 0.5625rem;
+      padding: 5px 4px 5px 18px;
+    }
+
+    .prog-search-wrapper .search-icon {
+      left: 4px;
+      width: 10px;
+      height: 10px;
+    }
+
+    .prog-sort-btn {
+      font-size: 0.5625rem;
+      padding: 5px;
+    }
+
+    .prog-card {
+      padding: 6px;
+      border-radius: 10px;
+    }
+
+    .prog-card-header {
+      min-height: 65px;
+    }
+
+    .prog-degree-badge {
+      width: 22px;
+      height: 22px;
+    }
+
+    .prog-degree-badge svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .prog-title {
+      font-size: 0.375rem;
+      margin-bottom: 4px;
+    }
+
+    .prog-stat-col {
+      font-size: 0.5rem;
+    }
+
+    .prog-stat-col svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .prog-desc {
+      font-size: 0.5rem;
+      margin-bottom: 12px;
+    }
+
+    .prog-enter-btn {
+      font-size: 0.375rem;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .prog-enter-btn svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    .programs-pagination .page-btns button {
+      padding: 2px 5px;
+      font-size: 8px;
+      min-width: 18px;
+    }
+
+    .programs-pagination .page-info {
+      font-size: 9px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_enrollment %}active{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb & Date Row -->
+<div class="enrollment-breadcrumb-row">
+  <div class="enrollment-breadcrumb">
+    <a href="{% url 'staff_enrollment' request.user.uuid %}">Enrollment Support</a>
+    <span class="separator">&gt;</span>
+    <a href="{% url 'staff_enrollment' request.user.uuid %}">Department</a>
+    <span class="separator">&gt;</span>
+    <span class="active">{{ department.department_name }}</span>
+  </div>
+  <div class="dash-date-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    {{ today|date:"d M Y, l" }}
+  </div>
+</div>
+
+<!-- Main Header Row -->
+<div class="dept-detail-header-row">
+  <div class="dept-header-left-col">
+    <a href="{% url 'staff_enrollment' request.user.uuid %}" class="back-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Departments
+    </a>
+    <div class="dept-header-title-row">
+      <div class="dept-large-badge">{{ department.department_code }}</div>
+      <div class="dept-info-text">
+        <h1>{{ department.department_name }} Department</h1>
+        <p>Choose the academic program to enroll students</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="dept-header-stats">
+    <!-- Stat 1: Students -->
+    <div class="dept-stat-card-mini border-red">
+      <div class="dept-stat-mini-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+      </div>
+      <div class="dept-stat-mini-info">
+        <span class="dept-stat-mini-val">{{ students_count }}</span>
+        <span class="dept-stat-mini-label">Students</span>
+      </div>
+    </div>
+
+    <!-- Stat 2: Programs -->
+    <div class="dept-stat-card-mini border-blue">
+      <div class="dept-stat-mini-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+        </svg>
+      </div>
+      <div class="dept-stat-mini-info">
+        <span class="dept-stat-mini-val">{{ programs_count }}</span>
+        <span class="dept-stat-mini-label">Programs</span>
+      </div>
+    </div>
+
+    <!-- Stat 3: Courses -->
+    <div class="dept-stat-card-mini border-green">
+      <div class="dept-stat-mini-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+      </div>
+      <div class="dept-stat-mini-info">
+        <span class="dept-stat-mini-val">{{ courses_count }}</span>
+        <span class="dept-stat-mini-label">Courses</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Select Program Subheader -->
+<div class="programs-section-header">
+  <div class="programs-header-info">
+    <h2>Choose Academic Program</h2>
+    <p>Select the academic program under <strong>{{ department.department_name }}</strong> to enroll students</p>
+  </div>
+  <div class="programs-header-controls">
+    <div class="prog-search-wrapper">
+      <input type="text" id="progSearchInput" placeholder="Search by program name..." oninput="filterPrograms()">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </div>
+    <div class="prog-sort-wrapper">
+      <button class="prog-sort-btn" onclick="toggleSortMenu(event)">
+        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="4" y1="6" x2="16" y2="6"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="18" x2="12" y2="18"></line>
+        </svg>
+        <span>Sort By</span>
+        <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div class="prog-sort-dropdown" id="progSortDropdown">
+        <a href="#" onclick="sortPrograms(event, 'alphabetical')">Alphabetical</a>
+        <a href="#" onclick="sortPrograms(event, 'students')">Students (High to Low)</a>
+        <a href="#" onclick="sortPrograms(event, 'courses')">Courses (High to Low)</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Programs Cards Grid -->
+<div class="programs-grid" id="programsGrid">
+  {% for prog in programs %}
+  <div class="prog-card accent-{{ prog.color }}" data-students="{{ prog.student_count }}" data-courses="{{ prog.course_count }}" data-name="{{ prog.name }}">
+    <div class="prog-card-header">
+      <div class="prog-degree-badge-wrapper">
+        <div class="prog-degree-badge bg-{{ prog.color }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 10l-10-5-10 5 10 5 10-5z"/>
+            <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+          </svg>
+        </div>
+      </div>
+      <h3 class="prog-title">{{ prog.name }}</h3>
+    </div>
+    
+    <div class="prog-stats-row">
+      <div class="prog-stat-col left-col">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+        <span><strong>{{ prog.student_count }}</strong> Students</span>
+      </div>
+      <div class="prog-stat-col">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span><strong>{{ prog.course_count }}</strong> Courses</span>
+      </div>
+    </div>
+    
+
+    
+    <a href="{% url 'staff_program_bulk_enrollment' request.user.uuid prog.id %}" class="prog-enter-btn btn-{{ prog.color }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      Bulk Enroll Students
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </a>
+  </div>
+  {% empty %}
+  <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #9ca3af;">
+    <p style="font-size: 16px; font-weight: 500; color: #555;">No academic programs found in this department.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Programs Pagination -->
+<div class="programs-pagination" id="programsPagination">
+  <div class="page-info" id="programsPageInfo">Showing 0 – 0 of 0 programs</div>
+  <div class="page-btns" id="programsPageButtons"></div>
+</div>
+
+<!-- Programs No Results Message -->
+<div class="no-results" id="progNoResults" style="display:none; text-align:center; padding:40px; color:#999;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px; height:48px; display:block; margin:0 auto 12px; color:#ddd;">
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+  <p style="font-size: 16px; font-weight: 500; color: #555;">No academic programs found</p>
+  <p style="font-size: 13px;">Try adjusting your search criteria or check a different department</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleSortMenu(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const dropdown = document.getElementById('progSortDropdown');
+    if (dropdown) {
+      dropdown.classList.toggle('show');
+    }
+  }
+
+  window.addEventListener('click', function(e) {
+    if (!e.target.closest('.prog-sort-wrapper')) {
+      const dropdown = document.getElementById('progSortDropdown');
+      if (dropdown) {
+        dropdown.classList.remove('show');
+      }
+    }
+  });
+
+  // ---------- PROGRAM PAGINATION & SEARCH ----------
+  const PROGRAM_PAGE_SIZE = 9;
+  let programCurrentPage = 1;
+
+  function getFilteredPrograms() {
+    const query = document.getElementById('progSearchInput').value.toLowerCase().trim();
+    return Array.from(document.querySelectorAll('#programsGrid .prog-card')).filter(card => {
+      if (!query) return true;
+      const title = card.querySelector('.prog-title').textContent.toLowerCase();
+      return title.includes(query);
+    });
+  }
+
+  function renderPrograms() {
+    const grid = document.getElementById('programsGrid');
+    if (!grid) return;
+    const cards = Array.from(grid.querySelectorAll('.prog-card'));
+    const visible = getFilteredPrograms();
+    const totalPages = Math.max(1, Math.ceil(visible.length / PROGRAM_PAGE_SIZE));
+    programCurrentPage = Math.min(Math.max(programCurrentPage, 1), totalPages);
+    const start = (programCurrentPage - 1) * PROGRAM_PAGE_SIZE;
+    const pageCards = visible.slice(start, start + PROGRAM_PAGE_SIZE);
+
+    cards.forEach(card => {
+      card.style.display = pageCards.includes(card) ? '' : 'none';
+    });
+
+    const noResults = document.getElementById('progNoResults');
+    if (noResults) {
+      noResults.style.display = (visible.length === 0 && cards.length > 0) ? 'block' : 'none';
+    }
+
+    renderProgramPagination(visible.length, totalPages, start, pageCards.length);
+  }
+
+  function renderProgramPagination(visibleCount, totalPages, start, pageCount) {
+    const wrap = document.getElementById('programsPagination');
+    const info = document.getElementById('programsPageInfo');
+    const buttons = document.getElementById('programsPageButtons');
+    if (!wrap || !buttons) return;
+
+    const cards = document.querySelectorAll('#programsGrid .prog-card');
+    if (cards.length === 0 || totalPages <= 1) {
+      wrap.style.display = 'none';
+      buttons.innerHTML = '';
+      return;
+    }
+
+    wrap.style.display = 'flex';
+    if (info) {
+      info.textContent = `Showing ${visibleCount ? start + 1 : 0} – ${start + pageCount} of ${visibleCount} programs`;
+    }
+
+    let html = `<button type="button" onclick="goToProgramPage(${programCurrentPage - 1})" ${programCurrentPage === 1 ? 'disabled' : ''}>‹</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button type="button" class="${i === programCurrentPage ? 'active' : ''}" onclick="goToProgramPage(${i})">${i}</button>`;
+    }
+    html += `<button type="button" onclick="goToProgramPage(${programCurrentPage + 1})" ${programCurrentPage === totalPages ? 'disabled' : ''}>›</button>`;
+    buttons.innerHTML = html;
+  }
+
+  function goToProgramPage(page) {
+    programCurrentPage = page;
+    renderPrograms();
+  }
+
+  function filterPrograms() {
+    programCurrentPage = 1;
+    renderPrograms();
+  }
+
+  function sortPrograms(event, criteria) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const grid = document.getElementById('programsGrid');
+    const cards = Array.from(grid.querySelectorAll('.prog-card'));
+    
+    cards.sort((a, b) => {
+      if (criteria === 'alphabetical') {
+        const aTitle = a.querySelector('.prog-title').textContent.trim();
+        const bTitle = b.querySelector('.prog-title').textContent.trim();
+        return aTitle.localeCompare(bTitle);
+      } else if (criteria === 'students') {
+        const aStudents = parseInt(a.dataset.students) || 0;
+        const bStudents = parseInt(b.dataset.students) || 0;
+        return bStudents - aStudents;
+      } else if (criteria === 'courses') {
+        const aCourses = parseInt(a.dataset.courses) || 0;
+        const bCourses = parseInt(b.dataset.courses) || 0;
+        return bCourses - aCourses;
+      }
+      return 0;
+    });
+    
+    cards.forEach(card => grid.appendChild(card));
+
+    renderPrograms();
+    
+    const dropdown = document.getElementById('progSortDropdown');
+    if (dropdown) dropdown.classList.remove('show');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderPrograms();
+  });
+
+  // Expose functions globally
+  window.toggleSortMenu = toggleSortMenu;
+  window.filterPrograms = filterPrograms;
+  window.goToProgramPage = goToProgramPage;
+  window.sortPrograms = sortPrograms;
+</script>
+{% endblock %}

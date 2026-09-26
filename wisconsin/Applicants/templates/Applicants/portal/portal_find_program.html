@@ -1,0 +1,225 @@
+{% load static %}
+<div class="fade-in-up dashboard-container">
+  <div class="dashboard-header">
+    <h1>Find Your Program</h1>
+    <p class="dashboard-subtitle">Search for programs by keyword(s) and filter by career cluster, campus, program level, program type, and course delivery.</p>
+  </div>
+
+  <div class="find-program-filters">
+    <div class="find-program-search">
+      <label class="find-program-label" for="fp-keyword">Search for programs by keyword(s)</label>
+      <input type="text" id="fp-keyword" class="find-program-input" placeholder="Enter keywords..." value="{{ keyword }}">
+    </div>
+
+    <div class="find-program-filter-grid">
+      <div class="find-program-filter-group">
+        <label class="find-program-label" for="fp-career-cluster">Career Cluster</label>
+        <select id="fp-career-cluster" class="find-program-select">
+          <option value="">Choose career</option>
+          {% for cluster in career_clusters %}
+          <option value="{{ cluster }}" {% if career_cluster == cluster %}selected{% endif %}>{{ cluster }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="find-program-filter-group">
+        <label class="find-program-label" for="fp-campus">Campus</label>
+        <select id="fp-campus" class="find-program-select">
+          <option value="">Select campus</option>
+          {% for campus in campuses %}
+          <option value="{{ campus }}" {% if campus == campus %}selected{% endif %}>{{ campus }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="find-program-filter-group">
+        <label class="find-program-label" for="fp-program-level">Program Level</label>
+        <select id="fp-program-level" class="find-program-select">
+          <option value="">Select program level </option>
+          {% for level in program_levels %}
+          <option value="{{ level }}" {% if program_level == level %}selected{% endif %}>{{ level }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="find-program-filter-group">
+        <label class="find-program-label" for="fp-program-type">Program Type</label>
+        <select id="fp-program-type" class="find-program-select">
+          <option value="">Select Program Type</option>
+          {% for ptype in program_types %}
+          <option value="{{ ptype }}" {% if program_type == ptype %}selected{% endif %}>{{ ptype }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="find-program-filter-group">
+        <label class="find-program-label" for="fp-course-delivery">Course Delivery</label>
+        <select id="fp-course-delivery" class="find-program-select">
+          <option value="">Choose Course Delivery</option>
+          <option value="FULL_TIME" {% if course_delivery == "FULL_TIME" %}selected{% endif %}>Fully Online</option>
+          <option value="PART_TIME" {% if course_delivery == "PART_TIME" %}selected{% endif %}>In-Person</option>
+          <option value="ONLINE" {% if course_delivery == "ONLINE" %}selected{% endif %}>Online</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="fp-applied-filters" class="find-program-applied-filters" style="display:none">
+      <span class="find-program-applied-label">Applied Filters</span>
+      <div id="fp-active-filters" class="find-program-active-filters"></div>
+      <button type="button" id="fp-clear-filters" class="find-program-clear-btn">Clear All</button>
+    </div>
+  </div>
+
+  <div class="find-program-results">
+    <p class="find-program-result-count">Displaying <strong>{{ programs|length }}</strong> Program {{ programs|length|pluralize:"Result,Results" }}</p>
+
+    <table class="find-program-table">
+      <thead>
+        <tr>
+          <th>Program Name</th>
+          <th>Campus</th>
+          <th>Program Level</th>
+          <th>Program Type</th>
+          <th>Course Delivery</th>
+        </tr>
+      </thead>
+      <tbody id="fp-results-body">
+        {% for program in programs %}
+        <tr class="find-program-row"
+            data-keyword="{{ program.program_name|lower }}"
+            data-career-cluster="{{ program.department.department_name|lower|default:'' }}"
+            data-campus="{{ program.department.school.university.university_name|lower|default:'' }}"
+            data-program-level="{{ program.degree.level|lower|default:'' }}"
+            data-program-type="{{ program.program_type|lower|default:'' }}"
+            data-course-delivery="{{ program.program_type|lower|default:'' }}">
+          <td>{{ program.program_name }}</td>
+          <td>{{ program.department.school.university.university_name|default:"—" }}</td>
+          <td>{{ program.degree.degree_name|default:"—" }}</td>
+          <td>{{ program.program_type|default:"—" }}</td>
+          <td>{{ program.program_type|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="find-program-empty">
+            <i data-lucide="search-x" style="width:48px;height:48px;stroke-width:1.5;color:var(--uw-gray-400)"></i>
+            <h3>No programs found.</h3>
+            <p>Try adjusting your search or filters to find programs you're interested in.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function() {
+  const keywordEl = document.getElementById('fp-keyword');
+  const careerClusterEl = document.getElementById('fp-career-cluster');
+  const campusEl = document.getElementById('fp-campus');
+  const programLevelEl = document.getElementById('fp-program-level');
+  const programTypeEl = document.getElementById('fp-program-type');
+  const courseDeliveryEl = document.getElementById('fp-course-delivery');
+  const rows = document.querySelectorAll('.find-program-row');
+  const filtersEl = document.getElementById('fp-applied-filters');
+  const activeFiltersEl = document.getElementById('fp-active-filters');
+  const clearBtn = document.getElementById('fp-clear-filters');
+
+  function applyFilters() {
+    const keyword = keywordEl.value.toLowerCase().trim();
+    const careerCluster = careerClusterEl.value.toLowerCase().trim();
+    const campus = campusEl.value.toLowerCase().trim();
+    const programLevel = programLevelEl.value.toLowerCase().trim();
+    const programType = programTypeEl.value.toLowerCase().trim();
+    const courseDelivery = courseDeliveryEl.value.toLowerCase().trim();
+
+    const activeFilters = [];
+
+    if (keyword) activeFilters.push({ label: 'Keyword: "' + keyword + '"', key: 'keyword' });
+    if (careerCluster) activeFilters.push({ label: 'Career Cluster: ' + careerCluster, key: 'career_cluster' });
+    if (campus) activeFilters.push({ label: 'Campus: ' + campus, key: 'campus' });
+    if (programLevel) activeFilters.push({ label: 'Program Level: ' + programLevel, key: 'program_level' });
+    if (programType) activeFilters.push({ label: 'Program Type: ' + programType, key: 'program_type' });
+    if (courseDelivery) activeFilters.push({ label: 'Course Delivery: ' + courseDelivery, key: 'course_delivery' });
+
+    if (activeFilters.length > 0) {
+      filtersEl.style.display = 'flex';
+      activeFiltersEl.innerHTML = activeFilters.map(function(f) {
+        return '<span class="find-program-filter-tag">' + f.label + ' <button type="button" data-key="' + f.key + '" class="find-program-filter-remove">&times;</button></span>';
+      }).join('');
+
+      document.querySelectorAll('.find-program-filter-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var key = this.getAttribute('data-key');
+          if (key === 'keyword') keywordEl.value = '';
+          else if (key === 'career_cluster') careerClusterEl.value = '';
+          else if (key === 'campus') campusEl.value = '';
+          else if (key === 'program_level') programLevelEl.value = '';
+          else if (key === 'program_type') programTypeEl.value = '';
+          else if (key === 'course_delivery') courseDeliveryEl.value = '';
+          applyFilters();
+        });
+      });
+    } else {
+      filtersEl.style.display = 'none';
+    }
+
+    var visibleCount = 0;
+    rows.forEach(function(row) {
+      var match = true;
+
+      if (keyword) {
+        var rowKeyword = row.getAttribute('data-keyword') || '';
+        if (rowKeyword.indexOf(keyword) === -1) match = false;
+      }
+      if (careerCluster) {
+        var rowCluster = row.getAttribute('data-career-cluster') || '';
+        if (rowCluster.indexOf(careerCluster) === -1) match = false;
+      }
+      if (campus) {
+        var rowCampus = row.getAttribute('data-campus') || '';
+        if (rowCampus.indexOf(campus) === -1) match = false;
+      }
+      if (programLevel) {
+        var rowLevel = row.getAttribute('data-program-level') || '';
+        if (rowLevel.indexOf(programLevel) === -1) match = false;
+      }
+      if (programType) {
+        var rowType = row.getAttribute('data-program-type') || '';
+        if (rowType.indexOf(programType) === -1) match = false;
+      }
+      if (courseDelivery) {
+        var rowDelivery = row.getAttribute('data-course-delivery') || '';
+        if (rowDelivery.indexOf(courseDelivery) === -1) match = false;
+      }
+
+      row.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+
+    var countEl = document.querySelector('.find-program-result-count strong');
+    if (countEl) countEl.textContent = visibleCount;
+  }
+
+  [keywordEl, careerClusterEl, campusEl, programLevelEl, programTypeEl, courseDeliveryEl].forEach(function(el) {
+    if (el) el.addEventListener('change', applyFilters);
+    if (el) el.addEventListener('input', function(e) {
+      if (e.target.id === 'fp-keyword') applyFilters();
+    });
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      keywordEl.value = '';
+      careerClusterEl.value = '';
+      campusEl.value = '';
+      programLevelEl.value = '';
+      programTypeEl.value = '';
+      courseDeliveryEl.value = '';
+      applyFilters();
+    });
+  }
+
+  applyFilters();
+})();
+</script>

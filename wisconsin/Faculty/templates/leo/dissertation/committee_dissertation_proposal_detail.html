@@ -1,0 +1,1062 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Dissertation Proposal Details{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/dissertation/committee_dissertation_proposal_detail.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    {% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+            <i class="ti ti-layout-dashboard"></i>
+            <span>Dashboard</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+            <i class="ti ti-school"></i>
+            <span>PhD Management</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        {% comment %} <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">
+        <i class="ti ti-file-description"></i>
+        <span>Dissertation Proposals</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <span class="common-breadcrumb-current">
+        <i class="ti ti-file-text"></i>
+        <span>Current Page</span>
+        </span> 
+    </nav> {% endcomment %}
+    <div class="cm-pr-detail-page">
+        <div class="cm-pr-detail-container">
+            <header class="cm-pr-detail-header cm-pr-fade-in">
+                <div class="cm-pr-detail-header-left">
+                    <a href="{% url 'faculty_committee_dissertation_proposal_list' uuid=uuid %}"
+                       class="cm-pr-back-btn">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Back to Proposals</span>
+                    </a>
+                    <div class="cm-pr-title-wrapper">
+                        <span class="cm-pr-eyebrow">DISSERTATION PROPOSAL</span>
+                        <h1 class="cm-pr-page-title">Proposal Details</h1>
+                        <p class="cm-pr-page-subtitle">
+                            Review the dissertation proposal, committee feedback,
+                            and available academic actions.
+                        </p>
+                    </div>
+                </div>
+                <div class="cm-pr-header-actions">
+                    <div class="cm-pr-header-status">
+                        {% if proposal.status == "COMMITTEE_EVALUATION" %}
+                            <span class="cm-pr-status-badge cm-pr-status-active">
+                                <span class="cm-pr-status-dot"></span>
+                                Committee Evaluation
+                            </span>
+                        {% elif proposal.status == "FINAL_REVIEW" %}
+                            <span class="cm-pr-status-badge cm-pr-status-approved">
+                                <span class="cm-pr-status-dot"></span>
+                                Final Review
+                            </span>
+                        {% elif proposal.status == "REVISION_REQUIRED" %}
+                            <span class="cm-pr-status-badge cm-pr-status-revision">
+                                <span class="cm-pr-status-dot"></span>
+                                Revision Required
+                            </span>
+                        {% elif proposal.status == "REJECTED" %}
+                            <span class="cm-pr-status-badge cm-pr-status-rejected">
+                                <span class="cm-pr-status-dot"></span>
+                                Rejected
+                            </span>
+                        {% elif proposal.status == "APPROVED" %}
+                            <span class="cm-pr-status-badge cm-pr-status-approved">
+                                <span class="cm-pr-status-dot"></span>
+                                Approved
+                            </span>
+                        {% else %}
+                            <span class="cm-pr-status-badge cm-pr-status-pending">
+                                <span class="cm-pr-status-dot"></span>
+                                {{ proposal.get_status_display|default:proposal.status }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% if is_chair and proposal.status == "REJECTED" %}
+                        {% if pending_resubmission_request %}
+                            <button type="button"
+                                    class="cm-pr-top-second-chance-btn"
+                                    data-open-resubmission-modal>
+                                <i class="bi bi-stars"></i>
+                                <span>Give Second Chance</span>
+                            </button>
+                        {% else %}
+                            <button type="button"
+                                    class="cm-pr-top-second-chance-btn cm-pr-top-second-chance-disabled"
+                                    disabled
+                                    title="Waiting for a student resubmission request">
+                                <i class="bi bi-hourglass-split"></i>
+                                <span>Awaiting Student Request</span>
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </header>
+            <main class="cm-pr-main-grid">
+                <div class="cm-pr-main-column">
+                    <section class="cm-pr-card cm-pr-fade-up">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </div>
+                                <div>
+                                    <h2>Proposal Overview</h2>
+                                    <p>Dissertation proposal information</p>
+                                </div>
+                            </div>
+                            <span class="cm-pr-proposal-id">Proposal #{{ proposal.pk }}</span>
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-proposal-title-box">
+                                <span class="cm-pr-field-label">Proposal Title</span>
+                                <h3 class="cm-pr-proposal-title">{{ proposal.proposal_title | truncatechars:30 }}</h3>
+                            </div>
+                            <div class="cm-pr-info-grid cm-pr-submission-info-grid">
+                                <div class="cm-pr-info-item">
+                                    <span class="cm-pr-field-label">Submission Status</span>
+                                    <strong>{{ proposal.get_status_display|default:proposal.status }}</strong>
+                                </div>
+                                <div class="cm-pr-info-item cm-pr-submission-version">
+                                    <span class="cm-pr-field-label">Submission</span>
+                                    <strong>
+                                        <span class="cm-pr-submission-version-badge">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                            {% if current_submission_number > 1 %}
+                                                Resubmission #{{ current_submission_number }}
+                                            {% else %}
+                                                Submission #1
+                                            {% endif %}
+                                        </span>
+                                    </strong>
+                                </div>
+                                <div class="cm-pr-info-item">
+                                    <span class="cm-pr-field-label">Submitted On</span>
+                                    <strong>
+                                        {% if proposal.submitted_at %}
+                                            {{ proposal.submitted_at|date:"d M Y, h:i A" }}
+                                        {% elif proposal.updated_at %}
+                                            {{ proposal.updated_at|date:"d M Y, h:i A" }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+                            {% if proposal.abstract %}
+                                <div class="cm-pr-abstract-section">
+                                    <span class="cm-pr-field-label">Abstract</span>
+                                    <div class="cm-pr-abstract">{{ proposal.abstract|linebreaksbr }}</div>
+                                </div>
+                            {% endif %}
+                            {% if proposal.proposal_file %}
+                                <div class="cm-pr-document-section">
+                                    <div class="cm-pr-document-info">
+                                        <div class="cm-pr-document-icon">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </div>
+                                        <div class="cm-pr-document-text">
+                                            <strong>Dissertation Proposal Document</strong>
+                                            <span>Submitted proposal file</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ proposal.proposal_file.url }}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="cm-pr-document-btn">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                        <span>Open Document</span>
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    {% if video_evidence %}
+                        <section class="cm-pr-card cm-pr-video-evidence-card cm-pr-fade-up cm-pr-delay-1">
+                            <div class="cm-pr-card-header">
+                                <div class="cm-pr-card-heading">
+                                    <div class="cm-pr-card-icon cm-pr-icon-video">
+                                        <i class="bi bi-camera-video-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Video Evidence</h2>
+                                        <p>Recorded evidence for this dissertation proposal</p>
+                                    </div>
+                                </div>
+                                <span class="cm-pr-video-status cm-pr-video-available">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Available
+                                </span>
+                            </div>
+                            <div class="cm-pr-card-body">
+                                <div class="cm-pr-video-preview">
+                                    <video controls preload="metadata">
+                                        <source src="{{ video_evidence.video.url }}">
+                                        Your browser does not support the video element.
+                                    </video>
+                                </div>
+                                <div class="cm-pr-video-meta">
+                                    <div class="cm-pr-video-file">
+                                        <div class="cm-pr-video-file-icon">
+                                            <i class="bi bi-file-earmark-play-fill"></i>
+                                        </div>
+                                        <div class="cm-pr-video-file-details">
+                                            <strong>{{ video_evidence.video.name|cut:"phd/video_evidence/" }}</strong>
+                                            <span>
+                                                Uploaded
+                                                {% if video_evidence.uploaded_at %}
+                                                    {{ video_evidence.uploaded_at|date:"d M Y, h:i A" }}
+                                                {% endif %}
+                                                {% if video_evidence.uploaded_by %}
+                                                    · {{ video_evidence.uploaded_by.get_full_name|default:video_evidence.uploaded_by.username }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="cm-pr-video-actions">
+                                        <a href="{{ video_evidence.video.url }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="cm-pr-video-btn cm-pr-video-btn-primary">
+                                            <i class="bi bi-play-circle"></i>
+                                            <span>Open Video</span>
+                                        </a>
+                                        <a href="{{ video_evidence.video.url }}"
+                                           download
+                                           class="cm-pr-video-btn cm-pr-video-btn-secondary">
+                                            <i class="bi bi-download"></i>
+                                            <span>Download</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    {% else %}
+                        <section class="cm-pr-card cm-pr-video-evidence-card cm-pr-fade-up cm-pr-delay-1">
+                            <div class="cm-pr-card-header">
+                                <div class="cm-pr-card-heading">
+                                    <div class="cm-pr-card-icon cm-pr-icon-video">
+                                        <i class="bi bi-camera-video-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Video Evidence</h2>
+                                        <p>Recorded evidence for this dissertation proposal</p>
+                                    </div>
+                                </div>
+                                <span class="cm-pr-video-status cm-pr-video-pending">
+                                    <i class="bi bi-clock"></i>
+                                    Not Uploaded
+                                </span>
+                            </div>
+                            <div class="cm-pr-card-body">
+                                <div class="cm-pr-video-empty">
+                                    <div class="cm-pr-video-empty-icon">
+                                        <i class="bi bi-camera-video"></i>
+                                    </div>
+                                    <div class="cm-pr-video-empty-content">
+                                        <h3>No video evidence available</h3>
+                                        <p>No video evidence has been uploaded for this dissertation proposal yet.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    {% endif %}
+                    <section class="cm-pr-card cm-pr-fade-up cm-pr-delay-1">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon cm-pr-icon-student">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <div>
+                                    <h2>Student Information</h2>
+                                    <p>PhD student details</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-student-profile">
+                                <div class="cm-pr-avatar">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <div class="cm-pr-student-main">
+                                    <h3>{{ student_name|default:"Student" }}</h3>
+                                    {% if student_id %}
+                                        <span>Student ID: {{ student_id }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if program_name or department_name %}
+                                <div class="cm-pr-info-grid">
+                                    {% if program_name %}
+                                        <div class="cm-pr-info-item">
+                                            <span class="cm-pr-field-label">Program</span>
+                                            <strong>{{ program_name }}</strong>
+                                        </div>
+                                    {% endif %}
+                                    {% if department_name %}
+                                        <div class="cm-pr-info-item">
+                                            <span class="cm-pr-field-label">Department</span>
+                                            <strong>{{ department_name }}</strong>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <section class="cm-pr-card cm-pr-fade-up cm-pr-delay-2">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon cm-pr-icon-advisor">
+                                    <i class="bi bi-person-check"></i>
+                                </div>
+                                <div>
+                                    <h2>Advisor Review</h2>
+                                    <p>Advisor approval status</p>
+                                </div>
+                            </div>
+                            {% if advisor_review_status == "APPROVED" %}
+                                <span class="cm-pr-mini-badge cm-pr-mini-approved">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Approved
+                                </span>
+                            {% elif advisor_review_status == "REVISION_REQUIRED" %}
+                                <span class="cm-pr-mini-badge cm-pr-mini-revision">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                    Revision Required
+                                </span>
+                            {% elif advisor_review_status == "REJECTED" %}
+                                <span class="cm-pr-mini-badge cm-pr-mini-rejected">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    Rejected
+                                </span>
+                            {% else %}
+                                <span class="cm-pr-mini-badge cm-pr-mini-pending">
+                                    <i class="bi bi-clock-fill"></i>
+                                    Pending
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-advisor-row">
+                                <div class="cm-pr-advisor-avatar">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
+                                <div class="cm-pr-advisor-details">
+                                    <span class="cm-pr-field-label">Faculty Advisor</span>
+                                    <strong>{{ advisor_name|default:"Advisor" }}</strong>
+                                </div>
+                            </div>
+                            {% if advisor_review_comments %}
+                                <div class="cm-pr-review-note">
+                                    <span class="cm-pr-field-label">Advisor Comments</span>
+                                    <p>{{ advisor_review_comments|linebreaksbr }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    {% if latest_resubmission_request %}
+                        <section class="cm-pr-card cm-pr-resubmission-card cm-pr-fade-up cm-pr-delay-3">
+                            <div class="cm-pr-card-header">
+                                <div class="cm-pr-card-heading">
+                                    <div class="cm-pr-card-icon cm-pr-icon-resubmission">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Resubmission Request</h2>
+                                        <p>Student request for another opportunity</p>
+                                    </div>
+                                </div>
+                                {% if latest_resubmission_request.status == "PENDING" %}
+                                    <span class="cm-pr-mini-badge cm-pr-mini-pending">
+                                        <i class="bi bi-clock-fill"></i>
+                                        Pending Review
+                                    </span>
+                                {% elif latest_resubmission_request.status == "APPROVED" %}
+                                    <span class="cm-pr-mini-badge cm-pr-mini-approved">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        Approved
+                                    </span>
+                                {% else %}
+                                    <span class="cm-pr-mini-badge cm-pr-mini-rejected">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        Rejected
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="cm-pr-card-body">
+                                <div class="cm-pr-resubmission-summary">
+                                    <div class="cm-pr-resubmission-number">
+                                        <span class="cm-pr-field-label">Request Number</span>
+                                        <strong>#{{ latest_resubmission_request.submission_number }}</strong>
+                                    </div>
+                                    <div class="cm-pr-resubmission-date">
+                                        <span class="cm-pr-field-label">Requested On</span>
+                                        <strong>{{ latest_resubmission_request.requested_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-request-content">
+                                    <div class="cm-pr-request-block">
+                                        <span class="cm-pr-field-label">Reason for Re-submission</span>
+                                        <p>{{ latest_resubmission_request.reason|linebreaksbr }}</p>
+                                    </div>
+                                    <div class="cm-pr-request-block">
+                                        <span class="cm-pr-field-label">Student Assurance</span>
+                                        <p>{{ latest_resubmission_request.assurance|linebreaksbr }}</p>
+                                    </div>
+                                    <div class="cm-pr-declaration">
+                                        <i class="bi bi-shield-check"></i>
+                                        <span>Student declaration confirmed at the time of request submission.</span>
+                                    </div>
+                                    {% if latest_resubmission_request.reviewed_by %}
+                                        <div class="cm-pr-review-result">
+                                            <div>
+                                                <span class="cm-pr-field-label">Reviewed By</span>
+                                                <strong>{{ latest_resubmission_request.reviewed_by.user.get_full_name|default:"Chair Faculty" }}</strong>
+                                            </div>
+                                            {% if latest_resubmission_request.reviewed_at %}
+                                                <div>
+                                                    <span class="cm-pr-field-label">Reviewed On</span>
+                                                    <strong>{{ latest_resubmission_request.reviewed_at|date:"d M Y, h:i A" }}</strong>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    {% if latest_resubmission_request.review_remarks %}
+                                        <div class="cm-pr-review-note cm-pr-chair-note">
+                                            <span class="cm-pr-field-label">Chair Remarks</span>
+                                            <p>{{ latest_resubmission_request.review_remarks|linebreaksbr }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </section>
+                    {% endif %}
+                    <section class="cm-pr-card cm-pr-fade-up">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon cm-pr-icon-committee">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div>
+                                    <h2>Committee Evaluation</h2>
+                                    <p>Overall committee evaluation progress</p>
+                                </div>
+                            </div>
+                            {% if evaluation_ready_for_chair %}
+                                <span class="cm-pr-mini-badge cm-pr-mini-approved">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Completed
+                                </span>
+                            {% else %}
+                                <span class="cm-pr-mini-badge cm-pr-mini-pending">
+                                    <i class="bi bi-clock-fill"></i>
+                                    In Progress
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-progress-top">
+                                <div>
+                                    <span class="cm-pr-field-label">Evaluation Progress</span>
+                                    <strong class="cm-pr-progress-count">
+                                        {{ evaluations_completed }}
+                                        /
+                                        {{ evaluations_required }}
+                                        Submitted
+                                    </strong>
+                                </div>
+                                <strong class="cm-pr-progress-percentage">{{ evaluation_percentage }}%</strong>
+                            </div>
+                            <div class="cm-pr-progress-track">
+                                <div class="cm-pr-progress-fill"
+                                     style="width: {{ evaluation_percentage }}%"></div>
+                            </div>
+                            <div class="cm-pr-progress-meta">
+                                <span>
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    {{ evaluations_completed }} Completed
+                                </span>
+                                <span>
+                                    <i class="bi bi-clock-fill"></i>
+                                    {{ evaluations_pending }} Pending
+                                </span>
+                            </div>
+                            {% if evaluation_ready_for_chair %}
+                                <div class="cm-pr-ready-banner">
+                                    <div class="cm-pr-ready-icon">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Committee evaluation completed</strong>
+                                        <span>All required committee members have submitted their evaluations.</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="cm-pr-progress-status">
+                                    <i class="bi bi-info-circle"></i>
+                                    <span class="cm-pr-remaining-message">
+                                        {{ evaluations_pending }}
+                                        evaluation{{ evaluations_pending|pluralize }}
+                                        remaining before Chair review.
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                </div>
+                <aside class="cm-pr-sidebar">
+                    {% if is_chair %}
+                        <section class="cm-pr-chair-action-card cm-pr-fade-right">
+                            <div class="cm-pr-chair-action-header">
+                                <div class="cm-pr-chair-action-icon">
+                                    <i class="bi bi-award-fill"></i>
+                                </div>
+                                <span class="cm-pr-chair-eyebrow">CHAIR FACULTY</span>
+                                <h2>Chair Actions</h2>
+                                <p>Manage the academic decision for this proposal.</p>
+                            </div>
+                            <div class="cm-pr-chair-action-body">
+                                {% if can_grant_second_chance %}
+                                    <div class="cm-pr-chair-pending">
+                                        <div class="cm-pr-chair-state-icon">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </div>
+                                        <strong>Resubmission Request Pending</strong>
+                                        <span>The student has requested permission to revise and resubmit this rejected proposal.</span>
+                                    </div>
+                                    <div class="cm-pr-chair-action-hint">
+                                        <i class="bi bi-arrow-up-right-circle"></i>
+                                        <span>
+                                            Use the <strong>Give Second Chance</strong> button at the top of this page to approve the request.
+                                        </span>
+                                    </div>
+                                {% elif is_chair and proposal.status == "FINAL_REVIEW" and evaluation_ready_for_chair and not finalised %}
+                                    <div class="cm-pr-chair-final-review">
+                                        <div class="cm-pr-chair-state-icon">
+                                            <i class="bi bi-award-fill"></i>
+                                        </div>
+                                        <strong>Proposal Ready for Final Review</strong>
+                                        <span>All required committee evaluations have been submitted. You can now make the final academic decision.</span>
+                                        <a href="{% url 'faculty_chair_dissertation_proposal_finalize' uuid=uuid proposal_id=proposal.pk %}"
+                                           class="cm-pr-primary-btn">
+                                            <span>Review &amp; Finalize</span>
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    </div>
+                                {% elif latest_resubmission_request and latest_resubmission_request.status == "APPROVED" %}
+                                    <div class="cm-pr-chair-approved">
+                                        <div class="cm-pr-chair-state-icon">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </div>
+                                        <strong>Second Chance Granted</strong>
+                                        <span>The student is allowed to revise and resubmit this proposal.</span>
+                                    </div>
+                                {% elif latest_resubmission_request and latest_resubmission_request.status == "REJECTED" %}
+                                    <div class="cm-pr-chair-rejected">
+                                        <div class="cm-pr-chair-state-icon">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </div>
+                                        <strong>Resubmission Request Rejected</strong>
+                                        <span>The latest resubmission request has already been processed.</span>
+                                    </div>
+                                {% else %}
+                                    <div class="cm-pr-chair-unavailable">
+                                        <div class="cm-pr-chair-state-icon">
+                                            <i class="bi bi-lock-fill"></i>
+                                        </div>
+                                        <strong>No Action Required</strong>
+                                        <span>There is currently no pending resubmission request for this proposal.</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </section>
+                    {% endif %}
+                    <section class="cm-pr-action-card cm-pr-fade-right">
+                        <div class="cm-pr-action-header">
+                            <span class="cm-pr-action-eyebrow">YOUR EVALUATION</span>
+                            <div class="cm-pr-action-icon">
+                                <i class="bi bi-clipboard2-check"></i>
+                            </div>
+                            <h2>Committee Review</h2>
+                            <p>Submit your independent evaluation of this dissertation proposal.</p>
+                        </div>
+                        <div class="cm-pr-action-body">
+                            {% if my_evaluation_submitted %}
+                                <div class="cm-pr-evaluation-state cm-pr-state-completed">
+                                    <div class="cm-pr-state-icon">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </div>
+                                    <strong>Evaluation Completed</strong>
+                                    <span>Your evaluation has already been submitted and is now locked.</span>
+                                </div>
+                                <a href="{% url 'faculty_committee_dissertation_proposal_evaluate' uuid=uuid proposal_id=proposal.pk %}"
+                                   class="cm-pr-secondary-btn">
+                                    <i class="bi bi-eye"></i>
+                                    View Evaluation
+                                </a>
+                            {% elif committee_evaluation_allowed %}
+                                <div class="cm-pr-evaluation-state cm-pr-state-pending">
+                                    <div class="cm-pr-state-icon">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </div>
+                                    <strong>Evaluation Pending</strong>
+                                    <span>Your evaluation is required for this proposal.</span>
+                                </div>
+                                <a href="{% url 'faculty_committee_dissertation_proposal_evaluate' uuid=uuid proposal_id=proposal.pk %}"
+                                   class="cm-pr-primary-btn">
+                                    <span>Evaluate Proposal</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            {% elif advisor_review_status != "APPROVED" %}
+                                <div class="cm-pr-evaluation-state cm-pr-state-blocked">
+                                    <div class="cm-pr-state-icon">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </div>
+                                    <strong>Evaluation Unavailable</strong>
+                                    <span>Committee evaluation becomes available after advisor approval.</span>
+                                </div>
+                            {% elif proposal.status == "FINAL_REVIEW" %}
+                                <div class="cm-pr-evaluation-state cm-pr-state-completed">
+                                    <div class="cm-pr-state-icon">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </div>
+                                    <strong>Committee Review Completed</strong>
+                                    <span>All required committee evaluations have been submitted.</span>
+                                </div>
+                            {% else %}
+                                <div class="cm-pr-evaluation-state cm-pr-state-blocked">
+                                    <div class="cm-pr-state-icon">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </div>
+                                    <strong>Evaluation Unavailable</strong>
+                                    <span>You are not currently eligible to evaluate this proposal.</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <section class="cm-pr-card cm-pr-fade-right cm-pr-delay-1">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon cm-pr-icon-workflow">
+                                    <i class="bi bi-diagram-3"></i>
+                                </div>
+                                <div>
+                                    <h2>Workflow</h2>
+                                    <p>Current proposal stage</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-workflow">
+                                <div class="cm-pr-workflow-step cm-pr-step-complete">
+                                    <div class="cm-pr-workflow-marker">
+                                        <i class="bi bi-check"></i>
+                                    </div>
+                                    <div class="cm-pr-workflow-content">
+                                        <strong>Student Submission</strong>
+                                        <span>Proposal submitted</span>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-workflow-line"></div>
+                                <div class="cm-pr-workflow-step {% if advisor_review_status == 'APPROVED' %} cm-pr-step-complete {% else %} cm-pr-step-current {% endif %}">
+                                    <div class="cm-pr-workflow-marker">
+                                        {% if advisor_review_status == "APPROVED" %}
+                                            <i class="bi bi-check"></i>
+                                        {% else %}
+                                            <i class="bi bi-person-check"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="cm-pr-workflow-content">
+                                        <strong>Advisor Review</strong>
+                                        <span>{{ advisor_review_status|default:"Pending" }}</span>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-workflow-line"></div>
+                                <div class="cm-pr-workflow-step {% if my_evaluation_submitted %} cm-pr-step-complete {% elif committee_evaluation_allowed %} cm-pr-step-current {% endif %}">
+                                    <div class="cm-pr-workflow-marker">
+                                        {% if my_evaluation_submitted %}
+                                            <i class="bi bi-check"></i>
+                                        {% else %}
+                                            <i class="bi bi-people"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="cm-pr-workflow-content">
+                                        <strong>Committee Evaluation</strong>
+                                        <span>
+                                            {{ evaluations_completed }}/{{ evaluations_required }}
+                                            submitted
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="cm-pr-workflow-line"></div>
+                                <div class="cm-pr-workflow-step {% if proposal.status == 'REVISION_REQUIRED' %} cm-pr-step-current {% elif evaluation_ready_for_chair %} cm-pr-step-current {% endif %}">
+                                    <div class="cm-pr-workflow-marker">
+                                        {% if proposal.status == "REVISION_REQUIRED" %}
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        {% elif evaluation_ready_for_chair %}
+                                            <i class="bi bi-award-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-award"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="cm-pr-workflow-content">
+                                        <strong>
+                                            {% if proposal.status == "REVISION_REQUIRED" %}
+                                                Student Revision
+                                            {% else %}
+                                                Chair Final Review
+                                            {% endif %}
+                                        </strong>
+                                        <span>
+                                            {% if proposal.status == "REVISION_REQUIRED" %}
+                                                Second chance granted
+                                            {% elif evaluation_ready_for_chair %}
+                                                Ready for final review
+                                            {% else %}
+                                                Waiting for committee completion
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cm-pr-card cm-pr-fade-right cm-pr-delay-2">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon cm-pr-icon-committee">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                                <div>
+                                    <h2>Committee Status</h2>
+                                    <p>Evaluation summary</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cm-pr-card-body">
+                            <div class="cm-pr-summary-grid">
+                                <div class="cm-pr-summary-item">
+                                    <span>Required</span>
+                                    <strong>{{ evaluations_required }}</strong>
+                                </div>
+                                <div class="cm-pr-summary-item">
+                                    <span>Submitted</span>
+                                    <strong>{{ evaluations_completed }}</strong>
+                                </div>
+                                <div class="cm-pr-summary-item">
+                                    <span>Pending</span>
+                                    <strong>{{ evaluations_pending }}</strong>
+                                </div>
+                                <div class="cm-pr-summary-item">
+                                    <span>Progress</span>
+                                    <strong>{{ evaluation_percentage }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cm-pr-card cm-pr-faculty-feedback-card cm-pr-fade-right cm-pr-delay-3">
+                        <div class="cm-pr-card-header">
+                            <div class="cm-pr-card-heading">
+                                <div class="cm-pr-card-icon cm-pr-icon-feedback">
+                                    <i class="bi bi-chat-square-quote"></i>
+                                </div>
+                                <div>
+                                    <h2>Faculty Feedback</h2>
+                                    <p>Committee member evaluations</p>
+                                </div>
+                            </div>
+                            <span class="cm-pr-feedback-count">{{ evaluations_completed }}</span>
+                        </div>
+                        <div class="cm-pr-card-body">
+                            {% if submitted_evaluations %}
+                                <div class="cm-pr-feedback-list">
+                                    {% for evaluation in submitted_evaluations %}
+                                        <div class="cm-pr-feedback-item">
+                                            <div class="cm-pr-feedback-top">
+                                                <div class="cm-pr-feedback-avatar">
+                                                    <i class="bi bi-person-check"></i>
+                                                </div>
+                                                <div class="cm-pr-feedback-faculty">
+                                                    <strong>{{ evaluation.committee_member.faculty.user.get_full_name|default:"Committee Member" }}</strong>
+                                                    <span>{{ evaluation.committee_member.get_role_display|default:"Committee Member" }}</span>
+                                                </div>
+                                            </div>
+                                            {% if evaluation.recommendation == "APPROVE" %}
+                                                <div class="cm-pr-feedback-recommendation cm-pr-feedback-approved">
+                                                    <i class="bi bi-check-circle-fill"></i>
+                                                    <span>Approved</span>
+                                                </div>
+                                            {% elif evaluation.recommendation == "REVISION_REQUIRED" %}
+                                                <div class="cm-pr-feedback-recommendation cm-pr-feedback-revision">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                    <span>Revision Required</span>
+                                                </div>
+                                            {% elif evaluation.recommendation == "REJECT" %}
+                                                <div class="cm-pr-feedback-recommendation cm-pr-feedback-rejected">
+                                                    <i class="bi bi-x-circle-fill"></i>
+                                                    <span>Rejected</span>
+                                                </div>
+                                            {% else %}
+                                                <div class="cm-pr-feedback-recommendation">
+                                                    <i class="bi bi-info-circle"></i>
+                                                    <span>{{ evaluation.recommendation }}</span>
+                                                </div>
+                                            {% endif %}
+                                            {% if evaluation.comments %}
+                                                <div class="cm-pr-feedback-comment">
+                                                    <i class="bi bi-quote"></i>
+                                                    <p>{{ evaluation.comments|linebreaksbr }}</p>
+                                                </div>
+                                            {% endif %}
+                                            {% if evaluation.submitted_at %}
+                                                <div class="cm-pr-feedback-date">
+                                                    <i class="bi bi-clock"></i>
+                                                    Submitted
+                                                    {{ evaluation.submitted_at|date:"d M Y, h:i A" }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="cm-pr-feedback-empty">
+                                    <div class="cm-pr-feedback-empty-icon">
+                                        <i class="bi bi-chat-square-text"></i>
+                                    </div>
+                                    <strong>No evaluations yet</strong>
+                                    <span>Faculty feedback will appear here after committee members submit their evaluations.</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                </aside>
+            </main>
+        </div>
+    </div>
+    {% if can_grant_second_chance %}
+        <div class="cm-pr-modal" id="cmPrSecondChanceModal" aria-hidden="true">
+            <div class="cm-pr-modal-backdrop" data-close-resubmission-modal></div>
+            <div class="cm-pr-modal-dialog"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="cmPrSecondChanceTitle">
+                <div class="cm-pr-modal-header">
+                    <div class="cm-pr-modal-heading">
+                        <div class="cm-pr-modal-icon">
+                            <i class="bi bi-stars"></i>
+                        </div>
+                        <div>
+                            <span class="cm-pr-modal-eyebrow">CHAIR FACULTY ACTION</span>
+                            <h2 id="cmPrSecondChanceTitle">Give a Second Chance</h2>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="cm-pr-modal-close"
+                            data-close-resubmission-modal
+                            aria-label="Close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <form method="post" class="cm-pr-second-chance-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve_resubmission">
+                    <div class="cm-pr-modal-body">
+                        <div class="cm-pr-second-chance-alert">
+                            <div class="cm-pr-second-chance-alert-icon">
+                                <i class="bi bi-info-circle-fill"></i>
+                            </div>
+                            <div>
+                                <strong>Approve proposal revision?</strong>
+                                <span>
+                                    This will allow the student to revise the rejected dissertation proposal and submit it again for the normal academic review process.
+                                </span>
+                            </div>
+                        </div>
+                        <div class="cm-pr-modal-proposal">
+                            <span class="cm-pr-field-label">Current Proposal</span>
+                            <strong>{{ proposal.proposal_title }}</strong>
+                            <span>Resubmission Request #{{ pending_resubmission_request.submission_number }}</span>
+                        </div>
+                        <div class="cm-pr-modal-field">
+                            <label for="cmPrChairRemarks">
+                                Chair Remarks
+                                <span>Optional</span>
+                            </label>
+                            <textarea id="cmPrChairRemarks"
+                                      name="review_remarks"
+                                      rows="4"
+                                      maxlength="1000"
+                                      placeholder="Add any guidance or remarks for the student..."></textarea>
+                            <div class="cm-pr-character-count">
+                                <span>Optional remarks</span>
+                                <strong>
+                                    <span id="cmPrRemarksCount">0</span>/1000
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="cm-pr-second-chance-note">
+                            <i class="bi bi-shield-check"></i>
+                            <span>
+                                The proposal will move from <strong>Rejected</strong> to <strong>Revision Required</strong>. The student can then revise and resubmit the proposal.
+                            </span>
+                        </div>
+                    </div>
+                    <div class="cm-pr-modal-footer">
+                        <button type="button"
+                                class="cm-pr-modal-cancel"
+                                data-close-resubmission-modal>Cancel</button>
+                        <button type="submit" class="cm-pr-modal-confirm">
+                            <i class="bi bi-stars"></i>
+                            <span>Give Second Chance</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+    <script>
+(function () {
+
+    const modal = document.getElementById(
+        "cmPrSecondChanceModal"
+    );
+
+    if (!modal) {
+        return;
+    }
+
+    const openButton = document.querySelector(
+        "[data-open-resubmission-modal]"
+    );
+
+    const closeButtons = modal.querySelectorAll(
+        "[data-close-resubmission-modal]"
+    );
+
+    const remarks = document.getElementById(
+        "cmPrChairRemarks"
+    );
+
+    const remarksCount = document.getElementById(
+        "cmPrRemarksCount"
+    );
+
+
+    function openModal() {
+
+        modal.classList.add(
+            "cm-pr-modal-visible"
+        );
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        document.body.classList.add(
+            "cm-pr-modal-open"
+        );
+
+        window.setTimeout(
+            function () {
+
+                if (remarks) {
+                    remarks.focus();
+                }
+
+            },
+            120
+        );
+
+    }
+
+
+    function closeModal() {
+
+        modal.classList.remove(
+            "cm-pr-modal-visible"
+        );
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        document.body.classList.remove(
+            "cm-pr-modal-open"
+        );
+
+    }
+
+
+    if (openButton) {
+
+        openButton.addEventListener(
+            "click",
+            openModal
+        );
+
+    }
+
+
+    closeButtons.forEach(
+        function (button) {
+
+            button.addEventListener(
+                "click",
+                closeModal
+            );
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape"
+                &&
+                modal.classList.contains(
+                    "cm-pr-modal-visible"
+                )
+            ) {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+
+    if (remarks && remarksCount) {
+
+        remarks.addEventListener(
+            "input",
+            function () {
+
+                remarksCount.textContent =
+                    remarks.value.length;
+
+            }
+        );
+
+    }
+
+})();
+
+    </script>
+{% endblock content %}

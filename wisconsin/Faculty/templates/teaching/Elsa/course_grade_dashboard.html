@@ -1,0 +1,190 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+{% block title %}Grade Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Elsa/course_grade_dashboard.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="gd-container">
+
+  <div class="gd-page-header">
+    <div>
+      <h1>Grade Dashboard</h1>
+      <p>Select a course to enter or review student grades</p>
+    </div>
+  </div>
+
+  <div class="gd-stats-grid">
+    <div class="gd-stat-card">
+      <div class="gd-icon gd-blue"><i class="ti ti-book"></i></div>
+      <div>
+        <h3>{{ total_courses }}</h3>
+        <span>Assigned Courses</span>
+      </div>
+    </div>
+    <div class="gd-stat-card">
+      <div class="gd-icon gd-green"><i class="ti ti-users"></i></div>
+      <div>
+        <h3>{{ total_students }}</h3>
+        <span>Total Students</span>
+      </div>
+    </div>
+    <div class="gd-stat-card">
+      <div class="gd-icon gd-orange"><i class="ti ti-checks"></i></div>
+      <div>
+        <h3>{{ total_graded }}</h3>
+        <span>Graded</span>
+      </div>
+    </div>
+    <div class="gd-stat-card">
+      <div class="gd-icon gd-red"><i class="ti ti-clock"></i></div>
+      <div>
+        <h3>{{ total_pending }}</h3>
+        <span>Pending</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gd-card">
+    <div class="gd-card-header">
+      <h3>My Courses</h3>
+      <span class="gd-card-header-sub">Click a course to enter grades</span>
+    </div>
+
+    <div class="gd-course-grid">
+      {% for c in course_cards %}
+      <div class="gd-course-card" data-course-id="{{ c.course_id }}">
+
+        <a href="{% url 'course_grade' %}?course={{ c.course_id }}" class="gd-course-card-head">
+          <div class="gd-course-head-text">
+            <span class="gd-course-code">{{ c.course_code }}</span>
+            <p class="gd-course-name">{{ c.course_name }}</p>
+          </div>
+        </a>
+
+        <div class="gd-course-progress">
+          <div class="gd-course-progress-top">
+            <span class="gd-course-progress-label">Grading progress</span>
+            <span class="gd-course-progress-pct">
+              {% if c.enrolled_count %}{% widthratio c.graded_count c.enrolled_count 100 %}{% else %}0{% endif %}%
+            </span>
+          </div>
+          <div class="gd-course-progress-bar">
+            {% if c.enrolled_count %}
+            <div class="gd-course-progress-fill"
+                style="width:{% widthratio c.graded_count c.enrolled_count 100 %}%;"></div>
+            {% else %}
+            <div class="gd-course-progress-fill" style="width:0%;"></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="gd-section-list">
+          {% for s in c.sections %}
+          <a href="{% url 'course_grade' %}?course={{ c.course_id }}&section={{ s.section_id }}"
+            class="gd-section-row" data-section-id="{{ s.section_id }}">
+            <span class="gd-section-badge">Sec {{ s.section_number }}</span>
+            <span class="gd-section-type">{{ s.section_type }}</span>
+            <span class="gd-section-sem">{{ s.semester }}</span>
+            <span class="gd-section-count">{{ s.enrolled_count }} students</span>
+            {% if s.is_finalized %}
+            <span class="gd-section-finalized"><i class="ti ti-lock"></i> Finalized</span>
+            {% endif %}
+          </a>
+          {% empty %}
+          <div class="gd-section-row gd-section-empty">
+            <span>No sections</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <a href="{% url 'course_grade' %}?course={{ c.course_id }}" class="gd-course-card-stats">
+          <div class="gd-course-stat">
+            <i class="ti ti-users"></i>
+            <span>{{ c.enrolled_count }} students</span>
+          </div>
+          <div class="gd-course-stat">
+            <i class="ti ti-clock"></i>
+            <span>{{ c.pending_count }} pending</span>
+          </div>
+          <div class="gd-course-arrow">
+            <i class="ti ti-arrow-right"></i>
+          </div>
+        </a>
+      </div>
+      {% empty %}
+      <div class="gd-empty-state">
+        <i class="ti ti-book-off"></i>
+        <p>No courses assigned yet.</p>
+      </div>
+      {% endfor %}
+    </div>  
+  </div>
+</div>
+<div class="pagination-wrapper">
+    <div class="pagination-info">
+        {% if course_page.paginator.count %}
+            Showing {{ course_page.start_index }}–{{ course_page.end_index }}
+            of {{ course_page.paginator.count }} Courses
+        {% else %}
+            Showing 0–0 of 0 Courses
+        {% endif %}
+    </div>
+
+    <div class="pagination-controls">
+        <!-- Previous -->
+        {% if course_page.has_previous %}
+            <a href="?page={{ course_page.previous_page_number }}"
+              class="pagination-btn pagination-arrow"
+              aria-label="Previous page">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        {% else %}
+            <span class="pagination-btn pagination-arrow disabled">
+                <i class="ti ti-chevron-left"></i>
+            </span>
+        {% endif %}
+        {% if course_page.number > 3 %}
+            <a href="?page=1" class="pagination-btn">
+                1
+            </a>
+            <span class="pagination-dots">...</span>
+        {% endif %}
+        {% for num in course_page.paginator.page_range %}
+            {% if num >= course_page.number|add:"-2" and num <= course_page.number|add:"2" %}
+                {% if num == course_page.number %}
+                    <span class="pagination-btn active">
+                        {{ num }}
+                    </span>
+                {% else %}
+                    <a href="?page={{ num }}"
+                      class="pagination-btn">
+                        {{ num }}
+                    </a>
+                {% endif %}
+            {% endif %}
+        {% endfor %}            
+        {% if course_page.number < course_page.paginator.num_pages|add:"-2" %}
+            <span class="pagination-dots">...</span>
+            <a href="?page={{ course_page.paginator.num_pages }}"
+              class="pagination-btn">
+                {{ course_page.paginator.num_pages }}
+            </a>
+        {% endif %}
+        <!-- Next -->
+        {% if course_page.has_next %}
+            <a href="?page={{ course_page.next_page_number }}"
+              class="pagination-btn pagination-arrow"
+              aria-label="Next page">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+        {% else %}
+            <span class="pagination-btn pagination-arrow disabled">
+                <i class="ti ti-chevron-right"></i>
+            </span>
+        {% endif %}
+    </div>
+</div>  
+{% endblock %}

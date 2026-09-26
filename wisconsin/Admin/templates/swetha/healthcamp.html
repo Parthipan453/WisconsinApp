@@ -1,0 +1,586 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %} Health Camp Management {% endblock %}
+
+{% block page_title %}<span id="healthCampTitle">Health Camp Management</span>{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/swetha/healthcamp.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="hc">
+    <section class="hc-hero">
+        <div class="hc-hero__content" data-aos="fade-right">
+            <span class="hc-badge"> <i class="fa-solid fa-heart-pulse"></i> Medical Department </span>
+            <h1> Healthcamp Management </h1>
+            <p> Manage every health camp, registrations,
+                attendance, organizers and participant
+                statistics from one beautiful dashboard.
+            </p>
+        </div>
+        <div class="hc-hero__image" data-aos="zoom-in">
+            <div class="hc-circle hc-circle1"></div>
+            <div class="hc-circle hc-circle2"></div>
+            <div class="hc-circle hc-circle3"></div>
+
+            <img src="{% static 'images/medical/Doctor-amico.png' %}" alt="Health Camp">
+        </div>
+
+    </section>
+
+    <section class="hc-stats" data-aos="fade-up">
+        <div class="hc-stat">
+            <div class="hc-stat-icon bg-blue">
+                <i class="fa-solid fa-tents"></i>
+            </div>
+            <div>
+                <h2 class="counter"> {{ stats.total }} </h2>
+                <span> Total Camps </span>
+            </div>
+        </div>
+
+        <div class="hc-stat">
+            <div class="hc-stat-icon bg-green">
+                <i class="fa-solid fa-door-open"></i>
+            </div>
+            <div>
+                <h2 class="counter"> {{ stats.open }} </h2>
+                <span> Open Camps </span>
+            </div>
+        </div>
+
+        <div class="hc-stat">
+            <div class="hc-stat-icon bg-orange">
+                <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <div>
+                <h2 class="counter"> {{ stats.ongoing }} </h2>
+                <span> Ongoing </span>
+            </div>
+        </div>
+
+        <div class="hc-stat">
+            <div class="hc-stat-icon bg-purple">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <h2 class="counter"> {{ stats.completed }} </h2>
+                <span> Completed </span>
+            </div>
+        </div>
+        <div class="hc-stat">
+            <div class="hc-stat-icon bg-red">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <h2 class="counter"> {{ stats.participants }} </h2>
+                <span>Participants</span>
+            </div>
+        </div>
+    </section>
+
+        <section class="hc-section hc-analytics-section" data-aos="fade-up">
+        <div class="hc-chart-grid">
+            <div class="hc-chart-card">
+                <div class="hc-chart-header">
+                    <div>
+                        <h3>
+                            Participants
+                        </h3>
+                        <span>
+                            Total participant 
+                        </span>
+                    </div>
+                </div>
+                <div class="hc-chart-container">
+                    <canvas id="participantChart"></canvas>
+                </div>
+            </div>
+            <div class="hc-chart-card">
+                <div class="hc-chart-header">
+                    <div>
+                        <h3>
+                            Yearly Camp Trend
+                        </h3>
+                        <span>
+                            Health Camps Conducted Per Year
+                        </span>
+                    </div>
+                </div>
+
+                <div class="hc-chart-container">
+                    <canvas id="yearlyCampChart"></canvas>
+                </div>
+            </div>
+            <div class="hc-chart-card">
+                <div class="hc-chart-header">
+                    <div>
+                        <h3>Camp Status</h3>
+                        <span>Health Camps by Status</span>
+                    </div>
+                </div>
+
+                <div class="hc-chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+    </section>
+
+    
+    <section class="hc-filter" data-aos="fade-up">
+        <form id="filterForm" method="GET" action="{% url 'healthcamp_management' %}">
+            <div class="hc-search">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" name="search" value="{{ search }}" placeholder="Search Camps...">
+            </div>
+            <select class="form-select" name="status">
+                <option value="">
+                    Status
+                </option>
+                {% for value,label in status_choices %}
+                <option value="{{ value }}" {% if status == value %} selected {% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+            <select class="form-select" name="camp_type">
+                <option value="">
+                    Camp Type
+                </option>
+                {% for value,label in camp_types %}
+                <option value="{{ value }}" {% if camp_type == value %} selected {% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+            <select class="form-select" name="department">
+                <option value="">Department</option>
+
+                {% for dept in departments %}
+                <option value="{{ dept.id }}"
+                    {% if department == dept.id|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.department_name }}
+                </option>
+                {% endfor %}
+            </select>
+            <button
+            type="submit"
+            class="hc-btn hc-btn-primary">
+                <i class="fa-solid fa-filter"></i>
+                Apply
+            </button>
+            <a href="{% url 'healthcamp_management' %}" class="hc-btn hc-reset" id="resetFilter">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+            </a>
+        </form>
+
+    </section>
+    <div id="campResults">
+    <section class="hc-camp-switch-section">
+        <div class="hc-camp-toggle-wrapper">
+        <div class="hc-camp-toggle">
+                    {% if today_camps %}
+        <button class="hc-toggle-btn active" data-target="livePanel" id="liveToggle">
+        <i class="fa-solid fa-heart-pulse"></i>
+                        Live Camps
+        <span class="hc-toggle-badge">{{ today_camps|length }}</span>
+        <span class="hc-toggle-underline"></span>
+        </button>
+                    {% endif %}
+        
+                    {% if upcoming_camps %}
+        <button class="hc-toggle-btn" data-target="upcomingPanel" id="upcomingToggle">
+        <i class="fa-solid fa-calendar-days"></i>
+                        Upcoming Camps
+        <span class="hc-toggle-badge">{{ upcoming_camps|length }}</span>
+        <span class="hc-toggle-underline"></span>
+        </button>
+                    {% endif %}
+        </div>
+        </div>
+ 
+            <!-- LIVE PANEL -->
+            {% if today_camps %}
+        <div class="hc-expand-panel show" id="livePanel">
+        <div class="hc-camp-grid">
+                    {% for camp in today_camps %}
+        <article class="hc-camp-card">
+        <div class="hc-card-ribbon">
+                            {{ camp.get_camp_type_display }}
+        </div>
+        <div class="hc-card-header">
+        <div>
+        <h3>{{ camp.camp_name }}</h3>
+        <small>{{ camp.camp_code }}</small>
+        </div>
+        <span class="hc-status hc-status-ribbon hc-status-{{ camp.status|lower }}">
+        {{ camp.get_status_display }}
+        </span>
+        </div>
+        <div class="hc-card-body">
+        <div class="hc-info">
+        <i class="fa-solid fa-building"></i>
+        {{ camp.department }}
+        </div>
+        <div class="hc-info">
+        <i class="fa-solid fa-user-doctor"></i>
+        {{ camp.organizer }}
+        </div>
+        <div class="hc-info">
+        <i class="fa-solid fa-location-dot"></i>
+        {{ camp.venue }}
+        </div>
+        <div class="hc-info">
+        <i class="fa-solid fa-calendar"></i>
+        {{ camp.start_date }}
+        </div>
+        <div class="hc-info">
+        <i class="fa-solid fa-clock"></i>
+        {{ camp.start_time }} - {{ camp.end_time }}
+        </div>
+        </div>
+        {% if camp.status == "PLANNED" %}
+ 
+        <div class="hc-status-box planned">
+            <i class="fa-solid fa-calendar-days"></i>
+            <div>
+                <strong>Camp Planned</strong>
+                <small>Registration not started yet</small>
+            </div>
+        </div>
+        {% elif camp.status == "OPEN" %}
+        <div class="hc-progress-wrap">
+           <div class="hc-progress-head">
+         <span><i class="fa-solid fa-users"></i>Registered</span>
+        <strong> {{ camp.registered_participants }}/{{ camp.max_participants }}</strong>
+        </div>
+        <div class="hc-progress">
+           <div class="hc-progress-fill" style="width:{% widthratio camp.registered_participants camp.max_participants 100 %}%"></div>
+        </div>
+    </div>
+
+    {% elif camp.status == "ONGOING" %}
+                <div class="hc-status-box ongoing">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <div>
+                        <strong>Camp Live</strong>
+                        <small>
+                            {{ camp.registered_participants }}
+                            Participants Attending
+                        </small>
+                    </div>
+                </div>
+                {% elif camp.status == "COMPLETED" %}
+                <div class="hc-status-box completed">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div>
+                        <strong>Camp Completed</strong>
+                        <small>
+                            {{ camp.registered_participants }}
+                            Participants Benefited
+                        </small>
+                    </div>
+                </div>
+                {% elif camp.status == "CANCELLED" %}
+                <div class="hc-status-box cancelled">
+                    <i class="fa-solid fa-ban"></i>
+                    <div>
+                        <strong>Camp Cancelled</strong>
+                        <small>
+                            Registration Closed
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+         </article>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+ 
+    <!-- UPCOMING PANEL -->
+    {% if upcoming_camps %}
+    <div class="hc-expand-panel" id="upcomingPanel">
+        <div class="hc-upcoming-list">
+            {% for camp in upcoming_camps %}
+            <div class="hc-upcoming-card">
+                <!-- Date -->
+                <div class="hc-date-box">
+                <span class="hc-date-day">
+                    {{ camp.start_date|date:"d" }}
+                </span>
+                <span class="hc-date-month">
+                    {{ camp.start_date|date:"M" }}
+                </span>
+            </div>
+ 
+                <!-- Content -->
+            <div class="hc-upcoming-content">
+            <div class="hc-upcoming-top">
+            <div>
+            <h3>{{ camp.camp_name }}</h3>
+            <small>{{ camp.camp_code }}</small>
+            </div>
+            <span class="hc-status hc-upcoming-status-ribbon hc-status-{{ camp.status|lower }}">
+                {{ camp.get_status_display }}
+            </span>
+            </div>
+ 
+            <div class="hc-upcoming-meta">
+            <span>
+            <i class="fa-solid fa-building"></i>
+                {{ camp.department }}
+            </span>
+            <span>
+            <i class="fa-solid fa-user-doctor"></i>
+                {{ camp.organizer }}
+            </span>
+            <span>
+            <i class="fa-solid fa-location-dot"></i>
+                    {{ camp.venue }}
+            </span>
+            <span>
+            <i class="fa-solid fa-clock"></i>
+                    {{ camp.start_time }} - {{ camp.end_time }}
+            </span>
+            <span>
+            <i class="fa-solid fa-users"></i>
+                    {{ camp.registered_participants }}/{{ camp.max_participants }}
+            </span>
+ 
+            </div>
+            <div class="hc-upcoming-progress">
+                    {% if camp.status == "OPEN" or camp.status == "ONGOING" %}
+                <div class="hc-progress-head">
+                    <span> <i class="fa-solid fa-users"></i>
+                        Registrations
+                    </span>
+                    <strong> {{ camp.registered_participants }}/{{ camp.max_participants }} </strong>
+                        </div>
+                        <div class="hc-progress">
+                            <div class="hc-progress-fill hc-progress-fill-upcoming"
+                                style="width:{% widthratio camp.registered_participants camp.max_participants 100 %}%">
+                            </div>
+                        </div>
+                        {% elif camp.status == "PLANNED" %}
+ 
+                        <div class="hc-status-note planned">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        Registration Starts Soon
+                        </div>
+ 
+                        {% elif camp.status == "COMPLETED" %}
+ 
+                        <div class="hc-status-note completed">
+                        <i class="fa-solid fa-circle-check"></i>
+                         {{ camp.registered_participants }} Participants Attended
+                        </div>
+ 
+                        {% elif camp.status == "CANCELLED" %}
+ 
+                        <div class="hc-status-note cancelled">
+                        <i class="fa-solid fa-ban"></i>
+                            Camp Cancelled
+                        </div>
+ 
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</section>
+<!-- </section> --> 
+
+     <section class="hc-section" data-aos="fade-up">
+        {% if page_obj %}
+        <div class="hc-table-wrapper">
+            <table class="hc-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Camp</th>
+                        <th>Department</th>
+                        <th>Venue</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Registration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for camp in page_obj %}
+                    <tr>
+                          <td>
+                            {{ page_obj.start_index|add:forloop.counter0 }}
+                        </td>
+                        <td>
+                            <div class="hc-table-camp">
+                                <strong>
+                                    {{ camp.camp_name }}
+                                </strong>
+                                <small>
+                                    {{ camp.camp_code }}
+                                </small>
+                            </div>
+                        </td>
+                        <td>
+                            {{ camp.department }}
+                        </td>
+                        <td>
+                            {{ camp.venue }}
+                        </td>
+                        <td>
+                            {{ camp.start_date }}
+                        </td>
+                        <td>
+                            <span class="hc-status hc-status-{{ camp.status|lower }}">
+                                {{ camp.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ camp.registered_participants }} / {{ camp.max_participants }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="hc-empty">
+            <i class="fa-solid fa-hospital"></i>
+            <h3>
+                No Health Camps Found
+            </h3>
+            <p>
+                Create your first health camp to get started.
+            </p>
+        </div>
+        {% endif %}
+     </section>
+      {% if page_obj.paginator.num_pages > 1 %}
+
+    <div class="hc-pagination">
+
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&status={{ status }}&camp_type={{ camp_type }}&department={{ department }}"
+            class="hc-page-btn">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        {% endif %}
+
+        {% for page in page_obj.paginator.page_range %}
+
+            {% if page == page_obj.number %}
+
+                <span class="hc-page-btn active">
+                    {{ page }}
+                </span>
+
+            {% elif page >= page_obj.number|add:-2 and page <= page_obj.number|add:2 %}
+
+                <a href="?page={{ page }}&search={{ search }}&status={{ status }}&camp_type={{ camp_type }}&department={{ department }}"
+                    class="hc-page-btn">
+
+                    {{ page }}
+
+                </a>
+
+            {% endif %}
+
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&status={{ status }}&camp_type={{ camp_type }}&department={{ department }}"
+            class="hc-page-btn">
+            <i class="fa-solid fa-chevron-right"></i>
+        </a>
+        {% endif %}
+
+
+
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+<script>
+
+    AOS.init({
+
+        duration: 900,
+
+        once: true,
+
+        offset: 80
+
+    });
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const participantLabels =
+JSON.parse('{{ participant_labels|escapejs }}');
+
+const participantValues =
+JSON.parse('{{ participant_values|escapejs }}');
+
+const participantStats = {
+
+    students: {{ student_count }},
+    faculty: {{ faculty_count }},
+    staff: {{ staff_count }},
+    admin: {{ admin_count }}
+
+};
+
+const yearlyLabels = {{ year_labels|safe }};
+
+const yearlyValues = {{ year_values|safe }};
+const statusLabels =
+{{ status_labels|safe }};
+
+const statusValues =
+{{ status_values|safe }};
+
+document.addEventListener("DOMContentLoaded", function () {
+    const title = document.getElementById("healthCampTitle");
+    if (!title) return;
+
+    const original = title.textContent.trim();
+
+    function updateTitle() {
+        if (window.innerWidth <= 375) {
+            title.textContent =
+                original.length > 10
+                    ? original.substring(0, 10) + "..."
+                    : original;
+        } else {
+            title.textContent = original;
+        }
+    }
+
+    updateTitle();
+    window.addEventListener("resize", updateTitle);
+});
+
+</script>
+
+
+<script src="{% static 'script/swetha/healthcamp.js' %}"></script>
+
+{% endblock %}

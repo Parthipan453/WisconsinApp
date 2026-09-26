@@ -1,0 +1,786 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Committee Evaluation{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/dissertation/committee_dissertation_proposal_review.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock extra_css %}
+{% block content %}
+    {% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+            <i class="ti ti-layout-dashboard"></i>
+            <span>Dashboard</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+            <i class="ti ti-school"></i>
+            <span>PhD Management</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        {% comment %} <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">
+            <i class="ti ti-file-description"></i>
+            <span>Dissertation Proposals</span>
+        </a>
+        <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+        <span class="common-breadcrumb-current">
+            <i class="ti ti-file-text"></i>
+            <span>Current Page</span>
+        </span> 
+    </nav>{% endcomment %}
+    <div class="cm-pe-page">
+        <div class="cm-pe-container">
+            <div class="cm-pe-header cm-pe-animate">
+                <div class="cm-pe-header-left">
+                    <a href="{% url 'faculty_committee_dissertation_proposal_detail' uuid=uuid proposal_id=proposal.pk %}"
+                       class="cm-pe-back-btn">
+                        <i class="bi bi-arrow-left"></i>
+                        <span>Back to Proposal</span>
+                    </a>
+                    <div class="cm-pe-heading">
+                        <span class="cm-pe-eyebrow">COMMITTEE MEMBER</span>
+                        <h1>Dissertation Proposal Evaluation</h1>
+                        <p>Submit your independent evaluation of the dissertation proposal.</p>
+                    </div>
+                </div>
+                <div class="cm-pe-header-status">
+                    {% if is_view_mode or evaluation.is_submitted %}
+                        <span class="cm-pe-status cm-pe-status-locked">
+                            <i class="bi bi-lock-fill"></i>
+                            Evaluation Locked
+                        </span>
+                    {% else %}
+                        <span class="cm-pe-status cm-pe-status-active">
+                            <span class="cm-pe-status-dot"></span>
+                            Evaluation Pending
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="cm-pe-layout">
+                <main class="cm-pe-main">
+                    <!-- Proposal Information -->
+                    <section class="cm-pe-card cm-pe-animate cm-pe-delay-1">
+                        <div class="cm-pe-card-header">
+                            <div class="cm-pe-card-title">
+                                <div class="cm-pe-card-icon">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </div>
+                                <div>
+                                    <h2>Proposal Information</h2>
+                                    <p>Review the submitted dissertation proposal.</p>
+                                </div>
+                            </div>
+                            <span class="cm-pe-proposal-number">#{{ proposal.pk }}</span>
+                        </div>
+                        <div class="cm-pe-card-body">
+                            <div class="cm-pe-title-box">
+                                <span class="cm-pe-label">Proposal Title</span>
+                                <h3>{{ proposal.proposal_title }}</h3>
+                            </div>
+                            <div class="cm-pe-submission-info">
+                                <div class="cm-pe-submission-item">
+                                    <span class="cm-pe-label">Submission</span>
+                                    <strong>
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        {% if current_submission_number > 1 %}
+                                            Resubmission #{{ current_submission_number }}
+                                        {% else %}
+                                            Submission #1
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <div class="cm-pe-submission-item">
+                                    <span class="cm-pe-label">Evaluation Cycle</span>
+                                    <strong>
+                                        {% if current_submission_number > 1 %}
+                                            Revision Evaluation
+                                        {% else %}
+                                            Initial Evaluation
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+                            {% if proposal.abstract %}
+                                <div class="cm-pe-section">
+                                    <span class="cm-pe-label">Abstract</span>
+                                    <div class="cm-pe-abstract">{{ proposal.abstract|linebreaksbr }}</div>
+                                </div>
+                            {% endif %}
+                            {% if proposal.proposal_file %}
+                                <div class="cm-pe-document">
+                                    <div class="cm-pe-document-left">
+                                        <div class="cm-pe-document-icon">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Proposal Document</strong>
+                                            <span>Submitted dissertation proposal</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ proposal.proposal_file.url }}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="cm-pe-document-btn">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                        <span>Open Document</span>
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <!-- Advisor Review -->
+                    <section class="cm-pe-card cm-pe-animate cm-pe-delay-2">
+                        <div class="cm-pe-card-header">
+                            <div class="cm-pe-card-title">
+                                <div class="cm-pe-card-icon cm-pe-icon-advisor">
+                                    <i class="bi bi-person-check"></i>
+                                </div>
+                                <div>
+                                    <h2>Advisor Review</h2>
+                                    <p>Advisor approval for committee evaluation.</p>
+                                </div>
+                            </div>
+                            {% if proposal.advisor_review_status == "APPROVED" %}
+                                <span class="cm-pe-small-status cm-pe-approved">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Approved
+                                </span>
+                            {% else %}
+                                <span class="cm-pe-small-status cm-pe-pending">
+                                    <i class="bi bi-clock-fill"></i>
+                                    {{ proposal.advisor_review_status|default:"Pending" }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="cm-pe-card-body">
+                            <div class="cm-pe-advisor-info">
+                                <div class="cm-pe-avatar">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
+                                <div>
+                                    <span class="cm-pe-label">Faculty Advisor</span>
+                                    <strong>{{ proposal.advisor|default:"Assigned Advisor" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Evaluation Form -->
+                    <form method="post" id="cmPeEvaluationForm" class="cm-pe-evaluation-form">
+                        {% csrf_token %}
+                        <section class="cm-pe-card cm-pe-animate cm-pe-delay-3">
+                            <div class="cm-pe-card-header">
+                                <div class="cm-pe-card-title">
+                                    <div class="cm-pe-card-icon cm-pe-icon-evaluation">
+                                        <i class="bi bi-clipboard2-check"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Your Evaluation</h2>
+                                        <p>Provide your independent academic assessment.</p>
+                                    </div>
+                                </div>
+                                {% if is_view_mode or evaluation.is_submitted %}
+                                    <span class="cm-pe-small-status cm-pe-locked">
+                                        <i class="bi bi-lock-fill"></i>
+                                        View Mode
+                                    </span>
+                                {% else %}
+                                    <span class="cm-pe-small-status cm-pe-required">
+                                        <i class="bi bi-asterisk"></i>
+                                        Required
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="cm-pe-card-body">
+                                <!-- Overall Score -->
+                                <div class="cm-pe-score-grid">
+                                    <div class="cm-pe-score-field cm-pe-score-field-full">
+                                        <label for="id_score">
+                                            Evaluation Score
+                                            <span>*</span>
+                                        </label>
+                                        <div class="cm-pe-score-input">
+                                            <input type="number"
+                                                   id="id_score"
+                                                   name="score"
+                                                   min="0"
+                                                   max="100"
+                                                   step="0.01"
+                                                   value="{{ evaluation.score|default:'' }}"
+                                                   placeholder="Enter your overall score"
+                                                   {% if is_view_mode or evaluation.is_submitted %}disabled{% endif %}
+                                                   required>
+                                            <span>/ 100</span>
+                                        </div>
+                                        <small>Provide your overall academic evaluation score.</small>
+                                    </div>
+                                </div>
+                                <!-- Recommendation -->
+                                <div class="cm-pe-form-section">
+                                    <label for="id_recommendation">
+                                        Recommendation
+                                        <span>*</span>
+                                    </label>
+                                    <div class="cm-pe-recommendation-grid">
+                                        <!-- Approve -->
+                                        <label class="cm-pe-recommendation-option">
+                                            <input type="radio"
+                                                   name="recommendation"
+                                                   value="APPROVE"
+                                                   {% if evaluation.recommendation == "APPROVE" %}checked{% endif %}
+                                                   {% if is_view_mode or evaluation.is_submitted %}disabled{% endif %}
+                                                   required>
+                                            <span class="cm-pe-recommendation-content">
+                                                <span class="cm-pe-recommendation-icon">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Approve</strong>
+                                                    <small>Proposal is acceptable.</small>
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <!-- Revision Required -->
+                                        <label class="cm-pe-recommendation-option">
+                                            <input type="radio"
+                                                   name="recommendation"
+                                                   value="REVISION_REQUIRED"
+                                                   {% if evaluation.recommendation == "REVISION_REQUIRED" %}checked{% endif %}
+                                                   {% if is_view_mode or evaluation.is_submitted %}disabled{% endif %}
+                                                   required>
+                                            <span class="cm-pe-recommendation-content">
+                                                <span class="cm-pe-recommendation-icon">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Revision Required</strong>
+                                                    <small>Changes are required.</small>
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <!-- Reject -->
+                                        <label class="cm-pe-recommendation-option">
+                                            <input type="radio"
+                                                   name="recommendation"
+                                                   value="REJECT"
+                                                   {% if evaluation.recommendation == "REJECT" %}checked{% endif %}
+                                                   {% if is_view_mode or evaluation.is_submitted %}disabled{% endif %}
+                                                   required>
+                                            <span class="cm-pe-recommendation-content">
+                                                <span class="cm-pe-recommendation-icon">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Reject</strong>
+                                                    <small>Proposal is not acceptable.</small>
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <!-- Comments -->
+                                <div class="cm-pe-form-section">
+                                    <label for="id_comments">
+                                        Evaluation Comments
+                                        <span>*</span>
+                                    </label>
+                                    <textarea id="id_comments"
+                                              name="comments"
+                                              rows="7"
+                                              minlength="20"
+                                              maxlength="5000"
+                                              placeholder="Enter your detailed evaluation comments..."
+                                              {% if is_view_mode or evaluation.is_submitted %}disabled{% endif %}
+                                              required>{{ evaluation.comments|default:'' }}</textarea>
+                                    <div class="cm-pe-textarea-footer">
+                                        <small>Provide clear academic feedback for the proposal.</small>
+                                        <span id="cmPeCommentCount">0 / 5000</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- Locked State -->
+                        {% if is_view_mode or evaluation.is_submitted %}
+                            <div class="cm-pe-locked-banner cm-pe-animate">
+                                <div class="cm-pe-locked-banner-icon">
+                                    <i class="bi bi-shield-lock-fill"></i>
+                                </div>
+                                <div>
+                                    <strong>Evaluation Locked</strong>
+                                    <span>
+                                        Your committee evaluation has already been submitted.
+                                        Further changes are not permitted.
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="cm-pe-bottom-actions">
+                                <a href="{% url 'faculty_committee_dissertation_proposal_detail' uuid=uuid proposal_id=proposal.pk %}"
+                                   class="cm-pe-secondary-btn">
+                                    <i class="bi bi-arrow-left"></i>
+                                    Back to Proposal
+                                </a>
+                            </div>
+                        {% else %}
+                            <!-- Submit Notice -->
+                            <div class="cm-pe-submit-note cm-pe-animate">
+                                <i class="bi bi-info-circle"></i>
+                                <span>
+                                    Please review your evaluation carefully before submitting.
+                                    Once submitted, it cannot be changed.
+                                </span>
+                            </div>
+                            <!-- Bottom Actions -->
+                            <div class="cm-pe-bottom-actions">
+                                <a href="{% url 'faculty_committee_dissertation_proposal_detail' uuid=uuid proposal_id=proposal.pk %}"
+                                   class="cm-pe-secondary-btn">
+                                    <i class="bi bi-arrow-left"></i>
+                                    Cancel
+                                </a>
+                                <button type="submit" id="cmPeSubmitBtn" class="cm-pe-submit-btn">
+                                    <span>Submit Evaluation</span>
+                                    <i class="bi bi-check2-circle"></i>
+                                </button>
+                            </div>
+                        {% endif %}
+                    </form>
+                </main>
+                <!-- Sidebar -->
+                <aside class="cm-pe-sidebar">
+                    <!-- Evaluation Guide -->
+                    <section class="cm-pe-side-card cm-pe-animate cm-pe-delay-1">
+                        <div class="cm-pe-side-header">
+                            <span class="cm-pe-side-eyebrow">EVALUATION GUIDE</span>
+                            <div class="cm-pe-side-icon">
+                                <i class="bi bi-lightbulb"></i>
+                            </div>
+                            <h2>Review Carefully</h2>
+                            <p>Consider the proposal from an academic and research perspective.</p>
+                        </div>
+                        <div class="cm-pe-guide-list">
+                            <div class="cm-pe-guide-item">
+                                <span>01</span>
+                                <div>
+                                    <strong>Research Quality</strong>
+                                    <small>Assess the academic strength and relevance.</small>
+                                </div>
+                            </div>
+                            <div class="cm-pe-guide-item">
+                                <span>02</span>
+                                <div>
+                                    <strong>Methodology</strong>
+                                    <small>Consider whether the proposed approach is sound.</small>
+                                </div>
+                            </div>
+                            <div class="cm-pe-guide-item">
+                                <span>03</span>
+                                <div>
+                                    <strong>Feasibility</strong>
+                                    <small>Evaluate technical and practical feasibility.</small>
+                                </div>
+                            </div>
+                            <div class="cm-pe-guide-item">
+                                <span>04</span>
+                                <div>
+                                    <strong>Originality</strong>
+                                    <small>Consider the research contribution and novelty.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Workflow -->
+                    <section class="cm-pe-side-card cm-pe-animate cm-pe-delay-2">
+                        <div class="cm-pe-side-card-header">
+                            <div class="cm-pe-side-card-icon">
+                                <i class="bi bi-diagram-3"></i>
+                            </div>
+                            <div>
+                                <h2>Evaluation Workflow</h2>
+                                <p>Your current stage</p>
+                            </div>
+                        </div>
+                        <div class="cm-pe-workflow">
+                            <div class="cm-pe-workflow-step cm-pe-workflow-complete">
+                                <div class="cm-pe-workflow-marker">
+                                    <i class="bi bi-check"></i>
+                                </div>
+                                <div>
+                                    <strong>Student Submission</strong>
+                                    <span>Completed</span>
+                                </div>
+                            </div>
+                            <div class="cm-pe-workflow-line"></div>
+                            <div class="cm-pe-workflow-step cm-pe-workflow-complete">
+                                <div class="cm-pe-workflow-marker">
+                                    <i class="bi bi-check"></i>
+                                </div>
+                                <div>
+                                    <strong>Advisor Review</strong>
+                                    <span>Approved</span>
+                                </div>
+                            </div>
+                            <div class="cm-pe-workflow-line"></div>
+                            <div class="cm-pe-workflow-step cm-pe-workflow-current">
+                                <div class="cm-pe-workflow-marker">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                                <div>
+                                    <strong>Committee Evaluation</strong>
+                                    <span>Your evaluation</span>
+                                </div>
+                            </div>
+                            <div class="cm-pe-workflow-line"></div>
+                            <div class="cm-pe-workflow-step">
+                                <div class="cm-pe-workflow-marker">
+                                    <i class="bi bi-award"></i>
+                                </div>
+                                <div>
+                                    <strong>Chair Final Review</strong>
+                                    <span>After committee completion</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+        </div>
+    </div>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById(
+        "cmPeEvaluationForm"
+    );
+
+    const commentField = document.getElementById(
+        "id_comments"
+    );
+
+    const commentCount = document.getElementById(
+        "cmPeCommentCount"
+    );
+
+    const submitButton = document.getElementById(
+        "cmPeSubmitBtn"
+    );
+
+
+    /*
+     * Comment character counter
+     */
+
+    if (commentField && commentCount) {
+
+        const updateCommentCount = function () {
+
+            commentCount.textContent =
+                `${commentField.value.length} / 5000`;
+
+        };
+
+        updateCommentCount();
+
+        commentField.addEventListener(
+            "input",
+            updateCommentCount
+        );
+    }
+
+
+    /*
+     * Stop here when the page is in view mode.
+     */
+
+    if (!form || !submitButton) {
+        return;
+    }
+
+
+    /*
+     * Form submission
+     */
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+
+            /*
+             * Required field validation
+             */
+
+            const requiredFields =
+                form.querySelectorAll(
+                    "[required]"
+                );
+
+            let valid = true;
+
+
+            requiredFields.forEach(
+                function (field) {
+
+                    if (field.disabled) {
+                        return;
+                    }
+
+
+                    if (field.type === "radio") {
+
+                        const group =
+                            form.querySelectorAll(
+                                `input[name="${field.name}"]:checked`
+                            );
+
+                        if (!group.length) {
+                            valid = false;
+                        }
+
+                        return;
+                    }
+
+
+                    if (
+                        !field.value ||
+                        !field.value.trim()
+                    ) {
+                        valid = false;
+                    }
+
+                }
+            );
+
+
+            /*
+             * Score validation
+             */
+
+            const scoreField =
+                document.getElementById(
+                    "id_score"
+                );
+
+
+            if (scoreField && !scoreField.disabled) {
+
+                const scoreValue =
+                    Number(scoreField.value);
+
+
+                if (
+                    scoreField.value === "" ||
+                    Number.isNaN(scoreValue) ||
+                    scoreValue < 0 ||
+                    scoreValue > 100
+                ) {
+                    valid = false;
+                }
+
+            }
+
+
+            /*
+             * Recommendation validation
+             */
+
+            const recommendation =
+                form.querySelector(
+                    'input[name="recommendation"]:checked'
+                );
+
+
+            if (!recommendation) {
+                valid = false;
+            }
+
+
+            /*
+             * Comment validation
+             */
+
+            if (
+                commentField &&
+                !commentField.disabled
+            ) {
+
+                const commentValue =
+                    commentField.value.trim();
+
+
+                if (
+                    commentValue.length < 20 ||
+                    commentValue.length > 5000
+                ) {
+                    valid = false;
+                }
+
+            }
+
+
+            /*
+             * Validation error
+             */
+
+            if (!valid) {
+
+                Swal.fire({
+
+                    icon: "warning",
+
+                    title: "Evaluation Incomplete",
+
+                    text:
+                        "Please complete all required fields correctly before submitting.",
+
+                    confirmButtonText: "Okay",
+
+                    customClass: {
+
+                        popup:
+                            "cm-pe-swal-popup",
+
+                        title:
+                            "cm-pe-swal-title",
+
+                        confirmButton:
+                            "cm-pe-swal-confirm"
+
+                    },
+
+                    buttonsStyling: false,
+
+                    allowOutsideClick: false,
+
+                    allowEscapeKey: true
+
+                });
+
+                return;
+            }
+
+
+            /*
+             * Final submit function
+             */
+
+            const submitEvaluation =
+                function () {
+
+                    submitButton.disabled =
+                        true;
+
+
+                    submitButton.classList.add(
+                        "cm-pe-submitting"
+                    );
+
+
+                    const label =
+                        submitButton.querySelector(
+                            "span"
+                        );
+
+
+                    if (label) {
+
+                        label.textContent =
+                            "Submitting...";
+
+                    }
+
+
+                    form.submit();
+
+                };
+
+
+            /*
+             * SweetAlert confirmation
+             */
+
+            Swal.fire({
+
+                icon: "warning",
+
+                title:
+                    "Submit Evaluation?",
+
+                html: `
+                    <div class="cm-pe-swal-message">
+
+                        <p>
+                            Once submitted, your evaluation will be
+                            <strong>locked permanently</strong>.
+                        </p>
+
+                        <span>
+                            You will not be able to edit or change
+                            your evaluation after submission.
+                        </span>
+
+                    </div>
+                `,
+
+                showCancelButton: true,
+
+                confirmButtonText: `
+                    <i class="bi bi-check2-circle"></i>
+                    Yes, Submit
+                `,
+
+                cancelButtonText: `
+                    <i class="bi bi-arrow-left"></i>
+                    Review Again
+                `,
+
+                customClass: {
+
+                    popup:
+                        "cm-pe-swal-popup",
+
+                    title:
+                        "cm-pe-swal-title",
+
+                    htmlContainer:
+                        "cm-pe-swal-content",
+
+                    confirmButton:
+                        "cm-pe-swal-confirm",
+
+                    cancelButton:
+                        "cm-pe-swal-cancel",
+
+                    actions:
+                        "cm-pe-swal-actions"
+
+                },
+
+                buttonsStyling: false,
+
+                reverseButtons: true,
+
+                allowOutsideClick: false,
+
+                allowEscapeKey: true
+
+            }).then(
+                function (result) {
+
+                    if (result.isConfirmed) {
+
+                        submitEvaluation();
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+});
+    </script>
+{% endblock content %}

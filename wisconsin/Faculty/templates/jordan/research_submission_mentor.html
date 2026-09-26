@@ -1,0 +1,391 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Submissions{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_research_submission %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Jordan/research_submissions.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+
+{% endblock %}
+
+{% block content %}
+<input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="header-left">
+        <div class="header-content">
+            <h1>Research Submissions</h1>
+            <p>Manage submissions for your research projects</p>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button class="btn-refresh" onclick="refreshData()">
+            <i class="ti ti-refresh"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="ti ti-folder-open"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="totalProjects">0</span>
+            <span class="stat-label">Total Projects</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="ti ti-upload"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="totalSubmissions">0</span>
+            <span class="stat-label">Total Submissions</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <i class="ti ti-clock"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="pendingCount">0</span>
+            <span class="stat-label">Pending Review</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal">
+            <i class="ti ti-circle-check"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-number" id="completedCount">0</span>
+            <span class="stat-label">Completed</span>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="loadingState" class="loading-state">
+    <div class="spinner"></div>
+    <h3>Loading projects...</h3>
+    <p>Please wait while we load your research projects</p>
+</div>
+
+<!-- Projects Grid -->
+<div class="projects-grid" id="projectsGrid" style="display: none;">
+    <!-- Projects will be rendered by JavaScript -->
+</div>
+
+<!-- Create/Edit Submission Modal -->
+<div class="modal-overlay" id="submissionModal" style="display: none;">
+    <div class="modal-container create-modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">
+                <i class="ti ti-file-plus"></i>
+                Create Submission
+            </h3>
+            <button class="modal-close-btn" onclick="closeModal('submissionModal')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="submissionForm" novalidate>
+                <input type="hidden" id="formProjectId" value="">
+                <input type="hidden" id="formSubmissionId" value="">
+
+                <!-- Research Project Info -->
+                <div class="form-section">
+                    <h4><i class="ti ti-flask"></i> Research Project</h4>
+                    <div class="info-box">
+                        <div class="info-row">
+                            <span class="label">Title</span>
+                            <span class="value" id="formProjectTitle">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Category</span>
+                            <span class="value" id="formProjectCategory">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Department</span>
+                            <span class="value" id="formProjectDepartment">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Publication Details (Read-only) -->
+                <div class="form-section">
+                    <h4><i class="ti ti-file-text"></i> Publication Details</h4>
+                    <div class="info-box">
+                        <div class="info-row">
+                            <span class="label">Title</span>
+                            <span class="value" id="formPubTitle">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Type</span>
+                            <span class="value" id="formPubType">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Abstract</span>
+                            <span class="value" id="formPubAbstract" style="white-space: pre-wrap;">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Keywords</span>
+                            <span class="value" id="formPubKeywords">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Authors List (Read-only) -->
+                <div class="form-section">
+                    <h4><i class="ti ti-users"></i> Authors</h4>
+                    <div id="formAuthorsList" class="authors-list-readonly">
+                        <p style="color: var(--text-light);">No authors assigned</p>
+                    </div>
+                </div>
+
+                <!-- Submission Details -->
+                <div class="form-section">
+                    <h4><i class="ti ti-send"></i> Submission Details</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="journalName">
+                                <i class="ti ti-building"></i> Journal/Conference Name
+                            </label>
+                            <input type="text" id="journalName" class="form-control" placeholder="Enter journal/conference name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="publisher">
+                                <i class="ti ti-building"></i> Publisher
+                            </label>
+                            <input type="text" id="publisher" class="form-control" placeholder="Enter publisher name">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="submissionDate">
+                                <i class="ti ti-calendar"></i> Submission Date
+                            </label>
+                            <input type="date" id="submissionDate" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="manuscriptNumber">
+                                <i class="ti ti-hash"></i> Manuscript Number
+                            </label>
+                            <input type="text" id="manuscriptNumber" class="form-control" placeholder="Enter manuscript number">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="acceptanceDate">
+                                <i class="ti ti-calendar-check"></i> Acceptance Date
+                            </label>
+                            <input type="date" id="acceptanceDate" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="publicationDate">
+                                <i class="ti ti-calendar-event"></i> Publication Date
+                            </label>
+                            <input type="date" id="publicationDate" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="doi">
+                                <i class="ti ti-link"></i> DOI
+                            </label>
+                            <input type="text" id="doi" class="form-control" placeholder="e.g., 10.1234/abcd1234">
+                            <span class="form-text">Digital Object Identifier</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="publicationUrl">
+                                <i class="ti ti-world"></i> Publication URL
+                            </label>
+                            <input type="url" id="publicationUrl" class="form-control" placeholder="https://doi.org/...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Section -->
+                <div class="form-section">
+                    <h4><i class="ti ti-edit"></i> Submission Status</h4>
+                    <div class="form-group">
+                        <label for="submissionStatus">
+                            <i class="ti ti-status"></i> Current Status
+                        </label>
+                        <select id="submissionStatus" class="form-control">
+                            <option value="DRAFT">Draft</option>
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="UNDER_REVIEW">Under Review</option>
+                            <option value="REVISION_REQUIRED">Revision Required</option>
+                            <option value="RESUBMITTED">Resubmitted</option>
+                            <option value="ACCEPTED">Accepted</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="PUBLISHED">Published</option>
+                            <option value="WITHDRAWN">Withdrawn</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal('submissionModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <i class="ti ti-check"></i> Create Submission
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Submission Details Modal -->
+<div class="modal-overlay" id="submissionDetailModal" style="display: none;">
+    <div class="modal-container detail-modal">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="ti ti-file-text"></i>
+                Submission Details
+            </h3>
+            <button class="modal-close-btn" onclick="closeModal('submissionDetailModal')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="detailContent">
+                <div class="detail-section">
+                    <div class="detail-header">
+                        <h4 id="detailTitle">Submission Title</h4>
+                        <span class="project-badge" id="detailStatus">Draft</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-book"></i> Publication Type</h5>
+                    <p id="detailType">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-building"></i> Journal/Conference</h5>
+                    <p id="detailJournal">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-building"></i> Publisher</h5>
+                    <p id="detailPublisher">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-file-description"></i> Abstract</h5>
+                    <p id="detailAbstract">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-tags"></i> Keywords</h5>
+                    <div id="detailKeywords" class="keywords-container"></div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-hash"></i> Manuscript Number</h5>
+                    <p id="detailManuscript">-</p>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-users"></i> Authors</h5>
+                    <div id="detailAuthors" class="authors-list"></div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-calendar"></i> Dates</h5>
+                    <div class="metadata-grid">
+                        <span><strong>Submission Date</strong> <span id="detailSubmissionDate">-</span></span>
+                        <span><strong>Acceptance Date</strong> <span id="detailAcceptanceDate">-</span></span>
+                        <span><strong>Publication Date</strong> <span id="detailPublicationDate">-</span></span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-link"></i> Identifiers</h5>
+                    <div class="metadata-grid">
+                        <span><strong>DOI</strong> <span id="detailDoi">-</span></span>
+                        <span><strong>URL</strong> <span id="detailUrl">-</span></span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5><i class="ti ti-edit"></i> Update Status</h5>
+                    <div class="status-update-wrapper">
+                        <select id="detailStatusSelect" class="form-control">
+                            <option value="DRAFT">Draft</option>
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="UNDER_REVIEW">Under Review</option>
+                            <option value="REVISION_REQUIRED">Revision Required</option>
+                            <option value="RESUBMITTED">Resubmitted</option>
+                            <option value="ACCEPTED">Accepted</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="PUBLISHED">Published</option>
+                            <option value="WITHDRAWN">Withdrawn</option>
+                        </select>
+                        <button class="btn-update-status" onclick="updateSubmissionStatus()">
+                            <i class="ti ti-check"></i> Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close-detail" onclick="closeModal('submissionDetailModal')">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications -->
+<div class="notification" id="successNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-check-circle notification-icon success"></i>
+        <span id="notificationMessage">Success!</span>
+        <button class="notification-close-btn" onclick="closeNotification()"><i class="ti ti-x"></i></button>
+    </div>
+</div>
+
+<div class="notification error" id="errorNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-exclamation-circle notification-icon error"></i>
+        <span id="errorMessage">Error!</span>
+        <button class="notification-close-btn" onclick="closeErrorNotification()"><i class="ti ti-x"></i></button>
+    </div>
+</div>
+
+<div class="notification warning" id="warningNotification" style="display: none;">
+    <div class="notification-content">
+        <i class="ti ti-alert-circle notification-icon warning"></i>
+        <span id="warningMessage">Warning!</span>
+        <button class="notification-close-btn" onclick="closeWarningNotification()"><i class="ti ti-x"></i></button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/jordan/research_submissions.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+{% endblock %}

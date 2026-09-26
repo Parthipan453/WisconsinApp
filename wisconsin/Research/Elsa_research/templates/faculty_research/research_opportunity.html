@@ -1,0 +1,200 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Opportunity{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/faculty_research/research_opportunity.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+{% endblock %}
+
+{% block content %}
+
+    <!-- Header -->
+    <div class="ro-header">
+        <div>
+            <h2 class="ro-title">Research Opportunities</h2>
+            <p class="ro-subtitle">Manage your research opportunities.</p>
+        </div>
+        <a href="{% url 'Elsa_research:post_research_opportunity' uuid %}" class="ro-btn">
+            <i class="bi bi-plus-circle"></i>
+            Post Opportunity
+        </a>
+    </div>
+
+    <!-- Summary -->
+    <div class="ro-summary">
+        <div class="ro-stat">
+            <div class="ro-icon"><i class="bi bi-folder2-open"></i></div>
+            <div>
+                <h3>{{ total_count }}</h3>
+                <span>Total</span>
+            </div>
+        </div>
+
+        <div class="ro-stat">
+            <div class="ro-icon blue"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+                <h3>{{ draft_count }}</h3>
+                <span>Draft</span>
+            </div>
+        </div>
+        <div class="ro-stat">
+            <div class="ro-icon green"><i class="bi bi-check-circle"></i></div>
+            <div>
+                <h3>{{ open_count }}</h3>
+                <span>Open</span>
+            </div>
+        </div>        
+        <div class="ro-stat">
+            <div class="ro-icon purple"><i class="bi bi-trophy"></i></div>
+            <div>
+                <h3>{{ closed_count }}</h3>
+                <span>Closed</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="ro-filters">
+        <a href="?status=ALL"
+        class="{% if selected_status == 'ALL' %}active{% endif %}">
+            All
+        </a>
+        <a href="?status=DRAFT"
+        class="{% if selected_status == 'DRAFT' %}active{% endif %}">
+            Draft
+        </a>
+        <a href="?status=OPEN"
+        class="{% if selected_status == 'OPEN' %}active{% endif %}">
+            Open
+        </a>
+        <a href="?status=CLOSED"
+        class="{% if selected_status == 'CLOSED' %}active{% endif %}">
+            Closed
+        </a>
+    </div>
+
+    <!-- Opportunity Table -->
+    <div class="ro-card">
+        <div class="ro-card-head">
+            <h3>My Research Opportunities</h3>
+        </div>
+        <div class="ro-table-wrap">
+            <table class="ro-table ro-opportunity-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Opening</th>
+                        <th>Closing</th>
+                        <th>Slots</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for opportunity in opportunities %}
+                    <tr>
+                        <td>
+                            <strong>{{ opportunity.title }}</strong>
+                            <small>{{ opportunity.category }}</small>
+                        </td>
+                        <td>
+                            {% if opportunity.status == "OPEN" %}
+                                <span class="ro-badge ro-open">Open</span>
+                            {% elif opportunity.status == "DRAFT" %}
+                                <span class="ro-badge ro-ongoing">Draft</span>                           
+                            {% else %}
+                                <span class="ro-badge ro-closed">Closed</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ opportunity.application_open_date|date:"d M Y" }}</td>
+                        <td>{{opportunity.application_deadline|date:"d M Y" }}</td>
+                        <td>{{ opportunity.available_slots }}</td>
+                        <td>{{ opportunity.created_at|date:"d M Y" }}</td>
+                        <td class="ro-actions">
+                            <a  href="{% url 'Elsa_research:view_research_opportunity' opportunity.research_id uuid %}"
+                                class="action-btn action-btn-view" title="View">
+                                <i class="bi bi-eye"></i>
+                            </a>  
+                            <span class="edit-container">                       
+                            {% if opportunity.status == "DRAFT" or opportunity.status == "OPEN" %}
+                                <a href="{% url 'Elsa_research:edit_research_opportunity' opportunity.research_id uuid %}"
+                                class="action-btn action-btn-edit" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            {% else %}
+                            <span class="action-btn action-btn-edit disabled" title="Editing is disabled">
+                                <i class="bi bi-pencil"></i>
+                            </span>
+                            {% endif %}
+                            </span>               
+                            <label class="ro-switch {% if opportunity.status == 'DRAFT' %}disabled-switch{% endif %}"
+                                    title="{% if opportunity.status == 'OPEN' %}Deactivate{% elif opportunity.status == 'CLOSED' %}Activate{% else %}Status cannot be changed{% endif %}">
+                                <input
+                                    type="checkbox"
+                                    class="status-toggle"
+                                    data-id="{{ opportunity.research_id }}"
+                                    data-url="{% url 'Elsa_research:toggle_opportunity_status' opportunity.research_id %}"
+                                    data-edit-url="{% url 'Elsa_research:edit_research_opportunity' opportunity.research_id uuid %}"
+                                    {% if opportunity.status == "OPEN" %}checked{% endif %}
+                                    {% if opportunity.status == "DRAFT" %}disabled{% endif %}>
+                                <span class="ro-slider"></span>
+                            </label>
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="ro-empty">
+                                <div class="ro-empty-content">
+                                    <i class="bi bi-folder2-open"></i>
+                                    <strong>No Research Opportunities Found</strong>
+                                    <span>Currently no opportunities posted by you.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div> 
+    </div>
+    <div class="ro-pagination">
+        <div class="ro-page-info">
+            Showing
+            {{ opportunities.start_index }}-{{ opportunities.end_index }}
+            of
+            {{ opportunities.paginator.count }}
+            Opportunities
+        </div>
+        <div class="ro-page-nav">
+            
+        {% if opportunities.has_previous %}
+        <a href="?status={{ selected_status }}&op_page={{ opportunities.previous_page_number }}" class="ro-page-btn">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="ro-page-btn ro-disabled">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            {% endif %}
+            <span class="ro-page-btn ro-active">
+                {{ opportunities.number }}
+            </span>
+            {% if opportunities.has_next %}
+                    <a href="?status={{ selected_status }}&op_page={{ opportunities.next_page_number }}" class="ro-page-btn">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            {% else %}
+                <span class="ro-page-btn ro-disabled">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div> 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/faculty_research/research_opportunity.js' %}"></script>
+{% endblock %}

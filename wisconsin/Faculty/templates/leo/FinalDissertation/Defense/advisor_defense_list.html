@@ -1,0 +1,805 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}
+    Advisor Dissertation Defense
+{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/leo/FinalDissertation/Defense/advisor_defense_list.css' %}">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+{% block content %}
+    <div class="advisor-defense-page">
+        <div class="advisor-defense-shell">
+            <section class="advisor-defense-hero">
+                {% comment %} <div class="advisor-defense-breadcrumb">
+                    <span>Final Dissertation</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <strong>Defense</strong>
+                </div> {% endcomment %}
+                <div class="advisor-defense-hero-content">
+                    <div class="advisor-defense-title-area">
+                        <div class="advisor-defense-hero-icon">
+                            <i class="ti ti-presentation"></i>
+                        </div>
+                        <div>
+                            <span class="advisor-defense-eyebrow">Faculty Advisor Portal</span>
+                            <h1>Dissertation Defense</h1>
+                            <p>
+                                Monitor your advisees, defense schedules,
+                                committee participation, and evaluation progress.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="advisor-defense-access">
+                        <span></span>
+                        Advisor Access
+                    </div>
+                </div>
+            </section>
+            <section class="advisor-defense-stats">
+                <div class="advisor-defense-stat-card">
+                    <div class="advisor-defense-stat-icon">
+                        <i class="ti ti-users"></i>
+                    </div>
+                    <div>
+                        <span>Total Advisees</span>
+                        <strong>{{ total_count }}</strong>
+                    </div>
+                </div>
+                <div class="advisor-defense-stat-card">
+                    <div class="advisor-defense-stat-icon">
+                        <i class="ti ti-calendar-event"></i>
+                    </div>
+                    <div>
+                        <span>Scheduled</span>
+                        <strong>{{ scheduled_count }}</strong>
+                    </div>
+                </div>
+                <div class="advisor-defense-stat-card">
+                    <div class="advisor-defense-stat-icon">
+                        <i class="ti ti-clock"></i>
+                    </div>
+                    <div>
+                        <span>Pending Schedule</span>
+                        <strong>{{ pending_count }}</strong>
+                    </div>
+                </div>
+                <div class="advisor-defense-stat-card">
+                    <div class="advisor-defense-stat-icon">
+                        <i class="ti ti-circle-check"></i>
+                    </div>
+                    <div>
+                        <span>Completed</span>
+                        <strong>{{ completed_count }}</strong>
+                    </div>
+                </div>
+            </section>
+            <div class="advisor-defense-layout">
+                <main>
+                    <section class="advisor-defense-card">
+                        <div class="advisor-defense-card-header">
+                            <div class="advisor-defense-heading">
+                                <div class="advisor-defense-heading-icon">
+                                    <i class="ti ti-file-certificate"></i>
+                                </div>
+                                <div>
+                                    <span>Defense Management</span>
+                                    <h2>My Dissertation Defenses</h2>
+                                    <p>Approved dissertation candidates assigned to you.</p>
+                                </div>
+                            </div>
+                            <div class="advisor-defense-total-pill">{{ total_count }} Records</div>
+                        </div>
+                        <div class="advisor-defense-filter">
+                            <div class="advisor-defense-filter-grid">
+                                <div class="advisor-defense-field advisor-defense-search-field">
+                                    <label for="defenseSearch">Search</label>
+                                    <div class="advisor-defense-input-wrap">
+                                        <i class="ti ti-search"></i>
+                                        <input type="text"
+                                               id="defenseSearch"
+                                               placeholder="Search student, program or location..."
+                                               autocomplete="off">
+                                    </div>
+                                </div>
+                                <div class="advisor-defense-field">
+                                    <label for="defenseStatus">Status</label>
+                                    <select id="defenseStatus">
+                                        <option value="">All Status</option>
+                                        <option value="SCHEDULED">Scheduled</option>
+                                        <option value="NOT_SCHEDULED">Not Scheduled</option>
+                                        <option value="COMPLETED">Completed</option>
+                                    </select>
+                                </div>
+                                <div class="advisor-defense-field">
+                                    <label for="defenseDate">Defense Date</label>
+                                    <div class="advisor-defense-date-wrap" id="defenseDateWrap">
+                                        <input type="text" id="defenseDate" placeholder="Select date" readonly>
+                                        <i class="ti ti-calendar"></i>
+                                    </div>
+                                </div>
+                                <div class="advisor-defense-field advisor-defense-reset-field">
+                                    <label>Reset</label>
+                                    <button type="button"
+                                            id="resetDefenseFilters"
+                                            class="advisor-defense-reset-btn">
+                                        <i class="ti ti-refresh"></i>
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="advisor-defense-results-bar">
+                            <span>
+                                Showing
+                                <strong id="visibleDefenseCount">{{ total_count }}</strong>
+                                defense records
+                            </span>
+                            <span>Advisor View</span>
+                        </div>
+                        <div class="advisor-defense-records" id="advisorDefenseRecords">
+                            {% for record in defense_records %}
+                                {% with student=record.phd_student %}
+                                    <article class="advisor-defense-record"
+                                             data-student="{{ student.student.user.get_full_name|default:''|lower }}"
+                                             data-program="{{ student.phd_program|default:''|lower }}"
+                                             data-location="{% if record.defense %}{{ record.defense.location|default:''|lower }}{% endif %}"
+                                             data-status="{{ record.defense_status }}"
+                                             data-date="{% if record.defense and record.defense.defense_date %}{{ record.defense.defense_date|date:'Y-m-d' }}{% endif %}">
+                                        <div class="advisor-defense-record-header">
+                                            <div class="advisor-defense-student">
+                                                <div class="advisor-defense-avatar">
+                                                    {{ student.student.user.first_name|first|upper }}{{ student.student.user.last_name|first|upper }}
+                                                </div>
+                                                <div class="advisor-defense-student-details">
+                                                    <h3>{{ student.student.user.get_full_name|default:"PhD Student" }}</h3>
+                                                    <p>{{ student.student.student_id|default:"PhD Candidate" }}</p>
+                                                </div>
+                                            </div>
+                                            {% if record.defense_status == "SCHEDULED" %}
+                                                <span class="advisor-defense-status scheduled">
+                                                    <i class="ti ti-calendar-check"></i>
+                                                    Scheduled
+                                                </span>
+                                            {% elif record.defense_status == "COMPLETED" %}
+                                                <span class="advisor-defense-status completed">
+                                                    <i class="ti ti-circle-check"></i>
+                                                    Completed
+                                                </span>
+                                            {% else %}
+                                                <span class="advisor-defense-status pending">
+                                                    <i class="ti ti-clock"></i>
+                                                    Not Scheduled
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="advisor-defense-record-body">
+                                            <div class="advisor-defense-info-grid">
+                                                <div class="advisor-defense-info">
+                                                    <div class="advisor-defense-info-icon">
+                                                        <i class="ti ti-calendar"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span>Defense Date</span>
+                                                        <strong>
+                                                            {% if record.defense %}
+                                                                {{ record.defense.defense_date|date:"d M Y" }}
+                                                            {% else %}
+                                                                Not scheduled
+                                                            {% endif %}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                                <div class="advisor-defense-info">
+                                                    <div class="advisor-defense-info-icon">
+                                                        <i class="ti ti-clock"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span>Defense Time</span>
+                                                        <strong>
+                                                            {% if record.defense %}
+                                                                {{ record.defense.defense_time|time:"h:i A" }}
+                                                            {% else %}
+                                                                Not scheduled
+                                                            {% endif %}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                                <div class="advisor-defense-info">
+                                                    <div class="advisor-defense-info-icon">
+                                                        <i class="ti ti-map-pin"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span>Location</span>
+                                                        <strong>
+                                                            {% if record.defense and record.defense.location %}
+                                                                {{ record.defense.location }}
+                                                            {% else %}
+                                                                Not assigned
+                                                            {% endif %}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="advisor-defense-evaluation">
+                                                <div class="advisor-defense-evaluation-header">
+                                                    <div>
+                                                        <span>Committee Evaluation</span>
+                                                        <strong>
+                                                            {{ record.submitted_evaluations }}/{{ record.total_evaluations }}
+                                                            submitted
+                                                        </strong>
+                                                    </div>
+                                                    <strong class="advisor-defense-percentage">{{ record.evaluation_percentage }}%</strong>
+                                                </div>
+                                                <div class="advisor-defense-progress">
+                                                    <div class="advisor-defense-progress-fill"
+                                                         style="width: {{ record.evaluation_percentage }}%"></div>
+                                                </div>
+                                                <div class="advisor-defense-evaluation-footer">
+                                                    <span>
+                                                        {{ record.committee_count }}
+                                                        committee member{{ record.committee_count|pluralize }}
+                                                    </span>
+                                                    {% if record.total_evaluations %}
+                                                        {% if record.submitted_evaluations == record.total_evaluations %}
+                                                            <span class="evaluation-complete">All evaluations submitted</span>
+                                                        {% else %}
+                                                            <span>
+                                                                {{ record.total_evaluations|add:"-"|add:record.submitted_evaluations }}
+                                                                evaluation{{ record.total_evaluations|add:"-"|add:record.submitted_evaluations|pluralize }}
+                                                                pending
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="advisor-defense-bottom">
+                                                <div class="advisor-defense-committee">
+                                                    <div class="advisor-defense-committee-icon">
+                                                        <i class="ti ti-users-group"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span>Doctoral Committee</span>
+                                                        <strong>
+                                                            {{ record.committee_count }}
+                                                            Member{{ record.committee_count|pluralize }}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+                                                {% if record.defense %}
+                                                    <a href="{% url 'faculty_advisor_dissertation_defense_detail' uuid=faculty.user.uuid defense_id=record.defense.defense_id %}"
+                                                       class="advisor-defense-view-btn">
+                                                        View Details
+                                                        <i class="ti ti-arrow-right"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </article>
+                                    {% endwith %}
+                                {% empty %}
+                                    <div class="advisor-defense-empty">
+                                        <div class="advisor-defense-empty-icon">
+                                            <i class="ti ti-presentation-off"></i>
+                                        </div>
+                                        <h3>No Dissertation Defenses</h3>
+                                        <p>
+                                            No approved dissertation defense records
+                                            are currently available for you.
+                                        </p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div id="advisorDefenseNoResults"
+                                 class="advisor-defense-empty advisor-defense-no-results">
+                                <div class="advisor-defense-empty-icon">
+                                    <i class="ti ti-search-off"></i>
+                                </div>
+                                <h3>No Matching Defenses</h3>
+                                <p>Try changing your search, status, or date filter.</p>
+                            </div>
+                        </section>
+                    </main>
+                    <aside class="advisor-defense-sidebar">
+                        <section class="advisor-defense-side-card">
+                            <div class="advisor-defense-side-header">
+                                <div class="advisor-defense-side-icon">
+                                    <i class="ti ti-bulb"></i>
+                                </div>
+                                <div>
+                                    <span>Quick Guidance</span>
+                                    <h3>Advisor Tips</h3>
+                                </div>
+                            </div>
+                            <div class="advisor-defense-tip-list">
+                                <div class="advisor-defense-tip">
+                                    <div class="advisor-defense-tip-number">01</div>
+                                    <div>
+                                        <strong>Review the schedule</strong>
+                                        <p>
+                                            Confirm the defense date, time,
+                                            and location before the session.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="advisor-defense-tip">
+                                    <div class="advisor-defense-tip-number">02</div>
+                                    <div>
+                                        <strong>Monitor evaluations</strong>
+                                        <p>
+                                            Track committee evaluation progress
+                                            from the defense record.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="advisor-defense-tip">
+                                    <div class="advisor-defense-tip-number">03</div>
+                                    <div>
+                                        <strong>Check committee participation</strong>
+                                        <p>
+                                            Ensure the approved doctoral committee
+                                            is reflected correctly.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="advisor-defense-tip">
+                                    <div class="advisor-defense-tip-number">04</div>
+                                    <div>
+                                        <strong>Follow pending items</strong>
+                                        <p>
+                                            Pay attention to defenses waiting for
+                                            scheduling or evaluation completion.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="advisor-defense-side-card">
+                            <div class="advisor-defense-side-header">
+                                <div class="advisor-defense-side-icon">
+                                    <i class="ti ti-help-circle"></i>
+                                </div>
+                                <div>
+                                    <span>Need Help?</span>
+                                    <h3>Frequently Asked Questions</h3>
+                                </div>
+                            </div>
+                            <div class="advisor-defense-faq">
+                                <details>
+                                    <summary>
+                                        When does a student appear here?
+                                        <i class="ti ti-chevron-down"></i>
+                                    </summary>
+                                    <p>
+                                        The latest final dissertation submission
+                                        must be approved, the doctoral committee
+                                        must be approved, and the student must
+                                        remain active under your supervision.
+                                    </p>
+                                </details>
+                                <details>
+                                    <summary>
+                                        What does 0/2 submitted mean?
+                                        <i class="ti ti-chevron-down"></i>
+                                    </summary>
+                                    <p>
+                                        It means two committee evaluations are
+                                        required and none have been submitted yet.
+                                    </p>
+                                </details>
+                                <details>
+                                    <summary>
+                                        When is a defense completed?
+                                        <i class="ti ti-chevron-down"></i>
+                                    </summary>
+                                    <p>
+                                        A defense is marked completed after a
+                                        final PASS or FAIL result is recorded.
+                                    </p>
+                                </details>
+                                <details>
+                                    <summary>
+                                        Can I schedule the defense here?
+                                        <i class="ti ti-chevron-down"></i>
+                                    </summary>
+                                    <p>
+                                        Advisors can monitor the defense record.
+                                        Defense scheduling is handled through
+                                        the authorized scheduling workflow.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+                <footer class="advisor-defense-footer">
+                    <span>Dissertation Defense Management</span>
+                    <strong>Advisor Portal · Final Dissertation &amp; Defense</strong>
+                </footer>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput =
+        document.getElementById("defenseSearch");
+
+    const statusSelect =
+        document.getElementById("defenseStatus");
+
+    const dateInput =
+        document.getElementById("defenseDate");
+
+    const dateWrap =
+        document.getElementById("defenseDateWrap");
+
+    const resetButton =
+        document.getElementById("resetDefenseFilters");
+
+    const visibleCount =
+        document.getElementById("visibleDefenseCount");
+
+    const noResults =
+        document.getElementById("advisorDefenseNoResults");
+
+    const records =
+        Array.from(
+            document.querySelectorAll(
+                ".advisor-defense-record"
+            )
+        );
+
+
+    let selectedDate = "";
+
+
+    let statusChoices = null;
+
+
+    if (
+        statusSelect &&
+        typeof Choices !== "undefined"
+    ) {
+
+        statusChoices = new Choices(
+            statusSelect,
+            {
+                searchEnabled: false,
+                shouldSort: false,
+                itemSelectText: "",
+                allowHTML: false,
+                placeholder: true,
+                placeholderValue: "All Status"
+            }
+        );
+
+    }
+
+
+    let defenseDatePicker = null;
+
+
+    if (
+        dateInput &&
+        dateWrap &&
+        typeof flatpickr !== "undefined"
+    ) {
+
+        defenseDatePicker = flatpickr(
+            dateInput,
+            {
+
+                appendTo: dateWrap,
+
+                dateFormat: "d M Y",
+
+                disableMobile: true,
+
+                allowInput: false,
+
+                clickOpens: true,
+
+                positionElement: dateInput,
+
+                onReady: function (
+                    selectedDates,
+                    dateStr,
+                    instance
+                ) {
+
+                    attachCalendar(
+                        instance
+                    );
+
+                },
+
+                onOpen: function (
+                    selectedDates,
+                    dateStr,
+                    instance
+                ) {
+
+                    attachCalendar(
+                        instance
+                    );
+
+                },
+
+                onChange: function (
+                    selectedDates
+                ) {
+
+                    if (
+                        selectedDates.length
+                    ) {
+
+                        selectedDate =
+                            flatpickr.formatDate(
+                                selectedDates[0],
+                                "Y-m-d"
+                            );
+
+                    } else {
+
+                        selectedDate = "";
+
+                    }
+
+                    applyFilters();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    function attachCalendar(instance) {
+
+        if (
+            !instance ||
+            !instance.calendarContainer ||
+            !dateWrap
+        ) {
+            return;
+        }
+
+
+        if (
+            instance.calendarContainer.parentElement !==
+            dateWrap
+        ) {
+
+            dateWrap.appendChild(
+                instance.calendarContainer
+            );
+
+        }
+
+
+        instance.calendarContainer.classList.add(
+            "advisor-defense-flatpickr"
+        );
+
+    }
+
+
+    function applyFilters() {
+
+        const searchValue =
+            searchInput
+                ? searchInput.value
+                    .trim()
+                    .toLowerCase()
+                : "";
+
+
+        const statusValue =
+            statusSelect
+                ? statusSelect.value
+                : "";
+
+
+        let count = 0;
+
+
+        records.forEach(function (record) {
+
+            const student =
+                record.dataset.student || "";
+
+            const program =
+                record.dataset.program || "";
+
+            const location =
+                record.dataset.location || "";
+
+            const status =
+                record.dataset.status || "";
+
+            const date =
+                record.dataset.date || "";
+
+
+            const searchableText =
+                (
+                    student +
+                    " " +
+                    program +
+                    " " +
+                    location
+                ).toLowerCase();
+
+
+            const searchMatch =
+                !searchValue ||
+                searchableText.includes(
+                    searchValue
+                );
+
+
+            const statusMatch =
+                !statusValue ||
+                status === statusValue;
+
+
+            const dateMatch =
+                !selectedDate ||
+                date === selectedDate;
+
+
+            const show =
+                searchMatch &&
+                statusMatch &&
+                dateMatch;
+
+
+            record.style.display =
+                show
+                    ? ""
+                    : "none";
+
+
+            if (show) {
+                count += 1;
+            }
+
+        });
+
+
+        if (visibleCount) {
+
+            visibleCount.textContent =
+                count;
+
+        }
+
+
+        if (noResults) {
+
+            noResults.classList.toggle(
+                "show",
+                records.length > 0 &&
+                count === 0
+            );
+
+        }
+
+    }
+
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            applyFilters
+        );
+
+    }
+
+
+    if (statusSelect) {
+
+        statusSelect.addEventListener(
+            "change",
+            applyFilters
+        );
+
+    }
+
+
+    if (resetButton) {
+
+        resetButton.addEventListener(
+            "click",
+            function () {
+
+                if (searchInput) {
+                    searchInput.value = "";
+                }
+
+
+                if (statusChoices) {
+
+                    statusChoices.setChoiceByValue("");
+
+                } else if (statusSelect) {
+
+                    statusSelect.value = "";
+
+                }
+
+
+                selectedDate = "";
+
+
+                if (defenseDatePicker) {
+
+                    defenseDatePicker.clear();
+
+                }
+
+
+                applyFilters();
+
+            }
+        );
+
+    }
+
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            Swal.fire({
+
+                icon:
+                    "{% if message.tags == 'success' %}success{% elif message.tags == 'error' or message.tags == 'danger' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+
+                title:
+                    "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' or message.tags == 'danger' %}Error{% elif message.tags == 'warning' %}Attention{% else %}Information{% endif %}",
+
+                text:
+                    "{{ message|escapejs }}",
+
+                confirmButtonText:
+                    "OK",
+
+                confirmButtonColor:
+                    "#c5050c",
+
+                background:
+                    "#ffffff",
+
+                color:
+                    "#172033",
+
+                customClass: {
+                    popup:
+                        "advisor-defense-swal"
+                }
+
+            });
+
+        {% endfor %}
+
+    {% endif %}
+
+
+    applyFilters();
+
+});
+
+        </script>
+    {% endblock %}

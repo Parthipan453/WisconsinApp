@@ -1,0 +1,732 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Defense Details{% endblock %}
+{% block extra_css %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/FinalDissertation/Defense/chair_defense_detail.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="cdd-page">
+        <div class="cdd-shell">
+            <section class="cdd-hero">
+                <div class="cdd-hero-glow cdd-hero-glow-one"></div>
+                <div class="cdd-hero-glow cdd-hero-glow-two"></div>
+                {% comment %} <div class="cdd-breadcrumb">
+                    <span>PhD Management</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Final Dissertation</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Defense</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <strong>Details</strong>
+                </div> {% endcomment %}
+                <div class="cdd-hero-content">
+                    <div class="cdd-hero-title">
+                        <div class="cdd-hero-icon">
+                            <i class="ti ti-shield-check"></i>
+                        </div>
+                        <div class="cdd-hero-copy">
+                            <span class="cdd-eyebrow">Chair Faculty Workspace</span>
+                            <h1>Dissertation Defense Details</h1>
+                            <p>
+                                Review the official defense schedule, candidate record,
+                                committee participation, and evaluation progress.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="cdd-hero-status">
+                        <span class="cdd-status-dot"></span>
+                        {{ defense_status_label }}
+                    </div>
+                </div>
+            </section>
+            <div class="cdd-layout">
+                <main class="cdd-main">
+                    <section class="cdd-card cdd-schedule-card">
+                        <div class="cdd-card-header">
+                            <div class="cdd-heading-group">
+                                <div class="cdd-heading-icon">
+                                    <i class="ti ti-calendar-event"></i>
+                                </div>
+                                <div>
+                                    <span class="cdd-section-kicker">Official Schedule</span>
+                                    <h2>Defense Schedule</h2>
+                                    <p>Current defense date, time, and official venue.</p>
+                                </div>
+                            </div>
+                            {% if can_update_schedule %}
+                                <a href="{% url 'faculty_chair_dissertation_defense_schedule' uuid=faculty.user.uuid phd_student_id=phd_student.pk %}"
+                                   class="cdd-outline-button">
+                                    <i class="ti ti-pencil"></i>
+                                    Update Schedule
+                                </a>
+                            {% endif %}
+                        </div>
+                        <div class="cdd-schedule-grid">
+                            <div class="cdd-schedule-item">
+                                <div class="cdd-schedule-icon">
+                                    <i class="ti ti-calendar"></i>
+                                </div>
+                                <div>
+                                    <span>Date</span>
+                                    {% if defense.defense_date %}
+                                        <strong>{{ defense.defense_date|date:"F j, Y" }}</strong>
+                                        <small>{{ defense.defense_date|date:"l" }}</small>
+                                    {% else %}
+                                        <strong>Not Scheduled</strong>
+                                        <small>Date pending</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="cdd-schedule-item">
+                                <div class="cdd-schedule-icon">
+                                    <i class="ti ti-clock"></i>
+                                </div>
+                                <div>
+                                    <span>Time</span>
+                                    {% if defense.defense_time %}
+                                        <strong>{{ defense.defense_time|time:"g:i A" }}</strong>
+                                        <small>Local defense time</small>
+                                    {% else %}
+                                        <strong>Not Scheduled</strong>
+                                        <small>Time pending</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="cdd-schedule-item cdd-location-item">
+                                <div class="cdd-schedule-icon">
+                                    <i class="ti ti-map-pin"></i>
+                                </div>
+                                <div>
+                                    <span>Location</span>
+                                    <strong>{{ defense.location|default:"Location not provided" }}</strong>
+                                    <small>Official defense venue</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cdd-confirmation-strip">
+                            <div class="cdd-confirmation-icon">
+                                {% if schedule_state == "conducted" %}
+                                    <i class="ti ti-circle-check"></i>
+                                {% elif schedule_state == "scheduled" %}
+                                    <i class="ti ti-calendar-check"></i>
+                                {% else %}
+                                    <i class="ti ti-calendar-plus"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>
+                                    {% if schedule_state == "conducted" %}
+                                        Defense Conducted
+                                    {% elif schedule_state == "scheduled" %}
+                                        Schedule Confirmed
+                                    {% else %}
+                                        Schedule Pending
+                                    {% endif %}
+                                </strong>
+                                <span>
+                                    {% if schedule_state == "conducted" %}
+                                        The scheduled defense date has been reached and the defense is now in the evaluation workflow.
+                                    {% elif schedule_state == "scheduled" %}
+                                        The defense schedule is currently available to the assigned Chair Faculty.
+                                    {% else %}
+                                        A defense schedule has not yet been finalized.
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="cdd-defense-number">
+                                <span>Defense ID</span>
+                                <strong>#{{ defense.defense_id }}</strong>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-candidate-card">
+                        <div class="cdd-card-header">
+                            <div class="cdd-heading-group">
+                                <div class="cdd-heading-icon">
+                                    <i class="ti ti-user"></i>
+                                </div>
+                                <div>
+                                    <span class="cdd-section-kicker">Candidate Profile</span>
+                                    <h2>Dissertation Candidate</h2>
+                                    <p>Academic and supervision details associated with this defense.</p>
+                                </div>
+                            </div>
+                            <span class="cdd-pill cdd-pill-green">
+                                <i class="ti ti-circle-check"></i>
+                                {{ phd_student.get_current_status_display|default:"Active" }}
+                            </span>
+                        </div>
+                        <div class="cdd-profile-panel">
+                            <div class="cdd-large-avatar">
+                                {% if phd_student.student.user.first_name %}
+                                    {{ phd_student.student.user.first_name|first|upper }}
+                                {% else %}
+                                    P
+                                {% endif %}
+                            </div>
+                            <div class="cdd-profile-main">
+                                <h3>{{ phd_student.student.user.get_full_name|default:"PhD Candidate" }}</h3>
+                                <p>{{ phd_student.student.student_number|default:"Student number unavailable" }}</p>
+                            </div>
+                            <div class="cdd-profile-badge">
+                                <i class="ti ti-school"></i>
+                                PhD Candidate
+                            </div>
+                        </div>
+                        <div class="cdd-detail-grid">
+                            <div class="cdd-detail-box">
+                                <span>Program</span>
+                                <strong>{{ phd_student.phd_program.program_name|default:"Not available" }}</strong>
+                            </div>
+                            <div class="cdd-detail-box">
+                                <span>Department</span>
+                                <strong>{{ phd_student.phd_program.department|default:"Not available" }}</strong>
+                            </div>
+                            <div class="cdd-detail-box">
+                                <span>Advisor</span>
+                                <strong>{{ phd_student.advisor.user.get_full_name|default:"Not assigned" }}</strong>
+                            </div>
+                            <div class="cdd-detail-box">
+                                <span>Defense Status</span>
+                                <strong>{{ defense_status_label }}</strong>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-video-evidence-card">
+                        <div class="cdd-card-header">
+                            <div class="cdd-heading-group">
+                                <div class="cdd-heading-icon cdd-video-icon">
+                                    <i class="ti ti-video"></i>
+                                </div>
+                                <div>
+                                    <span class="cdd-section-kicker">Recorded Evidence</span>
+                                    <h2>Video Evidence</h2>
+                                    <p>Recorded evidence associated with this dissertation defense.</p>
+                                </div>
+                            </div>
+                            {% if video_evidence %}
+                                <span class="cdd-video-status cdd-video-status-available">
+                                    <i class="ti ti-circle-check"></i>
+                                    Available
+                                </span>
+                            {% else %}
+                                <span class="cdd-video-status cdd-video-status-pending">
+                                    <i class="ti ti-clock"></i>
+                                    Not Uploaded
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="cdd-video-body">
+                            {% if video_evidence %}
+                                <div class="cdd-video-preview">
+                                    <video controls preload="metadata" class="cdd-video-player">
+                                        <source src="{{ video_evidence.video.url }}">
+                                        Your browser does not support the video element.
+                                    </video>
+                                </div>
+                                <div class="cdd-video-meta">
+                                    <div class="cdd-video-file">
+                                        <div class="cdd-video-file-icon">
+                                            <i class="ti ti-file-video"></i>
+                                        </div>
+                                        <div class="cdd-video-file-info">
+                                            <strong>{{ video_evidence.video.name|cut:"phd/video_evidence/" }}</strong>
+                                            <span>Uploaded {{ video_evidence.uploaded_at|date:"d M Y, h:i A" }}</span>
+                                            {% if video_evidence.uploaded_by %}
+                                                <span>By {{ video_evidence.uploaded_by.get_full_name|default:video_evidence.uploaded_by.username }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="cdd-video-actions">
+                                        <a href="{{ video_evidence.video.url }}"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="cdd-video-button cdd-video-button-primary">
+                                            <i class="ti ti-external-link"></i>
+                                            Open Video
+                                        </a>
+                                        <a href="{{ video_evidence.video.url }}"
+                                           download
+                                           class="cdd-video-button cdd-video-button-secondary">
+                                            <i class="ti ti-download"></i>
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="cdd-video-empty">
+                                    <div class="cdd-video-empty-icon">
+                                        <i class="ti ti-video-off"></i>
+                                    </div>
+                                    <div class="cdd-video-empty-content">
+                                        <strong>No video evidence available</strong>
+                                        <span>No video evidence has been uploaded for this dissertation defense yet.</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-dissertation-card">
+                        <div class="cdd-card-header">
+                            <div class="cdd-heading-group">
+                                <div class="cdd-heading-icon">
+                                    <i class="ti ti-file-certificate"></i>
+                                </div>
+                                <div>
+                                    <span class="cdd-section-kicker">Final Dissertation</span>
+                                    <h2>Approved Submission</h2>
+                                    <p>The final dissertation record connected to this defense.</p>
+                                </div>
+                            </div>
+                            {% if approved_submission %}
+                                <span class="cdd-pill cdd-pill-green">
+                                    <i class="ti ti-circle-check"></i>
+                                    {{ approved_submission.get_status_display|default:"Approved" }}
+                                </span>
+                            {% else %}
+                                <span class="cdd-pill cdd-pill-pending">
+                                    <i class="ti ti-clock"></i>
+                                    Not Available
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if approved_submission %}
+                            <div class="cdd-document-panel">
+                                <div class="cdd-document-icon">
+                                    <i class="ti ti-file-text"></i>
+                                </div>
+                                <div class="cdd-document-info">
+                                    <strong>Final Dissertation Submission</strong>
+                                    <span>Submission {{ approved_submission.submission_number|default:"1" }}</span>
+                                    {% if approved_submission.created_at %}
+                                        <small>Submitted {{ approved_submission.created_at|date:"F j, Y" }}</small>
+                                    {% endif %}
+                                </div>
+                                {% if approved_submission.dissertation_file %}
+                                    <a href="{{ approved_submission.dissertation_file.url }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="cdd-document-button">
+                                        <i class="ti ti-external-link"></i>
+                                        View Dissertation
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="cdd-empty-state">
+                                <i class="ti ti-file-off"></i>
+                                <strong>No approved dissertation submission</strong>
+                                <span>An approved final dissertation submission is not available for this defense.</span>
+                            </div>
+                        {% endif %}
+                    </section>
+                    <section class="cdd-card cdd-evaluation-card">
+                        <div class="cdd-card-header">
+                            <div class="cdd-heading-group">
+                                <div class="cdd-heading-icon">
+                                    <i class="ti ti-clipboard-check"></i>
+                                </div>
+                                <div>
+                                    <span class="cdd-section-kicker">Defense Evaluation</span>
+                                    <h2>Committee Evaluation Progress</h2>
+                                    <p>Track every required committee evaluation before the final decision.</p>
+                                </div>
+                            </div>
+                            <div class="cdd-evaluation-count">
+                                <strong>{{ submitted_count }}</strong>
+                                <span>of {{ required_count }}</span>
+                            </div>
+                        </div>
+                        <div class="cdd-progress-wrap">
+                            <div class="cdd-progress-labels">
+                                <span>Evaluation completion</span>
+                                <strong>{{ submitted_count }}/{{ required_count }} submitted</strong>
+                            </div>
+                            <div class="cdd-progress-track">
+                                <div class="cdd-progress-fill" style="width: {{ submitted_percentage }}%;"></div>
+                            </div>
+                            <div class="cdd-progress-foot">
+                                <span>
+                                    {% if all_evaluations_submitted %}
+                                        All required evaluations have been submitted.
+                                    {% elif required_count == 0 %}
+                                        No committee evaluation is required for this defense.
+                                    {% else %}
+                                        {{ pending_count }} evaluation{{ pending_count|pluralize }} still pending.
+                                    {% endif %}
+                                </span>
+                                <strong>{{ submitted_percentage }}%</strong>
+                            </div>
+                        </div>
+                        <div class="cdd-evaluation-summary-grid">
+                            <div class="cdd-evaluation-summary-item">
+                                <span>Committee Members</span>
+                                <strong>{{ committee_member_count }}</strong>
+                            </div>
+                            <div class="cdd-evaluation-summary-item">
+                                <span>Submitted</span>
+                                <strong>{{ submitted_count }}</strong>
+                            </div>
+                            <div class="cdd-evaluation-summary-item">
+                                <span>Pending</span>
+                                <strong>{{ pending_count }}</strong>
+                            </div>
+                            <div class="cdd-evaluation-summary-item">
+                                <span>Average Score</span>
+                                <strong>
+                                    {% if average_score != None %}
+                                        {{ average_score }} / 100
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="cdd-evaluation-list">
+                            {% for member in committee_members %}
+                                <div class="cdd-evaluation-row">
+                                    <div class="cdd-evaluator-avatar">
+                                        {% if member.faculty.user.first_name %}
+                                            {{ member.faculty.user.first_name|first|upper }}
+                                        {% else %}
+                                            F
+                                        {% endif %}
+                                    </div>
+                                    <div class="cdd-evaluator-info">
+                                        <strong>{{ member.faculty.user.get_full_name|default:"Committee Faculty" }}</strong>
+                                        <span>
+                                            {{ member.get_role_display|default:"Committee Member" }}
+                                            {% if member.faculty.department %}
+                                                · {{ member.faculty.department }}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    {% if member.defense_evaluation and member.defense_evaluation.is_submitted %}
+                                        <div class="cdd-evaluation-result">
+                                            <span class="cdd-evaluation-status cdd-status-complete">
+                                                <i class="ti ti-circle-check"></i>
+                                                Submitted
+                                            </span>
+                                            {% if member.defense_evaluation.score != None %}
+                                                <small>Score {{ member.defense_evaluation.score|floatformat:0 }}/100</small>
+                                            {% endif %}
+                                            {% if member.defense_evaluation.recommendation %}
+                                                <small>{{ member.defense_evaluation.get_recommendation_display }}</small>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="cdd-evaluation-status cdd-status-pending">
+                                            <i class="ti ti-clock"></i>
+                                            Pending
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            {% empty %}
+                                <div class="cdd-empty-state">
+                                    <i class="ti ti-users-off"></i>
+                                    <strong>No committee members available</strong>
+                                    <span>No required committee members are associated with this defense.</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+                </main>
+                <aside class="cdd-sidebar">
+                    <section class="cdd-card cdd-status-card">
+                        <div class="cdd-sidebar-title">
+                            <div class="cdd-sidebar-icon cdd-sidebar-icon-red">
+                                <i class="ti ti-activity"></i>
+                            </div>
+                            <div>
+                                <h3>Defense Status</h3>
+                                <p>{{ workflow_stage }}</p>
+                            </div>
+                        </div>
+                        <div class="cdd-current-status">
+                            <span class="cdd-current-status-dot"></span>
+                            <div>
+                                <strong>{{ defense_status_label }}</strong>
+                                <span>Defense ID #{{ defense.defense_id }}</span>
+                            </div>
+                        </div>
+                        <div class="cdd-status-timeline">
+                            <div class="cdd-timeline-item is-complete">
+                                <span class="cdd-timeline-marker">
+                                    <i class="ti ti-check"></i>
+                                </span>
+                                <div>
+                                    <strong>Dissertation Approved</strong>
+                                    <span>
+                                        {% if approved_submission %}
+                                            Approved final dissertation submission available.
+                                        {% else %}
+                                            Approved dissertation submission unavailable.
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="cdd-timeline-line"></div>
+                            <div class=" cdd-timeline-item {% if defense_date and not defense_conducted %} is-current {% elif defense_conducted %} is-complete {% else %} is-upcoming {% endif %} ">
+                                <span class="cdd-timeline-marker">
+                                    {% if defense_conducted %}
+                                        <i class="ti ti-check"></i>
+                                    {% elif defense_date %}
+                                        <i class="ti ti-calendar"></i>
+                                    {% else %}
+                                        <i class="ti ti-calendar-plus"></i>
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <strong>Defense Schedule</strong>
+                                    <span>
+                                        {% if defense_date %}
+                                            {{ defense_date|date:"F j, Y" }}
+                                            {% if defense_time %}
+                                                · {{ defense_time|time:"g:i A" }}
+                                            {% endif %}
+                                        {% else %}
+                                            Schedule not finalized
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="cdd-timeline-line"></div>
+                            <div class=" cdd-timeline-item {% if all_evaluations_submitted %} is-complete {% elif defense_conducted %} is-current {% else %} is-upcoming {% endif %} ">
+                                <span class="cdd-timeline-marker">
+                                    {% if all_evaluations_submitted %}
+                                        <i class="ti ti-check"></i>
+                                    {% elif defense_conducted %}
+                                        <i class="ti ti-loader-2"></i>
+                                    {% else %}
+                                        <i class="ti ti-clock"></i>
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <strong>Committee Evaluation</strong>
+                                    <span>
+                                        {% if all_evaluations_submitted %}
+                                            All {{ submitted_count }} required evaluations submitted.
+                                        {% elif required_count %}
+                                            {{ submitted_count }} of {{ required_count }} submitted.
+                                        {% else %}
+                                            No committee evaluations required.
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="cdd-timeline-line"></div>
+                            <div class=" cdd-timeline-item {% if is_finalized %} is-complete {% elif can_finalize %} is-current {% else %} is-upcoming {% endif %} ">
+                                <span class="cdd-timeline-marker">
+                                    {% if is_finalized %}
+                                        <i class="ti ti-check"></i>
+                                    {% elif can_finalize %}
+                                        <i class="ti ti-gavel"></i>
+                                    {% else %}
+                                        <i class="ti ti-lock"></i>
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <strong>Final Decision</strong>
+                                    <span>
+                                        {% if is_passed %}
+                                            Final result: Pass.
+                                        {% elif is_failed %}
+                                            Final result: Fail.
+                                        {% elif can_finalize %}
+                                            Ready for Chair finalization.
+                                        {% else %}
+                                            Available after defense and evaluation completion.
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-committee-card">
+                        <div class="cdd-sidebar-title">
+                            <div class="cdd-sidebar-icon">
+                                <i class="ti ti-users-group"></i>
+                            </div>
+                            <div>
+                                <h3>Doctoral Committee</h3>
+                                <p>{{ committee_member_count }} required member{{ committee_member_count|pluralize }}</p>
+                            </div>
+                        </div>
+                        <div class="cdd-committee-list">
+                            {% for member in committee_members %}
+                                <div class="cdd-committee-member">
+                                    <div class="cdd-member-index">{{ forloop.counter|stringformat:"02d" }}</div>
+                                    <div class="cdd-member-info">
+                                        <strong>{{ member.faculty.user.get_full_name|default:"Committee Faculty" }}</strong>
+                                        <span>{{ member.get_role_display|default:"Committee Member" }}</span>
+                                    </div>
+                                    {% if member.defense_evaluation and member.defense_evaluation.is_submitted %}
+                                        <i class="ti ti-circle-check cdd-member-check"></i>
+                                    {% else %}
+                                        <i class="ti ti-clock cdd-member-pending"></i>
+                                    {% endif %}
+                                </div>
+                            {% empty %}
+                                <div class="cdd-empty-state">
+                                    <i class="ti ti-users-off"></i>
+                                    <strong>No committee members</strong>
+                                    <span>No required committee members are available.</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-advisor-card">
+                        <div class="cdd-sidebar-title">
+                            <div class="cdd-sidebar-icon">
+                                <i class="ti ti-user-star"></i>
+                            </div>
+                            <div>
+                                <h3>Research Advisor</h3>
+                                <p>Primary dissertation supervisor</p>
+                            </div>
+                        </div>
+                        <div class="cdd-advisor-profile">
+                            <div class="cdd-advisor-avatar">
+                                {% if phd_student.advisor.user.first_name %}
+                                    {{ phd_student.advisor.user.first_name|first|upper }}
+                                {% else %}
+                                    A
+                                {% endif %}
+                            </div>
+                            <div>
+                                <strong>{{ phd_student.advisor.user.get_full_name|default:"Advisor not assigned" }}</strong>
+                                <span>Dissertation Advisor</span>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-summary-card">
+                        <div class="cdd-sidebar-title">
+                            <div class="cdd-sidebar-icon">
+                                <i class="ti ti-chart-dots"></i>
+                            </div>
+                            <div>
+                                <h3>Evaluation Summary</h3>
+                                <p>Current committee response</p>
+                            </div>
+                        </div>
+                        <div class="cdd-sidebar-summary">
+                            <div class="cdd-sidebar-summary-item">
+                                <span>Completion</span>
+                                <strong>{{ submitted_percentage }}%</strong>
+                            </div>
+                            <div class="cdd-sidebar-summary-item">
+                                <span>Average Score</span>
+                                <strong>
+                                    {% if average_score != None %}
+                                        {{ average_score }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="cdd-sidebar-summary-item">
+                                <span>Pass Recommendations</span>
+                                <strong>{{ pass_recommendation_count }}</strong>
+                            </div>
+                            <div class="cdd-sidebar-summary-item">
+                                <span>Fail Recommendations</span>
+                                <strong>{{ fail_recommendation_count }}</strong>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="cdd-card cdd-readiness-card">
+                        <div class="cdd-readiness-icon">
+                            {% if can_finalize %}
+                                <i class="ti ti-gavel"></i>
+                            {% elif is_finalized %}
+                                <i class="ti ti-circle-check"></i>
+                            {% else %}
+                                <i class="ti ti-loader-2"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong>{{ workflow_stage }}</strong>
+                            <p>{{ workflow_stage_description }}</p>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+            <section class="cdd-card cdd-action-card">
+                <div class="cdd-action-copy">
+                    <div class="cdd-action-icon">
+                        {% if can_finalize %}
+                            <i class="ti ti-gavel"></i>
+                        {% elif is_finalized %}
+                            <i class="ti ti-circle-check"></i>
+                        {% else %}
+                            <i class="ti ti-arrow-right-circle"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="cdd-section-kicker">Chair Workspace</span>
+                        <h2>
+                            {% if can_finalize %}
+                                Final Decision Ready
+                            {% elif is_finalized %}
+                                Defense Decision Completed
+                            {% elif can_update_schedule %}
+                                Continue with Defense Workflow
+                            {% else %}
+                                Defense Workflow in Progress
+                            {% endif %}
+                        </h2>
+                        <p>
+                            {% if can_finalize %}
+                                All required committee evaluations are complete. The defense record is ready for final Chair decision.
+                            {% elif is_finalized %}
+                                The final defense decision has already been recorded for this defense.
+                            {% elif can_update_schedule %}
+                                Review the defense schedule and committee progress before continuing the workflow.
+                            {% else %}
+                                The defense is progressing through the required evaluation workflow.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="cdd-action-buttons">
+                    <a href="{% url 'faculty_dissertation_defense_list' uuid=faculty.user.uuid %}"
+                       class="cdd-secondary-button">
+                        <i class="ti ti-arrow-left"></i>
+                        Back to Defenses
+                    </a>
+                    {% if can_finalize %}
+                        <a href="{% url 'faculty_chair_dissertation_defense_finalize' uuid=faculty.user.uuid defense_id=defense.defense_id %}"
+                           class="cdd-finalize-button">
+                            <i class="ti ti-gavel"></i>
+                            Finalize Defense
+                            <i class="ti ti-arrow-up-right"></i>
+                        </a>
+                    {% endif %}
+                    {% if can_update_schedule %}
+                        <a href="{% url 'faculty_chair_dissertation_defense_schedule' uuid=faculty.user.uuid phd_student_id=phd_student.pk %}"
+                           class="cdd-primary-button">
+                            <i class="ti ti-calendar-edit"></i>
+                            Manage Schedule
+                            <i class="ti ti-arrow-up-right"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </section>
+            <footer class="cdd-footer">
+                <span>
+                    <strong>Defense Workflow</strong>
+                    · Chair Faculty Workspace
+                </span>
+                <span>
+                    {{ faculty.department|default:"Academic Department" }}
+                    · {{ phd_student.phd_program|default:"PhD Program" }}
+                </span>
+            </footer>
+        </div>
+    </div>
+{% endblock %}

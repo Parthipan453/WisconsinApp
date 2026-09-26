@@ -1,0 +1,365 @@
+<!-- *********************************************** Arun code *************************************************** -->
+
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}
+Student Dashboard
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-left">
+    <div class="page-title">Student Dashboard</div>
+    <div class="page-sub">
+      Welcome back, {{ request.user.first_name|default:request.user.username }}!
+      Here's your academic overview at Wisconsin University today.
+    </div>
+  </div>
+
+  <div class="dept-chip">
+    <div class="dept-chip-icon">
+      <i class="ti ti-building-arch"></i>
+    </div>
+    <div>
+      <div class="dept-chip-name">
+        {{ academic.department.department_name|default:"Not Assigned" }}
+      </div>
+      <div class="dept-chip-sub">
+        {{ academic.program.program_name|default:"" }}{% if academic.degree %} · {{ academic.degree.degree_name }}{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STAT ROW 1 -->
+<div class="stat-grid">
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="0">
+    <div class="stat-icon si-red"><i class="ti ti-user"></i></div>
+    <div>
+      <div class="stat-label">Student ID</div>
+      <div class="stat-value sm">{{ profile.student_number }}</div>
+      <div class="stat-trend neutral">{{ profile.get_academic_level_display }} · {{ profile.get_current_status_display }}</div>
+    </div>
+  </div>
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+    <div class="stat-icon si-green">
+      <i class="ti ti-chart-bar"></i>
+    </div>
+    <div>
+      <div class="stat-label">Cumulative GPA</div>
+      <div class="stat-value">{{ profile.cumulative_gpa|default:"0.00" }}</div>
+      <div class="stat-trend">↑ 0.08 from last term</div>
+    </div>
+  </div>
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="160">
+    <div class="stat-icon si-blue"><i class="ti ti-book"></i></div>
+    <div>
+      <div class="stat-label">Credits Enrolled</div>
+      <div class="stat-value">{{ enrollment.credit_load|default:"0" }}</div>
+      <div class="stat-trend neutral">Full-Time · Spring 2026</div>
+    </div>
+  </div>
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="240">
+    <div class="stat-icon si-purple"><i class="ti ti-award"></i></div>
+    <div>
+      <div class="stat-label">Degree Progress</div>
+      <div class="stat-value">74%</div>
+      <div class="stat-trend">↑ 5.4% from last term</div>
+    </div>
+  </div>
+</div>
+
+<!-- STAT ROW 2 -->
+<div class="stat-grid" style="margin-bottom: 20px">
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="0">
+    <div class="stat-icon si-orange"><i class="ti ti-coin"></i></div>
+    <div>
+      <div class="stat-label">Financial Aid</div>
+      <div class="stat-value sm">${{ total_aid }}</div>
+      <div class="stat-trend neutral">Awarded · 2025–26</div>
+    </div>
+  </div>
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+    <div class="stat-icon si-teal"><i class="ti ti-building"></i></div>
+    <div>
+      <div class="stat-label">Housing</div>
+      <div class="stat-value sm">{{ housing.residence_hall|default:"Not Assigned" }}</div>
+      <div class="stat-trend neutral">Room {{ housing.room_number|default:"-" }}</div>
+    </div>
+  </div>
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="160">
+    <div class="stat-icon si-red">
+      <i class="ti ti-calendar-check"></i>
+    </div>
+    <div>
+      <div class="stat-label">Expected Graduation</div>
+      <div class="stat-value sm">{{ profile.expected_graduation_date|date:"M Y" }}</div>
+      <div class="stat-trend neutral">On Track</div>
+    </div>
+  </div>
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="240">
+    <div class="stat-icon si-gray"><i class="ti ti-users"></i></div>
+    <div>
+      <div class="stat-label">Organizations</div>
+      <div class="stat-value">{{ organization_count }}</div>
+      <div class="stat-trend neutral">Active memberships</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="charts-row">
+  <!-- GPA Trend -->
+  <div class="card" >
+    <div class="card-header">
+      <div class="card-title">GPA Trend <span>Last 6 terms</span></div>
+    </div>
+    <canvas id="gpaChart" height="130"></canvas>
+  </div>
+
+  <!-- Credit Distribution -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Credit Distribution</div>
+    </div>
+    <div style="
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                flex-wrap: wrap;
+              ">
+      <div style="width: 110px; height: 110px; flex-shrink: 0">
+        <canvas id="creditDonut"></canvas>
+      </div>
+      <div style="flex: 1; min-width: 140px">
+        <div class="legend-row">
+          <div class="legend-dot" style="background: #c5050c"></div>
+          Core Major <b style="margin-left: auto">42 cr</b>
+        </div>
+        <div class="legend-row">
+          <div class="legend-dot" style="background: #185fa5"></div>
+          Electives <b style="margin-left: auto">28 cr</b>
+        </div>
+        <div class="legend-row">
+          <div class="legend-dot" style="background: #228b22"></div>
+          General Ed <b style="margin-left: auto">18 cr</b>
+        </div>
+        <div class="legend-row">
+          <div class="legend-dot" style="background: #e0e0e0"></div>
+          Remaining <b style="margin-left: auto">32 cr</b>
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: #888">
+          Total: 120 credits required
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic Standing -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Academic Standing</div>
+    </div>
+    <div style="text-align: center; padding: 8px 0 12px">
+      <div style="font-size: 26px; font-weight: 700; color: #228b22">
+        Dean's List
+      </div>
+      <div style="font-size: 11.5px; color: #888; margin-top: 4px">
+        Spring 2026 · Honor Roll
+      </div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>Attendance</span><span>92%</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill pf-green" data-width="92"></div>
+      </div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>Assignments Submitted</span><span>88%</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill pf-blue" data-width="88"></div>
+      </div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>Degree Completion</span><span>74%</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill pf-red" data-width="74"></div>
+      </div>
+    </div>
+    <div class="prog-row" style="margin-bottom: 0">
+      <div class="prog-label">
+        <span>Financial Aid Used</span><span>60%</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill pf-purple" data-width="60"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="bottom-row">
+  <!-- Current Courses -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Current Courses</div>
+      <div class="view-all">View All</div>
+    </div>
+    <div class="course-row">
+      <div>
+        <div class="course-name">CS 540 – Intro to AI</div>
+        <div class="course-meta">Prof. Smith · MWF 9:00 AM</div>
+      </div>
+      <div class="grade-badge grade-a">A</div>
+    </div>
+    <div class="course-row">
+      <div>
+        <div class="course-name">MATH 341 – Linear Algebra</div>
+        <div class="course-meta">Prof. Lee · TTh 11:00 AM</div>
+      </div>
+      <div class="grade-badge grade-b">B+</div>
+    </div>
+    <div class="course-row">
+      <div>
+        <div class="course-name">CS 577 – Algorithms</div>
+        <div class="course-meta">Prof. Chen · MWF 1:00 PM</div>
+      </div>
+      <div class="grade-badge grade-ip">IP</div>
+    </div>
+    <div class="course-row">
+      <div>
+        <div class="course-name">ECON 101 – Principles</div>
+        <div class="course-meta">Prof. Ramos · TTh 2:30 PM</div>
+      </div>
+      <div class="grade-badge grade-a">A-</div>
+    </div>
+    <div class="course-row">
+      <div>
+        <div class="course-name">ENGL 209 – Academic Writing</div>
+        <div class="course-meta">Prof. Kumar · MW 3:30 PM</div>
+      </div>
+      <div class="grade-badge grade-b">B</div>
+    </div>
+  </div>
+
+  <!-- Upcoming Events -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Upcoming Events</div>
+      <div class="view-all">View All</div>
+    </div>
+    <div class="event-item">
+      <div class="event-date-box">
+        <span class="month">JUN</span><span class="day">18</span>
+      </div>
+      <div>
+        <div class="event-title">CS 540 Midterm Exam</div>
+        <div class="event-loc">Room 1310 – Computer Sciences</div>
+      </div>
+      <i class="ti ti-calendar event-cal"></i>
+    </div>
+    <div class="event-item">
+      <div class="event-date-box">
+        <span class="month">JUN</span><span class="day">22</span>
+      </div>
+      <div>
+        <div class="event-title">Advisor Meeting</div>
+        <div class="event-loc">Prof. Anderson – Office 204B</div>
+      </div>
+      <i class="ti ti-calendar event-cal"></i>
+    </div>
+    <div class="event-item">
+      <div class="event-date-box">
+        <span class="month">JUN</span><span class="day">28</span>
+      </div>
+      <div>
+        <div class="event-title">Research Lab Presentation</div>
+        <div class="event-loc">Main Auditorium</div>
+      </div>
+      <i class="ti ti-calendar event-cal"></i>
+    </div>
+    <div class="event-item">
+      <div class="event-date-box" style="background: #185fa5">
+        <span class="month">JUL</span><span class="day">04</span>
+      </div>
+      <div>
+        <div class="event-title">MATH 341 Final Exam</div>
+        <div class="event-loc">Van Vleck Hall – Room 901</div>
+      </div>
+      <i class="ti ti-calendar event-cal"></i>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Recent Activity</div>
+      <div class="view-all">View All</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-time">10:45 AM</div>
+      <div class="timeline-dot" style="background: #228b22"></div>
+      <div>
+        <div class="tl-title">Assignment submitted</div>
+        <div class="tl-sub">CS 540 – Lab 4</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-time">09:32 AM</div>
+      <div class="timeline-dot" style="background: #185fa5"></div>
+      <div>
+        <div class="tl-title">Grade posted</div>
+        <div class="tl-sub">ENGL 209 – Essay 2 · B+</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-time">Yesterday</div>
+      <div class="timeline-dot" style="background: #c5050c"></div>
+      <div>
+        <div class="tl-title">Financial aid updated</div>
+        <div class="tl-sub">Scholarship awarded · $12,500</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-time">Yesterday</div>
+      <div class="timeline-dot" style="background: #ba7517"></div>
+      <div>
+        <div class="tl-title">Housing confirmed</div>
+        <div class="tl-sub">Sellery Hall · Room 214</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-time">Jun 10</div>
+      <div class="timeline-dot" style="background: #534ab7"></div>
+      <div>
+        <div class="tl-title">Document verified</div>
+        <div class="tl-sub">Passport – Verified ✓</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<script src="{% static 'script/studentdashboard/studentdashboard.js' %}"></script>
+
+{% endblock %}
+
+
+<!-- *********************************************** Arun code *************************************************** -->

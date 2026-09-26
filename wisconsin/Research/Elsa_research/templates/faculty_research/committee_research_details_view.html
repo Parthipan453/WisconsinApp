@@ -1,0 +1,348 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}{{ research.title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/faculty_research/research_overview.css' %}">
+<link rel="stylesheet" href="{% static 'css/faculty_research/committee_research_details_view.css' %}">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="rp-page">
+
+    <!-- Header -->
+    <div class="rp-header">
+        <div class="rp-header-content">
+            <h1>
+                <i data-lucide="clipboard-list"></i>
+                {{ research.title }}
+            </h1>
+            <p>Explore project progress, team members, key milestones, funding details, and presentation outcomes.</p>
+        </div>
+        <a href="{% url 'Elsa_research:committee_research_details' uuid=uuid %}"
+        class="crd-back-link">
+            <i data-lucide="arrow-left"></i>
+            Back to Research Overview
+        </a>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="crd-tabs" id="crdTabs">
+        <div class="crd-tab active" data-target="crd-tab-overview">Overview</div>
+        <div class="crd-tab" data-target="crd-tab-milestones">Milestones</div>
+        <div class="crd-tab" data-target="crd-tab-funding">Funding</div>
+        <div class="crd-tab" data-target="crd-tab-presentations">Presentations</div>
+    </div>
+
+    <!-- ============ OVERVIEW ============ -->
+    <div class="rp-card crd-tab-panel" id="crd-tab-overview">
+        <h2><i data-lucide="file-text"></i> Project Information</h2>
+        <p>{{ research.description }}</p>
+
+        <div class="rp-meta-grid">
+            <div class="rp-info-box">
+                <span>Research ID</span>
+                <b>{{ research.research_id }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Mentor</span>
+                <b>{{ research.faculty.user.get_full_name|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Department</span>
+                <b>{{ research.department.department_name|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Category</span>
+                <b>{{ research.category|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Status</span>
+                <b>
+                    <span class="rp-status
+                        {% if research.project_status == 'APPROVED' %}rp-status-active
+                        {% elif research.project_status == 'ONGOING' %}rp-status-progress
+                        {% elif research.project_status == 'PENDING' %}rp-status-progress
+                        {% elif research.project_status == 'COMPLETED' %}rp-status-completed
+                        {% elif research.project_status == 'REJECTED' or research.project_status == 'CANCELLED' %}rp-status-closed
+                        {% else %}rp-status-draft{% endif %}">
+                        {{ research.get_project_status_display }}
+                    </span>
+                </b>
+            </div>
+            <div class="rp-info-box">
+                <span>Current Phase</span>
+                <b>{{ current_phase }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Start Date</span>
+                <b>{{ research.start_date|date:"d M Y"|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Expected Completion</span>
+                <b>{{ research.end_date|date:"d M Y"|default:"--" }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Days Remaining</span>
+                <b>
+                    {% if days_remaining is not None %}
+                        {% if days_remaining >= 0 %}{{ days_remaining }} Days{% else %}Overdue{% endif %}
+                    {% else %}--{% endif %}
+                </b>
+            </div>
+            <div class="rp-info-box">
+                <span>Milestones Completed</span>
+                <b>{{ completed_milestones }} / {{ total_milestones }}</b>
+            </div>
+            <div class="rp-info-box">
+                <span>Estimated Budget</span>
+                <b>${{ research.estimated_amount }}</b>
+            </div>
+        </div>
+
+        <div class="rp-overview-block">
+            <h3><i data-lucide="trending-up"></i> Overall Student Progress</h3>
+            <div class="rp-progress-bar">
+                <div class="rp-progress-fill" style="width:{{ overall_progress }}%;">{{ overall_progress }}%</div>
+            </div>
+        </div>
+
+        <div class="rp-overview-block">
+            <h3><i data-lucide="users"></i> Team</h3>
+            <div class="rp-team-overview">
+                <div class="rp-team-stat">
+                    <span class="rp-team-stat-label">Team Name</span>
+                    <span class="rp-team-stat-value">
+                        {% if team.team_name %}{{ team.team_name }}
+                        {% else %}<span class="rp-empty"><i data-lucide="users"></i> No Team Assigned</span>{% endif %}
+                    </span>
+                </div>
+                <div class="rp-team-stat">
+                    <span class="rp-team-stat-label">Students</span>
+                    <span class="rp-team-stat-value">{{ student_member_count }}</span>
+                </div>
+                <div class="rp-team-stat">
+                    <span class="rp-team-stat-label">Faculty Members</span>
+                    <span class="rp-team-stat-value">{{ faculty_member_count }}</span>
+                </div>
+            </div>
+
+            <div class="rp-team-members">
+                <span class="rp-team-members-label">Team Members</span>
+                <div class="rp-team-member-list">
+                    {% for member in team_members %}
+                    <div class="rp-team-member">
+                        <div class="rp-team-avatar {% if member.student %}rp-avatar-student{% else %}rp-avatar-faculty{% endif %}">
+                            {% if member.student %}<i data-lucide="graduation-cap"></i>{% else %}<i data-lucide="user-round"></i>{% endif %}
+                        </div>
+                        <div class="rp-team-member-info">
+                            <b>{% if member.student %}{{ member.student.user.get_full_name }}{% else %}{{ member.faculty.user.get_full_name }}{% endif %}</b>
+                            <span>{{ member.get_role_display }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="rp-team-empty">No team members assigned</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ MILESTONES ============ -->
+    <div class="rp-card crd-tab-panel" id="crd-tab-milestones" style="display:none;">
+        <h2><i data-lucide="flag"></i> Milestones</h2>
+
+        {% for m in milestones %}
+        <div class="rp-milestone">
+            <div class="rp-milestone-top">
+                <h3>{{ m.title }}</h3>
+                <span class="rp-status
+                    {% if m.status == 'completed' %}rp-status-completed
+                    {% elif m.status == 'in_progress' %}rp-status-active
+                    {% elif m.status == 'delayed' %}rp-status-closed
+                    {% else %}rp-status-draft{% endif %}">
+                    {{ m.get_status_display }}
+                </span>
+            </div>
+            <p><i data-lucide="file-text"></i> {{ m.description }}</p>
+            <div class="rp-review">
+                <p><i data-lucide="calendar"></i> Start: {{ m.start_date|date:"d M Y" }} &nbsp;|&nbsp; Deadline: {{ m.deadline|date:"d M Y" }}</p>
+                <p><i data-lucide="chart-line"></i> Expected Contribution: {{ m.expected_percentage }}%</p>
+            </div>
+
+            {% with assigned=m.student_assignments.all %}
+            {% if assigned %}
+            <div class="crd-assignee-list">
+                {% for a in assigned %}
+                <div class="crd-assignee-chip">
+                    <i data-lucide="graduation-cap"></i>
+                    {{ a.student.user.get_full_name }} — {{ a.student_progress }}%
+                    <span class="rp-status
+                        {% if a.status == 'completed' %}rp-status-completed
+                        {% elif a.status == 'submitted' %}rp-status-progress
+                        {% elif a.status == 'working' %}rp-status-active
+                        {% else %}rp-status-draft{% endif %}">
+                        {{ a.get_status_display }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+        {% empty %}
+        <div class="rp-empty-message">
+            <i data-lucide="info"></i> No milestones created yet.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ============ FUNDING ============ -->
+    <div class="rp-card crd-tab-panel" id="crd-tab-funding" style="display:none;">
+        <h2><i data-lucide="coins"></i> Funding</h2>
+
+        <div class="rp-stats-grid crd-funding-stats">
+            <div class="rp-stat-card">
+                <span>Estimated Budget</span>
+                <b>${{ research.estimated_amount }}</b>
+            </div>
+            <div class="rp-stat-card">
+                <span>Received</span>
+                <b>${{ total_funding_amount }}</b>
+            </div>
+            <div class="rp-stat-card">
+                <span>Records</span>
+                <b>{{ fundings.count }}</b>
+            </div>
+        </div>
+        <div class="crd-table-wrapper">
+        <table class="crd-table">
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Sponsor</th>
+                    <th>Amount</th>
+                    <th>Award Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in fundings %}
+                <tr>
+                    <td>{{ f.funding_source }}</td>
+                    <td>{{ f.sponsor }}</td>
+                    <td>${{ f.amount }}</td>
+                    <td>{{ f.award_date|date:"d M Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="crd-table-empty">
+                        <div class="rp-empty-message">
+                        <i data-lucide="info"></i> No funding records yet.
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- ============ PRESENTATIONS ============ -->
+    <div class="rp-card crd-tab-panel" id="crd-tab-presentations" style="display:none;">
+        <h2><i data-lucide="presentation"></i> Presentations</h2>
+
+        <div class="rp-stats-grid crd-funding-stats">
+            <div class="rp-stat-card">
+                <span>Total Presentations</span>
+                <b>{{ total_presentations }}</b>
+            </div>
+            <div class="rp-stat-card">
+                <span>Awards Won</span>
+                <b>{{ total_awards }}</b>
+            </div>
+        </div>
+
+        <div class="rp-presentation-grid">
+            {% for p in presentations %}
+            <div class="rp-presentation-card crd-no-hover-lift">
+                <div class="rp-presentation-top">
+                    <i data-lucide="presentation"></i>
+                    {% if p.award %}<span class="rp-award-badge">{{ p.award }}</span>{% endif %}
+                </div>
+                <p class="rp-presentation-name">{{ p.event_name }}</p>
+                <p class="rp-presentation-date">{{ p.presentation_date|date:"d M Y" }}</p>
+
+                {% if p.certificate_file %}
+                <a href="{{ p.certificate_file.url }}" target="_blank" class="rp-file-link">
+                    <i data-lucide="file-text"></i> View Certificate
+                </a>
+                {% endif %}
+
+            {% if p.documents.count %}
+            <div class="rp-additional-files">
+
+                <div class="rp-additional-files-title">
+                    <i data-lucide="paperclip"></i>
+                    <span>
+                        Additional Files
+                        <small>({{ p.documents.count }})</small>
+                    </span>
+                </div>
+
+                <div class="rp-file-list">
+                    {% for doc in p.documents.all %}
+                    <a href="{{ doc.file.url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rp-additional-file">
+
+                        <i data-lucide="file-text"></i>
+
+                        <span class="rp-file-name">
+                            {{ doc.file.name|cut:"documents/" }}
+                        </span>
+
+                        <i data-lucide="external-link" class="rp-file-open"></i>
+
+                    </a>
+                    {% endfor %}
+                </div>
+
+            </div>
+            {% endif %}
+            </div>
+            {% empty %}
+            <div class="rp-empty-message">
+                <i data-lucide="presentation"></i> No presentations recorded yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const tabs = document.querySelectorAll('#crdTabs .crd-tab');
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            tabs.forEach(function (t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+
+            document.querySelectorAll('.crd-tab-panel').forEach(function (panel) {
+                panel.style.display = 'none';
+            });
+            const target = document.getElementById(tab.dataset.target);
+            if (target) target.style.display = 'block';
+        });
+    });
+});
+</script>
+{% endblock %}

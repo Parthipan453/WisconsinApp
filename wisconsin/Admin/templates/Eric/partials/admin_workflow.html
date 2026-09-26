@@ -1,0 +1,222 @@
+<div class="prm-card prm-workflow">
+  <div class="prm-workflow__head">
+    {% if not assignment %}
+      <i class="ti ti-user-plus"></i>
+      <span class="prm-workflow__title">Assign reviewer</span>
+    {% elif not assignment.is_verified %}
+      <i class="ti ti-user-check"></i>
+      <span class="prm-workflow__title">Review in progress</span>
+    {% elif app.status in decided_statuses %}
+      <i class="ti ti-scale"></i>
+      <span class="prm-workflow__title">Decision recorded</span>
+    {% else %}
+      <i class="ti ti-scale"></i>
+      <span class="prm-workflow__title">Admission decision</span>
+    {% endif %}
+    {% if assignment %}
+      <span class="prm-pill" style="margin-left:auto;">
+        <span class="prm-dot prm-dot--{{ assignment.status }}"></span>{{ assignment.get_status_display }}
+      </span>
+    {% else %}
+      <span class="prm-pill" style="margin-left:auto;"><span class="prm-dot prm-dot--unassigned"></span>Unassigned</span>
+    {% endif %}
+  </div>
+
+  <div class="prm-workflow__body">
+
+    {% if not assignment %}
+      {% if reviewers %}
+      <form method="post" action="{% url 'assign_reviewer' app.application_id %}" style="display:flex;flex-direction:column;gap:14px;">
+        {% csrf_token %}
+        <div>
+          <label class="prm-label" for="reviewer-select">Staff reviewer</label>
+          <select name="reviewer_id" id="reviewer-select" class="prm-select form-select">
+            <option value="">Select a reviewer...</option>
+            {% for reviewer in reviewers %}
+            <option value="{{ reviewer.pk }}">{{ reviewer.get_full_name|default:reviewer.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="prm-btn prm-btn--primary"><i class="ti ti-send"></i> Assign &amp; notify</button>
+      </form>
+      {% else %}
+      <p class="prm-hint">No active staff reviewers available.</p>
+      {% endif %}
+    {% endif %}
+
+    {% if assignment and not assignment.is_verified %}
+      <div class="prm-reviewer">
+        <span class="prm-reviewer__avatar">{{ assignment.reviewer.first_name|slice:":1" }}{{ assignment.reviewer.last_name|slice:":1" }}</span>
+        <div>
+          <div class="prm-reviewer__name">{{ assignment.reviewer.get_full_name|default:assignment.reviewer.username }}</div>
+          <div class="prm-reviewer__sub">Assigned by {{ assignment.assigned_by.get_full_name|default:assignment.assigned_by.username }} &middot; {{ assignment.assigned_at|date:"M d, Y" }}</div>
+        </div>
+      </div>
+      {% if reviewers %}
+      <form method="post" action="{% url 'assign_reviewer' app.application_id %}" style="display:flex;flex-direction:column;gap:14px;">
+        {% csrf_token %}
+        <div>
+          <label class="prm-label" for="reassign-select">Reassign reviewer</label>
+          <select name="reviewer_id" id="reassign-select" class="prm-select form-select">
+            {% for reviewer in reviewers %}
+            <option value="{{ reviewer.pk }}" {% if assignment.reviewer_id == reviewer.pk %}selected{% endif %}>{{ reviewer.get_full_name|default:reviewer.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="prm-btn prm-btn--ghost"><i class="ti ti-refresh"></i> Reassign</button>
+      </form>
+      {% endif %}
+    {% endif %}
+
+    {% if assignment and assignment.is_verified %}
+      {% if app.status in decided_statuses %}
+
+        <div class="prm-result
+          {% if app.status == 'admitted' or app.status == 'offer_accepted' or app.status == 'enrolled' %}prm-result--admitted
+          {% elif app.status == 'waitlisted' %}prm-result--waitlisted
+          {% elif app.status == 'denied' %}prm-result--denied
+          {% else %}prm-banner prm-banner--info{% endif %}">
+          {% if app.status == 'admitted' or app.status == 'offer_accepted' or app.status == 'enrolled' %}<i class="ti ti-circle-check"></i>
+          {% elif app.status == 'waitlisted' %}<i class="ti ti-clock"></i>
+          {% elif app.status == 'denied' %}<i class="ti ti-circle-x"></i>
+          {% else %}<i class="ti ti-history"></i>{% endif %}
+          <div>Final decision: <b>{{ app.get_status_display }}</b>{% if assignment.decision_note %}<div style="font-weight:400;margin-top:3px;opacity:.9;">{{ assignment.decision_note }}</div>{% endif %}</div>
+        </div>
+
+        {% if app.status == 'admitted' or app.status == 'offer_accepted' %}
+        <div style="margin-top:14px;padding:12px;background:#f8f9fa;border-radius:6px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:8px;"><i class="ti ti-mail-check"></i> Offer Letter</div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:#666;">
+            <div><strong>Offer Status:</strong>
+              {% if app.offer_status == 'pending' %}<span style="color:#e65100;">Pending (awaiting applicant response)</span>
+              {% elif app.offer_status == 'accepted' %}<span style="color:#2e7d32;">Accepted</span>
+              {% elif app.offer_status == 'declined' %}<span style="color:#c5050c;">Declined</span>
+              {% elif app.offer_status == 'expired' %}<span style="color:#999;">Expired</span>
+              {% else %}<span style="color:#999;">--</span>{% endif %}
+            </div>
+            {% if app.offer_sent_at %}<div><strong>Sent:</strong> {{ app.offer_sent_at|date:"M d, Y g:i A" }}</div>{% endif %}
+            {% if app.offer_accepted_at %}<div><strong>Accepted:</strong> {{ app.offer_accepted_at|date:"M d, Y g:i A" }}</div>{% endif %}
+            {% if app.offer_declined_at %}<div><strong>Declined:</strong> {{ app.offer_declined_at|date:"M d, Y g:i A" }}</div>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if app.status == 'offer_accepted' %}
+        <div style="margin-top:10px;padding:12px;background:#f8f9fa;border-radius:6px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;"><i class="ti ti-credit-card"></i> Enrollment Deposit</div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:#666;">
+            <div><strong>Amount:</strong> ${{ app.deposit_amount }}</div>
+            {% if app.deposit_paid_at %}
+            <div><strong>Paid:</strong> <span style="color:#2e7d32;">{{ app.deposit_paid_at|date:"M d, Y g:i A" }}</span></div>
+            <div><strong>Transaction:</strong> {{ app.deposit_transaction_id }}</div>
+            {% else %}
+            <div><strong>Status:</strong> <span style="color:#e65100;">Awaiting payment</span></div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if app.status == 'offer_accepted' and not app.applicant.converted_to_user %}
+        <div style="margin-top:12px;padding:14px;background:#e8f5e9;border-radius:6px;border:1px solid #c8e6c9;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:10px;color:#2e7d32;"><i class="ti ti-user-plus"></i> Enroll Student</div>
+          <div style="margin-bottom:12px;font-size:12px;color:#555;">
+            <div><strong>Applicant:</strong> {{ app.applicant.first_name }} {{ app.applicant.last_name }} ({{ app.applicant.email }})</div>
+            <div><strong>Reference ID:</strong> {{ app.Reference_id }}</div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <form method="post" action="{% url 'update_program' app.application_id %}" style="display:flex;flex-direction:column;gap:8px;">
+              {% csrf_token %}
+              <label class="prm-label" for="program-select" style="font-size:12px;">Academic Program</label>
+              <select name="program_id" id="program-select" class="prm-select form-select" style="font-size:12px;">
+                {% for prog in all_programs %}
+                <option value="{{ prog.pk }}" {% if app.program_id == prog.pk %}selected{% endif %}>
+                  {{ prog.program_name }} -- {{ prog.department.department_name|default:"N/A" }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="prm-btn prm-btn--ghost" style="font-size:11px;"><i class="ti ti-refresh"></i> Update Program</button>
+            </form>
+            {% if app.program %}
+            <div style="margin-top:6px;font-size:11px;color:#888;">Current: {{ app.program.program_name }}</div>
+            {% endif %}
+          </div>
+          <form method="POST" action="{% url 'create_student' app.application_id %}">
+            {% csrf_token %}
+            <button type="submit" class="prm-btn prm-btn--primary" style="background:#2e7d32;border-color:#2e7d32;"><i class="ti ti-user-plus"></i> Create Student Account</button>
+          </form>
+          <p style="margin:6px 0 0;font-size:11px;color:#777;">Creates university email, student number, and sends welcome credentials.</p>
+        </div>
+        {% endif %}
+
+        {% if app.status == 'enrolled' and app.applicant.converted_to_user %}
+        <div style="margin-top:12px;padding:14px;background:#e3f2fd;border-radius:6px;border:1px solid #bbdefb;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;color:#1565c0;"><i class="ti ti-user-check"></i> Student Account Active</div>
+          <div style="font-size:12px;color:#555;">
+            <div><strong>User ID:</strong> #{{ app.applicant.converted_to_user_id }}</div>
+            <div><strong>Email:</strong> {{ app.applicant.converted_to_user.email }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if app.status == 'admitted' and app.offer_status == 'declined' %}
+        <div style="margin-top:12px;padding:12px;background:#fce4ec;border-radius:6px;border:1px solid #f8bbd0;">
+          <div style="font-weight:600;font-size:13px;color:#c5050c;"><i class="ti ti-circle-x"></i> Offer Declined</div>
+          <p style="margin:4px 0 0;font-size:12px;color:#777;">Applicant declined the offer on {{ app.offer_declined_at|date:"M d, Y" }}.</p>
+        </div>
+        {% endif %}
+
+        {% if app.status == 'waitlisted' %}
+        <div style="margin-top:14px;">
+          <p class="prm-hint" style="margin-bottom:10px;">Promote this applicant from the waitlist to offer admission.</p>
+          <form method="post" action="{% url 'promote_from_waitlist' app.application_id %}" style="display:flex;flex-direction:column;gap:10px;">
+            {% csrf_token %}
+            <div>
+              <label class="prm-label" for="promote-note">Note (shared with applicant)</label>
+              <textarea name="decision_note" id="promote-note" class="prm-textarea" rows="2" placeholder="Optional message for the applicant"></textarea>
+            </div>
+            <button type="submit" class="prm-btn prm-btn--primary"><i class="ti ti-arrow-up-circle"></i> Promote from Waitlist</button>
+          </form>
+        </div>
+        {% endif %}
+
+      {% else %}
+        <p class="prm-hint">The reviewer verified this application and recommends a decision. Choose the outcome below.</p>
+        {% if assignment.recommendation %}
+        <div class="prm-banner prm-banner--info" style="margin:0 0 10px;"><i class="ti ti-thumb-up"></i> <div>Staff recommendation: <b>{{ assignment.get_recommendation_display }}</b></div></div>
+        {% endif %}
+        {% if assignment.recommendation_note %}
+        <div class="prm-banner prm-banner--info" style="margin:0 0 10px;"><i class="ti ti-message"></i> <div>Reviewer note: <b>{{ assignment.recommendation_note }}</b></div></div>
+        {% endif %}
+        <form method="post" action="{% url 'decide' app.application_id %}" style="display:flex;flex-direction:column;gap:14px;">
+          {% csrf_token %}
+          <div class="prm-decision">
+            <label class="prm-decision__option">
+              <input type="radio" name="decision" value="admit" required>
+              <span class="prm-decision__card prm-decision__card--admit">
+                <i class="ti ti-circle-check"></i><b>Admit</b><small>Offer admission</small>
+              </span>
+            </label>
+            <label class="prm-decision__option">
+              <input type="radio" name="decision" value="waitlist">
+              <span class="prm-decision__card prm-decision__card--waitlist">
+                <i class="ti ti-clock"></i><b>Waitlist</b><small>Hold for review</small>
+              </span>
+            </label>
+            <label class="prm-decision__option">
+              <input type="radio" name="decision" value="deny">
+              <span class="prm-decision__card prm-decision__card--deny">
+                <i class="ti ti-circle-x"></i><b>Deny</b><small>Do not admit</small>
+              </span>
+            </label>
+          </div>
+          <div>
+            <label class="prm-label" for="decision-note">Decision note (shared with the applicant)</label>
+            <textarea name="decision_note" id="decision-note" class="prm-textarea" rows="3" placeholder="Optional message the applicant will see in the portal"></textarea>
+          </div>
+          <button type="submit" class="prm-btn prm-btn--success"><i class="ti ti-check"></i> Submit decision</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+  </div>
+</div>

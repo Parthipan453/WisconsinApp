@@ -1,0 +1,566 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+ 
+{% block title %}Courses{% endblock %}
+{% block page_title %}Courses{% endblock %}
+ 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/course/course_home.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+ 
+{% endblock %}
+ 
+ 
+{% block content %}
+<div class="course-page">
+
+    <!-- Page Header -->
+    <div class="course-page-header-card">
+
+        <div class="course-page-header-left">
+
+            <h2 class="course-page-title">
+                Courses
+            </h2>
+
+            <nav class="course-breadcrumb" aria-label="breadcrumb">
+
+                <span>Dashboard</span>
+                <span class="sep">›</span>
+                <span>Administration</span>
+                <span class="sep">›</span>
+                <span class="active">Courses</span>
+
+            </nav>
+
+        </div>
+
+
+        <div class="course-page-header-right">
+
+            <div class="header-stat">
+
+                <span class="header-stat-label">
+                    Total
+                </span>
+
+                <span class="header-stat-value">
+                    {{ all_count }}
+                </span>
+
+            </div>
+
+
+            {% if no_school or no_department %}
+
+                <button
+                    type="button"
+                    class="btn-add-course"
+                    data-bs-toggle="modal"
+                    data-bs-target="#coursePrerequisiteModal">
+
+                    + Add Course
+
+                </button>
+
+            {% else %}
+
+                <a href="{% url 'course_add' %}"
+                   class="btn-add-course">
+
+                    + Add Course
+
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+ 
+  {# ── Stat cards ── #}
+  <div class="row g-3">
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-primary bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="book-open" class="text-primary" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Total Courses</div>
+            <div class="fs-4 fw-bold text-dark">{{ total_courses }}</div>
+            <div class="text-muted" style="font-size: 11px;">Across all departments</div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-success bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="check-circle" class="text-success" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Active Courses</div>
+            <div class="fs-4 fw-bold text-success">{{ active_courses }}</div>
+            <div class="text-muted" style="font-size: 11px;">Currently available</div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-danger bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="x-circle" class="text-danger" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Inactive Courses</div>
+            <div class="fs-4 fw-bold text-danger">{{ inactive_courses }}</div>
+            <div class="text-muted" style="font-size: 11px;">Archived/Inactive</div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="rounded-3 bg-warning bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+            style="width: 46px; height: 46px;">
+            <i data-lucide="activity" class="text-warning" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <div class="text-muted small mb-1">Status</div>
+            <div class="fs-5 fw-bold text-dark">
+              {% if total_courses > 0 and active_courses > 0 %}
+              Active
+              {% elif total_courses > 0 %}
+              All Inactive
+              {% else %}
+              Empty
+              {% endif %}
+            </div>
+            <div class="text-muted" style="font-size: 11px;">
+              {% if total_courses > 0 %}
+              {{ active_courses|floatformat:0 }}/{{ total_courses }} active
+              {% else %}
+              No courses
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {# ── Course table card ── #}
+  <div class="course-card">
+ 
+    <div class="course-card__hd">
+      <div class="course-card__title">
+        <i data-lucide="book-open"></i>All Courses
+      </div>
+      <a href="#" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+        style="font-size:12px;border-radius:8px;">
+        <i data-lucide="download" style="width:13px;height:13px;"></i>Export CSV
+      </a>
+    </div>
+ 
+    {# Tabs #}
+    <div class="course-tabs" role="tablist">
+      <button class="course-tab active" data-tab="all" role="tab">
+        All&nbsp;<span class="text-muted fw-normal">({{ total_courses }})</span>
+      </button>
+      <button class="course-tab" data-tab="ACTIVE" role="tab">
+        Active&nbsp;<span class="text-muted fw-normal">({{ active_courses }})</span>
+      </button>
+      <button class="course-tab" data-tab="INACTIVE" role="tab">
+        Inactive&nbsp;<span class="text-muted fw-normal">({{ inactive_courses }})</span>
+      </button>
+    </div>
+ 
+    {# Filters #}
+    <div class="course-filter">
+      <div class="filter-wrapper">
+ 
+        <div class="input-group search-group">
+         
+ 
+          <input type="text" id="courseSearch" class="form-control" placeholder="Search name or code…"
+            oninput="filterCourses()">
+             <span class="input-group-text">
+            <i data-lucide="search"></i>
+          </span>
+        </div>
+ 
+        <button class="reset-btn" onclick="resetCourseFilters()">
+          <i data-lucide="x"></i>
+          <span>Reset</span>
+        </button>
+ 
+      </div>
+    </div>
+ 
+    {# Table #}
+    <div class="table-responsive">
+      <table class="course-tbl" id="courseTable" aria-label="Courses list">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th class="col-dept">Department</th>
+            <th class="col-dept">Academic Program</th>
+            <th class="col-credits" style="text-align:center;">Credits</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="courseTbody">
+          {% for course in courses %}
+          <tr data-name="{{ course.course_name|lower }}" data-code="{{ course.course_code|lower }}"
+            data-dept="{{ course.department.department_name|lower }}" data-program="{{ course.academic_program.program_name|lower|default:'' }}" data-status="{{ course.status }}">
+            <td>
+              <div class="c-name">{{ course.course_name }}</div>
+              <span class="c-code">{{ course.course_code }}</span>
+
+            </td>
+            <td class="col-dept">
+              <span class="dept-pill">
+                <i data-lucide="building-2"></i>{{ course.department.department_name }}
+              </span>
+            </td>
+            <td class="col-dept">
+              <span class="dept-pill">
+                <i data-lucide="book-copy"></i>{{ course.academic_program.program_name|default:'—' }}
+              </span>
+            </td>
+            <td class="col-credits" style="text-align:center;">
+              <span class="cred-badge">{{ course.credits }}</span>
+            </td>
+            <td>
+              {% if course.status == 'ACTIVE' %}
+              <span class="b-active">Active</span>
+              {% else %}
+              <span class="b-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="act-btns">
+
+                <!-- View -->
+                <a href="{% url 'course_view' course.course_uuid %}" class="act-btn" title="View Course">
+                  <i class="fa-regular fa-eye"></i>
+                </a>
+
+                <!-- Edit -->
+                <a href="{% url 'course_edit' course.course_uuid %}" class="act-btn" title="Edit Course">
+                  <i class="fa-regular fa-pen-to-square"></i>
+                </a>
+
+                <!-- Ban -->
+                {% if course.status == 'ACTIVE' %}
+                <button class="act-btn ban-course-btn" title="Mark as Inactive"
+                  data-course-uuid="{{ course.course_uuid }}" data-course-name="{{ course.course_name|escapejs }}">
+                  <i class="fa-solid fa-ban"></i>
+                </button>
+                {% else %}
+                <button class="act-btn" disabled title="Already Inactive" style="opacity:.4;cursor:not-allowed;">
+                  <i class="fa-solid fa-ban"></i>
+                </button>
+                {% endif %}
+
+              </div>
+            </td>
+
+          </tr>
+          {% empty %}
+          <tr id="emptyCourseRow">
+            <td colspan="6">
+              <div class="course-empty">
+                <i data-lucide="inbox"></i>
+                <p>No courses yet.</p>
+                {% if no_school or no_department %}
+
+                <button
+                    type="button"
+                    class="btn-add-course"
+                    data-bs-toggle="modal"
+                    data-bs-target="#coursePrerequisiteModal">
+
+                    <i data-lucide="plus"></i>
+                    Add Course
+
+                </button>
+
+                {% else %}
+
+                <a href="{% url 'course_add' %}" class="btn-add-course">
+                    <i data-lucide="plus"></i>
+                    Add Course
+                </a>
+
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+ 
+    {# No-results placeholder (JS-controlled) #}
+    <div id="noCourseResults" style="display:none;">
+      <div class="course-empty">
+        <i data-lucide="search-x"></i>
+        <p>No courses match your search.</p>
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetCourseFilters()"
+          style="font-size:12px;border-radius:8px;">
+          Clear filters
+        </button>
+      </div>
+    </div>
+ 
+    {# Pagination #}
+    {% if is_paginated %}
+    <div class="course-pg">
+      <small>
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+        of {{ paginator.count }} courses
+      </small>
+      <div class="d-flex gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="pg-btn">
+          <i data-lucide="chevron-left"></i>Prev
+        </a>
+        {% endif %}
+        {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+        <span class="pg-btn" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;">
+          {{ num }}
+        </span>
+        {% elif num == page_obj.previous_page_number or num == page_obj.next_page_number %}
+        <a href="?page={{ num }}" class="pg-btn">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="pg-btn">
+          Next<i data-lucide="chevron-right"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+ 
+  </div>{# /course-card #}
+ 
+</div>{# /course-page #}
+ 
+{% endblock %}
+ 
+ 
+ 
+{% block extra_js %}
+<script src="{% static 'script/course_home.js' %}"></script>
+{% endblock %}
+ 
+ 
+{% block global_modal %}
+<div id="inactiveModal" class="custom-modal">
+  <div class="custom-modal__overlay" onclick="hideInactiveModal()"></div>
+  <div class="custom-modal__box">
+    <div class="custom-modal__header">
+      <div class="d-flex align-items-center gap-2">
+        <span class="custom-modal__icon-wrap">
+          <i data-lucide="ban" class="custom-modal__icon"></i>
+        </span>
+        <h6 class="custom-modal__title">Mark as Inactive?</h6>
+      </div>
+      <button type="button" class="custom-modal__close" onclick="hideInactiveModal()">&times;</button>
+    </div>
+    <div class="custom-modal__body">
+      <p>You are about to mark <strong id="inactiveCourseName"></strong> as <strong
+          class="text-danger">Inactive</strong>.</p>
+      <ul>
+        <li>The course will be hidden from active listings.</li>
+        <li>Students cannot enroll in this course.</li>
+      </ul>
+    </div>
+    <div class="custom-modal__footer">
+      <button class="custom-modal__btn custom-modal__btn--cancel" onclick="hideInactiveModal()">Cancel</button>
+      <form id="inactiveCourseForm" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="custom-modal__btn custom-modal__btn--confirm">
+          <i data-lucide="ban"></i>
+          Yes, Mark Inactive
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade"
+     id="coursePrerequisiteModal"
+     tabindex="-1"
+     aria-labelledby="coursePrerequisiteModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content modern-status-modal">
+
+            <div class="status-modal-header">
+
+                <div class="status-modal-icon">
+
+                    <svg width="34"
+                         height="34"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+
+                        <path d="M12 6V2M8 18l4 4 4-4M8 6l-4 4 4 4"/>
+                        <path d="M16 6l4 4-4 4"/>
+                        <path d="M12 2v4"/>
+                        <path d="M12 22v-4"/>
+                        <path d="M2 12h4"/>
+                        <path d="M18 12h4"/>
+
+                    </svg>
+
+                </div>
+
+                <h4 class="status-modal-title">
+                    Course Creation Prerequisites
+                </h4>
+
+            </div>
+
+            <div class="status-modal-body">
+
+                <p class="mb-3">
+                    Before creating a course, complete the required steps below.
+                </p>
+
+                <ul class="list-group list-group-flush">
+
+                    <!-- School -->
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+
+                        <div>
+                            <span class="fw-semibold">School</span>
+                            <small class="text-muted d-block">
+                                At least one school must exist.
+                            </small>
+                        </div>
+
+                        {% if no_school %}
+
+                            <span class="badge bg-danger rounded-pill px-3 py-1">
+                                <i data-lucide="x"></i>
+                                Required
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-success rounded-pill px-3 py-1">
+                                <i data-lucide="check"></i>
+                                Completed
+                            </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    <!-- Department -->
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+
+                        <div>
+                            <span class="fw-semibold">Department</span>
+                            <small class="text-muted d-block">
+                                Create at least one department.
+                            </small>
+                        </div>
+
+                        {% if no_department %}
+
+                            <span class="badge bg-danger rounded-pill px-3 py-1">
+                                <i data-lucide="x"></i>
+                                Required
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-success rounded-pill px-3 py-1">
+                                <i data-lucide="check"></i>
+                                Completed
+                            </span>
+
+                        {% endif %}
+
+                    </li>
+
+                    <!-- Course -->
+
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+
+                        <div>
+                            <span class="fw-semibold">Course</span>
+                            <small class="text-muted d-block">
+                                Available after completing the above steps.
+                            </small>
+                        </div>
+
+                        <span class="badge bg-secondary rounded-pill px-3 py-1">
+                            <i data-lucide="clock"></i>
+                            Pending
+                        </span>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+            <div class="status-modal-footer">
+
+                {% if no_school %}
+
+                    <a href="{% url 'add_school' %}"
+                       class="btn-confirm">
+                        Create School
+                    </a>
+
+                {% elif no_department %}
+
+                    <a href="{% url 'department_add' %}"
+                       class="btn-confirm">
+                        Create Department
+                    </a>
+
+                {% endif %}
+
+                <button
+                    type="button"
+                    class="btn-cancel"
+                    data-bs-dismiss="modal">
+
+                    Cancel
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

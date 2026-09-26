@@ -1,0 +1,405 @@
+<!-- templates/Settings/account_security.html -->
+
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Account & Security — Student Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Settings/account_security.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block nav_settings_open %}open{% endblock %}
+{% block nav_settings_submenu %}open{% endblock %}
+{% block nav_account_security %}active{% endblock %}
+
+{% block content %}
+<div class="sec-page" data-aos="fade-up">
+
+    <!-- Header -->
+    <div class="sec-header">
+        <div class="sec-breadcrumb">
+            <span>Home</span>
+            <i class="ti ti-chevron-right"></i>
+            <span>Settings</span>
+            <i class="ti ti-chevron-right"></i>
+            <span class="active">Account & Security</span>
+        </div>
+        <h1 class="sec-title">Account & Security</h1>
+        <p class="sec-subtitle">Manage your password, login sessions and account preferences</p>
+    </div>
+
+    <!-- Security Score -->
+    <div class="sec-section">
+        <div class="sec-security-score">
+            <div class="score-circle">
+                <span class="score-number" id="securityScore">85</span>
+                <span class="score-label">Security Score</span>
+            </div>
+            <div class="score-details">
+                <div class="score-item">
+                    <i class="ti ti-check-circle text-success"></i>
+                    <span>Password Strength: <strong id="pwdStrengthLabel">Strong</strong></span>
+                </div>
+                <div class="score-item">
+                    <i class="ti ti-{% if tfa_enabled %}check-circle text-success{% else %}alert-circle text-warning{% endif %}"></i>
+                    <span>2FA: <strong>{% if tfa_enabled %}Enabled{% else %}Disabled{% endif %}</strong></span>
+                </div>
+                <div class="score-item">
+                    <i class="ti ti-check-circle text-success"></i>
+                    <span>Active Sessions: <strong>{{ sessions|length }}</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Information -->
+    <div class="sec-section">
+        <div class="sec-section-header">
+            <i class="ti ti-user-circle"></i>
+            <h2>Account Information</h2>
+        </div>
+        <div class="sec-card">
+            <div class="sec-info-row">
+                <span class="sec-info-label">Full Name</span>
+                <div class="sec-info-value">
+                    <span class="display-mode" id="displayFullName">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    <span class="sec-verified-badge"><i class="ti ti-check"></i> Verified</span>
+                </div>
+            </div>
+            <div class="sec-info-row">
+                <span class="sec-info-label">Username</span>
+                <div class="sec-info-value">
+                    <span>{{ request.user.username }}</span>
+                </div>
+            </div>
+            <div class="sec-info-row">
+                <span class="sec-info-label">University Email</span>
+                <div class="sec-info-value">
+                    <span class="display-mode" id="displayEmail">{{ request.user.email }}</span>
+                    <span class="sec-verified-badge"><i class="ti ti-check"></i> Verified</span>
+                </div>
+            </div>
+            <div class="sec-info-row">
+                <span class="sec-info-label">Account Created</span>
+                <div class="sec-info-value">
+                    <span>{{ request.user.date_joined|date:"F j, Y" }}</span>
+                </div>
+            </div>
+            <div class="sec-info-row">
+                <span class="sec-info-label">Last Login</span>
+                <div class="sec-info-value">
+                    <span>{{ request.user.last_login|date:"F j, Y - g:i A" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="sec-section">
+        <div class="sec-section-header">
+            <i class="ti ti-lock"></i>
+            <h2>Change Password</h2>
+        </div>
+        <div class="sec-card">
+            <form id="passwordForm" method="POST" class="password-form">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="change_password">
+
+                <div class="password-grid">
+                    <div class="password-group">
+                        <label>Current Password</label>
+                        <div class="sec-input-wrap">
+                            <input type="password"
+                                id="currentPassword"
+                                name="current_password"
+                                placeholder="Enter current password"
+                                required>
+                            <button type="button" class="sec-eye-btn" onclick="togglePasswordVisibility('currentPassword')">
+                                <i class="ti ti-eye" id="currentPasswordIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="password-group">
+                        <label>New Password</label>
+                        <div class="sec-input-wrap">
+                            <input type="password"
+                                id="newPassword"
+                                name="new_password"
+                                placeholder="Enter new password"
+                                required
+                                oninput="checkPasswordStrength(this.value)">
+                            <button type="button" class="sec-eye-btn" onclick="togglePasswordVisibility('newPassword')">
+                                <i class="ti ti-eye" id="newPasswordIcon"></i>
+                            </button>
+                        </div>
+                        <div class="sec-pwd-strength">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <div class="sec-pwd-requirements">
+                            <ul>
+                                <li id="reqLength">At least 8 characters</li>
+                                <li id="reqUpper">At least one uppercase letter</li>
+                                <li id="reqLower">At least one lowercase letter</li>
+                                <li id="reqDigit">At least one number</li>
+                                <li id="reqSpecial">At least one special character</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="password-group">
+                        <label>Confirm Password</label>
+                        <div class="sec-input-wrap">
+                            <input type="password"
+                                id="confirmPassword"
+                                name="confirm_password"
+                                placeholder="Confirm new password"
+                                required
+                                oninput="checkPasswordMatch()">
+                            <button type="button" class="sec-eye-btn" onclick="togglePasswordVisibility('confirmPassword')">
+                                <i class="ti ti-eye" id="confirmPasswordIcon"></i>
+                            </button>
+                        </div>
+                        <div class="sec-match-hint" id="matchHint">
+                            <i class="ti ti-check"></i> Passwords match
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sec-form-actions">
+                    <button type="submit" class="sec-btn-primary" id="updatePasswordBtn">
+                        <i class="ti ti-lock-check"></i>
+                        Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Two Factor Authentication -->
+    <!-- <div class="sec-section">
+        <div class="sec-section-header">
+            <i class="ti ti-shield-check"></i>
+            <h2>Two-Factor Authentication</h2>
+        </div>
+        <div class="sec-card">
+            <div class="sec-2fa-row">
+                <div class="sec-2fa-info">
+                    <div class="sec-2fa-status {% if tfa_enabled %}enabled{% else %}disabled{% endif %}" id="twofaStatus">
+                        <span class="status-dot"></span>
+                        {% if tfa_enabled %}Enabled{% else %}Disabled{% endif %}
+                    </div>
+                    <p>Add an extra layer of security to your account</p>
+                </div>
+                <button type="button" class="sec-btn-primary" onclick="toggle2FA()">
+                    <i class="ti ti-{% if tfa_enabled %}shield-off{% else %}shield-plus{% endif %}"></i>
+                    {% if tfa_enabled %}Disable 2FA{% else %}Enable 2FA{% endif %}
+                </button>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Active Sessions -->
+    <!-- <div class="sec-section">
+        <div class="sec-section-header">
+            <i class="ti ti-devices"></i>
+            <h2>Active Sessions</h2>
+        </div>
+        <div class="sec-card">
+            {% if sessions %}
+                {% for session in sessions %}
+                <div class="sec-session-row {% if session.is_current %}current{% endif %}">
+                    <div class="sec-session-icon">
+                        {% if 'mobile' in session.device|lower or 'phone' in session.device|lower %}
+                            <i class="ti ti-device-mobile"></i>
+                        {% elif 'tablet' in session.device|lower %}
+                            <i class="ti ti-device-tablet"></i>
+                        {% elif 'chrome' in session.device|lower or 'firefox' in session.device|lower %}
+                            <i class="ti ti-browser"></i>
+                        {% else %}
+                            <i class="ti ti-device-laptop"></i>
+                        {% endif %}
+                    </div>
+                    <div class="sec-session-info">
+                        <div class="sec-session-device">
+                            {{ session.device }}
+                            {% if session.is_current %}
+                            <span class="sec-current-badge">Current</span>
+                            {% endif %}
+                        </div>
+                        <div class="sec-session-meta">
+                            <span><i class="ti ti-map-pin"></i> {{ session.location|default:"Unknown location" }}</span>
+                            <span><i class="ti ti-clock"></i> {{ session.last_active|date:"M d, Y - g:i A" }}</span>
+                        </div>
+                    </div>
+                    {% if not session.is_current %}
+                    <button class="sec-revoke-btn" onclick="revokeSession('{{ session.session_key }}')">
+                        <i class="ti ti-x"></i> Revoke
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="sec-session-row current">
+                    <div class="sec-session-icon">
+                        <i class="ti ti-device-laptop"></i>
+                    </div>
+                    <div class="sec-session-info">
+                        <div class="sec-session-device">
+                            Current Browser
+                            <span class="sec-current-badge">Current</span>
+                        </div>
+                        <div class="sec-session-meta">
+                            <span><i class="ti ti-clock"></i> Active now</span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="sec-session-action">
+                <button class="sec-btn-secondary" onclick="revokeAllSessions()">
+                    <i class="ti ti-logout"></i> Sign Out All Other Devices
+                </button>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Danger Zone -->
+    <!-- <div class="sec-section">
+        <div class="sec-section-header">
+            <i class="ti ti-alert-triangle"></i>
+            <h2>Danger Zone</h2>
+        </div>
+        <div class="sec-card danger-card">
+            <div class="sec-danger-row">
+                <div>
+                    <div class="sec-danger-label">Deactivate Account</div>
+                    <div class="sec-danger-desc">Your account will be suspended. Contact the registrar to reactivate.</div>
+                </div>
+                <button class="sec-btn-danger" onclick="confirmDeactivate()">
+                    <i class="ti ti-user-x"></i> Deactivate
+                </button>
+            </div>
+            <div class="sec-danger-row">
+                <div>
+                    <div class="sec-danger-label">Delete Account Permanently</div>
+                    <div class="sec-danger-desc">All your data will be permanently deleted. This cannot be undone.</div>
+                </div>
+                <button class="sec-btn-danger-outline" onclick="confirmDeleteAccount()">
+                    <i class="ti ti-trash"></i> Delete Account
+                </button>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Security Tips -->
+    <div class="sec-section">
+        <div class="sec-section-header">
+            <i class="ti ti-info-circle"></i>
+            <h2>Security Tips</h2>
+        </div>
+        <div class="sec-card">
+            <div class="sec-tips-list">
+                <ul>
+                    <li>
+                        <span class="tip-icon"><i class="ti ti-check-circle"></i></span>
+                        <span class="tip-text">Use a strong, unique password for your account</span>
+                    </li>
+                    <li>
+                        <span class="tip-icon"><i class="ti ti-check-circle"></i></span>
+                        <span class="tip-text">Enable two-factor authentication for extra security</span>
+                    </li>
+                    <li>
+                        <span class="tip-icon"><i class="ti ti-check-circle"></i></span>
+                        <span class="tip-text">Regularly review your active sessions</span>
+                    </li>
+                    <li>
+                        <span class="tip-icon"><i class="ti ti-check-circle"></i></span>
+                        <span class="tip-text">Never share your password with anyone</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modals -->
+<!-- 2FA Modal -->
+<div class="sec-modal-overlay" id="twofaModal">
+    <div class="sec-modal animate__animated animate__zoomIn">
+        <div class="sec-modal-header">
+            <h2 id="twofaModalTitle"><i class="ti ti-shield-check"></i> Two-Factor Authentication</h2>
+            <button class="sec-modal-close" onclick="closeModal('twofaModal')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="sec-modal-body" id="twofaModalBody">
+            <div id="twofaSetupContent">
+                <p>Loading...</p>
+            </div>
+        </div>
+        <div class="sec-modal-footer">
+            <button class="sec-btn-secondary" onclick="closeModal('twofaModal')">Cancel</button>
+            <button class="sec-btn-primary" id="twofaConfirmBtn" onclick="confirm2FASetup()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Codes Modal -->
+<div class="sec-modal-overlay" id="backupCodesModal">
+    <div class="sec-modal animate__animated animate__zoomIn">
+        <div class="sec-modal-header">
+            <h2><i class="ti ti-qrcode"></i> Backup Codes</h2>
+            <button class="sec-modal-close" onclick="closeModal('backupCodesModal')">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="sec-modal-body">
+            <p style="font-size:13px;color:#666;">Store these backup codes in a safe place. Each code can only be used once.</p>
+            <div class="backup-codes-grid" id="backupCodesContainer">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+        <div class="sec-modal-footer">
+            <button class="sec-btn-secondary" onclick="closeModal('backupCodesModal')">Close</button>
+            <button class="sec-btn-primary" onclick="downloadBackupCodes()">
+                <i class="ti ti-download"></i> Download
+            </button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Settings/account_security.js' %}"></script>
+
+<script>
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof AOS !== 'undefined') {
+        AOS.init({
+            duration: 400,
+            once: true
+        });
+    }
+    checkPasswordMatch();
+    updateSecurityScore();
+});
+
+console.log('🔍 Checking parent toast...');
+console.log('toastSuccess:', typeof toastSuccess);
+console.log('toastError:', typeof toastError);
+
+if (typeof toastSuccess === 'undefined') {
+    console.warn('⚠️ Parent toast NOT loaded - check script path');
+} else {
+    console.log('✅ Parent toast is ready!');
+}
+</script>
+{% endblock %}

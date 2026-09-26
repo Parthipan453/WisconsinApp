@@ -1,0 +1,1797 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+{% block title %}PhD Student Management{% endblock %}
+{% block page_title %}PhD Student Management{% endblock %}
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+          rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/Leo_admin/phd_student.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="phd-page" id="phdStudentPage">
+        <div class="phd-page-header">
+            <div class="phd-header-content">
+                <div class="phd-header-icon">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div class="phd-header-text">
+                    <h1>PhD Program & Mentor Assignment</h1>
+                    <p>Assign and manage doctoral programs and research mentors for PhD students, with supporting video evidence for program and mentor assignments.</p>
+                </div>
+            </div>
+            <button type="button" class="btn phd-primary-btn create-phd-student-btn">
+                <i class="bi bi-plus-circle"></i><span>Assign Program & Mentor</span>
+            </button>
+        </div>
+        <div class="phd-stat-grid">
+            <div class="phd-stat-card">
+                <div class="phd-stat-icon phd-stat-total">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div><span class="phd-stat-number">{{ total_students }}</span><span class="phd-stat-label">Total Students</span></div>
+            </div>
+            <div class="phd-stat-card">
+                <div class="phd-stat-icon phd-stat-active">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <div><span class="phd-stat-number">{{ active_students }}</span><span class="phd-stat-label">Active</span></div>
+            </div>
+            <div class="phd-stat-card">
+                <div class="phd-stat-icon phd-stat-completed">
+                    <i class="bi bi-award-fill"></i>
+                </div>
+                <div><span class="phd-stat-number">{{ completed_students }}</span><span class="phd-stat-label">Completed</span></div>
+            </div>
+            <div class="phd-stat-card">
+                <div class="phd-stat-icon phd-stat-hold">
+                    <i class="bi bi-pause-circle-fill"></i>
+                </div>
+                <div><span class="phd-stat-number">{{ on_hold_students }}</span><span class="phd-stat-label">On Hold</span></div>
+            </div>
+            <div class="phd-stat-card">
+                <div class="phd-stat-icon phd-stat-withdrawn">
+                    <i class="bi bi-x-circle-fill"></i>
+                </div>
+                <div><span class="phd-stat-number">{{ withdrawn_students }}</span><span class="phd-stat-label">Withdrawn</span></div>
+            </div>
+        </div>
+        <div class="phd-guideline-card">
+            <div class="phd-guideline-icon">
+                <i class="bi bi-info-circle-fill"></i>
+            </div>
+            <div class="phd-guideline-content">
+                <strong>Assignment Guidelines</strong>
+                <p>Assign an active PhD program and research mentor for each PhD student. Admission Date determines the Cohort Year and Expected Graduation Date. Program and Mentor assignment videos are maintained as academic evidence.</p>
+            </div>
+        </div>
+        <div class="phd-filter-card">
+            <form method="get" action="" id="filterForm">
+                <div class="phd-filter-grid">
+                    <div class="phd-field">
+                        <label for="search">Search</label>
+                        <div class="phd-input-wrap">
+                            <i class="bi bi-search phd-input-icon"></i>
+                            <input type="text"
+                                   name="search"
+                                   id="search"
+                                   class="form-control phd-form-control phd-icon-input"
+                                   placeholder="Name, email or program"
+                                   value="{{ search }}">
+                        </div>
+                    </div>
+                    <div class="phd-field">
+                        <label for="statusFilter">Status</label>
+                        <select name="status" id="statusFilter" class="form-select phd-filter-select">
+                            <option value="">All Status</option>
+                            <option value="ACTIVE" {% if status_filter == "ACTIVE" %}selected{% endif %}>Active</option>
+                            <option value="ON_HOLD"
+                                    {% if status_filter == "ON_HOLD" %}selected{% endif %}>On Hold</option>
+                            <option value="COMPLETED"
+                                    {% if status_filter == "COMPLETED" %}selected{% endif %}>Completed</option>
+                            <option value="WITHDRAWN"
+                                    {% if status_filter == "WITHDRAWN" %}selected{% endif %}>Withdrawn</option>
+                        </select>
+                    </div>
+                    <div class="phd-field">
+                        <label for="programFilter">Program</label>
+                        <select name="program"
+                                id="programFilter"
+                                class="form-select phd-filter-select">
+                            <option value="">All Programs</option>
+                            {% for prog in programs %}
+                                <option value="{{ prog.phd_program_id }}"
+                                        {% if program_filter == prog.phd_program_id|stringformat:"s" %}selected{% endif %}>{{ prog.program_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="phd-filter-actions">
+                        <button type="submit" class="btn phd-primary-btn">
+                            <i class="bi bi-search"></i><span>Search</span>
+                        </button>
+                        <a href="{% url 'phd_student_list' %}" class="btn phd-reset-btn">
+                            <i class="bi bi-arrow-clockwise"></i><span>Reset</span>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <section class="phd-roster">
+            <div class="phd-roster-header">
+                <div class="phd-roster-title-wrap">
+                    <div class="phd-roster-icon">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </div>
+                    <div>
+                        <h2>PhD Student Roster</h2>
+                        <p>Explore and manage doctoral scholars</p>
+                    </div>
+                </div>
+                {% if page_obj %}
+                    <span class="phd-roster-count">{{ page_obj.paginator.count }} Scholar{{ page_obj.paginator.count|pluralize }}</span>
+                {% endif %}
+            </div>
+            {% if page_obj %}
+                <div class="phd-student-grid" id="studentGrid">
+                    {% for student in page_obj %}
+                        <article class="phd-student-card">
+                            <div class="phd-card-top">
+                                <div class="phd-student-identity">
+                                    <div class="phd-avatar">
+                                        {{ student.student.user.first_name|first|upper }}{{ student.student.user.last_name|first|upper }}
+                                    </div>
+                                    <div class="phd-student-name-wrap">
+                                        <h3>{{ student.student.user.first_name }} {{ student.student.user.last_name }}</h3>
+                                        <a href="mailto:{{ student.student.user.email }}">
+                                            <i class="bi bi-envelope"></i>
+                                            <span>{{ student.student.user.email }}</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="phd-status-wrap">
+                                    {% if student.current_status == "ACTIVE" %}
+                                        <span class="phd-status phd-status-active"><span class="phd-status-dot"></span>Active</span>
+                                    {% elif student.current_status == "COMPLETED" %}
+                                        <span class="phd-status phd-status-completed"><span class="phd-status-dot"></span>Completed</span>
+                                    {% elif student.current_status == "ON_HOLD" %}
+                                        <span class="phd-status phd-status-hold"><span class="phd-status-dot"></span>On Hold</span>
+                                    {% elif student.current_status == "WITHDRAWN" %}
+                                        <span class="phd-status phd-status-withdrawn"><span class="phd-status-dot"></span>Withdrawn</span>
+                                    {% else %}
+                                        <span class="phd-status phd-status-other"><span class="phd-status-dot"></span>{{ student.current_status }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="phd-program-box">
+                                <div class="phd-program-icon">
+                                    <i class="bi bi-diagram-3-fill"></i>
+                                </div>
+                                <div class="phd-program-content">
+                                    <span>Doctoral Program</span>
+                                    <strong>{{ student.phd_program.program_name }}</strong>
+                                </div>
+                            </div>
+                            <div class="phd-details-grid">
+                                <div class="phd-detail-item">
+                                    <div class="phd-detail-icon">
+                                        <i class="bi bi-person-badge-fill"></i>
+                                    </div>
+                                    <div class="phd-detail-content">
+                                        <span>Research Advisor</span>
+                                        {% if student.advisor %}
+                                            <strong>{{ student.advisor.user.first_name }} {{ student.advisor.user.last_name }}</strong>
+                                        {% else %}
+                                            <strong class="phd-muted-value">Not Assigned</strong>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="phd-detail-item">
+                                    <div class="phd-detail-icon">
+                                        <i class="bi bi-calendar-event-fill"></i>
+                                    </div>
+                                    <div class="phd-detail-content">
+                                        <span>Admission</span>
+                                        <strong>
+                                            {% if student.admission_date %}
+                                                {{ student.admission_date|date:"M d, Y" }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div class="phd-detail-item">
+                                    <div class="phd-detail-icon">
+                                        <i class="bi bi-people-fill"></i>
+                                    </div>
+                                    <div class="phd-detail-content">
+                                        <span>Cohort</span>
+                                        <strong>{{ student.cohort_year }}</strong>
+                                    </div>
+                                </div>
+                                <div class="phd-detail-item">
+                                    <div class="phd-detail-icon">
+                                        <i class="bi bi-mortarboard-fill"></i>
+                                    </div>
+                                    <div class="phd-detail-content">
+                                        <span>Expected Graduation</span>
+                                        <strong>
+                                            {% if student.expected_graduation_date %}
+                                                {{ student.expected_graduation_date|date:"M d, Y" }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="phd-card-evidence">
+                                <div class="phd-card-evidence-title">
+                                    <i class="bi bi-camera-video-fill"></i>
+                                    <span>Video Evidence</span>
+                                </div>
+                                <div class="phd-card-evidence-list">
+                                    {% with evidence_list=student.video_evidences.all %}
+                                        {% for evidence in evidence_list %}
+                                            {% if evidence.evidence_type == "PROGRAM_ASSIGNMENT" %}
+                                                <span class="phd-evidence-badge phd-evidence-program">
+                                                    <i class="bi bi-check-circle-fill"></i>
+                                                    Program Assignment
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% for evidence in evidence_list %}
+                                            {% if evidence.evidence_type == "ADVISOR_ASSIGNMENT" %}
+                                                <span class="phd-evidence-badge phd-evidence-advisor">
+                                                    <i class="bi bi-check-circle-fill"></i>
+                                                    Advisor Assignment
+                                                </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not evidence_list %}
+                                            <span class="phd-evidence-missing">
+                                                <i class="bi bi-dash-circle"></i>
+                                                No video evidence uploaded
+                                            </span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                            <div class="phd-card-footer">
+                                <span class="phd-scholar-label">
+                                    <i class="bi bi-stars"></i>
+                                    Doctoral Scholar
+                                </span>
+                                <div class="phd-card-actions">
+                                    <button type="button"
+                                            class="phd-action phd-action-view view-btn"
+                                            data-id="{{ student.phd_student_id }}"
+                                            data-name="{{ student.student.user.first_name }} {{ student.student.user.last_name }}">
+                                        <i class="bi bi-eye"></i><span>View</span>
+                                    </button>
+                                    <button type="button"
+                                            class="phd-action phd-action-edit edit-btn"
+                                            data-id="{{ student.phd_student_id }}"
+                                            data-name="{{ student.student.user.first_name }} {{ student.student.user.last_name }}">
+                                        <i class="bi bi-pencil-square"></i><span>Edit</span>
+                                    </button>
+                                    {% if student.current_status == "ACTIVE" %}
+                                        <button type="button"
+                                                class="phd-action phd-action-hold deactivate-btn"
+                                                data-id="{{ student.phd_student_id }}"
+                                                data-name="{{ student.student.user.first_name }} {{ student.student.user.last_name }}">
+                                            <i class="bi bi-pause-circle"></i><span>Hold</span>
+                                        </button>
+                                    {% else %}
+                                        <button type="button"
+                                                class="phd-action phd-action-activate activate-btn"
+                                                data-id="{{ student.phd_student_id }}"
+                                                data-name="{{ student.student.user.first_name }} {{ student.student.user.last_name }}">
+                                            <i class="bi bi-play-circle"></i><span>Activate</span>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="phd-empty-state">
+                    <div class="phd-empty-icon">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </div>
+                    <h3>No Doctoral Scholars Yet</h3>
+                    <p>Your PhD student roster is waiting for its first scholar.</p>
+                    <button type="button" class="btn phd-primary-btn create-phd-student-btn">
+                        <i class="bi bi-plus-circle"></i><span>Add First Scholar</span>
+                    </button>
+                </div>
+            {% endif %}
+            {% if page_obj and page_obj.paginator.num_pages > 1 %}
+                <nav class="phd-pagination-wrap" aria-label="PhD student pagination">
+                    <div class="phd-pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+                    <ul class="pagination phd-pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link phd-page-link"
+                                   href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter|urlencode }}{% endif %}{% if program_filter %}&program={{ program_filter|urlencode }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i><span>Previous</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if num == page_obj.number %}
+                                <li class="page-item active"><span class="page-link phd-page-link">{{ num }}</span></li>
+                            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                                <li class="page-item">
+                                    <a class="page-link phd-page-link"
+                                       href="?page={{ num }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter|urlencode }}{% endif %}{% if program_filter %}&program={{ program_filter|urlencode }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link phd-page-link"
+                                   href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search|urlencode }}{% endif %}{% if status_filter %}&status={{ status_filter|urlencode }}{% endif %}{% if program_filter %}&program={{ program_filter|urlencode }}{% endif %}">
+                                    <span>Next</span><i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}
+{% block global_modal %}
+    <div class="modal fade phd-modal"
+         id="createModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered phd-modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header phd-modal-header">
+                    <div class="phd-modal-title-wrap">
+                        <div class="phd-modal-title-icon">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Assign Program & Mentor</h5>
+                            <p>Add enrollment, program, advisor and video evidence.</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <form method="post"
+                      action="{% url 'phd_student_create' %}"
+                      id="createForm"
+                      enctype="multipart/form-data"
+                      novalidate>
+                    {% csrf_token %}
+                    <div class="modal-body phd-modal-body">
+                        <div class="phd-modal-scroll">{% include "Leo_admin/partials/phd_student_form.html" %}</div>
+                    </div>
+                    <div class="modal-footer phd-modal-footer">
+                        <button type="button" class="btn phd-secondary-btn" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn phd-primary-btn">
+                            <i class="bi bi-check-circle-fill"></i><span>Create Student</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade phd-modal"
+         id="editModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered phd-modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header phd-modal-header">
+                    <div class="phd-modal-title-wrap">
+                        <div class="phd-modal-title-icon">
+                            <i class="bi bi-pencil-square"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Update PhD Student</h5>
+                            <p id="editModalSubtitle">Update enrollment, assignment and evidence.</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <form method="post"
+                      action=""
+                      id="editForm"
+                      enctype="multipart/form-data"
+                      novalidate>
+                    {% csrf_token %}
+                    <div class="modal-body phd-modal-body">
+                        <div class="phd-modal-scroll" id="editFormContainer">
+                            <div class="phd-loading-state">
+                                <div class="spinner-border" role="status"></div>
+                                <strong>Loading student data...</strong>
+                                <span>Please wait.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer phd-modal-footer">
+                        <button type="button" class="btn phd-secondary-btn" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn phd-primary-btn" id="editSubmitBtn">
+                            <i class="bi bi-check-circle-fill"></i><span>Update Student</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade phd-modal" id="phdViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable phd-modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header phd-modal-header">
+                <div class="phd-modal-title-wrap">
+                    <div class="phd-modal-title-icon">
+                        <i class="bi bi-eye-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="phdViewModalTitle">Student Details</h5>
+                        <p id="phdViewModalSubtitle">PhD student academic record</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body phd-modal-body">
+                <div class="phd-modal-scroll">
+                    <div id="phdViewContent">
+                        <div class="phd-loading-state">
+                            <div class="spinner-border" role="status"></div>
+                            <strong>Loading student details...</strong>
+                            <span>Please wait.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer phd-modal-footer">
+                <button type="button" class="btn phd-secondary-btn" data-bs-dismiss="modal">
+                    <span>Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="modal fade phd-modal phd-confirm-modal"
+         id="activateModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header phd-modal-header">
+                    <div class="phd-modal-title-wrap">
+                        <div class="phd-modal-title-icon phd-icon-success">
+                            <i class="bi bi-play-circle-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Activate Student</h5>
+                            <p>Change the student's status to Active.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="" id="activateForm">
+                    {% csrf_token %}
+                    <div class="modal-body phd-confirm-body">
+                        <div class="phd-confirm-icon phd-confirm-success">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                        <h4>Activate this student?</h4>
+                        <p><strong id="activateStudentName">Student</strong> will be set to Active status.</p>
+                    </div>
+                    <div class="modal-footer phd-modal-footer">
+                        <button type="button" class="btn phd-secondary-btn" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn phd-success-btn">
+                            <i class="bi bi-check-circle-fill"></i><span>Activate</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade phd-modal phd-confirm-modal"
+         id="deactivateModal"
+         tabindex="-1"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header phd-modal-header">
+                    <div class="phd-modal-title-wrap">
+                        <div class="phd-modal-title-icon phd-icon-warning">
+                            <i class="bi bi-pause-circle-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Move to On Hold</h5>
+                            <p>Temporarily place the student on hold.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="" id="deactivateForm">
+                    {% csrf_token %}
+                    <div class="modal-body phd-confirm-body">
+                        <div class="phd-confirm-icon phd-confirm-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <h4>Move this student to On Hold?</h4>
+                        <p><strong id="deactivateStudentName">Student</strong> will be set to On Hold status.</p>
+                    </div>
+                    <div class="modal-footer phd-modal-footer">
+                        <button type="button" class="btn phd-secondary-btn" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn phd-warning-btn">
+                            <i class="bi bi-pause-circle-fill"></i><span>On Hold</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+(function () {
+
+    "use strict";
+
+    function ready(fn) {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", fn, { once: true });
+        } else {
+            fn();
+        }
+    }
+
+    ready(function () {
+
+        const createEl = document.getElementById("createModal");
+        const editEl = document.getElementById("editModal");
+        const activateEl = document.getElementById("activateModal");
+        const deactivateEl = document.getElementById("deactivateModal");
+
+        if (!createEl || !editEl || typeof bootstrap === "undefined") {
+            return;
+        }
+
+        const createModal = bootstrap.Modal.getOrCreateInstance(createEl, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+
+        const editModal = bootstrap.Modal.getOrCreateInstance(editEl, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+
+        const activateModal = activateEl
+            ? bootstrap.Modal.getOrCreateInstance(activateEl)
+            : null;
+
+        const deactivateModal = deactivateEl
+            ? bootstrap.Modal.getOrCreateInstance(deactivateEl)
+            : null;
+
+        const activeChoices = new WeakMap();
+        const activeDates = new WeakMap();
+
+        function toast(icon, title) {
+            if (typeof Swal !== "undefined") {
+                Swal.fire({
+                    icon: icon,
+                    title: title,
+                    toast: true,
+                    position: "top-end",
+                    showConfirmButton: false,
+                    timer: 2600,
+                    timerProgressBar: true
+                });
+            }
+        }
+
+        function scopeOf(container) {
+            return container || document;
+        }
+
+        function destroyChoices(select) {
+            const instance = activeChoices.get(select) || select._choicesInstance;
+
+            if (instance) {
+                instance.destroy();
+                activeChoices.delete(select);
+                select._choicesInstance = null;
+            }
+        }
+
+        function initChoices(container) {
+            if (typeof Choices === "undefined") {
+                return;
+            }
+
+            scopeOf(container)
+                .querySelectorAll("select.assignment-select")
+                .forEach(function (select) {
+
+                    if (activeChoices.has(select) || select._choicesInstance) {
+                        return;
+                    }
+
+                    const instance = new Choices(select, {
+                        searchEnabled: true,
+                        searchChoices: true,
+                        shouldSort: false,
+                        itemSelectText: "",
+                        allowHTML: false,
+                        removeItemButton: false,
+                        placeholder: true,
+                        placeholderValue: select.options[0]
+                            ? select.options[0].text
+                            : "Select",
+                        searchPlaceholderValue: "Search...",
+                        noResultsText: "No results found",
+                        noChoicesText: "No choices available",
+                        position: "bottom",
+                        resetScrollPosition: false,
+                        renderSelectedChoices: "always",
+                        classNames: {
+                            containerOuter: "phd-choices"
+                        }
+                    });
+
+                    activeChoices.set(select, instance);
+                    select._choicesInstance = instance;
+                });
+        }
+
+        function initFlatpickr(container) {
+            if (typeof flatpickr === "undefined") {
+                return;
+            }
+
+            scopeOf(container)
+                .querySelectorAll("input.assignment-date")
+                .forEach(function (input) {
+
+                    const old = activeDates.get(input) || input._flatpickr;
+
+                    if (old) {
+                        old.destroy();
+                    }
+
+                    const wrapper =
+                        input.closest(".phd-date-wrap") ||
+                        input.parentElement;
+
+                    const config = {
+                        dateFormat: "Y-m-d",
+                        altInput: true,
+                        altFormat: "M d, Y",
+                        allowInput: false,
+                        clickOpens: true,
+                        disableMobile: true,
+                        appendTo: wrapper,
+                        positionElement: input,
+                        static: true,
+                        monthSelectorType: "static",
+                        onChange: function () {
+                            input.dispatchEvent(
+                                new Event("change", {
+                                    bubbles: true
+                                })
+                            );
+                        }
+                    };
+
+                    if (input.name === "admission_date") {
+                        config.maxDate = "today";
+                    }
+
+                    const instance = flatpickr(input, config);
+
+                    activeDates.set(input, instance);
+                });
+        }
+
+        function initVideoInputs(container) {
+            scopeOf(container)
+                .querySelectorAll("input.assignment-video-input")
+                .forEach(function (input) {
+
+                    if (input.dataset.bound === "1") {
+                        return;
+                    }
+
+                    input.dataset.bound = "1";
+
+                    input.addEventListener("change", function () {
+
+                        const file =
+                            input.files && input.files[0];
+
+                        const box =
+                            input.closest(".phd-upload-box");
+
+                        const label =
+                            box
+                                ? box.querySelector(".phd-upload-file-name")
+                                : null;
+
+                        const previewId =
+                            input.dataset.previewTarget;
+
+                        const preview =
+                            previewId
+                                ? document.getElementById(previewId)
+                                : null;
+
+                        if (!file) {
+
+                            if (label) {
+                                label.textContent =
+                                    "MP4, WebM, MOV or M4V";
+                            }
+
+                            if (preview) {
+                                preview.pause();
+                                preview.removeAttribute("src");
+                                preview.load();
+                                preview.classList.add("d-none");
+                            }
+
+                            return;
+                        }
+
+                        const supportedTypes = [
+                            "video/mp4",
+                            "video/webm",
+                            "video/quicktime",
+                            "video/x-m4v"
+                        ];
+
+                        const extension =
+                            file.name
+                                .split(".")
+                                .pop()
+                                .toLowerCase();
+
+                        const supportedExtensions = [
+                            "mp4",
+                            "webm",
+                            "mov",
+                            "m4v"
+                        ];
+
+                        const validType =
+                            supportedTypes.includes(file.type) ||
+                            supportedExtensions.includes(extension);
+
+                        if (!validType) {
+
+                            input.value = "";
+
+                            if (label) {
+                                label.textContent =
+                                    "MP4, WebM, MOV or M4V";
+                            }
+
+                            if (preview) {
+                                preview.pause();
+                                preview.removeAttribute("src");
+                                preview.load();
+                                preview.classList.add("d-none");
+                            }
+
+                            toast(
+                                "error",
+                                "Please select a supported video file."
+                            );
+
+                            return;
+                        }
+
+                        if (file.size > 200 * 1024 * 1024) {
+
+                            input.value = "";
+
+                            if (label) {
+                                label.textContent =
+                                    "MP4, WebM, MOV or M4V";
+                            }
+
+                            if (preview) {
+                                preview.pause();
+                                preview.removeAttribute("src");
+                                preview.load();
+                                preview.classList.add("d-none");
+                            }
+
+                            toast(
+                                "error",
+                                "Video file must be 200 MB or smaller."
+                            );
+
+                            return;
+                        }
+
+                        if (label) {
+                            label.textContent = file.name;
+                        }
+
+                        if (preview) {
+
+                            if (preview.dataset.objectUrl) {
+                                URL.revokeObjectURL(
+                                    preview.dataset.objectUrl
+                                );
+                            }
+
+                            const url =
+                                URL.createObjectURL(file);
+
+                            preview.dataset.objectUrl = url;
+                            preview.src = url;
+                            preview.classList.remove("d-none");
+                            preview.load();
+                        }
+                    });
+                });
+        }
+
+        function initTriggers(container) {
+            scopeOf(container)
+                .querySelectorAll(".phd-date-trigger")
+                .forEach(function (button) {
+
+                    if (button.dataset.bound === "1") {
+                        return;
+                    }
+
+                    button.dataset.bound = "1";
+
+                    button.addEventListener("click", function () {
+
+                        const input =
+                            document.getElementById(
+                                button.dataset.target
+                            );
+
+                        const instance =
+                            input
+                                ? (
+                                    activeDates.get(input) ||
+                                    input._flatpickr
+                                )
+                                : null;
+
+                        if (instance) {
+                            instance.open();
+                        }
+                    });
+                });
+        }
+
+        function initCohort(container) {
+
+            const scope = scopeOf(container);
+
+            const admission =
+                scope.querySelector(
+                    "input[name='admission_date']"
+                );
+
+            const cohort =
+                scope.querySelector(
+                    "input[name='cohort_year']"
+                );
+
+            if (
+                !admission ||
+                !cohort ||
+                admission.dataset.boundCohort === "1"
+            ) {
+                return;
+            }
+
+            admission.dataset.boundCohort = "1";
+
+            function sync() {
+                const value = admission.value || "";
+                cohort.value = value
+                    ? value.slice(0, 4)
+                    : "";
+            }
+
+            admission.addEventListener("change", sync);
+
+            sync();
+        }
+
+        function initAdvisor(container) {
+
+            const scope = scopeOf(container);
+
+            const advisor =
+                scope.querySelector(
+                    "select[name='advisor']"
+                );
+
+            const input =
+                scope.querySelector(
+                    "input[name='advisor_assignment_video']"
+                );
+
+            if (
+                !advisor ||
+                !input ||
+                advisor.dataset.boundAdvisor === "1"
+            ) {
+                return;
+            }
+
+            advisor.dataset.boundAdvisor = "1";
+
+            function sync() {
+
+                const hasAdvisor =
+                    Boolean(advisor.value);
+
+                const section =
+                    input.closest(".phd-video-section");
+
+                if (section) {
+                    section.classList.toggle(
+                        "phd-video-disabled",
+                        !hasAdvisor
+                    );
+                }
+
+                input.disabled = !hasAdvisor;
+
+                if (!hasAdvisor) {
+                    input.value = "";
+                }
+            }
+
+            advisor.addEventListener("change", sync);
+
+            sync();
+        }
+
+        function initForm(container) {
+
+            if (!container) {
+                return;
+            }
+
+            initChoices(container);
+            initFlatpickr(container);
+            initVideoInputs(container);
+            initTriggers(container);
+            initCohort(container);
+            initAdvisor(container);
+        }
+
+        function resetCreate() {
+
+            const form =
+                document.getElementById("createForm");
+
+            if (!form) {
+                return;
+            }
+
+            form.reset();
+
+            form.querySelectorAll(
+                "select.assignment-select"
+            ).forEach(destroyChoices);
+
+            form.querySelectorAll(
+                "input.assignment-date"
+            ).forEach(function (input) {
+
+                const instance =
+                    activeDates.get(input) ||
+                    input._flatpickr;
+
+                if (instance) {
+                    instance.destroy();
+                }
+
+                activeDates.delete(input);
+            });
+
+            form.querySelectorAll(
+                ".phd-new-video"
+            ).forEach(function (video) {
+
+                if (video.dataset.objectUrl) {
+                    URL.revokeObjectURL(
+                        video.dataset.objectUrl
+                    );
+                    delete video.dataset.objectUrl;
+                }
+
+                video.pause();
+                video.removeAttribute("src");
+                video.load();
+                video.classList.add("d-none");
+            });
+
+            form.querySelectorAll(
+                ".phd-upload-file-name"
+            ).forEach(function (label) {
+
+                label.textContent =
+                    "MP4, WebM, MOV or M4V";
+            });
+
+            initForm(form);
+        }
+
+        document.addEventListener("click", function (event) {
+
+            const createButton =
+                event.target.closest(
+                    ".create-phd-student-btn"
+                );
+
+            if (createButton) {
+                resetCreate();
+                createModal.show();
+                return;
+            }
+
+            const editButton =
+                event.target.closest(".edit-btn");
+
+            if (editButton) {
+
+                const id =
+                    editButton.dataset.id;
+
+                const name =
+                    editButton.dataset.name ||
+                    "Student";
+
+                const form =
+                    document.getElementById("editForm");
+
+                const container =
+                    document.getElementById(
+                        "editFormContainer"
+                    );
+
+                if (!id || !form || !container) {
+                    return;
+                }
+
+                const url =
+                    "{% url 'phd_student_update' 0 %}"
+                    .replace(
+                        "/0/",
+                        "/" + id + "/"
+                    );
+
+                form.action = url;
+
+                const subtitle =
+                    document.getElementById(
+                        "editModalSubtitle"
+                    );
+
+                if (subtitle) {
+                    subtitle.textContent =
+                        "Editing " + name;
+                }
+
+                container.innerHTML =
+                    '<div class="phd-loading-state">' +
+                    '<div class="spinner-border" role="status"></div>' +
+                    '<strong>Loading student data...</strong>' +
+                    '<span>Please wait.</span>' +
+                    '</div>';
+
+                editModal.show();
+
+                fetch(url + "?ajax=1", {
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                })
+
+                .then(function (response) {
+
+                    if (!response.ok) {
+                        throw new Error(
+                            "Unable to load student data."
+                        );
+                    }
+
+                    return response.json();
+                })
+
+                .then(function (data) {
+
+                    if (!data.form) {
+                        throw new Error(
+                            "Student form was not returned."
+                        );
+                    }
+
+                    container.innerHTML =
+                        data.form;
+
+                    initForm(container);
+                })
+
+                .catch(function (error) {
+
+                    container.innerHTML =
+                        '<div class="phd-error-state">' +
+                        '<div class="phd-error-icon">' +
+                        '<i class="bi bi-exclamation-triangle-fill"></i>' +
+                        '</div>' +
+                        '<strong>Unable to load student data</strong>' +
+                        '<span>' +
+                        error.message +
+                        '</span>' +
+                        '</div>';
+                });
+
+                return;
+            }
+            const viewButton = event.target.closest(".view-btn");
+
+            if (viewButton) {
+
+                const id = viewButton.dataset.id;
+
+                if (!id) {
+                    return;
+                }
+
+                const viewModalElement =
+                    document.getElementById("phdViewModal");
+
+                const viewContent =
+                    document.getElementById("phdViewContent");
+
+                const viewTitle =
+                    document.getElementById("phdViewModalTitle");
+
+                const viewSubtitle =
+                    document.getElementById("phdViewModalSubtitle");
+
+                if (!viewModalElement || !viewContent) {
+                    return;
+                }
+
+                const viewModal =
+                    bootstrap.Modal.getOrCreateInstance(
+                        viewModalElement,
+                        {
+                            backdrop: true,
+                            keyboard: true,
+                            focus: true
+                        }
+                    );
+
+                viewContent.innerHTML =
+                    '<div class="phd-loading-state">' +
+                        '<div class="spinner-border" role="status"></div>' +
+                        '<strong>Loading student details...</strong>' +
+                        '<span>Please wait.</span>' +
+                    '</div>';
+
+                const name =
+                    viewButton.dataset.name ||
+                    "Student";
+
+                if (viewTitle) {
+                    viewTitle.textContent = name;
+                }
+
+                if (viewSubtitle) {
+                    viewSubtitle.textContent =
+                        "PhD student academic record";
+                }
+
+                viewModal.show();
+
+                const url =
+                    "{% url 'phd_student_view' 0 %}"
+                    .replace(
+                        "/0/",
+                        "/" + id + "/"
+                    );
+
+                fetch(url + "?ajax=1", {
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                })
+
+                .then(function (response) {
+
+                    if (!response.ok) {
+                        throw new Error(
+                            "Unable to load student details."
+                        );
+                    }
+
+                    return response.json();
+                })
+
+                .then(function (data) {
+
+                    if (!data.success || !data.student) {
+                        throw new Error(
+                            "Student details were not returned."
+                        );
+                    }
+
+                    const student = data.student;
+                    const videos = data.videos || {};
+
+                    const programVideos =
+                        videos.program || [];
+
+                    const advisorVideos =
+                        videos.advisor || [];
+
+                    function videoMarkup(
+                        title,
+                        icon,
+                        videos,
+                        type
+                    ) {
+
+                        if (!videos.length) {
+                            return (
+                                '<div class="phd-view-evidence-card">' +
+                                    '<div class="phd-view-evidence-header">' +
+                                        '<div class="phd-view-evidence-icon">' +
+                                            '<i class="bi ' + icon + '"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<strong>' + title + '</strong>' +
+                                            '<span>No video evidence uploaded</span>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="phd-view-evidence-empty">' +
+                                        '<i class="bi bi-camera-video-off"></i>' +
+                                        '<span>No ' + type + ' assignment evidence available.</span>' +
+                                    '</div>' +
+                                '</div>'
+                            );
+                        }
+
+                        return (
+                            '<div class="phd-view-evidence-card">' +
+                                '<div class="phd-view-evidence-header">' +
+                                    '<div class="phd-view-evidence-icon">' +
+                                        '<i class="bi ' + icon + '"></i>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<strong>' + title + '</strong>' +
+                                        '<span>' + videos.length + ' evidence file' +
+                                            (videos.length === 1 ? '' : 's') +
+                                        '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="phd-view-video-list">' +
+                                    videos.map(function (video) {
+                                        return (
+                                            '<div class="phd-view-video-item">' +
+                                                '<video controls preload="metadata" playsinline>' +
+                                                    '<source src="' + video.url + '">' +
+                                                '</video>' +
+                                                '<div class="phd-view-video-meta">' +
+                                                    '<strong>' + video.name + '</strong>' +
+                                                    '<span>' + video.uploaded_at + '</span>' +
+                                                    '<a href="' + video.url + '" target="_blank" rel="noopener">' +
+                                                        '<i class="bi bi-box-arrow-up-right"></i>' +
+                                                        '<span>Open</span>' +
+                                                    '</a>' +
+                                                '</div>' +
+                                            '</div>'
+                                        );
+                                    }).join("") +
+                                '</div>' +
+                            '</div>'
+                        );
+                    }
+
+                    viewContent.innerHTML =
+                        '<div class="phd-view-layout">' +
+
+                            '<section class="phd-view-section">' +
+                                '<div class="phd-view-section-heading">' +
+                                    '<div class="phd-view-section-icon">' +
+                                        '<i class="bi bi-person-fill"></i>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<h3>Student Information</h3>' +
+                                        '<p>Doctoral scholar identity and enrollment information.</p>' +
+                                    '</div>' +
+                                '</div>' +
+
+                                '<div class="phd-view-info-grid">' +
+
+                                    '<div class="phd-view-info-item phd-view-info-wide">' +
+                                        '<span>Student Name</span>' +
+                                        '<strong>' +
+                                            student.first_name +
+                                            ' ' +
+                                            student.last_name +
+                                        '</strong>' +
+                                    '</div>' +
+
+                                    '<div class="phd-view-info-item phd-view-info-wide">' +
+                                        '<span>Email Address</span>' +
+                                        '<strong>' +
+                                            student.email +
+                                        '</strong>' +
+                                    '</div>' +
+
+                                    '<div class="phd-view-info-item">' +
+                                        '<span>Academic Status</span>' +
+                                        '<strong>' +
+                                            student.status +
+                                        '</strong>' +
+                                    '</div>' +
+
+                                    '<div class="phd-view-info-item">' +
+                                        '<span>Admission Date</span>' +
+                                        '<strong>' +
+                                            (student.admission_date || "—") +
+                                        '</strong>' +
+                                    '</div>' +
+
+                                    '<div class="phd-view-info-item">' +
+                                        '<span>Cohort Year</span>' +
+                                        '<strong>' +
+                                            (student.cohort_year || "—") +
+                                        '</strong>' +
+                                    '</div>' +
+
+                                    '<div class="phd-view-info-item">' +
+                                        '<span>Expected Graduation</span>' +
+                                        '<strong>' +
+                                            (student.expected_graduation_date || "—") +
+                                        '</strong>' +
+                                    '</div>' +
+
+                                '</div>' +
+                            '</section>' +
+
+                            '<section class="phd-view-section">' +
+                                '<div class="phd-view-section-heading">' +
+                                    '<div class="phd-view-section-icon">' +
+                                        '<i class="bi bi-diagram-3-fill"></i>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<h3>Academic Assignment</h3>' +
+                                        '<p>Current doctoral program and research advisor.</p>' +
+                                    '</div>' +
+                                '</div>' +
+
+                                '<div class="phd-view-assignment-grid">' +
+
+                                    '<div class="phd-view-assignment-card">' +
+                                        '<div class="phd-view-assignment-icon">' +
+                                            '<i class="bi bi-mortarboard-fill"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<span>Doctoral Program</span>' +
+                                            '<strong>' +
+                                                (student.program || "Not Assigned") +
+                                            '</strong>' +
+                                        '</div>' +
+                                    '</div>' +
+
+                                    '<div class="phd-view-assignment-card">' +
+                                        '<div class="phd-view-assignment-icon">' +
+                                            '<i class="bi bi-person-badge-fill"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<span>Research Advisor</span>' +
+                                            '<strong>' +
+                                                (student.advisor || "Not Assigned") +
+                                            '</strong>' +
+                                        '</div>' +
+                                    '</div>' +
+
+                                '</div>' +
+                            '</section>' +
+
+                            '<section class="phd-view-section phd-view-video-section">' +
+                                '<div class="phd-view-section-heading">' +
+                                    '<div class="phd-view-section-icon">' +
+                                        '<i class="bi bi-camera-video-fill"></i>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<h3>Video Evidence</h3>' +
+                                        '<p>Academic evidence associated with program and advisor assignments.</p>' +
+                                    '</div>' +
+                                '</div>' +
+
+                                '<div class="phd-view-evidence-grid">' +
+                                    videoMarkup(
+                                        "Program Assignment Evidence",
+                                        "bi-diagram-3-fill",
+                                        programVideos,
+                                        "program"
+                                    ) +
+                                    videoMarkup(
+                                        "Advisor Assignment Evidence",
+                                        "bi-person-badge-fill",
+                                        advisorVideos,
+                                        "advisor"
+                                    ) +
+                                '</div>' +
+                            '</section>' +
+
+                        '</div>';
+                })
+
+                .catch(function (error) {
+
+                    viewContent.innerHTML =
+                        '<div class="phd-error-state">' +
+                            '<div class="phd-error-icon">' +
+                                '<i class="bi bi-exclamation-triangle-fill"></i>' +
+                            '</div>' +
+                            '<strong>Unable to load student details</strong>' +
+                            '<span>' +
+                                error.message +
+                            '</span>' +
+                        '</div>';
+
+                    toast(
+                        "error",
+                        error.message ||
+                        "Unable to load student details."
+                    );
+                });
+
+                return;
+            }
+
+            const activateButton =
+                event.target.closest(".activate-btn");
+
+            if (
+                activateButton &&
+                activateModal
+            ) {
+
+                const form =
+                    document.getElementById(
+                        "activateForm"
+                    );
+
+                if (!form) {
+                    return;
+                }
+
+                form.action =
+                    "{% url 'phd_student_activate' 0 %}"
+                    .replace(
+                        "/0/",
+                        "/" +
+                        activateButton.dataset.id +
+                        "/"
+                    );
+
+                const studentName =
+                    document.getElementById(
+                        "activateStudentName"
+                    );
+
+                if (studentName) {
+                    studentName.textContent =
+                        activateButton.dataset.name ||
+                        "Student";
+                }
+
+                activateModal.show();
+
+                return;
+            }
+
+            const deactivateButton =
+                event.target.closest(
+                    ".deactivate-btn"
+                );
+
+            if (
+                deactivateButton &&
+                deactivateModal
+            ) {
+
+                const form =
+                    document.getElementById(
+                        "deactivateForm"
+                    );
+
+                if (!form) {
+                    return;
+                }
+
+                form.action =
+                    "{% url 'phd_student_deactivate' 0 %}"
+                    .replace(
+                        "/0/",
+                        "/" +
+                        deactivateButton.dataset.id +
+                        "/"
+                    );
+
+                const studentName =
+                    document.getElementById(
+                        "deactivateStudentName"
+                    );
+
+                if (studentName) {
+                    studentName.textContent =
+                        deactivateButton.dataset.name ||
+                        "Student";
+                }
+
+                deactivateModal.show();
+            }
+        });
+
+        const createForm =
+            document.getElementById("createForm");
+
+        if (createForm) {
+
+            initForm(createForm);
+
+            createForm.addEventListener(
+                "submit",
+                function () {
+
+                    const button =
+                        createForm.querySelector(
+                            "button[type='submit']"
+                        );
+
+                    if (button) {
+
+                        button.disabled = true;
+
+                        button.innerHTML =
+                            '<span class="spinner-border spinner-border-sm"></span>' +
+                            '<span>Creating...</span>';
+                    }
+                }
+            );
+        }
+
+        const editForm =
+            document.getElementById("editForm");
+
+        if (editForm) {
+
+            editForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    event.preventDefault();
+
+                    const button =
+                        editForm.querySelector(
+                            "button[type='submit']"
+                        );
+
+                    const container =
+                        document.getElementById(
+                            "editFormContainer"
+                        );
+
+                    if (!editForm.action) {
+                        return;
+                    }
+
+                    if (button) {
+                        button.disabled = true;
+
+                        button.innerHTML =
+                            '<span class="spinner-border spinner-border-sm"></span>' +
+                            '<span>Updating...</span>';
+                    }
+
+                    const csrfInput =
+                        editForm.querySelector(
+                            "input[name='csrfmiddlewaretoken']"
+                        );
+
+                    fetch(editForm.action, {
+                        method: "POST",
+                        body: new FormData(editForm),
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest",
+                            "X-CSRFToken":
+                                csrfInput
+                                    ? csrfInput.value
+                                    : ""
+                        }
+                    })
+
+                    .then(function (response) {
+
+                        const type =
+                            response.headers.get(
+                                "content-type"
+                            ) || "";
+
+                        if (!response.ok) {
+
+                            return response.text()
+                                .then(function (html) {
+
+                                    return {
+                                        success: false,
+                                        html: html,
+                                        message:
+                                            "Unable to update student."
+                                    };
+                                });
+                        }
+
+                        return type.includes(
+                            "application/json"
+                        )
+                            ? response.json()
+                            : response.text()
+                                .then(function (html) {
+
+                                    return {
+                                        success: false,
+                                        html: html
+                                    };
+                                });
+                    })
+
+                    .then(function (data) {
+
+                        if (data.success) {
+
+                            toast(
+                                "success",
+                                data.message ||
+                                "Student updated successfully."
+                            );
+
+                            editModal.hide();
+
+                            setTimeout(
+                                function () {
+                                    window.location.reload();
+                                },
+                                650
+                            );
+
+                            return;
+                        }
+
+                        if (data.html) {
+
+                            container.innerHTML =
+                                data.html;
+
+                            initForm(container);
+
+                            if (button) {
+
+                                button.disabled =
+                                    false;
+
+                                button.innerHTML =
+                                    '<i class="bi bi-check-circle-fill"></i>' +
+                                    '<span>Update Student</span>';
+                            }
+
+                            return;
+                        }
+
+                        throw new Error(
+                            data.message ||
+                            "Unable to update student."
+                        );
+                    })
+
+                    .catch(function (error) {
+
+                        if (button) {
+
+                            button.disabled =
+                                false;
+
+                            button.innerHTML =
+                                '<i class="bi bi-check-circle-fill"></i>' +
+                                '<span>Update Student</span>';
+                        }
+
+                        toast(
+                            "error",
+                            error.message
+                        );
+                    });
+                }
+            );
+        }
+
+        [
+            createEl,
+            editEl,
+            activateEl,
+            deactivateEl
+        ]
+        .filter(Boolean)
+        .forEach(function (modal) {
+
+            modal.addEventListener(
+                "show.bs.modal",
+                function () {
+                    document.body.classList.add(
+                        "phd-modal-open"
+                    );
+                }
+            );
+
+            modal.addEventListener(
+                "hidden.bs.modal",
+                function () {
+
+                    if (
+                        !document.querySelector(
+                            ".modal.show"
+                        )
+                    ) {
+                        document.body.classList.remove(
+                            "phd-modal-open"
+                        );
+                    }
+                }
+            );
+        });
+
+        initForm(
+            document.getElementById("createForm")
+        );
+    });
+
+})();
+    </script>
+{% endblock %}

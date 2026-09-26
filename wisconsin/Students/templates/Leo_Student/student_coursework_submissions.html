@@ -1,0 +1,517 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}Coursework Submissions · PhD Workspace{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIlkxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@9.0.1/public/assets/styles/choices.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{% static 'css/Leo_Student/student_coursework_submissions.css' %}">
+{% endblock %}
+
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_student_coursework %}active{% endblock %}
+
+{% block content %}
+<div class="uws-cs-page">
+
+  <nav class="uws-cs-breadcrumb" aria-label="Academic breadcrumb">
+    <ol class="uws-cs-breadcrumb-list">
+      <li><a href="{% url 'Student:student_dashboard' uuid=request.user.uuid %}">Dashboard</a></li>
+      <li><span class="uws-cs-sep">/</span><a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}">PhD Dashboard</a></li>
+      <li><span class="uws-cs-sep">/</span><a href="{% url 'Student:student_coursework_list' uuid=request.user.uuid %}">Coursework</a></li>
+      <li><span class="uws-cs-sep">/</span><span class="uws-cs-current">Submissions</span></li>
+    </ol>
+  </nav>
+
+  <header class="uws-cs-header">
+    <div class="uws-cs-header-left">
+      <div class="uws-cs-eyebrow">ACADEMIC WORKSPACE</div>
+      <h1 class="uws-cs-title">Coursework Submissions</h1>
+      <p class="uws-cs-desc">Track your submitted coursework, faculty review status, feedback and submission history.</p>
+    </div>
+    <div class="uws-cs-header-right">
+      <span class="uws-cs-total-badge">
+        <i class="bi bi-list-check"></i>
+        {{ submissions|length }}
+        <span class="uws-cs-total-label">TOTAL SUBMISSIONS</span>
+      </span>
+    </div>
+  </header>
+
+  <div class="uws-cs-metrics">
+    <div class="uws-cs-metric uws-cs-metric-total">
+      <span class="uws-cs-metric-num">{{ submissions|length|default:"0" }}</span>
+      <span class="uws-cs-metric-label">Total Submissions</span>
+    </div>
+    <div class="uws-cs-metric uws-cs-metric-pending">
+      <span class="uws-cs-metric-num">{{ pending_count|default:"0" }}</span>
+      <span class="uws-cs-metric-label">Pending Review</span>
+    </div>
+    <div class="uws-cs-metric uws-cs-metric-approved">
+      <span class="uws-cs-metric-num">{{ approved_count|default:"0" }}</span>
+      <span class="uws-cs-metric-label">Approved</span>
+    </div>
+    <div class="uws-cs-metric uws-cs-metric-rejected">
+      <span class="uws-cs-metric-num">{{ rejected_count|default:"0" }}</span>
+      <span class="uws-cs-metric-label">Rejected</span>
+    </div>
+  </div>
+
+  {% if submissions %}
+    {% with latest=submissions|first %}
+    <section class="uws-cs-featured">
+      <div class="uws-cs-featured-head">
+        <div>
+          <h2 class="uws-cs-featured-title">LATEST COURSEWORK SUBMISSION</h2>
+          <p class="uws-cs-featured-sub">Your most recently submitted coursework</p>
+        </div>
+        <span class="uws-cs-featured-status uws-cs-status-{{ latest.status|lower }}">
+          <span class="uws-cs-status-dot"></span>
+          {{ latest.get_status_display }}
+        </span>
+      </div>
+
+      <div class="uws-cs-featured-body">
+        <div class="uws-cs-featured-identity">
+
+            <div class="uws-cs-coursework-hero-label">
+                <i class="bi bi-journal-bookmark-fill"></i>
+                COURSEWORK
+            </div>
+
+            <h3 class="uws-cs-featured-course">
+                {{ latest.coursework.coursework.coursework_name }}
+            </h3>
+
+            <div class="uws-cs-featured-meta-line">
+                <span>
+                <i class="bi bi-mortarboard"></i>
+                {{ latest.coursework.program.program_name }}
+                </span>
+
+                <span>
+                <i class="bi bi-calendar3"></i>
+                {{ latest.coursework.academic_year }}
+                </span>
+            </div>
+
+            </div>
+
+        <div class="uws-cs-featured-meta">
+          <div>
+            <span class="uws-cs-meta-label">Submitted</span>
+            <span class="uws-cs-meta-value">{{ latest.submitted_at|date:"M d, Y H:i" }}</span>
+          </div>
+          {% if latest.reviewed_at %}
+          <div>
+            <span class="uws-cs-meta-label">Reviewed</span>
+            <span class="uws-cs-meta-value">{{ latest.reviewed_at|date:"M d, Y H:i" }}</span>
+          </div>
+          {% endif %}
+          <div>
+            <span class="uws-cs-meta-label">Last Updated</span>
+            <span class="uws-cs-meta-value">{{ latest.updated_at|date:"M d, Y H:i" }}</span>
+          </div>
+          <div>
+            <span class="uws-cs-meta-label">Academic Year</span>
+            <span class="uws-cs-meta-value">{{ latest.coursework.academic_year }}</span>
+          </div>
+        </div>
+            {% comment %} 
+        <div class="uws-cs-featured-doc">
+          <i class="bi bi-file-earmark-pdf"></i>
+          <span class="uws-cs-filename" title="{{ latest.submission_file.name }}">{{ latest.submission_file.name|truncatechars:32 }}</span>
+          <div class="uws-cs-doc-actions">
+            <a href="{{ latest.submission_file.url }}" target="_blank" class="uws-cs-btn uws-cs-btn-primary">View Document</a>
+            <a href="{{ latest.submission_file.url }}" target="_blank" class="uws-cs-btn uws-cs-btn-outline">Download</a>
+          </div>
+        </div> {% endcomment %}
+
+        <div class="uws-cs-featured-feedback">
+          {% if latest.evaluation %}
+          <div class="uws-cs-evaluation-summary">
+            <div class="uws-cs-evaluation-item">
+              <span class="uws-cs-meta-label">Marks</span>
+              <span class="uws-cs-evaluation-value">{{ latest.evaluation.marks }}/100</span>
+            </div>
+            <div class="uws-cs-evaluation-item">
+              <span class="uws-cs-meta-label">Grade</span>
+              <span class="uws-cs-evaluation-value">{{ latest.evaluation.grade }}</span>
+            </div>
+            <div class="uws-cs-evaluation-item">
+              <span class="uws-cs-meta-label">Evaluated On</span>
+              <span class="uws-cs-evaluation-value">{{ latest.evaluation.evaluated_at|date:"M d, Y H:i" }}</span>
+            </div>
+          </div>
+
+          {% if latest.evaluation.faculty_feedback %}
+          <div class="uws-cs-feedback-block uws-cs-feedback-faculty">
+            <span class="uws-cs-feedback-label"><i class="bi bi-chat-left-quote"></i> FACULTY FEEDBACK</span>
+            <p class="uws-cs-feedback-text">{{ latest.evaluation.faculty_feedback }}</p>
+          </div>
+          {% endif %}
+          {% elif latest.status == 'SUBMITTED' or latest.status == 'UNDER_REVIEW' %}
+          <div class="uws-cs-feedback-block uws-cs-feedback-faculty">
+            <span class="uws-cs-feedback-label"><i class="bi bi-hourglass-split"></i> EVALUATION STATUS</span>
+            <p class="uws-cs-feedback-text">Your coursework is awaiting faculty evaluation.</p>
+          </div>
+          {% endif %}
+
+          {% if latest.remarks %}
+          <div class="uws-cs-feedback-block uws-cs-feedback-student">
+            <span class="uws-cs-feedback-label"><i class="bi bi-pencil"></i> YOUR SUBMISSION NOTE</span>
+            <p class="uws-cs-feedback-text">{{ latest.remarks }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="uws-cs-featured-actions">
+          <a href="{{ latest.submission_file.url }}" target="_blank" class="uws-cs-btn uws-cs-btn-primary">View Document</a>
+          <a href="{{ latest.submission_file.url }}" target="_blank" class="uws-cs-btn uws-cs-btn-outline">Download</a>
+          {% if latest.evaluation and latest.evaluation.faculty_feedback %}
+          <button class="uws-cs-btn uws-cs-btn-ghost" data-remarks="{{ latest.evaluation.faculty_feedback|escapejs }}">View Remarks</button>
+          {% endif %}
+          <a href="{% url 'Student:student_coursework_list' uuid=request.user.uuid %}" class="uws-cs-btn uws-cs-btn-ghost">Return to Coursework</a>
+          {% if latest.status == 'SUBMITTED' or latest.status == 'UNDER_REVIEW' %}
+          <button class="uws-cs-btn uws-cs-btn-warning" data-resubmit>Resubmit</button>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+    {% endwith %}
+  {% endif %}
+
+  <section class="uws-cs-history">
+    <div class="uws-cs-history-head">
+      <div>
+        <h2 class="uws-cs-history-title">ALL COURSEWORK SUBMISSIONS</h2>
+        <p class="uws-cs-history-sub">Review your complete coursework submission history.</p>
+      </div>
+    </div>
+
+    <div class="uws-cs-toolbar">
+      <div class="uws-cs-search">
+        <i class="bi bi-search uws-cs-search-icon"></i>
+        <input type="text" id="uwsCsSearch" class="uws-cs-search-input" placeholder="Search coursework, programme or academic year..." aria-label="Search submissions">
+      </div>
+      <div class="uws-cs-filter-controls">
+        <select id="uwsCsStatusFilter" class="uws-cs-select">
+          <option value="all">All Status</option>
+          <option value="SUBMITTED">Submitted</option>
+          <option value="UNDER_REVIEW">Under Review</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        <button id="uwsCsReset" class="uws-cs-btn uws-cs-btn-reset"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+      </div>
+    </div>
+
+<div class="uws-cs-list" id="uwsCsList">
+
+  {% if submissions %}
+
+    {% for submission in submissions %}
+
+      <div
+        class="uws-cs-record"
+        data-status="{{ submission.status }}"
+        data-search="{{ submission.coursework.coursework.coursework_name }} {{ submission.coursework.program.program_name }} {{ submission.coursework.academic_year }}"
+      >
+
+        <div class="uws-cs-record-top">
+
+          <div class="uws-cs-record-id">
+
+            <div class="uws-cs-record-course-wrap">
+
+              <span class="uws-cs-record-course-label">
+                <i class="bi bi-journal-bookmark-fill"></i>
+                COURSEWORK
+              </span>
+
+              <h3 class="uws-cs-record-course">
+                {{ submission.coursework.coursework.coursework_name | truncatechars:25 }}
+              </h3>
+
+            </div>
+
+            <div class="uws-cs-record-details">
+
+              <span class="uws-cs-record-program">
+                <i class="bi bi-mortarboard"></i>
+                {{ submission.coursework.program.program_name }}
+              </span>
+
+              <span class="uws-cs-record-year">
+                <i class="bi bi-calendar3"></i>
+                {{ submission.coursework.academic_year }}
+              </span>
+
+            </div>
+
+          </div>
+
+          <span class="uws-cs-record-status uws-cs-status-{{ submission.status|lower }}">
+            <span class="uws-cs-status-dot"></span>
+            {{ submission.get_status_display }}
+          </span>
+
+        </div>
+
+
+        <div class="uws-cs-record-meta">
+
+          {% if submission.evaluation %}
+          <div>
+            <span class="uws-cs-meta-label">
+              Marks
+            </span>
+            <span class="uws-cs-meta-value">
+              {{ submission.evaluation.marks }}/100
+            </span>
+          </div>
+
+          <div>
+            <span class="uws-cs-meta-label">
+              Grade
+            </span>
+            <span class="uws-cs-meta-value">
+              {{ submission.evaluation.grade }}
+            </span>
+          </div>
+          {% endif %}
+
+          <div>
+            <span class="uws-cs-meta-label">
+              Submitted
+            </span>
+
+            <span class="uws-cs-meta-value">
+              {{ submission.submitted_at|date:"M d, Y H:i" }}
+            </span>
+          </div>
+
+
+          {% comment %} <div>
+            <span class="uws-cs-meta-label">
+              File
+            </span>
+
+            <span
+              class="uws-cs-filename"
+              title="{{ submission.submission_file.name }}"
+            >
+              {{ submission.submission_file.name|truncatechars:22 }}
+            </span>
+          </div> {% endcomment %}
+
+ 
+          {% if submission.reviewed_at %}
+
+          <div>
+            <span class="uws-cs-meta-label">
+              Reviewed
+            </span>
+
+            <span class="uws-cs-meta-value">
+              {{ submission.reviewed_at|date:"M d, Y H:i" }}
+            </span>
+          </div>
+
+          {% endif %}
+
+
+          <div>
+            <span class="uws-cs-meta-label">
+              Updated
+            </span>
+
+            <span class="uws-cs-meta-value">
+              {{ submission.updated_at|date:"M d, Y H:i"  }}
+            </span>
+          </div>
+
+        </div>
+
+
+        <div class="uws-cs-record-actions">
+
+          <a
+            href="{{ submission.submission_file.url }}"
+            target="_blank"
+            class="uws-cs-btn uws-cs-btn-sm uws-cs-btn-primary"
+          >
+            <i class="bi bi-eye"></i>
+            View
+          </a>
+
+
+          <a
+            href="{{ submission.submission_file.url }}"
+            target="_blank"
+            class="uws-cs-btn uws-cs-btn-sm uws-cs-btn-outline"
+          >
+            <i class="bi bi-download"></i>
+            Download
+          </a>
+
+
+          {% if submission.evaluation and submission.evaluation.faculty_feedback %}
+
+          <button
+            type="button"
+            class="uws-cs-btn uws-cs-btn-sm uws-cs-btn-ghost"
+            data-remarks="{{ submission.evaluation.faculty_feedback|escapejs }}"
+          >
+            <i class="bi bi-chat-left-text"></i>
+            Remarks
+          </button>
+
+          {% endif %}
+
+        </div>
+
+      </div>
+
+    {% endfor %}
+
+  {% endif %}
+
+</div>
+    <div class="uws-cs-empty-filter" id="uwsCsEmptyFilter" style="display:none;">
+      <i class="bi bi-search"></i>
+      <h3>NO MATCHING SUBMISSIONS</h3>
+      <p>No coursework submissions match your current search or filter.</p>
+      <button class="uws-cs-btn uws-cs-btn-primary" id="uwsCsClearFilters">Clear Filters</button>
+    </div>
+  </section>
+
+  {% if not submissions %}
+  <div class="uws-cs-empty-state">
+    <div class="uws-cs-empty-card">
+      <i class="bi bi-file-earmark-x uws-cs-empty-icon"></i>
+      <h2>No coursework submissions yet</h2>
+      <p>Your submitted coursework will appear here once you complete your first submission.</p>
+      <div class="uws-cs-empty-actions">
+        <a href="{% url 'Student:student_coursework_list' uuid=request.user.uuid %}" class="uws-cs-btn uws-cs-btn-primary">View My Coursework</a>
+        <button class="uws-cs-btn uws-cs-btn-outline" onclick="location.reload()">Refresh</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js@9.0.1/public/assets/scripts/choices.min.js"></script>
+
+  <script>
+    (function() {
+      'use strict';
+
+      const searchInput = document.getElementById('uwsCsSearch');
+      const statusSelect = document.getElementById('uwsCsStatusFilter');
+      const resetBtn = document.getElementById('uwsCsReset');
+      const listContainer = document.getElementById('uwsCsList');
+      const emptyFilter = document.getElementById('uwsCsEmptyFilter');
+      const clearFiltersBtn = document.getElementById('uwsCsClearFilters');
+      const records = listContainer ? Array.from(listContainer.querySelectorAll('.uws-cs-record')) : [];
+
+      let choicesInstance = null;
+
+      if (statusSelect && typeof Choices !== 'undefined') {
+        choicesInstance = new Choices(statusSelect, {
+          searchEnabled: false,
+          shouldSort: false,
+          itemSelectText: '',
+          position: 'auto',
+          allowHTML: false
+        });
+      }
+
+      function filterRecords() {
+        const term = searchInput.value.toLowerCase().trim();
+        const status = statusSelect.value;
+
+        let visibleCount = 0;
+        records.forEach(el => {
+          const s = el.dataset.status || '';
+          const data = (el.dataset.search || '').toLowerCase();
+          const statusMatch = status === 'all' || s === status;
+          const searchMatch = term === '' || data.includes(term);
+          const show = statusMatch && searchMatch;
+          el.style.display = show ? '' : 'none';
+          if (show) visibleCount++;
+        });
+
+        if (records.length > 0 && visibleCount === 0) {
+          emptyFilter.style.display = 'flex';
+          listContainer.style.display = 'none';
+        } else {
+          emptyFilter.style.display = 'none';
+          listContainer.style.display = '';
+        }
+      }
+
+      function resetFilters() {
+        searchInput.value = '';
+        if (choicesInstance) {
+          choicesInstance.setChoiceByValue('all');
+        } else {
+          statusSelect.value = 'all';
+        }
+        filterRecords();
+      }
+
+      searchInput.addEventListener('input', filterRecords);
+      statusSelect.addEventListener('change', filterRecords);
+      resetBtn.addEventListener('click', resetFilters);
+      if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', resetFilters);
+
+      document.querySelectorAll('[data-remarks]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const text = this.getAttribute('data-remarks') || 'No additional remarks.';
+          Swal.fire({
+            icon: 'info',
+            title: 'Faculty Feedback',
+            text: text,
+            confirmButtonText: 'Understood',
+            confirmButtonColor: '#c5050c',
+            background: '#fef9fa',
+            customClass: {
+              popup: 'uws-cs-swal-popup',
+              confirmButton: 'uws-cs-swal-confirm'
+            }
+          });
+        });
+      });
+
+      document.querySelectorAll('[data-resubmit]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          Swal.fire({
+            icon: 'info',
+            title: 'Resubmission',
+            text: 'Resubmission functionality will be available soon.',
+            confirmButtonText: 'Understood',
+            confirmButtonColor: '#c5050c',
+            background: '#fef9fa',
+            customClass: {
+              popup: 'uws-cs-swal-popup',
+              confirmButton: 'uws-cs-swal-confirm'
+            }
+          });
+        });
+      });
+
+      filterRecords();
+
+    })();
+  </script>
+{% endblock %}

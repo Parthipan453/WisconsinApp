@@ -1,0 +1,1523 @@
+{% extends "Blaze_Hostel/hostel_base.html" %}
+{% load static %}
+
+{% block title %}Hostel Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --primary: #c5050c;
+        --primary-dark: #96040a;
+        --primary-soft: #fdecec;
+        --ink: #0d1117;
+        --ink-soft: #364152;
+        --canvas: #f2f3f6;
+        --surface: #ffffff;
+        --line: #e6e8ee;
+        --line-strong: #d7dae2;
+        --muted: #7a8398;
+        --success: #128a4a;
+        --success-soft: #e4f7ec;
+        --warning: #b4650a;
+        --warning-soft: #fdf1de;
+        --danger: #c62828;
+        --danger-soft: #fdeaea;
+        --info: #1d4ed8;
+        --info-soft: #e8eefd;
+        --font-display: 'Space Grotesk', 'Inter', sans-serif;
+        --font-body: 'Inter', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+        --radius: 10px;
+        --radius-sm: 7px;
+        --shadow-sm: 0 1px 2px rgba(13,17,23,0.05);
+        --shadow: 0 2px 10px rgba(13,17,23,0.06);
+        --shadow-lg: 0 12px 28px -8px rgba(13,17,23,0.16);
+        --transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    .hostel-dashboard {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 14px 20px 24px;
+        background: var(--canvas);
+        font-family: var(--font-body);
+        color: var(--ink);
+    }
+
+    .dash-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        background: var(--ink);
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 16px 22px;
+        margin-bottom: 14px;
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .dash-header::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 55%, rgba(197,5,12,0.35) 100%);
+        pointer-events: none;
+    }
+
+    .dash-header .dh-left { position: relative; z-index: 1; }
+
+    .dash-header h1 {
+        font-family: var(--font-display);
+        font-size: 21px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 2px;
+        word-break: break-word;
+    }
+
+    .dash-header p {
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.62);
+        margin: 0;
+    }
+
+    .dash-header .dh-left { min-width: 0; flex: 1 1 220px; }
+
+    .dash-header .dh-meta {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: rgba(255,255,255,0.72);
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 7px 14px;
+        border-radius: 30px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .dash-header .dh-meta i { color: var(--primary); }
+
+    .occupancy-strip {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        box-shadow: var(--shadow-sm);
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: 0.05s;
+        opacity: 0;
+    }
+
+    .occupancy-strip .os-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .occupancy-strip .os-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .occupancy-strip .os-legend {
+        display: flex;
+        gap: 16px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: var(--ink-soft);
+        flex-wrap: wrap;
+    }
+
+    .occupancy-strip .os-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .occupancy-strip .os-legend i.dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+    .os-bar {
+        display: flex;
+        width: 100%;
+        height: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--line);
+        gap: 2px;
+    }
+
+    .os-bar .seg { transition: var(--transition); min-width: 3px; }
+    .os-bar .seg.available { background: var(--success); }
+    .os-bar .seg.occupied { background: var(--warning); }
+    .os-bar .seg.maintenance { background: var(--danger); }
+
+    .stats-grid-advanced {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .stat-card-advanced {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 15px 16px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--line-strong);
+        transition: var(--transition);
+        position: relative;
+        cursor: default;
+        animation: fadeInUp 0.5s ease forwards;
+        opacity: 0;
+    }
+
+    .stat-card-advanced:nth-child(1) { animation-delay: 0.06s; }
+    .stat-card-advanced:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card-advanced:nth-child(3) { animation-delay: 0.14s; }
+    .stat-card-advanced:nth-child(4) { animation-delay: 0.18s; }
+    .stat-card-advanced:nth-child(5) { animation-delay: 0.22s; }
+    .stat-card-advanced:nth-child(6) { animation-delay: 0.26s; }
+
+    .stat-card-advanced:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        border-left-color: var(--primary);
+    }
+
+    .stat-card-advanced .stat-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+
+    .stat-card-advanced .stat-icon-wrap {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .stat-card-advanced .stat-icon-wrap.primary { background: var(--primary); }
+    .stat-card-advanced .stat-icon-wrap.success { background: var(--success); }
+    .stat-card-advanced .stat-icon-wrap.warning { background: var(--warning); }
+    .stat-card-advanced .stat-icon-wrap.info { background: var(--info); }
+    .stat-card-advanced .stat-icon-wrap.danger { background: var(--danger); }
+    .stat-card-advanced .stat-icon-wrap.purple { background: #7c3aed; }
+
+    .stat-card-advanced .stat-change {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: var(--canvas);
+        color: var(--muted);
+        animation: fadeInUp 0.6s ease forwards;
+        animation-delay: 0.4s;
+        opacity: 0;
+    }
+
+    .stat-card-advanced .stat-change.positive { background: var(--success-soft); color: var(--success); }
+    .stat-card-advanced .stat-change.negative { background: var(--danger-soft); color: var(--danger); }
+
+    .stat-card-advanced .stat-number {
+        font-family: var(--font-mono);
+        font-size: 25px;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        animation: countUp 0.8s ease forwards;
+        animation-delay: 0.3s;
+        opacity: 0;
+    }
+
+    .stat-card-advanced .stat-label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 500;
+        margin-top: 3px;
+    }
+
+    .stat-card-advanced .stat-progress {
+        margin-top: 10px;
+        height: 3px;
+        background: var(--canvas);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .stat-card-advanced .stat-progress .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1.2s ease;
+        width: 0%;
+    }
+
+    .stat-card-advanced .stat-progress .progress-bar.animated {
+        width: var(--progress-width, 0%);
+    }
+
+    .quick-actions-advanced {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: 0.15s;
+        opacity: 0;
+    }
+
+    .quick-btn-advanced {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 16px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        text-decoration: none;
+        transition: var(--transition);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .quick-btn-advanced:hover {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+        transform: translateY(-1px);
+    }
+
+    .quick-btn-advanced i { font-size: 14px; }
+
+    .quick-btn-advanced.primary {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
+    .quick-btn-advanced.primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .map-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--line);
+        overflow: hidden;
+        margin-bottom: 14px;
+        transition: var(--transition);
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: 0.2s;
+        opacity: 0;
+    }
+
+    .map-card:hover { box-shadow: var(--shadow); }
+
+    .map-card .card-header {
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--canvas);
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .map-card .card-header h5 {
+        font-family: var(--font-display);
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .map-card .card-header h5 i { color: var(--primary); font-size: 12px; }
+
+    .map-card .map-count {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        padding: 3px 10px;
+        border-radius: 20px;
+    }
+
+    .map-wrap {
+        position: relative;
+        height: 340px;
+        width: 100%;
+        background: var(--canvas);
+    }
+
+    #hostelMap {
+        height: 100%;
+        width: 100%;
+        z-index: 1;
+        cursor: grab;
+    }
+
+    #hostelMap:active {
+        cursor: grabbing;
+    }
+
+    /* Leaflet zoom controls - make them more visible */
+    .leaflet-control-zoom {
+        border: none !important;
+        box-shadow: var(--shadow) !important;
+    }
+
+    .leaflet-control-zoom a {
+        background: var(--surface) !important;
+        color: var(--ink) !important;
+        border: 1px solid var(--line) !important;
+        width: 34px !important;
+        height: 34px !important;
+        line-height: 34px !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+    }
+
+    .leaflet-control-zoom a:hover {
+        background: var(--primary) !important;
+        color: #fff !important;
+    }
+
+    .leaflet-control-attribution {
+        font-size: 9px !important;
+        background: rgba(255,255,255,0.8) !important;
+    }
+
+    .map-loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12.5px;
+        background: var(--canvas);
+        z-index: 2;
+    }
+
+    .map-loading .spinner-ring {
+        width: 26px;
+        height: 26px;
+        border: 3px solid var(--line-strong);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .map-empty {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--muted);
+        text-align: center;
+        padding: 20px;
+        background: var(--canvas);
+        z-index: 2;
+    }
+
+    .map-empty.show { display: flex; }
+
+    .map-empty i { font-size: 30px; color: var(--line-strong); }
+    .map-empty p { font-family: var(--font-display); font-weight: 600; color: var(--ink-soft); margin: 0; font-size: 14px; }
+    .map-empty small { font-size: 12px; color: var(--muted); max-width: 320px; }
+
+    .hostel-marker { background: transparent; border: none; }
+    .hm-pin {
+        width: 30px;
+        height: 30px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 3px 8px rgba(13,17,23,0.35);
+        border: 2px solid #fff;
+        transition: transform 0.2s ease;
+    }
+    .hm-pin:hover { transform: rotate(-45deg) scale(1.1); }
+    .hm-pin i { transform: rotate(45deg); color: #fff; font-size: 12px; }
+
+    .hm-cluster-wrap { background: transparent; border: none; }
+    .hm-cluster {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 13px;
+        border: 3px solid var(--primary);
+        box-shadow: 0 3px 10px rgba(13,17,23,0.35);
+    }
+
+    .leaflet-popup-content-wrapper {
+        border-radius: 10px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .hm-popup { font-family: var(--font-body); min-width: 170px; }
+    .hm-popup strong { font-family: var(--font-display); font-size: 13.5px; color: var(--ink); }
+    .hm-popup .hm-code {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--muted);
+        background: var(--canvas);
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-left: 4px;
+    }
+    .hm-popup .hm-addr { font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 6px; line-height: 1.4; }
+    .hm-popup .hm-stats { font-family: var(--font-mono); font-size: 11.5px; color: var(--success); font-weight: 600; }
+    .hm-popup .hm-img {
+        width: 100%;
+        height: 90px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .chart-scroll-wrapper {
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .chart-scroll-wrapper::-webkit-scrollbar { height: 4px; }
+    .chart-scroll-wrapper::-webkit-scrollbar-track { background: transparent; }
+    .chart-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+
+    .chart-scroll-inner { min-width: 280px; height: 100%; }
+
+    .chart-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--line);
+        transition: var(--transition);
+        height: 100%;
+        min-height: 250px;
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: 0.25s;
+        opacity: 0;
+    }
+
+    .chart-card:hover { box-shadow: var(--shadow); }
+
+    .chart-card .card-title {
+        font-family: var(--font-display);
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .chart-card .card-title i { color: var(--primary); font-size: 12px; }
+
+    .chart-card .chart-container { position: relative; height: 190px; }
+
+    .recent-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 12px;
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: 0.3s;
+        opacity: 0;
+    }
+
+    .card-advanced {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--line);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .card-advanced:hover { box-shadow: var(--shadow); }
+
+    .card-advanced .card-header {
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--canvas);
+    }
+
+    .card-advanced .card-header h5 {
+        font-family: var(--font-display);
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .card-advanced .card-header h5 i { color: var(--primary); font-size: 12px; }
+
+    .card-advanced .card-header .card-actions a {
+        font-size: 11.5px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .card-advanced .card-header .card-actions a:hover { text-decoration: underline; }
+
+    .card-advanced .card-body { padding: 12px 18px; }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .table-responsive::-webkit-scrollbar { height: 5px; }
+    .table-responsive::-webkit-scrollbar-track { background: transparent; }
+    .table-responsive::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+
+    .table-advanced { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 12.5px; }
+
+    .table-advanced thead th {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 2px solid var(--line);
+        font-weight: 700;
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        background: var(--canvas);
+    }
+
+    .table-advanced tbody td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+    }
+
+    .table-advanced tbody tr:hover td { background: var(--canvas); }
+
+    .table-advanced .user-cell { display: flex; align-items: center; gap: 9px; }
+
+    .table-advanced .user-cell .avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+        font-family: var(--font-mono);
+    }
+
+    .table-advanced .badge-status {
+        padding: 3px 11px;
+        border-radius: 20px;
+        font-size: 10.5px;
+        font-weight: 700;
+        display: inline-block;
+    }
+
+    .badge-status.success { background: var(--success-soft); color: var(--success); }
+    .badge-status.warning { background: var(--warning-soft); color: var(--warning); }
+    .badge-status.danger { background: var(--danger-soft); color: var(--danger); }
+    .badge-status.info { background: var(--info-soft); color: var(--info); }
+
+    .activity-feed { list-style: none; padding: 0; margin: 0; }
+
+    .activity-feed li {
+        display: flex;
+        gap: 11px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+        align-items: flex-start;
+    }
+
+    .activity-feed li:last-child { border-bottom: none; }
+
+    .activity-feed .activity-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+        background: var(--canvas);
+    }
+
+    .activity-feed .activity-icon.primary { background: var(--primary-soft); color: var(--primary); }
+    .activity-feed .activity-icon.success { background: var(--success-soft); color: var(--success); }
+    .activity-feed .activity-icon.warning { background: var(--warning-soft); color: var(--warning); }
+    .activity-feed .activity-icon.info { background: var(--info-soft); color: var(--info); }
+
+    .activity-feed .activity-content { flex: 1; min-width: 0; }
+    .activity-feed .activity-content .activity-text { font-size: 12.5px; color: var(--ink-soft); line-height: 1.4; }
+    .activity-feed .activity-content .activity-text strong { color: var(--ink); font-weight: 600; }
+    .activity-feed .activity-content .activity-time {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes countUp {
+        from { opacity: 0; transform: translateY(8px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.6); opacity: 0.5; }
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    @media (prefers-reduced-motion: reduce) {
+        .stat-card-advanced, .chart-card, .card-advanced, .dash-header, .occupancy-strip, .quick-actions-advanced, .map-card, .recent-section {
+            animation: none !important;
+            opacity: 1 !important;
+        }
+        .stat-card-advanced .stat-number, .stat-card-advanced .stat-change {
+            animation: none !important;
+            opacity: 1 !important;
+        }
+        .stat-card-advanced:hover, .chart-card:hover, .card-advanced:hover, .quick-btn-advanced:hover {
+            transition: none !important;
+            transform: none !important;
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .stats-grid-advanced { grid-template-columns: repeat(3, 1fr); }
+        .analytics-grid { grid-template-columns: 1fr; }
+        .recent-section { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 992px) {
+        .stats-grid-advanced { grid-template-columns: repeat(2, 1fr); }
+        .map-wrap { height: 280px; }
+        .chart-card { min-height: 210px; }
+        .chart-card .chart-container { height: 160px; }
+    }
+
+    @media (max-width: 768px) {
+        .hostel-dashboard { padding: 10px 12px 18px; }
+        .dash-header { padding: 14px 16px; flex-direction: column; align-items: flex-start; }
+        .dash-header h1 { font-size: 18px; }
+        .dash-header .dh-left { flex-basis: auto; width: 100%; }
+        .dash-header .dh-meta { white-space: normal; font-size: 10px; }
+        .stats-grid-advanced { grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-card-advanced { padding: 12px 13px; }
+        .stat-card-advanced .stat-number { font-size: 20px; }
+        .quick-actions-advanced { gap: 8px; }
+        .quick-btn-advanced { padding: 7px 12px; font-size: 11px; }
+        .map-wrap { height: 240px; }
+        .map-card .card-header { padding: 10px 14px; }
+        .map-card .card-header h5 { font-size: 12px; }
+        .chart-card { padding: 12px 14px; min-height: 190px; }
+        .chart-card .chart-container { height: 140px; }
+        .chart-card .card-title { font-size: 12px; }
+        .recent-section { grid-template-columns: 1fr; }
+        .table-advanced { font-size: 11px; min-width: 480px; }
+        .table-advanced thead th, .table-advanced tbody td { padding: 6px 8px; }
+        .card-advanced .card-header { padding: 9px 12px; }
+        .card-advanced .card-header h5 { font-size: 12px; }
+        .card-advanced .card-body { padding: 9px 12px; }
+        .activity-feed li { padding: 7px 0; }
+        .activity-feed .activity-content .activity-text { font-size: 11px; }
+        .occupancy-strip { padding: 11px 14px; }
+        .occupancy-strip .os-top { flex-direction: column; align-items: flex-start; gap: 6px; }
+        .occupancy-strip .os-legend { gap: 10px; font-size: 10px; }
+        .chart-scroll-inner { min-width: 240px; }
+    }
+
+    @media (max-width: 480px) {
+        .hostel-dashboard { padding: 8px 8px 14px; }
+        .dash-header { padding: 10px 12px; gap: 8px; }
+        .dash-header h1 { font-size: 16px; }
+        .dash-header p { font-size: 10px; }
+        .dash-header .dh-meta { font-size: 9px; padding: 4px 10px; gap: 4px; }
+        .stats-grid-advanced { grid-template-columns: 1fr 1fr; gap: 8px; }
+        .stat-card-advanced { padding: 8px 10px; border-radius: var(--radius-sm); }
+        .stat-card-advanced .stat-number { font-size: 16px; }
+        .stat-card-advanced .stat-label { font-size: 9px; }
+        .stat-card-advanced .stat-icon-wrap { width: 24px; height: 24px; font-size: 11px; }
+        .stat-card-advanced .stat-change { font-size: 8px; padding: 1px 5px; }
+        .stat-card-advanced .stat-progress { margin-top: 6px; height: 2px; }
+        .quick-btn-advanced { padding: 5px 9px; font-size: 9.5px; }
+        .quick-btn-advanced i { font-size: 11px; }
+        .map-wrap { height: 200px; }
+        .map-card .card-header { padding: 7px 10px; }
+        .map-card .card-header h5 { font-size: 10.5px; }
+        .map-card .map-count { font-size: 9px; padding: 2px 7px; }
+        .analytics-grid { gap: 8px; }
+        .chart-card { padding: 9px 10px; min-height: 160px; }
+        .chart-card .chart-container { height: 110px; }
+        .chart-card .card-title { font-size: 10px; margin-bottom: 8px; }
+        .chart-scroll-inner { min-width: 200px; }
+        .table-advanced { font-size: 10px; min-width: 380px; }
+        .table-advanced thead th { font-size: 8px; padding: 4px 5px; }
+        .table-advanced tbody td { padding: 4px 5px; }
+        .table-advanced .user-cell .avatar { width: 20px; height: 20px; font-size: 8px; }
+        .badge-status { font-size: 8px; padding: 2px 6px; }
+        .card-advanced .card-header { padding: 7px 10px; }
+        .card-advanced .card-header h5 { font-size: 10px; }
+        .card-advanced .card-body { padding: 7px 10px; }
+        .activity-feed .activity-icon { width: 20px; height: 20px; font-size: 9px; }
+        .activity-feed .activity-content .activity-text { font-size: 10px; }
+        .activity-feed .activity-content .activity-time { font-size: 8.5px; }
+        .occupancy-strip { padding: 8px 10px; }
+        .occupancy-strip .os-title { font-size: 8px; }
+        .occupancy-strip .os-legend { font-size: 8px; gap: 6px; }
+        .os-bar { height: 8px; }
+        .leaflet-control-zoom a { width: 28px !important; height: 28px !important; line-height: 28px !important; font-size: 14px !important; }
+        .hm-pin { width: 24px; height: 24px; }
+        .hm-pin i { font-size: 10px; }
+    }
+
+    @media (max-width: 400px) {
+        .stats-grid-advanced { gap: 6px; }
+        .stat-card-advanced { padding: 6px 8px; }
+        .stat-card-advanced .stat-number { font-size: 14px; }
+        .stat-card-advanced .stat-label { font-size: 8px; }
+        .stat-card-advanced .stat-icon-wrap { width: 20px; height: 20px; font-size: 9px; }
+        .stat-card-advanced .stat-change { font-size: 7px; padding: 0 4px; }
+        .quick-actions-advanced { gap: 6px; }
+        .quick-btn-advanced { padding: 4px 8px; font-size: 8px; }
+        .map-wrap { height: 170px; }
+        .chart-card { padding: 6px 8px; min-height: 130px; }
+        .chart-card .chart-container { height: 90px; }
+        .table-advanced { font-size: 9px; min-width: 320px; }
+        .table-advanced thead th { font-size: 7px; padding: 3px 4px; }
+        .table-advanced tbody td { padding: 3px 4px; }
+        .badge-status { font-size: 7px; padding: 1px 4px; }
+    }
+
+    @media (max-width: 320px) {
+        .stats-grid-advanced { grid-template-columns: 1fr; gap: 6px; }
+        .stat-card-advanced .stat-number { font-size: 16px; }
+        .map-wrap { height: 150px; }
+        .chart-card { min-height: 110px; }
+        .chart-card .chart-container { height: 70px; }
+        .dash-header h1 { font-size: 14px; }
+        .table-advanced { font-size: 8px; min-width: 280px; }
+        .table-advanced thead th { font-size: 6px; padding: 2px 3px; }
+        .table-advanced tbody td { padding: 2px 3px; }
+        .table-advanced .user-cell .avatar { width: 16px; height: 16px; font-size: 7px; }
+        .badge-status { font-size: 6px; padding: 1px 3px; }
+        .leaflet-control-zoom a { width: 22px !important; height: 22px !important; line-height: 22px !important; font-size: 11px !important; }
+    }
+
+    @media (max-width: 240px) {
+        .hostel-dashboard { padding: 4px 4px 10px; }
+        .dash-header { padding: 6px 8px; }
+        .dash-header h1 { font-size: 11px; }
+        .dash-header p { font-size: 8px; }
+        .dash-header .dh-meta { font-size: 7px; padding: 2px 6px; }
+        .stats-grid-advanced { gap: 4px; }
+        .stat-card-advanced { padding: 4px 6px; border-left-width: 2px; }
+        .stat-card-advanced .stat-number { font-size: 12px; }
+        .stat-card-advanced .stat-label { font-size: 7px; }
+        .stat-card-advanced .stat-icon-wrap { width: 16px; height: 16px; font-size: 7px; }
+        .stat-card-advanced .stat-change { display: none; }
+        .stat-card-advanced .stat-progress { margin-top: 4px; height: 2px; }
+        .quick-actions-advanced { gap: 4px; }
+        .quick-btn-advanced { padding: 3px 6px; font-size: 7px; }
+        .map-wrap { height: 120px; }
+        .map-card .card-header { padding: 4px 6px; }
+        .map-card .card-header h5 { font-size: 8px; }
+        .map-card .map-count { font-size: 7px; padding: 1px 4px; }
+        .map-loading .spinner-ring { width: 16px; height: 16px; border-width: 2px; }
+        .map-loading span { font-size: 8px; }
+        .chart-card { padding: 4px 6px; min-height: 90px; }
+        .chart-card .chart-container { height: 60px; }
+        .chart-card .card-title { font-size: 7px; margin-bottom: 4px; }
+        .analytics-grid { gap: 4px; }
+        .chart-scroll-inner { min-width: 160px; }
+        .table-advanced { font-size: 7px; min-width: 220px; }
+        .table-advanced thead th { font-size: 5px; padding: 2px 2px; }
+        .table-advanced tbody td { padding: 2px 2px; }
+        .table-advanced .user-cell .avatar { width: 12px; height: 12px; font-size: 6px; }
+        .badge-status { font-size: 5px; padding: 0 3px; }
+        .card-advanced .card-header { padding: 4px 6px; }
+        .card-advanced .card-header h5 { font-size: 8px; }
+        .card-advanced .card-header .card-actions a { font-size: 7px; }
+        .card-advanced .card-body { padding: 4px 6px; }
+        .activity-feed li { padding: 4px 0; gap: 6px; }
+        .activity-feed .activity-icon { width: 14px; height: 14px; font-size: 6px; }
+        .activity-feed .activity-content .activity-text { font-size: 8px; }
+        .activity-feed .activity-content .activity-time { font-size: 7px; }
+        .occupancy-strip { padding: 4px 6px; }
+        .occupancy-strip .os-title { font-size: 7px; }
+        .occupancy-strip .os-legend { font-size: 7px; gap: 4px; }
+        .os-bar { height: 5px; }
+        .leaflet-control-zoom a { width: 18px !important; height: 18px !important; line-height: 18px !important; font-size: 10px !important; }
+        .hm-pin { width: 18px; height: 18px; }
+        .hm-pin i { font-size: 8px; }
+        .hm-cluster { width: 24px; height: 24px; font-size: 9px; border-width: 2px; }
+    }
+
+    @media (max-width: 170px) {
+        .hostel-dashboard { padding: 2px 2px 6px; }
+        .dash-header { padding: 4px 6px; border-radius: 4px; }
+        .dash-header h1 { font-size: 9px; }
+        .dash-header p { font-size: 6px; }
+        .dash-header .dh-meta { font-size: 6px; padding: 1px 4px; border-radius: 10px; }
+        .stats-grid-advanced { grid-template-columns: 1fr; gap: 3px; }
+        .stat-card-advanced { padding: 3px 4px; border-left-width: 1px; }
+        .stat-card-advanced .stat-number { font-size: 10px; }
+        .stat-card-advanced .stat-label { font-size: 6px; }
+        .stat-card-advanced .stat-icon-wrap { width: 12px; height: 12px; font-size: 6px; }
+        .quick-actions-advanced { gap: 2px; }
+        .quick-btn-advanced { padding: 2px 4px; font-size: 6px; }
+        .map-wrap { height: 80px; }
+        .map-card .card-header { padding: 2px 4px; }
+        .map-card .card-header h5 { font-size: 6px; gap: 3px; }
+        .map-card .card-header h5 i { font-size: 6px; }
+        .map-card .map-count { font-size: 5px; padding: 0 3px; }
+        .map-loading .spinner-ring { width: 12px; height: 12px; border-width: 1.5px; }
+        .map-loading span { font-size: 6px; }
+        .map-empty i { font-size: 14px; }
+        .map-empty p { font-size: 8px; }
+        .map-empty small { font-size: 6px; }
+        .chart-card { padding: 2px 3px; min-height: 60px; }
+        .chart-card .chart-container { height: 40px; }
+        .chart-card .card-title { font-size: 6px; margin-bottom: 2px; gap: 3px; }
+        .chart-card .card-title i { font-size: 6px; }
+        .analytics-grid { gap: 2px; }
+        .chart-scroll-inner { min-width: 120px; }
+        .table-advanced { font-size: 6px; min-width: 180px; }
+        .table-advanced thead th { font-size: 4px; padding: 1px 2px; }
+        .table-advanced tbody td { padding: 1px 2px; }
+        .table-advanced .user-cell { gap: 3px; }
+        .table-advanced .user-cell .avatar { width: 10px; height: 10px; font-size: 5px; }
+        .badge-status { font-size: 4px; padding: 0 2px; }
+        .card-advanced .card-header { padding: 2px 4px; }
+        .card-advanced .card-header h5 { font-size: 6px; }
+        .card-advanced .card-header .card-actions a { font-size: 6px; }
+        .card-advanced .card-body { padding: 2px 4px; }
+        .activity-feed li { padding: 2px 0; gap: 3px; }
+        .activity-feed .activity-icon { width: 10px; height: 10px; font-size: 4px; }
+        .activity-feed .activity-content .activity-text { font-size: 6px; }
+        .activity-feed .activity-content .activity-time { font-size: 5px; }
+        .occupancy-strip { padding: 2px 3px; }
+        .occupancy-strip .os-title { font-size: 5px; }
+        .occupancy-strip .os-legend { font-size: 5px; gap: 2px; }
+        .os-bar { height: 3px; }
+        .leaflet-control-zoom { display: none !important; }
+        .hm-pin { width: 14px; height: 14px; border-width: 1px; }
+        .hm-pin i { font-size: 6px; }
+        .hm-cluster { width: 18px; height: 18px; font-size: 7px; border-width: 1.5px; }
+        .leaflet-popup { transform: scale(0.5); transform-origin: bottom; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hostel-dashboard">
+
+    <div class="dash-header">
+        <div class="dh-left">
+            <h1>Welcome back, {{ user.full_name }}</h1>
+            <p>Here's what's happening across your hostels today</p>
+        </div>
+        <div class="dh-meta">
+            <i class="far fa-calendar-alt"></i>
+            {% now "l, F j, Y" %} &bull; {% now "g:i A" %}
+        </div>
+    </div>
+
+    <div class="occupancy-strip">
+        <div class="os-top">
+            <span class="os-title">Room Status Overview</span>
+            <div class="os-legend">
+                <span><i class="dot" style="background: var(--success);"></i> Available &middot; {{ available_rooms }}</span>
+                <span><i class="dot" style="background: var(--warning);"></i> Occupied &middot; {{ occupied_rooms }}</span>
+                <span><i class="dot" style="background: var(--danger);"></i> Maintenance &middot; {{ maintenance_rooms }}</span>
+            </div>
+        </div>
+        <div class="os-bar">
+            <div class="seg available" style="flex: {{ available_rooms|default:1 }} 1 0;"></div>
+            <div class="seg occupied" style="flex: {{ occupied_rooms|default:0 }} 1 0;"></div>
+            <div class="seg maintenance" style="flex: {{ maintenance_rooms|default:0 }} 1 0;"></div>
+        </div>
+    </div>
+
+    <div class="stats-grid-advanced">
+        <div class="stat-card-advanced">
+            <div class="stat-top">
+                <div class="stat-icon-wrap primary"><i class="fas fa-building"></i></div>
+                <span class="stat-change positive"><i class="fas fa-arrow-up"></i> 12%</span>
+            </div>
+            <div class="stat-number">{{ total_hostels|default:0 }}</div>
+            <div class="stat-label">Total Hostels</div>
+            <div class="stat-progress"><div class="progress-bar" style="--progress-width: 100%;" id="progress1"></div></div>
+        </div>
+
+        <div class="stat-card-advanced">
+            <div class="stat-top">
+                <div class="stat-icon-wrap success"><i class="fas fa-bed"></i></div>
+                <span class="stat-change positive"><i class="fas fa-arrow-up"></i> 8%</span>
+            </div>
+            <div class="stat-number">{{ available_rooms|default:0 }}</div>
+            <div class="stat-label">Available Rooms</div>
+            <div class="stat-progress"><div class="progress-bar" style="--progress-width: {{ available_percentage|default:0 }}%;" id="progress2"></div></div>
+        </div>
+
+        <div class="stat-card-advanced">
+            <div class="stat-top">
+                <div class="stat-icon-wrap warning"><i class="fas fa-user-check"></i></div>
+                <span class="stat-change negative"><i class="fas fa-arrow-down"></i> 3%</span>
+            </div>
+            <div class="stat-number">{{ active_allocations|default:0 }}</div>
+            <div class="stat-label">Active Allocations</div>
+            <div class="stat-progress"><div class="progress-bar" style="--progress-width: {{ allocation_percentage|default:0 }}%;" id="progress3"></div></div>
+        </div>
+
+        <div class="stat-card-advanced">
+            <div class="stat-top">
+                <div class="stat-icon-wrap info"><i class="fas fa-users"></i></div>
+                <span class="stat-change positive"><i class="fas fa-arrow-up"></i> 5%</span>
+            </div>
+            <div class="stat-number">{{ total_students|default:0 }}</div>
+            <div class="stat-label">Total Students</div>
+            <div class="stat-progress"><div class="progress-bar" style="--progress-width: 100%;" id="progress4"></div></div>
+        </div>
+
+        <div class="stat-card-advanced">
+            <div class="stat-top">
+                <div class="stat-icon-wrap purple"><i class="fas fa-chart-pie"></i></div>
+                <span class="stat-change neutral">— 0%</span>
+            </div>
+            <div class="stat-number">{{ occupancy_rate|default:0 }}%</div>
+            <div class="stat-label">Occupancy Rate</div>
+            <div class="stat-progress"><div class="progress-bar" style="--progress-width: {{ occupancy_rate|default:0 }}%; background: var(--primary);" id="progress5"></div></div>
+        </div>
+
+        <div class="stat-card-advanced">
+            <div class="stat-top">
+                <div class="stat-icon-wrap danger"><i class="fas fa-tools"></i></div>
+                <span class="stat-change negative"><i class="fas fa-arrow-down"></i> 3%</span>
+            </div>
+            <div class="stat-number">{{ maintenance_rooms|default:0 }}</div>
+            <div class="stat-label">Maintenance</div>
+            <div class="stat-progress"><div class="progress-bar" style="--progress-width: {% if total_rooms > 0 %}{% widthratio maintenance_rooms total_rooms 100 %}{% else %}0{% endif %}%; background: var(--danger);" id="progress6"></div></div>
+        </div>
+    </div>
+
+    <div class="quick-actions-advanced">
+        <a href="{% url 'add_room_page' user.uuid %}" class="quick-btn-advanced primary"><i class="fas fa-plus-circle"></i> Add Room</a>
+        <a href="{% url 'allocate_room' user.uuid %}" class="quick-btn-advanced"><i class="fas fa-user-plus"></i> Allocate Room</a>
+        <a href="{% url 'room_management' user.uuid %}" class="quick-btn-advanced"><i class="fas fa-list"></i> View All Rooms</a>
+        <a href="{% url 'allocations_list' user.uuid %}" class="quick-btn-advanced"><i class="fas fa-clipboard-list"></i> All Allocations</a>
+    </div>
+
+    <div class="map-card">
+        <div class="card-header">
+            <h5><i class="fas fa-map-marked-alt"></i> Hostel Locations</h5>
+            <span class="map-count" id="mapHostelCount">Loading&hellip;</span>
+        </div>
+        <div class="map-wrap">
+            <div id="hostelMap"></div>
+            <div class="map-loading" id="mapLoading">
+                <div class="spinner-ring"></div>
+                <span>Locating hostels&hellip;</span>
+            </div>
+            <div class="map-empty" id="mapEmpty">
+                <i class="fas fa-map-marker-alt"></i>
+                <p>No hostel locations yet</p>
+                <small>Add an address (or latitude/longitude) to a hostel and it'll show up here automatically.</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="analytics-grid">
+        <div class="chart-scroll-wrapper">
+            <div class="chart-scroll-inner">
+                <div class="chart-card">
+                    <div class="card-title"><i class="fas fa-chart-pie"></i> Room Status Distribution</div>
+                    <div class="chart-container">
+                        <canvas id="roomStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-scroll-wrapper">
+            <div class="chart-scroll-inner">
+                <div class="chart-card">
+                    <div class="card-title"><i class="fas fa-chart-bar"></i> Monthly Allocations Trend</div>
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="recent-section">
+        <div class="card-advanced">
+            <div class="card-header">
+                <h5><i class="fas fa-clock"></i> Recent Allocations</h5>
+                <div class="card-actions"><a href="{% url 'allocations_list' user.uuid %}">View All <i class="fas fa-arrow-right"></i></a></div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table-advanced">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Room</th>
+                                <th>Hostel</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for allocation in recent_allocations %}
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="avatar">{{ allocation.student.full_name|slice:":1" }}</div>
+                                        <span>{{ allocation.student.full_name }}</span>
+                                    </div>
+                                </td>
+                                <td><strong>{{ allocation.room.room_number }}</strong></td>
+                                <td>{{ allocation.room.hostel.name }}</td>
+                                <td>{{ allocation.allocated_date|date:"d M Y" }}</td>
+                                <td>
+                                    <span class="badge-status {% if allocation.status == 'ACTIVE' %}success{% elif allocation.status == 'PENDING' %}warning{% else %}info{% endif %}">
+                                        {{ allocation.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center" style="padding: 30px 0; color: var(--muted);">
+                                    <i class="fas fa-inbox" style="font-size: 22px; display: block; margin-bottom: 8px;"></i>
+                                    No recent allocations
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-advanced">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt"></i> Recent Activity</h5>
+                <div class="card-actions"><a href="#" onclick="location.reload(); return false;"><i class="fas fa-sync-alt"></i> Refresh</a></div>
+            </div>
+            <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+                <ul class="activity-feed">
+                    {% if recent_allocations %}
+                        {% for allocation in recent_allocations|slice:":5" %}
+                        <li>
+                            <div class="activity-icon success"><i class="fas fa-check"></i></div>
+                            <div class="activity-content">
+                                <div class="activity-text">
+                                    <strong>{{ allocation.student.full_name }}</strong> allocated room
+                                    <strong>{{ allocation.room.room_number }}</strong> at
+                                    <strong>{{ allocation.room.hostel.name }}</strong>
+                                </div>
+                                <div class="activity-time"><i class="far fa-clock"></i> {{ allocation.allocated_date|timesince }} ago</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li style="justify-content: center; padding: 30px 0; color: var(--muted);">
+                            <i class="fas fa-inbox" style="font-size: 22px; display: block; margin-bottom: 8px;"></i>
+                            No recent activity
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ hostels_map_data|json_script:"hostels-map-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let roomChart = null;
+    let trendChart = null;
+
+    // Animate progress bars
+    function animateProgressBars() {
+        document.querySelectorAll('.stat-card-advanced .progress-bar').forEach(function(bar, index) {
+            setTimeout(function() {
+                bar.classList.add('animated');
+            }, 100 + (index * 80));
+        });
+    }
+    setTimeout(animateProgressBars, 300);
+
+    // ============================================================
+    // HOSTEL LOCATIONS MAP - WITH SCROLL WORKING
+    // ============================================================
+    (function initHostelMap() {
+        const mapEl = document.getElementById('hostelMap');
+        if (!mapEl || typeof L === 'undefined') return;
+
+        const loadingEl = document.getElementById('mapLoading');
+        const emptyEl = document.getElementById('mapEmpty');
+        const countEl = document.getElementById('mapHostelCount');
+
+        let hostels = [];
+        try {
+            const dataEl = document.getElementById('hostels-map-data');
+            hostels = dataEl ? JSON.parse(dataEl.textContent) : [];
+        } catch (e) {
+            hostels = [];
+        }
+
+        // Filter only hostels with coordinates
+        const hostelsWithCoords = hostels.filter(h => h.lat !== null && h.lng !== null);
+
+        if (!hostelsWithCoords.length) {
+            loadingEl.style.display = 'none';
+            emptyEl.classList.add('show');
+            countEl.textContent = '0 hostels';
+            return;
+        }
+
+        // Create map with scrollWheelZoom: true (default)
+        const map = L.map('hostelMap', {
+            scrollWheelZoom: true,
+            zoomControl: true,
+            center: [hostelsWithCoords[0].lat, hostelsWithCoords[0].lng],
+            zoom: 12
+        });
+
+        // Add tile layer
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+            referrerPolicy: 'strict-origin-when-cross-origin'
+        }).addTo(pickerMap);
+
+        // Cluster group
+        const clusterGroup = (typeof L.markerClusterGroup === 'function')
+            ? L.markerClusterGroup({
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                maxClusterRadius: 40,
+                iconCreateFunction: function(cluster) {
+                    return L.divIcon({
+                        html: '<div class="hm-cluster">' + cluster.getChildCount() + '</div>',
+                        className: 'hm-cluster-wrap',
+                        iconSize: [36, 36]
+                    });
+                }
+            })
+            : null;
+        if (clusterGroup) map.addLayer(clusterGroup);
+
+        function pinColor(h) {
+            const total = h.total_rooms || 0;
+            const occupied = h.occupied_rooms || 0;
+            const pct = total > 0 ? (occupied / total) * 100 : 0;
+            if (pct >= 90) return '#c62828';
+            if (pct >= 60) return '#b4650a';
+            return '#128a4a';
+        }
+
+        function addMarker(h, lat, lng) {
+            const icon = L.divIcon({
+                className: 'hostel-marker',
+                html: '<div class="hm-pin" style="background:' + pinColor(h) + '"><i class="fas fa-building"></i></div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30],
+                popupAnchor: [0, -28]
+            });
+            const marker = L.marker([lat, lng], { icon });
+            if (clusterGroup) {
+                clusterGroup.addLayer(marker);
+            } else {
+                marker.addTo(map);
+            }
+            const codeTag = h.code ? '<span class="hm-code">' + h.code + '</span>' : '';
+            const imgTag = h.image_url ? '<img class="hm-img" src="' + h.image_url + '" alt="' + (h.name || 'Hostel') + '">' : '';
+            marker.bindPopup(
+                '<div class="hm-popup">' +
+                    imgTag +
+                    '<strong>' + (h.name || 'Hostel') + '</strong>' + codeTag +
+                    '<div class="hm-addr">' + (h.address || 'No address on file') + '</div>' +
+                    '<div class="hm-stats">' + (h.available_rooms || 0) + ' / ' + (h.total_rooms || 0) + ' rooms available</div>' +
+                '</div>'
+            );
+            return marker;
+        }
+
+        const bounds = [];
+        hostelsWithCoords.forEach(function(h) {
+            addMarker(h, h.lat, h.lng);
+            bounds.push([h.lat, h.lng]);
+        });
+
+        loadingEl.style.display = 'none';
+
+        if (bounds.length > 1) {
+            map.fitBounds(bounds, { padding: [32, 32], maxZoom: 15 });
+        } else if (bounds.length === 1) {
+            map.setView(bounds[0], 15);
+        }
+
+        countEl.textContent = bounds.length + ' hostels';
+
+        // Invalidate size after a moment to ensure proper rendering
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 300);
+
+        // Also invalidate on window resize
+        window.addEventListener('resize', function() {
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 200);
+        });
+
+        console.log('🗺️ Map initialized with ' + bounds.length + ' hostels');
+    })();
+
+    // ============================================================
+    // ROOM STATUS CHART - Doughnut
+    // ============================================================
+    const ctx = document.getElementById('roomStatusChart').getContext('2d');
+    roomChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Available', 'Occupied', 'Maintenance'],
+            datasets: [{
+                data: [{{ available_rooms|default:0 }}, {{ occupied_rooms|default:0 }}, {{ maintenance_rooms|default:0 }}],
+                backgroundColor: ['#128a4a', '#b4650a', '#c62828'],
+                borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 10,
+                        padding: 14,
+                        font: { size: 11, weight: '500', family: "'Inter', sans-serif" },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                }
+            },
+            cutout: '72%',
+            animation: {
+                animateRotate: true,
+                duration: 1200,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+
+
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+
+    const monthlyData = {{ monthly_allocations|default:"[0,0,0,0,0,0,0,0,0,0,0,0]" }};
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    trendChart = new Chart(trendCtx, {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'Allocations',
+                data: monthlyData,
+                backgroundColor: 'rgba(197, 5, 12, 0.75)',
+                borderColor: '#c5050c',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                hoverBackgroundColor: 'rgba(197, 5, 12, 0.95)',
+                hoverBorderColor: '#c5050c',
+                hoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true,
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 10, weight: '500', family: "'Inter', sans-serif" },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { 
+                        stepSize: 1, 
+                        font: { size: 10, family: "'JetBrains Mono', monospace" } 
+                    },
+                    grid: { color: 'rgba(13,17,23,0.05)' }
+                },
+                x: {
+                    ticks: { 
+                        font: { size: 9, family: "'Inter', sans-serif" } 
+                    },
+                    grid: { display: false }
+                }
+            },
+            animation: { 
+                duration: 1000, 
+                easing: 'easeInOutQuart' 
+            }
+        }
+    });
+
+
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        if (select.id !== 'hostel_id' && select.id !== 'student_id' && select.id !== 'room_id') {
+            new Choices(select, {
+                searchEnabled: true,
+                itemSelectText: '',
+                shouldSort: false,
+                placeholder: true,
+                placeholderValue: 'Select an option...'
+            });
+        }
+    });
+
+
+    const hamburger = document.getElementById('hamburger');
+
+    if (hamburger) {
+        hamburger.addEventListener('click', function() {
+            setTimeout(function() {
+                document.querySelectorAll('.stat-card-advanced, .chart-card, .card-advanced, .dash-header, .occupancy-strip, .quick-actions-advanced, .map-card').forEach(function(el) {
+                    el.style.animation = 'none';
+                    setTimeout(function() {
+                        el.style.animation = 'fadeInUp 0.45s ease forwards';
+                    }, 10);
+                });
+            }, 300);
+        });
+    }
+
+    window.addEventListener('resize', function() {
+        if (roomChart) roomChart.resize();
+        if (trendChart) trendChart.resize();
+    });
+
+    
+});
+</script>
+{% endblock %}

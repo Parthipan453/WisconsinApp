@@ -1,0 +1,146 @@
+{% load static %}
+{% load form_helpers %}
+<div class="fade-in-up">
+  <div class="application-wizard-page">
+    <header class="application-wizard-header">
+      <div class="application-wizard-header-inner">
+        <a href="." class="application-wizard-brand" aria-label="Universities of Wisconsin applicant portal">
+          <img src="{% static 'images/apply-uw.png' %}" alt="Universities of Wisconsin">
+        </a>
+<nav class="application-wizard-actions" aria-label="Application actions">
+        <a href="./?state=hub" class="awz-cta"><i data-lucide="grid-2x2" aria-hidden="true"></i><span>Back to Hub</span></a>
+          <a href="?logout"><i data-lucide="log-out" aria-hidden="true"></i><span>Sign Out</span></a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="application-wizard-content">
+      <section class="application-wizard-form-panel" aria-labelledby="payment-title">
+        <div class="application-wizard-form-heading">
+          <h1 id="payment-title">Application Fee Payment</h1>
+          <p>Complete the application fee payment for {{ app.Reference_id }}.</p>
+        </div>
+
+        <div class="application-wizard-fields">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+            <h3 style="font-size:16px;font-weight:700;color:#222;margin:0">Fee Summary</h3>
+            {% if not fee_info.free and not fee_info.paid %}
+            <form method="POST" style="display:flex;align-items:center;gap:6px">{% csrf_token %}
+              <input type="hidden" name="action" value="coupon">
+              <input type="text" name="coupon" placeholder="Enter coupon" value="" style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:13px;max-width:160px">
+              <button type="submit" class="uw-btn uw-btn-outline" style="padding:8px 14px;font-size:13px">Apply</button>
+            </form>
+            {% endif %}
+          </div>
+
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <thead>
+              <tr style="border-bottom:2px solid #e5e5e5;text-align:left">
+                <th style="padding:10px 8px;color:#555;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Campus</th>
+                <th style="padding:10px 8px;color:#555;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px">App Type</th>
+                <th style="padding:10px 8px;color:#555;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Term</th>
+                <th style="padding:10px 8px;color:#555;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px">Pay Fee?</th>
+                <th style="padding:10px 8px;color:#555;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px;text-align:right">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f0f0f0">
+                <td style="padding:12px 8px;color:#333;font-weight:600">{{ app.university.university_name|default:"—" }}</td>
+                <td style="padding:12px 8px;color:#555">{{ app.get_applicant_type_display|default:"First-Year" }}</td>
+                <td style="padding:12px 8px;color:#555">{{ app.admission_cycle.term|default:"Fall" }} {{ app.admission_cycle.academic_year|default:"" }}</td>
+                <td style="padding:12px 8px">
+                  {% if fee_info.free %}
+                  <span class="uw-badge" style="background:#dcfce7;color:#166534">No fee</span>
+                  {% elif fee_info.paid %}
+                  <span class="uw-badge" style="background:#dcfce7;color:#166534">Paid</span>
+                  {% else %}
+                  <span class="uw-badge" style="background:#fef3c7;color:#92400e">Due</span>
+                  {% endif %}
+                </td>
+                <td style="padding:12px 8px;color:#222;font-weight:700;text-align:right">{{ fee_info.label }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {% if fee_info.paid %}
+          <div style="border-left:4px solid #16a34a;background:#f0fdf4;border-radius:8px;padding:20px 24px;text-align:center;margin-top:24px">
+            <i class="fas fa-check-circle" style="font-size:40px;color:#16a34a;margin-bottom:10px;display:block"></i>
+            <h3 style="font-size:17px;font-weight:700;color:#222;margin:0 0 4px">Payment Successful</h3>
+            <p style="font-size:14px;color:#666;margin:0">Your application fee for {{ app.Reference_id }} has been paid. Thank you!</p>
+          </div>
+          {% elif fee_info.pending %}
+          <div style="border-left:4px solid #d97706;background:#fffbeb;border-radius:8px;padding:20px 24px;text-align:center;margin-top:24px">
+            <i class="fas fa-hourglass-half" style="font-size:40px;color:#d97706;margin-bottom:10px;display:block"></i>
+            <h3 style="font-size:17px;font-weight:700;color:#222;margin:0 0 4px">Payment Pending</h3>
+            <p style="font-size:14px;color:#666;margin:0">Your application fee payment is still processing. Please try again shortly.</p>
+          </div>
+          {% elif fee_info.free %}
+          <div style="border-left:4px solid #16a34a;background:#f0fdf4;border-radius:8px;padding:20px 24px;text-align:center;margin-top:24px">
+            <i class="fas fa-check-circle" style="font-size:40px;color:#16a34a;margin-bottom:10px;display:block"></i>
+            <h3 style="font-size:17px;font-weight:700;color:#222;margin:0 0 4px">No Application Fee Required</h3>
+            <p style="font-size:14px;color:#666;margin:0">No application fee is required for this campus.</p>
+          </div>
+          {% else %}
+          <form method="POST" id="payFeeForm">{% csrf_token %}
+            <input type="hidden" name="action" value="pay">
+
+            <div style="margin-top:24px">
+              <h3 style="font-size:16px;font-weight:700;color:#222;margin:0 0 16px">Payment Details</h3>
+              <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 12px"><strong>Doing Business As:</strong> The charge will appear on your credit card statement as UW SYS ADMISSIONS APP FEE.</p>
+              <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 12px"><strong>Refund Policy:</strong> The application fee is non-refundable. Exceptions may be made if you pay the fee when not required or the application is received after the application deadline. If you have questions or believe you are due a refund, please contact the admissions office for the campus you applied to.</p>
+              <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 12px"><strong>Privacy Statement:</strong> The University of Wisconsin System does not sell, rent, trade or distribute any personally identifiable information obtained from applicants to a third party, except in cooperation with government agencies or as required by law. Information collected by the University of Wisconsin System is used for the administrative and operational purposes of our services.</p>
+              <div style="background:#f8f9fa;border-radius:8px;padding:14px 16px;font-size:13px;color:#333;margin-top:8px">
+                <div style="font-weight:600;margin-bottom:6px">If you have questions about an application fee payment contact:</div>
+                <div>Go Wisconsin</div>
+                <div>800-442-6459</div>
+                <div><a href="mailto:contact@go.wisconsin.edu" style="color:#1a56db;text-decoration:none">contact@go.wisconsin.edu</a></div>
+              </div>
+              <p style="font-size:13px;color:#666;line-height:1.6;margin:16px 0 0">If you select <strong>PAY APP FEE</strong> you will be redirected to our payment provider to make your application fee payment.</p>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+
+        {% if fee_info.paid %}
+        <footer class="application-wizard-footer">
+          <div>
+            {% if next == "submit" %}
+            <a href="./?state=submit&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}" class="application-wizard-button application-wizard-button-primary"><i data-lucide="send" aria-hidden="true"></i><span>Continue to Submit Application</span></a>
+            {% else %}
+            <a href="./?state=hub" class="application-wizard-button application-wizard-button-primary"><i data-lucide="grid-2x2" aria-hidden="true"></i><span>Go to Hub</span></a>
+            {% endif %}
+          </div>
+        </footer>
+        {% elif not fee_info.paid and not fee_info.free and not fee_info.pending %}
+        <footer class="application-wizard-footer">
+          <div>
+            <button type="button" class="application-wizard-button application-wizard-button-secondary" id="payNotNowBtn"><i data-lucide="clock" aria-hidden="true"></i><span>Not Now</span></button>
+          </div>
+          <div>
+            <button type="submit" form="payFeeForm" class="application-wizard-button application-wizard-button-primary" id="payFeeBtn" data-uw-loading-text="Redirecting to payment&hellip;"><i data-lucide="credit-card" aria-hidden="true"></i><span>PAY APP FEE ({{ fee_info.amount|floatformat:2 }})</span></button>
+          </div>
+        </footer>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var notNowBtn = document.getElementById('payNotNowBtn');
+  if (notNowBtn) {
+    var notNowForm = document.getElementById('notNowForm');
+    if (!notNowForm) {
+      notNowForm = document.createElement('form');
+      notNowForm.method = 'POST';
+      notNowForm.id = 'notNowForm';
+      notNowForm.style.display = 'none';
+      notNowForm.innerHTML = '{% csrf_token %}<input type="hidden" name="action" value="not_now">';
+      document.body.appendChild(notNowForm);
+    }
+    notNowBtn.addEventListener('click', function() {
+      notNowForm.submit();
+    });
+  }
+});
+</script>

@@ -1,0 +1,472 @@
+{% load static %}
+{% load form_helpers %}<div class="fade-in-up portal-status-page">
+  <header class="application-wizard-header">
+    <div class="application-wizard-header-inner">
+      <a href="." class="application-wizard-brand" aria-label="Universities of Wisconsin applicant portal">
+        <img src="{% static 'images/apply-uw.png' %}" alt="Universities of Wisconsin">
+      </a>
+      <nav class="application-wizard-actions" aria-label="Application actions">
+        <a href="{% url 'applicants_application_pdf' app_id=app.application_id %}" class="awz-cta"><i data-lucide="download" aria-hidden="true"></i><span>Application PDF</span></a>
+        <a href="./?state=hub" class="awz-cta"><i data-lucide="grid-2x2" aria-hidden="true"></i><span>Back to Hub</span></a>
+        <a href="?logout"><i data-lucide="log-out" aria-hidden="true"></i><span>Sign Out</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="portal-classic-layout portal-classic-layout-offline">
+    <div class="portal-classic-content">
+      <div class="uw-form-premium">
+
+        <div class="status-hero">
+          <div class="status-hero__top">
+            <div>
+              <div class="status-hero__eyebrow">Admissions Application</div>
+              <h1 class="status-hero__title">Application Status</h1>
+              <div class="status-hero__meta">
+                <span class="status-hero__ref">{{ app.Reference_id }}</span>
+                <span class="status-hero__status"><span class="uw-badge">{{ app.get_status_display }}</span></span>
+              </div>
+            </div>
+            <div class="status-hero__stats">
+              <div class="status-hero__stat">
+                <i class="fas fa-calendar-check"></i>
+                <span>Submitted</span>
+                <strong>{{ app.submitted_date|date:"M j, Y"|default:"\u2014" }}</strong>
+              </div>
+              <div class="status-hero__stat">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Application Fee</span>
+                <strong>{{ fee_info.label }}</strong>
+                {% if fee_info.paid %}<em class="is-paid">Paid</em>{% elif fee_info.pending %}<em class="is-pending">Pending</em>{% else %}<em class="is-due">Due</em>{% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="status-hero__progress">
+            <div class="status-hero__progress-label"><span>Application progress</span><span>{{ app.progress_pct }}%</span></div>
+            <div class="status-hero__progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ app.progress_pct }}">
+              <div class="status-hero__progress-fill" data-pct="{{ app.progress_pct }}" style="width:{{ app.progress_pct }}%"></div>
+            </div>
+          </div>
+        </div>
+
+        {% if missing_docs %}
+        <div class="status-card status-card--warn">
+          <div class="status-card__body">
+            <div class="status-banner__row">
+              <i class="fas fa-exclamation-circle status-banner__icon status-banner__icon--warn"></i>
+              <h3 class="status-banner__title">Action needed</h3>
+            </div>
+            <p class="status-banner__text">
+              Our admissions team needs {{ missing_docs|length }} required material{{ missing_docs|length|pluralize }}
+              before your application can be reviewed.{% if fee_info.amount is not None and not fee_info.paid %} Please pay the application fee and upload any requested materials below.{% endif %}
+            </p>
+
+            {% for md in missing_docs %}
+            {% if md.code == "fee" %}
+            <div style="background:#fff3e0;border-radius:8px;padding:14px 16px;margin-top:10px;border:1px solid #ffe0b2;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <i class="fas fa-file-invoice-dollar" style="color:#e65100;font-size:18px;"></i>
+                <div>
+                  <div style="font-weight:600;font-size:14px;color:#333;">Application Fee</div>
+                  <div style="font-size:12px;color:#666;">${{ fee_info.amount }}</div>
+                </div>
+              </div>
+              <form method="POST" action="/applicants/pay-fee/" style="margin:0;">
+                {% csrf_token %}
+                <input type="hidden" name="app_id" value="{{ app.application_id }}">
+                <button type="submit" class="uw-btn uw-btn-primary" style="background:#e65100;border-color:#e65100;"><i class="fas fa-credit-card"></i> Pay ${{ fee_info.amount }} Fee</button>
+              </form>
+            </div>
+            {% else %}
+            <div style="background:#fff;border-radius:8px;padding:14px 16px;margin-top:10px;border:1px solid #e0e0e0;" id="upload-block-{{ md.requirement_id }}">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <i class="fas fa-cloud-upload-alt" style="color:#1976d2;font-size:18px;"></i>
+                <div>
+                  <div style="font-weight:600;font-size:14px;color:#333;">{{ md.label }}</div>
+                  {% if md.allowed_extensions %}
+                  <div style="font-size:11px;color:#888;">Accepted: {{ md.allowed_extensions }} · Max {{ md.max_file_size_mb }} MB</div>
+                  {% endif %}
+                </div>
+              </div>
+              <form method="POST" action="" enctype="multipart/form-data" style="margin:0;" onsubmit="return handleDocUpload(this, {{ md.requirement_id }})">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload">
+                <input type="hidden" name="requirement_id" value="{{ md.requirement_id }}">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <label class="uw-btn uw-btn-outline" style="cursor:pointer;margin:0;">
+                    <i class="fas fa-paperclip"></i> Choose file
+                    <input type="file" name="document" style="display:none;" accept=".pdf,.jpg,.jpeg,.png" required onchange="fileSelected(this)">
+                  </label>
+                  <span class="upload-file-name" style="font-size:12px;color:#666;">No file chosen</span>
+                  <button type="submit" class="uw-btn uw-btn-primary" style="display:none;" id="upload-btn-{{ md.requirement_id }}"><i class="fas fa-upload"></i> Upload</button>
+                </div>
+              </form>
+            </div>
+            {% endif %}
+            {% endfor %}
+
+          </div>
+        </div>
+        {% else %}
+        <div class="status-card status-card--ok">
+          <div class="status-card__body">
+            <div class="status-banner__row">
+              <i class="fas fa-check-circle status-banner__icon status-banner__icon--ok"></i>
+              <h3 class="status-banner__title">All required materials received</h3>
+            </div>
+            <p class="status-banner__text">
+              Thank you — your application has everything the admissions team needs and is moving through review.
+            </p>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="status-card">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-file-alt"></i>Application Details</h3>
+            <div class="status-detail-grid">
+              <div>
+                <div class="status-detail__label">Application ID</div>
+                <div class="status-detail__value">{{ app.Reference_id }}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">Applicant Type</div>
+                <div class="status-detail__value">{{ app.get_applicant_type_display }}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">University</div>
+                <div class="status-detail__value">{{ app.university.university_name|default:app.campus_name|default:"\u2014" }}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">Degree Level</div>
+                <div class="status-detail__value">{{ app.degree_level.degree_name|default:"\u2014" }}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">Program</div>
+                <div class="status-detail__value">{{ app.program.program_name|default:"\u2014" }}</div>
+              </div>
+              {% if app.backup_program %}
+              <div>
+                <div class="status-detail__label">Backup Program</div>
+                <div class="status-detail__value">{{ app.backup_program.program_name }}</div>
+              </div>
+              {% endif %}
+              <div>
+                <div class="status-detail__label">Admission Cycle</div>
+                <div class="status-detail__value">{{ app.admission_cycle.name|default:"\u2014" }}{% if app.admission_cycle %} <span class="status-detail__value--muted">({{ app.admission_cycle.academic_year }} &middot; {{ app.admission_cycle.get_deadline_type_display }})</span>{% endif %}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">Current Status</div>
+                <div class="status-detail__value"><span class="uw-badge uw-badge-{{ app.status }}">{{ app.get_status_display }}</span></div>
+              </div>
+              <div>
+                <div class="status-detail__label">Application Fee</div>
+                <div class="status-detail__value">{{ fee_info.label }}{% if fee_info.paid %} <span class="uw-badge status-badge--success">Paid</span>{% elif fee_info.pending %}<span class="uw-badge status-badge--warn">Payment pending</span>{% endif %}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">Submitted</div>
+                <div class="status-detail__value">{{ app.submitted_date|date:"F j, Y"|default:"\u2014" }}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">Last Updated</div>
+                <div class="status-detail__value">{{ app.updated_date|date:"F j, Y" }}</div>
+              </div>
+              <div>
+                <div class="status-detail__label">How You Applied</div>
+                <div class="status-detail__value">{{ app.get_apply_method_display }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Offer Letter Card ── #}
+        {% if app.offer_status == 'pending' %}
+        <div class="status-card" style="border-left:4px solid #c5050c;">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-envelope-open-text" style="color:#c5050c;"></i> Admission Offer</h3>
+            <p style="margin:0 0 12px;font-size:14px;color:#333;">Congratulations! You have been offered admission to:</p>
+            <table width="100%" style="background:#f8f9fa;border-radius:6px;margin:0 0 14px;font-size:13px;border-collapse:collapse;">
+              <tr><td style="padding:8px 12px;font-weight:600;width:40%;color:#555;">Program</td><td style="padding:8px 12px;color:#333;">{{ app.program.program_name|default:"N/A" }}</td></tr>
+              {% if app.backup_program %}
+              <tr><td style="padding:8px 12px;font-weight:600;color:#555;">Backup Program</td><td style="padding:8px 12px;color:#333;">{{ app.backup_program.program_name }}</td></tr>
+              {% endif %}
+              <tr><td style="padding:8px 12px;font-weight:600;color:#555;">Admission Cycle</td><td style="padding:8px 12px;color:#333;">{{ app.admission_cycle.name|default:"N/A" }}</td></tr>
+              <tr><td style="padding:8px 12px;font-weight:600;color:#555;">Reference ID</td><td style="padding:8px 12px;color:#333;">{{ app.Reference_id }}</td></tr>
+              {% if app.offer_note %}
+              <tr><td style="padding:8px 12px;font-weight:600;color:#555;">Note</td><td style="padding:8px 12px;color:#333;">{{ app.offer_note }}</td></tr>
+              {% endif %}
+            </table>
+
+            {% if not app.deposit_paid_at %}
+            <div style="background:#fff3e0;border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#e65100;">
+              <i class="fas fa-info-circle"></i> To accept this offer, you must first pay the <strong>${{ app.deposit_amount }} enrollment deposit</strong>.
+            </div>
+            <form method="POST" action="/applicants/deposit/">
+              {% csrf_token %}
+              <input type="hidden" name="app_id" value="{{ app.application_id }}">
+              <button type="submit" class="uw-btn uw-btn-primary" style="background:#c5050c;border-color:#c5050c;"><i class="fas fa-credit-card"></i> Pay ${{ app.deposit_amount }} Deposit</button>
+            </form>
+            {% else %}
+            <div style="background:#e8f5e9;border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#2e7d32;">
+              <i class="fas fa-check-circle"></i> Deposit of ${{ app.deposit_amount }} paid on {{ app.deposit_paid_at|date:"M d, Y" }}.
+            </div>
+            <form method="POST" action="/applicants/offer/">
+              {% csrf_token %}
+              <input type="hidden" name="app_id" value="{{ app.application_id }}">
+              <input type="hidden" name="action" value="accept">
+              <button type="submit" class="uw-btn uw-btn-primary" style="background:#2e7d32;border-color:#2e7d32;"><i class="fas fa-check"></i> Accept Offer &amp; Confirm Enrollment</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="/applicants/offer/" style="margin-top:8px;">
+              {% csrf_token %}
+              <input type="hidden" name="app_id" value="{{ app.application_id }}">
+              <input type="hidden" name="action" value="decline">
+              <button type="submit" class="uw-btn uw-btn-outline" style="color:#999;border-color:#ccc;font-size:12px;"><i class="fas fa-times"></i> Decline Offer</button>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if app.offer_status == 'accepted' %}
+        <div class="status-card" style="border-left:4px solid #2e7d32;">
+          <div class="status-card__body">
+            {% if app.status == 'offer_accepted' %}
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-clock" style="color:#e65100;"></i> Offer Accepted -- Awaiting Processing</h3>
+            <p style="margin:0 0 8px;font-size:14px;color:#333;">You have accepted the admission offer to <strong>{{ app.program.program_name|default:"your program" }}</strong>. Your application is being processed by the admissions team.</p>
+            <p style="margin:0;font-size:12px;color:#888;">Once processed, your student account will be created and you will receive your university credentials via email.</p>
+            {% else %}
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-check-circle" style="color:#2e7d32;"></i> Admission Confirmed</h3>
+            <p style="margin:0 0 8px;font-size:14px;color:#333;">Your enrollment deposit has been received. Your admission to <strong>{{ app.program.program_name|default:"your program" }}</strong> is <strong>confirmed</strong>!</p>
+            <div style="font-size:12px;color:#666;">
+              <div>Deposit Paid: {{ app.deposit_paid_at|date:"F j, Y" }}</div>
+              <div>Transaction: {{ app.deposit_transaction_id }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if app.offer_status == 'declined' %}
+        <div class="status-card" style="border-left:4px solid #999;">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-times-circle" style="color:#999;"></i> Offer Declined</h3>
+            <p style="margin:0;font-size:13px;color:#666;">You have declined the admission offer.</p>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if correction_requests %}
+        <div class="status-card">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb">Information corrections requested</h3>
+            {% for cr in correction_requests %}
+            <div class="status-row {% if cr.status == 'resolved' %}status-row--green{% else %}status-row--amber{% endif %}">
+              <div class="status-row__main">
+                <div class="status-row__title">Correction request {{ forloop.revcounter }}</div>
+                {% if cr.message %}
+                <div class="status-row__sub">{{ cr.message }}</div>
+                {% endif %}
+                <div class="status-row__sub">
+                  Our reviewer found the following response{% if cr.field_reviews|length > 1 %}s{% endif %} need{% if cr.field_reviews|length == 1 %}s{% endif %} to be corrected. Please resend the correct value for each:
+                </div>
+                {% for review in cr.field_reviews.all %}
+                <div class="status-row__sub status-row__sub--muted">
+                  &bull; <strong>{{ review.field_response.response.section.title }} / {{ review.field_response.field.label }}</strong>:
+                  <em>{{ review.field_response.file_name|default:"" }}</em>
+                  {% if review.note %}{{ review.note }}{% endif %}
+                </div>
+                {% endfor %}
+                <div class="status-row__sub status-row__sub--muted">Requested {{ cr.created_at|date:"F j, Y" }}</div>
+              </div>
+              {% if cr.status == "resolved" %}
+              <span class="uw-badge status-badge--success">Resolved</span>
+              {% else %}
+              <span class="uw-badge status-badge--warn">Awaiting your correction</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if section_issues %}
+        <div class="status-card status-card--warn">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-exclamation-triangle"></i> Clarification requested</h3>
+            <p class="status-banner__text" style="margin-bottom:12px;">Our reviewer found the following sections need your attention. Please reply to the email we sent you to clarify.</p>
+            {% for sr in section_issues %}
+            <div class="status-row status-row--amber">
+              <div class="status-row__main">
+                <div class="status-row__title">{{ sr.section_title }}</div>
+                <div class="status-row__sub status-row__sub--muted">Flagged {{ sr.reviewed_at|date:"F j, Y" }}</div>
+                {% if sr.applicant_reply %}
+                <div class="status-row__sub" style="margin-top:6px;padding:8px 12px;background:#e8f5e9;border-radius:6px;border-left:3px solid #4caf50;">
+                  <i class="fas fa-check-circle" style="color:#4caf50;"></i> You replied {{ sr.applicant_replied_at|date:"F j, Y g:i A" }}
+                </div>
+                {% endif %}
+              </div>
+              {% if sr.applicant_reply %}
+              <span class="uw-badge status-badge--success">Replied</span>
+              {% else %}
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="uw-badge status-badge--warn">Awaiting your reply</span>
+                <a href="{{ gmail_reply_urls|lookup:sr.pk }}" target="_blank" rel="noopener" class="uw-btn uw-btn-primary uw-btn--compact" style="white-space:nowrap;"><i class="fas fa-reply"></i> Reply via Gmail</a>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if material_requests %}
+        <div class="status-card">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb">Requests from admissions</h3>
+            {% for mr in material_requests %}
+            <div class="status-row status-row--blue">
+              <div class="status-row__main">
+                <div class="status-row__title">
+                  {% if mr.requirement %}
+                    {{ mr.requirement.name }}
+                  {% elif mr.doc_type and mr.doc_type != "other" %}
+                    {{ mr.get_doc_type_display }}
+                  {% else %}
+                    {{ mr.message|default:"Material request" }}
+                  {% endif %}
+                </div>
+                {% if mr.message and not mr.requirement and mr.doc_type == "other" %}
+                {% elif mr.message %}
+                <div class="status-row__sub">{{ mr.message }}</div>
+                {% endif %}
+                <div class="status-row__sub status-row__sub--muted">Requested {{ mr.requested_at|date:"F j, Y" }}</div>
+              </div>
+              {% if mr.status == "fulfilled" %}
+              <span class="uw-badge status-badge--success">Fulfilled</span>
+              {% elif mr.status == "waived" %}
+              <span class="uw-badge status-badge--muted">Waived</span>
+              {% elif mr.requirement and app.apply_method == "offline" %}
+              <a href="./?state=submit&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}" class="uw-btn uw-btn-primary uw-btn--compact"><i class="fas fa-upload"></i> Upload on Offline Page</a>
+              {% elif mr.requirement %}
+              <form method="POST" enctype="multipart/form-data" class="status-upload-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload">
+                <input type="hidden" name="requirement_id" value="{{ mr.requirement.pk }}">
+                <input type="file" name="document" required>
+                <button type="submit" class="uw-btn uw-btn-primary uw-btn--compact" data-uw-loading-text="Uploading&hellip;"><i class="fas fa-upload"></i> Upload</button>
+              </form>
+              {% elif fee_info.amount is not None and not fee_info.paid %}
+              <a href="./?state=payment&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}" class="uw-btn uw-btn-primary uw-btn--compact"><i class="fas fa-credit-card"></i> Pay</a>
+              {% else %}
+              <span class="uw-badge status-badge--warn">Pending</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if uploaded_documents %}
+        <div class="status-card">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb">Documents you've uploaded</h3>
+            {% for doc in uploaded_documents %}
+            <div class="status-row status-row--green">
+              <div class="status-row__main">
+                <div class="status-row__title status-row__title--file"><i class="fas fa-file-pdf"></i>{{ doc.file_name }}</div>
+                <div class="status-row__sub">{{ doc.uploaded_at|date:"F j, Y" }}{% if doc.requirement %} · {{ doc.requirement.name }}{% endif %}</div>
+              </div>
+              <a href="/media/{{ doc.file_path }}" target="_blank" class="status-row__link">View</a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if status_history %}
+        <div class="status-card">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-history"></i>Application History</h3>
+            <div class="status-timeline">
+              {% for sh in status_history reversed %}
+              <div class="status-timeline__item">
+                <div class="status-timeline__dot{% if forloop.first %} status-timeline__dot--current{% endif %}"></div>
+                <div class="status-timeline__text">
+                  {{ status_labels|lookup:sh.from_status|default:sh.from_status|title }}
+                  <i class="fas fa-arrow-right status-timeline__arrow"></i>
+                  {{ status_labels|lookup:sh.to_status|default:sh.to_status|title }}
+                </div>
+                <div class="status-timeline__meta">{{ sh.changed_at|date:"F j, Y g:i A" }} &middot; by <strong>{{ sh.changed_by|default:"system" }}</strong></div>
+                {% if sh.note %}<div class="status-timeline__note">{{ sh.note }}</div>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if activity_logs %}
+        <div class="status-card">
+          <div class="status-card__body">
+            <h3 class="status-card__title status-card__title--mb"><i class="fas fa-list"></i>Recent Activity</h3>
+            {% for log in activity_logs %}
+            <div class="status-activity__item">
+              <span class="status-activity__icon"><i class="fas fa-pen-to-square"></i></span>
+              <div class="status-activity__head">
+                <div class="status-activity__body">
+                  <div class="status-activity__title">{{ log.field_name|friendly }}</div>
+                  <div class="status-activity__change">
+                    {% if log.old_value %}<span class="status-activity__old">{{ log.old_value }}</span> <i class="fas fa-arrow-right status-activity__arrow"></i>{% endif %}<span class="status-activity__new">{{ log.new_value }}</span>
+                  </div>
+                </div>
+                <div class="status-activity__meta">
+                  <div class="status-activity__time">{{ log.timestamp|date:"M j, Y g:i A" }}</div>
+                  <div class="status-activity__actor">{{ log.actor|default:"system" }}</div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var fill = document.querySelector('.status-hero__progress-fill');
+  if (!fill) { return; }
+  var pct = Math.max(0, Math.min(100, parseInt(fill.getAttribute('data-pct') || '0', 10)));
+  window.requestAnimationFrame(function () {
+    fill.style.width = pct + '%';
+  });
+})();
+
+function fileSelected(input) {
+  var nameEl = input.closest('div').querySelector('.upload-file-name');
+  var btn = input.closest('form').querySelector('[id^="upload-btn-"]');
+  if (input.files && input.files.length > 0) {
+    if (nameEl) nameEl.textContent = input.files[0].name;
+    if (btn) btn.style.display = '';
+  } else {
+    if (nameEl) nameEl.textContent = 'No file chosen';
+    if (btn) btn.style.display = 'none';
+  }
+}
+
+function handleDocUpload(form, reqId) {
+  var fileInput = form.querySelector('input[type="file"]');
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    alert('Please choose a file to upload.');
+    return false;
+  }
+  var btn = form.querySelector('[id^="upload-btn-"]');
+  if (btn) {
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+    btn.disabled = true;
+  }
+  return true;
+}
+</script>

@@ -1,0 +1,228 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Field review · {{ app.Reference_id }} · Admissions{% endblock %}
+
+{% block nav_admissions_open %}open{% endblock %}
+{% block nav_admissions_submenu %}open{% endblock %}
+{% block nav_my_reviews %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Eric/review_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/Eric/field_review.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="prm-page">
+
+  <nav class="prm-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'my_reviews' request.user.uuid %}"><i class="ti ti-arrow-left"></i> My reviews</a>
+    <span class="prm-breadcrumb__sep"><i class="ti ti-chevron-right"></i></span>
+    <a href="{% url 'review_detail' request.user.uuid app.application_id %}"><i class="ti ti-file-text"></i> {{ app.Reference_id }}</a>
+    <span class="prm-breadcrumb__sep"><i class="ti ti-chevron-right"></i></span>
+    <span class="prm-breadcrumb__current">Field review</span>
+  </nav>
+
+  <header class="prm-hero prm-fr-hero">
+    <div class="prm-hero__decor" aria-hidden="true">
+      <span class="prm-hero__blob prm-hero__blob--1"></span>
+      <span class="prm-hero__blob prm-hero__blob--2"></span>
+      <span class="prm-hero__ring"></span>
+      <span class="prm-hero__dots"></span>
+    </div>
+    <div class="prm-hero__inner">
+      <div class="prm-hero__top">
+        <span class="prm-avatar" data-name="{{ applicant.first_name }} {{ applicant.last_name }}" aria-hidden="true">
+          {{ applicant.first_name|slice:":1" }}{{ applicant.last_name|slice:":1" }}
+        </span>
+        <div class="prm-hero__copy">
+          <span class="prm-eyebrow"><i class="ti ti-list-check"></i> Field review</span>
+          <h2 class="prm-name prm-title__accent">{{ applicant.first_name }} {{ applicant.last_name }}</h2>
+          <div class="prm-hero__chips">
+            <span class="prm-chip prm-chip--ref"><i class="ti ti-hash"></i>{{ app.Reference_id }}</span>
+            <span class="prm-chip prm-chip--gold">{{ app.program|default:"Program" }}</span>
+            <span class="prm-chip prm-chip--amber">{{ app.admission_cycle|default:"Cycle" }}</span>
+            <span class="prm-pill"><span class="prm-dot prm-dot--{{ assignment.status }}"></span>{{ assignment.get_status_display }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="prm-fr-progress">
+    <div class="prm-fr-progress__track">
+      <div class="prm-fr-progress__fill" style="width:{% if total %}{% widthratio verified_count total 100 %}{% else %}0{% endif %}%"></div>
+    </div>
+    <div class="prm-fr-progress__stats">
+      <span class="prm-fr-stat prm-fr-stat--done"><i class="ti ti-circle-check"></i> {{ verified_count }} correct</span>
+      <span class="prm-fr-stat prm-fr-stat--todo"><i class="ti ti-circle-dashed"></i> {{ pending_count }} pending</span>
+      <span class="prm-fr-stat prm-fr-stat--flag"><i class="ti ti-flag"></i> {{ rejected_count }} flagged</span>
+      {% if sent_count %}
+      <span class="prm-fr-stat prm-fr-stat--sent"><i class="ti ti-send"></i> {{ sent_count }} sent</span>
+      {% endif %}
+      <span class="prm-fr-progress__label"><i class="ti ti-hierarchy-2"></i> {{ verified_count }}/{{ total }} fields</span>
+    </div>
+  </div>
+
+  <div class="prm-grid prm-fr-grid">
+    <div class="prm-main">
+      {% if total == 0 %}
+      <div class="prm-card">
+        <div class="prm-empty"><i class="ti ti-circle-off" style="font-size:22px;display:block;margin-bottom:8px;"></i>No form responses found for this application.</div>
+      </div>
+      {% else %}
+
+      {% for group in groups %}
+      <div class="prm-card prm-fr-card">
+        <div class="prm-card__head">
+          <i class="ti ti-layers-intersect"></i>
+          <span class="prm-card__title">{{ group.section }}</span>
+          {% if group.repeat_index %}
+          <span class="prm-chip prm-chip--gray">#{{ group.repeat_index|add:"1" }}</span>
+          {% endif %}
+          <span class="prm-card__sub">{{ group.fields|length }} field{{ group.fields|length|pluralize }}</span>
+        </div>
+
+        {% for current in group.fields %}
+        {% with state=current.review %}
+        <div class="prm-fr-field">
+          <div class="prm-fr-field__top">
+            <span class="prm-fr-field__label">{{ current.field.label }}</span>
+            {% if state.status == 'verified' %}
+            <span class="prm-chip prm-chip--green"><i class="ti ti-check"></i> Correct</span>
+            {% elif state.correction_request_id %}
+            <span class="prm-chip prm-chip--teal"><i class="ti ti-send"></i> Correction sent</span>
+            {% elif state.status == 'rejected' %}
+            <span class="prm-chip prm-chip--red"><i class="ti ti-flag"></i> Flagged</span>
+            {% else %}
+            <span class="prm-chip prm-chip--gray"><i class="ti ti-clock"></i> Not reviewed</span>
+            {% endif %}
+          </div>
+
+          <div class="prm-fr-value">
+            {% if current.file_url %}
+              <div class="prm-fr-value__label">Uploaded file</div>
+              <a class="prm-fr-value__link" href="{{ current.file_url }}" target="_blank" rel="noopener"><i class="ti ti-file-download"></i> {{ current.value }}</a>
+            {% else %}
+              <div class="prm-fr-value__label">Submitted value</div>
+              {% if current.value %}
+                <div class="prm-fr-value__text">{{ current.value }}</div>
+              {% else %}
+                <div class="prm-fr-value__text is-empty">— no value submitted —</div>
+              {% endif %}
+            {% endif %}
+          </div>
+
+          {% if current.validation_msg %}
+          <div class="prm-banner {% if current.valid %}prm-banner--info{% else %}prm-banner--warn{% endif %}" style="margin:0 0 14px;">
+            <i class="ti ti-{% if current.valid %}check{% else %}alert-triangle{% endif %}"></i>
+            <div>{% if current.valid %}Passes{% else %}Fails{% endif %} configured validation: {{ current.validation_msg }}</div>
+          </div>
+          {% endif %}
+
+          {% if state.note %}
+          <div class="prm-fr-note"><i class="ti ti-message"></i> Note to applicant: {{ state.note }}</div>
+          {% endif %}
+
+          <div class="prm-fr-actions">
+            <form method="post" action="{% url 'field_review_verdict' request.user.uuid app.application_id %}">
+              {% csrf_token %}
+              <input type="hidden" name="field_response_id" value="{{ current.field_response.pk }}">
+              <input type="hidden" name="action" value="verify">
+              <input type="hidden" name="note" value="">
+              <button type="submit" class="prm-btn prm-btn--success" {% if state.correction_request_id %}disabled{% endif %}>
+                <i class="ti ti-circle-check"></i> Mark correct
+              </button>
+            </form>
+
+            {% if not state.correction_request_id %}
+            <details class="prm-fr-flag">
+              <summary class="prm-btn prm-btn--ghost"><i class="ti ti-flag"></i> Flag for correction</summary>
+              <form method="post" action="{% url 'field_review_verdict' request.user.uuid app.application_id %}" class="prm-fr-reject">
+                {% csrf_token %}
+                <input type="hidden" name="field_response_id" value="{{ current.field_response.pk }}">
+                <input type="hidden" name="action" value="reject">
+                <textarea name="note" rows="2" class="prm-textarea" placeholder="What to fix — sent to the applicant in the correction request.">{% if state.status == 'rejected' %}{{ state.note }}{% endif %}</textarea>
+                <button type="submit" class="prm-btn prm-btn--accent"><i class="ti ti-flag"></i> Confirm flag</button>
+              </form>
+            </details>
+            {% endif %}
+
+            {% if state %}
+            <form method="post" action="{% url 'field_review_verdict' request.user.uuid app.application_id %}">
+              {% csrf_token %}
+              <input type="hidden" name="field_response_id" value="{{ current.field_response.pk }}">
+              <input type="hidden" name="action" value="reset">
+              <input type="hidden" name="note" value="">
+              <button type="submit" class="prm-btn prm-btn--ghost"><i class="ti ti-rotate"></i> Reset</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      {% endfor %}
+
+      {% endif %}
+    </div>
+
+    <div class="prm-side">
+      <div class="prm-card">
+        <div class="prm-card__head">
+          <i class="ti ti-flag"></i>
+          <span class="prm-card__title">Flagged for correction</span>
+          <span class="prm-card__sub">{{ rejected_count }}</span>
+        </div>
+        <div class="prm-fr-cart">
+          {% if cart %}
+          {% for item in cart %}
+          <div class="prm-fr-cartitem">
+            <div class="prm-fr-cartitem__label">{{ item.section }} / {{ item.field.label }}</div>
+            {% if item.review.note %}
+            <div class="prm-fr-cartitem__note">{{ item.review.note }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <form method="post" action="{% url 'send_field_corrections' request.user.uuid app.application_id %}" class="prm-fr-send">
+            {% csrf_token %}
+            <textarea name="message" rows="3" class="prm-textarea" placeholder="Optional message for the applicant explaining the corrections needed."></textarea>
+            <button type="submit" class="prm-btn prm-btn--primary"><i class="ti ti-send"></i> Send correction request</button>
+            <p class="prm-hint" style="margin-top:6px;">Emails the applicant asking them to resend the correct value for the {{ rejected_count }} flagged field{{ rejected_count|pluralize }}.</p>
+          </form>
+          {% else %}
+          <p class="prm-hint" style="padding:14px 20px;">No fields flagged yet. Flag a response to add it here.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if correction_requests %}
+      <div class="prm-card">
+        <div class="prm-card__head">
+          <i class="ti ti-send"></i>
+          <span class="prm-card__title">Correction history</span>
+        </div>
+        <div class="prm-timeline">
+          {% for req in correction_requests %}
+          <div class="prm-timeline__item">
+            <span class="prm-timeline__dot prm-timeline__dot--{% if req.status == 'closed' %}green{% else %}amber{% endif %}"></span>
+            <div class="prm-timeline__body">
+              <div class="prm-timeline__title">{{ req.get_status_display }}</div>
+              <div class="prm-timeline__meta">
+                {% if req.message %}{{ req.message }} · {% endif %}Requested {{ req.requested_at|date:"M d, Y" }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <a class="prm-btn prm-btn--ghost" href="{% url 'review_detail' request.user.uuid app.application_id %}" style="width:100%;">
+        <i class="ti ti-arrow-left"></i> Back to full review
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

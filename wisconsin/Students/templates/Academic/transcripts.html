@@ -1,0 +1,231 @@
+{% extends 'student_base.html' %}
+{% load static %}
+
+{% block title %}Transcripts - Wisconsin University{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_transcripts %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="{% static 'css/Academic/transcripts.css' %}">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="transcript-wrap">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <i class="ti ti-certificate"></i> Transcripts
+      </div>
+      <div class="page-sub">
+        {{ student_profile.user.get_full_name }}
+        {% if student_profile.program %} • {{ student_profile.program }}{% endif %}
+        • {{ student_profile.student_number }}
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="transcript-badge">
+        <i class="ti ti-file-text"></i>
+        <span><strong>Official</strong> Transcript</span>
+      </div>
+      {% comment %} <button class="btn-print" onclick="window.print()">
+        <i class="ti ti-printer"></i> Print
+      </button> {% endcomment %}
+      <button class="btn-download" onclick="downloadFullTranscript()">
+        <i class="ti ti-download"></i> Download PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Transcript Summary -->
+  <div class="transcript-summary">
+    <div class="summary-card">
+      <div class="summary-row">
+        <div class="summary-item">
+          <span class="summary-label">Student Name</span>
+          <span class="summary-value">{{ student_profile.user.get_full_name|default:"—" }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Student ID</span>
+          <span class="summary-value">{{ student_profile.student_number|default:"—" }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Academic Level</span>
+          <span class="summary-value">{{ student_profile.get_academic_level_display|default:"—" }}</span>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-item">
+          <span class="summary-label">Major</span>
+          <span class="summary-value">{{ academic_profile.major|default:"—" }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Minor</span>
+          <span class="summary-value">{{ academic_profile.minor|default:"—" }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Catalog Year</span>
+          <span class="summary-value">{{ academic_profile.catalog_year|default:"—" }}</span>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-item">
+          <span class="summary-label">Cumulative GPA</span>
+          <span class="summary-value gpa-value">{{ cumulative_gpa }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Credits</span>
+          <span class="summary-value">{{ total_credits }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Academic Standing</span>
+          <span class="summary-value standing-value">
+            {{ latest_enrollment.get_academic_standing_display|default:"—" }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% comment %} <!-- Transcript Legend -->
+  <div class="transcript-legend">
+    <span><span class="legend-dot" style="background: var(--success);"></span> Passed</span>
+    <span><span class="legend-dot" style="background: var(--warning);"></span> In Progress</span>
+    <span><span class="legend-dot" style="background: var(--secondary);"></span> Incomplete</span>
+    <span><span class="legend-dot" style="background: var(--danger);"></span> Withdrawn</span>
+  </div> {% endcomment %}
+
+  <!-- Transcript Table -->
+  <div class="transcript-table-wrapper">
+    <div class="table-header">
+      <div class="table-title">
+        <i class="ti ti-list-details"></i> Academic Record
+      </div>
+      <div class="table-actions">
+        {% comment %} <button class="btn-filter">
+          <i class="ti ti-filter"></i> Filter
+        </button> {% endcomment %}
+        <button class="btn-filter" onclick="toggleAllTerms()">
+          <i class="ti ti-chevron-down"></i> Expand All
+        </button>
+      </div>
+    </div>
+
+    <div class="table-scroll-container">
+      {% for sem in semesters %}
+      <div class="term-group {% if forloop.first %}active{% endif %}">
+<div class="term-header" onclick="toggleTerm(this)">
+  <div class="term-info">
+    <i class="ti ti-chevron-right term-arrow"></i>
+    <span class="term-name">{{ sem.name }}</span>
+    <span class="term-status {{ sem.status }}">
+      {% if sem.status == "completed" %}Completed{% else %}In Progress{% endif %}
+    </span>
+  </div>
+  <div class="term-right">
+    <div class="term-stats">
+      <span>{{ sem.credits }} credits</span>
+      <span>
+        GPA: {% if sem.gpa is not None %}{{ sem.gpa }}{% else %}—{% endif %}
+        {% if sem.status == "in-progress" %}(Current){% endif %}
+      </span>
+    </div>
+    <button type="button"
+            class="btn-term-download"
+            data-semester="{{ sem.name }}"
+            title="Download {{ sem.name }} PDF"
+            onclick="downloadSemester(event, this)">
+      <i class="ti ti-download"></i>
+    </button>
+  </div>
+</div>
+        <div class="term-courses">
+          <div class="term-scroll-wrapper">
+            <table class="transcript-table">
+              <thead>
+                <tr>
+                  <th>Course</th>
+                  <th>Course Name</th>
+                  <th>Credits</th>
+                  <th>Grade</th>
+                  <th>Points</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in sem.courses %}
+                <tr>
+                  <td><span class="course-code">{{ c.course_code }}</span></td>
+                  <td>{{ c.course_name }}</td>
+                  <td>{{ c.credits }}</td>
+                  <td><span class="grade-badge {{ c.grade_class }}">{{ c.letter_grade }}</span></td>
+                  <td>{% if c.grade_points is not None %}{{ c.grade_points }}{% else %}—{% endif %}</td>
+                  <td>
+                    <span class="status-badge {{ c.status }}">
+                      {% if c.status == "completed" %}Completed{% else %}In Progress{% endif %}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2"><strong>Semester Total</strong></td>
+                  <td><strong>{{ sem.credits }}</strong></td>
+                  <td colspan="3">
+                    <strong>
+                      GPA: {% if sem.gpa is not None %}{{ sem.gpa }}{% else %}—{% endif %}
+                      {% if sem.status == "in-progress" %}(Projected){% endif %}
+                    </strong>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="term-group">
+        <div class="term-header">
+          <span class="term-name">No academic records yet.</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Transcript Summary Stats -->
+  <div class="transcript-stats">
+    <div class="stats-grid">
+      <div class="stats-item">
+        <span class="stats-number">{{ total_credits }}</span>
+        <span class="stats-label">Total Credits</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-number">{{ cumulative_gpa }}</span>
+        <span class="stats-label">Cumulative GPA</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-number">{{ courses_completed }}</span>
+        <span class="stats-label">Courses Completed</span>
+      </div>
+      <div class="stats-item">
+        <span class="stats-number">{{ semester_count }}</span>
+        <span class="stats-label">Semesters</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Academic/transcripts.js' %}"></script>
+{% endblock %}

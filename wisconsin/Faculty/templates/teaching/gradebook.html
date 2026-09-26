@@ -1,0 +1,295 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Gradebook{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rupa/teaching/gradebook.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="gradebook-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Gradebook</h1>
+            <p>{{ department.department_name|default:"Your Department" }} — {% if current_semester %}{{ current_semester.semester_type }} {{ current_semester.academic_year }}{% else %}Track student performance and academic progress{% endif %}</p>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="icon-btn" id="export-csv" title="Export current view as CSV">
+                <i class="ti ti-download"></i> Export
+            </button>
+            <a href="{% url 'course_grade_dashboard' %}" class="grade-btn"><i class="ti ti-plus"></i> Add Grade</a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="filter-bar">
+        <div class="search-wrap">
+            <i class="ti ti-search"></i>
+            <input type="text" name="student" value="{{ student_search }}" placeholder="Search student name or ID...">
+        </div>
+
+        <select name="course" id="course-select">
+            <option value="">All Courses</option>
+            {% for c in courses_in_scope %}
+                <option value="{{ c.course_id }}" {% if course_filter == c.course_id|stringformat:"s" %}selected{% endif %}>
+                    {{ c.course_code }} — {{ c.course_name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="semester" id="semester-select">
+            <option value="">All Semesters</option>
+            {% for s in semesters_in_scope %}
+                <option value="{{ s.semester_id }}" {% if semester_filter == s.semester_id|stringformat:"s" %}selected{% endif %}>
+                    {{ s.semester__semester_type }} {{ s.semester__academic_year }}{% if current_semester and s.semester_id == current_semester.pk %} (Current){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="year" id="year-select">
+            <option value="">All Years</option>
+            <option value="1" {% if year_filter == "1" %}selected{% endif %}>Year 1</option>
+            <option value="2" {% if year_filter == "2" %}selected{% endif %}>Year 2</option>
+            <option value="3" {% if year_filter == "3" %}selected{% endif %}>Year 3</option>
+            <option value="4" {% if year_filter == "4" %}selected{% endif %}>Year 4</option>
+            <option value="5" {% if year_filter == "5" %}selected{% endif %}>Year 5</option>
+        </select>
+
+        <button type="submit"><i class="ti ti-filter"></i> Filter</button>
+        {% if has_active_filters %}
+            <a href="{% url 'gradebook_page' uuid=uuid %}" class="clear-link"><i class="ti ti-x"></i> Clear</a>
+        {% endif %}
+    </form>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <div class="icon red"><i class="ti ti-users"></i></div>
+            <div><h3>{{ total_students }}</h3><span>Total Students</span></div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green"><i class="ti ti-trophy"></i></div>
+            <div><h3>{{ average_score }}%</h3><span>Average Score</span></div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon blue"><i class="ti ti-book"></i></div>
+            <div><h3>{{ total_courses }}</h3><span>Courses</span></div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange"><i class="ti ti-award"></i></div>
+            <div><h3>{{ average_grade_letter }}</h3><span>Average Grade</span></div>
+        </div>
+
+    </div>
+
+    <!-- Performance -->
+    <div class="overview-grid">
+
+        <div class="card">
+            <div class="card-header">
+                <i class="ti ti-chart-donut"></i>
+                <h3>Grade Distribution</h3>
+            </div>
+
+            {% for item in grade_distribution %}
+                <div class="grade-row">
+                    <span>{{ item.letter }} Grade</span>
+                    <span>{{ item.pct }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="fill
+                        {% if item.letter == 'A' %}green-fill
+                        {% elif item.letter == 'B' %}blue-fill
+                        {% elif item.letter == 'C' %}orange-fill
+                        {% else %}red-fill
+                        {% endif %}"
+                        style="width:{{ item.pct }}%"></div>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="ti ti-chart-bar-off"></i>
+                    <p>No grades entered yet</p>
+                    <span>Scores will appear here once graded</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="ti ti-books"></i>
+                <h3>Course Performance</h3>
+            </div>
+
+            {% for course in course_performance %}
+                <div class="course-item">
+                    <span>{{ course.course_name }}</span>
+                    <span>{{ course.avg_score }}%</span>
+                </div>
+            {% empty %}
+                <div class="empty-state">
+                    <i class="ti ti-school-off"></i>
+                    <p>No courses in scope</p>
+                    <span>Assigned courses will show here</span>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-grid">
+
+        <!-- Grade Table (ordered by course) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="ti ti-table"></i>
+                <h3>Student Grades</h3>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Course</th>
+                            <th>Marks</th>
+                            <th>Grade</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% regroup grades by course as course_group_list %}
+                        {% for course_group in course_group_list %}
+                            <tr class="course-group-row">
+                                <td colspan="6">{{ course_group.grouper.course_code }} — {{ course_group.grouper.course_name }}</td>
+                            </tr>
+                            {% for grade in course_group.list %}
+                            <tr>
+                                <td>{{ grade.student.student_number }}</td>
+                                <td>
+                                    <div class="student-cell">
+                                        <div class="student-avatar">{{ grade.student.preferred_name|default:grade.student.user.get_full_name|slice:":1" }}</div>
+                                        <span>{{ grade.student.preferred_name|default:grade.student.user.get_full_name }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ grade.course.course_name }}</td>
+                                <td>{{ grade.numeric_score|default:"—" }}</td>
+                                <td>
+                                    {% if grade.grade_scale %}
+                                        <span class="grade grade-{{ grade.grade_scale.letter_grade|slice:":1"|lower }}">{{ grade.grade_scale.letter_grade }}</span>
+                                    {% else %}
+                                        <span class="grade grade-none">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if grade.is_finalized %}
+                                        <span class="status-badge status-finalized"><i class="ti ti-circle-check"></i> Finalized</span>
+                                    {% elif grade.numeric_score %}
+                                        <span class="status-badge status-graded"><i class="ti ti-pencil"></i> Graded</span>
+                                    {% else %}
+                                        <span class="status-badge status-pending"><i class="ti ti-clock"></i> Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="ti ti-user-search"></i>
+                                    <p>No matching students found</p>
+                                    <span>Try adjusting your search or filter</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&student={{ student_search }}&course={{ course_filter }}"><i class="ti ti-chevron-left"></i> Prev</a>
+                {% endif %}
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&student={{ student_search }}&course={{ course_filter }}">Next <i class="ti ti-chevron-right"></i></a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar-book">
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="ti ti-medal"></i>
+                    <h3>Top Performers by Course</h3>
+                </div>
+
+                <div class="top-performers-scroll">
+                    {% for course_block in top_performers_by_course %}
+                        <div class="course-performers-group">
+                            <div class="course-performers-title">{{ course_block.course_code }} — {{ course_block.course_name }}</div>
+                            {% for performer in course_block.performers %}
+                                <div class="performer">
+                                    <div class="performer-info">
+                                        <span class="rank rank-{{ forloop.counter }}">{{ forloop.counter }}</span>
+                                        {{ performer.name }}
+                                    </div>
+                                    <span>{{ performer.avg_score }}%</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">
+                            <i class="ti ti-trophy-off"></i>
+                            <p>No graded students yet</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+    new Choices('#course-select', { searchEnabled: true, itemSelectText: '', shouldSort: false });
+    new Choices('#semester-select', { searchEnabled: false, itemSelectText: '', shouldSort: false });
+    new Choices('#year-select', { searchEnabled: false, itemSelectText: '', shouldSort: false });
+
+    document.getElementById('export-csv')?.addEventListener('click', function () {
+        const rows = [...document.querySelectorAll('.table-wrapper table tr')];
+        const csv = rows.map(row =>
+            [...row.querySelectorAll('th, td')]
+                .map(cell => `"${cell.innerText.trim().replace(/"/g, '""')}"`)
+                .join(',')
+        ).join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'gradebook.csv';
+        link.click();
+    });
+</script>
+{% endblock %}

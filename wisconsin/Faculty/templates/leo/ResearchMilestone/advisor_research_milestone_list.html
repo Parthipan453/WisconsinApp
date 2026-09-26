@@ -1,0 +1,813 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}
+    Research Milestones
+{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/ResearchMilestone/advisor_research_milestone_list.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="arm-page">
+        <div class="arm-page-header">
+            <div class="arm-header-left">
+                <div class="arm-header-icon">
+                    <i class="bi bi-journal-richtext"></i>
+                </div>
+                <div class="arm-header-content">
+                    {% comment %} <div class="arm-breadcrumb">
+                        <span>PhD Management</span>
+                        <i class="bi bi-chevron-right"></i>
+                        <span>Research</span>
+                        <i class="bi bi-chevron-right"></i>
+                        <strong>Milestones</strong>
+                    </div> {% endcomment %}
+                    <h1>Research Milestones</h1>
+                    <p>
+                        Monitor your PhD scholars' research milestones,
+                        evaluations and advisor review progress.
+                    </p>
+                </div>
+            </div>
+            <div class="arm-header-right">
+                <div class="arm-faculty-pill">
+                    <div class="arm-faculty-avatar">{{ faculty.user.first_name|first|upper }}</div>
+                    <div class="arm-faculty-info">
+                        <strong>{{ faculty.user.get_full_name }}</strong>
+                        <span>Research Advisor</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="arm-stat-grid">
+            <div class="arm-stat-card">
+                <div class="arm-stat-icon arm-stat-blue">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="arm-stat-content">
+                    <span>Assigned Scholars</span>
+                    <strong>{{ total_students }}</strong>
+                    <small>Active PhD students</small>
+                </div>
+            </div>
+            <div class="arm-stat-card">
+                <div class="arm-stat-icon arm-stat-purple">
+                    <i class="bi bi-journal-check"></i>
+                </div>
+                <div class="arm-stat-content">
+                    <span>Total Milestones</span>
+                    <strong>{{ total_milestones }}</strong>
+                    <small>Research milestones</small>
+                </div>
+            </div>
+            <div class="arm-stat-card">
+                <div class="arm-stat-icon arm-stat-orange">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="arm-stat-content">
+                    <span>Review Pending</span>
+                    <strong>{{ chair_review_pending_count }}</strong>
+                    <small>Awaiting Chair evaluation</small>
+                </div>
+            </div>
+            <div class="arm-stat-card">
+                <div class="arm-stat-icon arm-stat-green">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <div class="arm-stat-content">
+                    <span>Completed</span>
+                    <strong>{{ completed_count }}</strong>
+                    <small>Milestones completed</small>
+                </div>
+            </div>
+        </div>
+        <div class="arm-toolbar">
+            <div class="arm-toolbar-title">
+              {% comment %} <div class="arm-toolbar-title-icon">
+                    <i class="bi bi-funnel-fill"></i>
+                </div> {% endcomment %}
+               <div class="dummy-margin">
+                    <strong>Research Milestones</strong>
+                    <span>Filter and review your scholars</span>
+                </div> 
+            </div>
+            <div class="arm-filter-area">
+                <div class="arm-filter-group arm-search-group">
+                    <label for="armSearch">Search</label>
+                    <div class="arm-search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text"
+                               id="armSearch"
+                               placeholder="Search student, ID or program..."
+                               autocomplete="off">
+                        <button type="button"
+                                id="armClearSearch"
+                                class="arm-search-clear"
+                                aria-label="Clear search">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="arm-filter-group">
+                    <label for="armStatusFilter">Status</label>
+                    <select id="armStatusFilter">
+                        <option value="ALL">All statuses</option>
+                        <option value="WAITING_SUBMISSION">Waiting Submission</option>
+                        <option value="CHAIR_REVIEW_PENDING">Chair Review Pending</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="NO_MILESTONE">No Milestone</option>
+                    </select>
+                </div>
+                <div class="arm-filter-group">
+                    <label for="armDateFilter">Updated From</label>
+                    <div class="arm-date-box">
+                        <i class="bi bi-calendar3"></i>
+                        <input type="text"
+                               id="armDateFilter"
+                               placeholder="Select date"
+                               autocomplete="off">
+                    </div>
+                </div>
+                <div class="arm-filter-actions">
+                    <button type="button" id="armResetFilters" class="arm-reset-btn">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="arm-result-bar">
+            <div class="arm-result-info">
+                <strong id="armVisibleCount">{{ total_students }}</strong>
+                <span>scholars shown</span>
+            </div>
+            <div class="arm-view-controls">
+                <button type="button"
+                        class="arm-view-btn active"
+                        data-view="grid"
+                        title="Grid view">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
+                <button type="button"
+                        class="arm-view-btn"
+                        data-view="compact"
+                        title="Compact view">
+                    <i class="bi bi-list-ul"></i>
+                </button>
+            </div>
+        </div>
+        <div id="armMilestoneGrid" class="arm-milestone-grid">
+            {% for card in student_cards %}
+                <article class="arm-milestone-card"
+                         data-student-name="{{ card.student.student.user.get_full_name|lower }}"
+                         data-student-id="{{ card.student.student.student_number|lower }}"
+                         data-program="{{ card.student.phd_program.program_name|default:''|lower }}"
+                         data-milestone="{% if card.latest %}{{ card.latest.milestone_title|default:''|lower }}{% endif %}"
+                         data-status="{{ card.display_status }}"
+                         data-updated="{% if card.latest %}{{ card.latest.updated_at|date:'Y-m-d' }}{% endif %}">
+                    <div class="arm-card-top">
+                        <div class="arm-student-profile">
+                            <div class="arm-student-avatar">{{ card.student.student.user.first_name|first|upper }}</div>
+                            <div class="arm-student-details">
+                                <h3>{{ card.student.student.user.get_full_name }}</h3>
+                                <span>{{ card.student.student.student_number }}</span>
+                            </div>
+                        </div>
+                        {% if card.display_status == "WAITING_SUBMISSION" %}
+                            <span class="arm-status-badge arm-status-blue">
+                                <i class="bi bi-clock-fill"></i>
+                                Waiting Submission
+                            </span>
+                        {% elif card.display_status == "CHAIR_REVIEW_PENDING" %}
+                            <span class="arm-status-badge arm-status-orange">
+                                <i class="bi bi-hourglass-split"></i>
+                                Chair Review Pending
+                            </span>
+                        {% elif card.display_status == "IN_PROGRESS" %}
+                            <span class="arm-status-badge arm-status-purple">
+                                <i class="bi bi-activity"></i>
+                                In Progress
+                            </span>
+                        {% elif card.display_status == "COMPLETED" %}
+                            <span class="arm-status-badge arm-status-success">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Completed
+                            </span>
+                        {% else %}
+                            <span class="arm-status-badge arm-status-neutral">
+                                <i class="bi bi-dash-circle-fill"></i>
+                                No Milestone
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="arm-card-divider"></div>
+                    <div class="arm-program-row">
+                        <div class="arm-program-icon">
+                            <i class="bi bi-mortarboard-fill"></i>
+                        </div>
+                        <div>
+                            <span>PhD Program</span>
+                            <strong>{{ card.student.phd_program.program_name|default:"Program not assigned" }}</strong>
+                        </div>
+                    </div>
+                    {% if card.latest %}
+                        <div class="arm-milestone-main">
+                            <div class="arm-milestone-number">
+                                <span>Milestone</span>
+                                <strong>{{ card.latest.sequence_number }}</strong>
+                            </div>
+                            <div class="arm-milestone-info">
+                                <h4>{{ card.latest.milestone_title }}</h4>
+                                <div class="arm-milestone-meta">
+                                    {% if card.chair_evaluation %}
+                                        <span class="arm-meta-completed">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            Chair Evaluated
+                                        </span>
+                                    {% elif card.latest_submission %}
+                                        <span class="arm-meta-pending">
+                                            <i class="bi bi-hourglass-split"></i>
+                                            Awaiting Chair Review
+                                        </span>
+                                    {% else %}
+                                        <span class="arm-meta-waiting">
+                                            <i class="bi bi-clock-fill"></i>
+                                            Waiting for Submission
+                                        </span>
+                                    {% endif %}
+                                    {% if card.latest.updated_at %}
+                                        <span>
+                                            <i class="bi bi-clock"></i>
+                                            {{ card.latest.updated_at|date:"d M Y" }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="arm-progress-section">
+                            <div class="arm-progress-heading">
+                                <span>Research Progress</span>
+                                <strong>{{ card.latest.current_progress_percentage|default:0 }}%</strong>
+                            </div>
+                            <div class="arm-progress-track">
+                                <div class="arm-progress-fill"
+                                     style="width: {{ card.latest.current_progress_percentage|default:0 }}%">
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="arm-empty-milestone">
+                            <div class="arm-empty-icon">
+                                <i class="bi bi-journal-x"></i>
+                            </div>
+                            <div>
+                                <strong>No Research Milestone</strong>
+                                <span>The Chair Faculty has not created a research milestone yet.</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <div class="arm-workflow">
+                        <div class="arm-workflow-line"></div>
+                        <div class="arm-workflow-step {% if card.latest_submission %}completed{% else %}pending{% endif %}">
+                            <div class="arm-workflow-icon">
+                                {% if card.latest_submission %}
+                                    <i class="bi bi-check-lg"></i>
+                                {% else %}
+                                    <i class="bi bi-file-earmark"></i>
+                                {% endif %}
+                            </div>
+                            <span>Submission</span>
+                        </div>
+                        <div class="arm-workflow-step {% if card.committee_member_count and card.committee_evaluation_completed == card.committee_member_count %}completed{% else %}pending{% endif %}">
+                            <div class="arm-workflow-icon">
+                                {% if card.committee_member_count and card.committee_evaluation_completed == card.committee_member_count %}
+                                    <i class="bi bi-check-lg"></i>
+                                {% else %}
+                                    <i class="bi bi-people"></i>
+                                {% endif %}
+                            </div>
+                            <span>Committee Review</span>
+                        </div>
+                        <div class="arm-workflow-step {% if card.chair_evaluation %}completed{% else %}pending{% endif %}">
+                            <div class="arm-workflow-icon">
+                                {% if card.chair_evaluation %}
+                                    <i class="bi bi-check-lg"></i>
+                                {% else %}
+                                    <i class="bi bi-person-check"></i>
+                                {% endif %}
+                            </div>
+                            <span>Chair Evaluation</span>
+                        </div>
+                    </div>
+                    <div class="arm-submission-summary">
+                        <div class="arm-submission-item">
+                            <i class="bi bi-file-earmark-check"></i>
+                            <div>
+                                <span>Latest Submission</span>
+                                <strong>
+                                    {% if card.latest_submission %}
+                                        #{{ card.latest_submission.submission_number }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="arm-submission-item">
+                            <i class="bi bi-people-fill"></i>
+                            <div>
+                                <span>Committee Review</span>
+                                <strong>
+                                    {% if card.latest_submission and card.committee_member_count %}
+                                        {{ card.committee_evaluation_completed }}/{{ card.committee_member_count }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="arm-submission-item">
+                            <i class="bi bi-person-badge-fill"></i>
+                            <div>
+                                <span>Chair Evaluation</span>
+                                <strong>
+                                    {% if card.chair_evaluation %}
+                                        Completed
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="arm-card-footer">
+                        <div class="arm-last-update">
+                            {% if card.latest %}
+                                <i class="bi bi-arrow-repeat"></i>
+                                <span>
+                                    Updated
+                                    {{ card.latest.updated_at|date:"d M Y" }}
+                                </span>
+                            {% else %}
+                                <i class="bi bi-info-circle"></i>
+                                <span>No milestone activity</span>
+                            {% endif %}
+                        </div>
+                        <div class="arm-card-actions">
+                            {% if card.latest %}
+                                <a href="{% url 'advisor_research_milestone_detail' uuid=faculty.user.uuid milestone_id=card.latest.milestone_id %}"
+                                   class="arm-view-detail-btn">
+                                    <span>View Details</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            {% else %}
+                                <button type="button" class="arm-view-detail-btn disabled" disabled>
+                                    <span>View Details</span>
+                                    <i class="bi bi-lock"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="arm-no-results">
+                    <div class="arm-no-results-icon">
+                        <i class="bi bi-journal-x"></i>
+                    </div>
+                    <h3>No Research Milestones</h3>
+                    <p>
+                        There are currently no active PhD scholars or research
+                        milestones assigned to you.
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+        <div id="armFilterEmpty" class="arm-filter-empty" hidden>
+            <div class="arm-filter-empty-icon">
+                <i class="bi bi-search"></i>
+            </div>
+            <h3>No matching scholars</h3>
+            <p>Try changing your search or filter criteria.</p>
+            <button type="button" id="armEmptyReset" class="arm-empty-reset">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Clear Filters
+            </button>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("armSearch");
+    const clearSearch = document.getElementById("armClearSearch");
+    const statusFilter = document.getElementById("armStatusFilter");
+    const dateFilter = document.getElementById("armDateFilter");
+    const resetFilters = document.getElementById("armResetFilters");
+    const emptyReset = document.getElementById("armEmptyReset");
+    const cards = Array.from(document.querySelectorAll(".arm-milestone-card"));
+    const grid = document.getElementById("armMilestoneGrid");
+    const filterEmpty = document.getElementById("armFilterEmpty");
+    const visibleCount = document.getElementById("armVisibleCount");
+    const viewButtons = document.querySelectorAll(".arm-view-btn");
+
+    let selectedDate = "";
+    let statusChoices = null;
+    let datePicker = null;
+
+    function normalize(value) {
+        return String(value || "")
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, " ");
+    }
+
+    function getStatusValue() {
+        if (statusChoices) {
+            const value = statusChoices.getValue(true);
+            return value || "ALL";
+        }
+        return statusFilter ? statusFilter.value || "ALL" : "ALL";
+    }
+
+    function applyFilters() {
+        const searchValue = normalize(searchInput ? searchInput.value : "");
+        const statusValue = normalize(getStatusValue());
+        let count = 0;
+
+        cards.forEach(function (card) {
+            const studentName = normalize(card.dataset.studentName);
+            const studentId = normalize(card.dataset.studentId);
+            const program = normalize(card.dataset.program);
+            const milestone = normalize(card.dataset.milestone);
+            const cardStatus = normalize(card.dataset.status);
+            const updatedDate = card.dataset.updated || "";
+
+            const searchMatch =
+                !searchValue ||
+                studentName.includes(searchValue) ||
+                studentId.includes(searchValue) ||
+                program.includes(searchValue) ||
+                milestone.includes(searchValue);
+
+            const statusMatch =
+                statusValue === "all" ||
+                statusValue === "" ||
+                cardStatus === statusValue;
+
+            const dateMatch =
+                !selectedDate ||
+                !updatedDate ||
+                updatedDate >= selectedDate;
+
+            const visible = searchMatch && statusMatch && dateMatch;
+
+            card.hidden = !visible;
+
+            if (visible) {
+                count += 1;
+            }
+        });
+
+        if (visibleCount) {
+            visibleCount.textContent = count;
+        }
+
+        const hasActiveFilters =
+            Boolean(searchValue) ||
+            statusValue !== "all" ||
+            Boolean(selectedDate);
+
+        if (filterEmpty) {
+            filterEmpty.hidden = !hasActiveFilters || count !== 0;
+        }
+
+        if (grid) {
+            grid.classList.toggle(
+                "arm-grid-hidden-empty",
+                hasActiveFilters && count === 0
+            );
+        }
+
+        if (clearSearch) {
+            clearSearch.classList.toggle(
+                "arm-search-clear-visible",
+                Boolean(searchInput && searchInput.value)
+            );
+        }
+    }
+
+    function resetAllFilters() {
+        if (searchInput) {
+            searchInput.value = "";
+        }
+
+        if (statusChoices) {
+            statusChoices.removeActiveItems();
+            statusChoices.setChoiceByValue("ALL");
+        } else if (statusFilter) {
+            statusFilter.value = "ALL";
+        }
+
+        if (datePicker) {
+            datePicker.clear();
+        }
+
+        selectedDate = "";
+        applyFilters();
+    }
+
+    function initializeChoices() {
+        if (!statusFilter || typeof window.Choices !== "function") {
+            if (statusFilter) {
+                statusFilter.classList.add("arm-status-native");
+                statusFilter.addEventListener("change", applyFilters);
+            }
+            return;
+        }
+
+        if (statusChoices) {
+            return;
+        }
+
+        try {
+            statusChoices = new window.Choices(statusFilter, {
+                searchEnabled: false,
+                searchChoices: false,
+                shouldSort: false,
+                itemSelectText: "",
+                allowHTML: false,
+                removeItemButton: false,
+                placeholder: false,
+                position: "auto",
+                duplicateItemsAllowed: false,
+                fuseOptions: null
+            });
+
+            const choicesElement = statusFilter.closest(".choices");
+
+            if (choicesElement) {
+                choicesElement.classList.add("arm-choices");
+            }
+
+            statusChoices.setChoiceByValue("ALL");
+            statusFilter.addEventListener("change", applyFilters);
+            applyFilters();
+        } catch (error) {
+            console.error("Choices.js initialization failed:", error);
+            statusChoices = null;
+            statusFilter.classList.add("arm-status-native");
+            statusFilter.addEventListener("change", applyFilters);
+        }
+    }
+
+    function loadChoicesAndInitialize() {
+        if (!statusFilter) {
+            return;
+        }
+
+        if (typeof window.Choices === "function") {
+            initializeChoices();
+            return;
+        }
+
+        const existingScript = document.querySelector(
+            'script[data-arm-choices-loader="true"]'
+        );
+
+        if (existingScript) {
+            existingScript.addEventListener("load", initializeChoices, { once: true });
+            existingScript.addEventListener("error", initializeChoices, { once: true });
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/choices.js@11.1.0/public/assets/scripts/choices.min.js";
+        script.async = true;
+        script.dataset.armChoicesLoader = "true";
+
+        script.addEventListener("load", function () {
+            initializeChoices();
+        }, { once: true });
+
+        script.addEventListener("error", function () {
+            console.error("Choices.js could not be loaded from CDN.");
+            initializeChoices();
+        }, { once: true });
+
+        document.head.appendChild(script);
+    }
+
+   function initializeDatePicker() {
+    if (!dateFilter || typeof flatpickr === "undefined") {
+        return;
+    }
+
+    const dateContainer = dateFilter.closest(".arm-date-box");
+    let repositionFrame = null;
+
+    function positionCalendar(instance) {
+        const calendar = instance.calendarContainer;
+        const anchor = instance.altInput || dateFilter;
+
+        if (!calendar || !anchor) {
+            return;
+        }
+
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight;
+        const gap = 6;
+        const edge = 8;
+        const maxCalendarWidth = 320;
+        const calendarWidth = Math.min(maxCalendarWidth, viewportWidth - (edge * 2));
+
+        calendar.style.position = "fixed";
+        calendar.style.width = calendarWidth + "px";
+        calendar.style.minWidth = calendarWidth + "px";
+        calendar.style.maxWidth = calendarWidth + "px";
+        calendar.style.left = "0px";
+        calendar.style.right = "auto";
+        calendar.style.top = "0px";
+        calendar.style.transform = "none";
+        calendar.style.zIndex = "99999";
+
+        const anchorRect = anchor.getBoundingClientRect();
+        const calendarHeight = calendar.offsetHeight;
+
+        let left = anchorRect.left;
+        let top = anchorRect.bottom + gap;
+
+        if (left + calendarWidth > viewportWidth - edge) {
+            left = viewportWidth - calendarWidth - edge;
+        }
+
+        if (left < edge) {
+            left = edge;
+        }
+
+        if (top + calendarHeight > viewportHeight - edge && anchorRect.top - calendarHeight - gap >= edge) {
+            top = anchorRect.top - calendarHeight - gap;
+        }
+
+        calendar.style.left = Math.round(left) + "px";
+        calendar.style.top = Math.round(top) + "px";
+    }
+
+    function repositionCalendar(instance) {
+        if (repositionFrame) {
+            cancelAnimationFrame(repositionFrame);
+        }
+
+        repositionFrame = requestAnimationFrame(function () {
+            positionCalendar(instance);
+        });
+    }
+
+    datePicker = flatpickr(dateFilter, {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d M Y",
+        allowInput: false,
+        disableMobile: true,
+        clickOpens: true,
+        appendTo: dateContainer || document.body,
+        positionElement: dateFilter,
+        position: "below",
+        maxDate: "today",
+        onReady: function (selectedDates, dateStr, instance) {
+            if (instance.calendarContainer) {
+                instance.calendarContainer.classList.add("arm-flatpickr-calendar");
+            }
+        },
+        onOpen: function (selectedDates, dateStr, instance) {
+            repositionCalendar(instance);
+            window.addEventListener("resize", function () {
+                if (instance.isOpen) {
+                    repositionCalendar(instance);
+                }
+            }, { passive: true });
+            window.addEventListener("scroll", function () {
+                if (instance.isOpen) {
+                    repositionCalendar(instance);
+                }
+            }, { passive: true, capture: true });
+        },
+        onMonthChange: function (selectedDates, dateStr, instance) {
+            repositionCalendar(instance);
+        },
+        onYearChange: function (selectedDates, dateStr, instance) {
+            repositionCalendar(instance);
+        },
+        onChange: function (selectedDates, dateStr) {
+            selectedDate = dateStr || "";
+            applyFilters();
+        },
+        onClose: function (selectedDates, dateStr, instance) {
+            if (repositionFrame) {
+                cancelAnimationFrame(repositionFrame);
+                repositionFrame = null;
+            }
+        }
+    });
+
+    const altInput = dateContainer
+        ? dateContainer.querySelector(".flatpickr-input[readonly]")
+        : null;
+
+    if (altInput) {
+        altInput.addEventListener("change", applyFilters);
+    }
+}
+
+    loadChoicesAndInitialize();
+    initializeDatePicker();
+
+    if (searchInput) {
+        searchInput.addEventListener("input", applyFilters);
+        searchInput.addEventListener("keyup", applyFilters);
+        searchInput.addEventListener("search", applyFilters);
+    }
+
+    if (clearSearch) {
+        clearSearch.addEventListener("click", function () {
+            if (searchInput) {
+                searchInput.value = "";
+                searchInput.focus();
+            }
+            applyFilters();
+        });
+    }
+
+    if (resetFilters) {
+        resetFilters.addEventListener("click", function () {
+            resetAllFilters();
+
+            if (typeof Swal !== "undefined") {
+                Swal.fire({
+                    icon: "success",
+                    title: "Filters Cleared",
+                    text: "All milestone filters have been reset.",
+                    timer: 1200,
+                    showConfirmButton: false
+                });
+            }
+        });
+    }
+
+    if (emptyReset) {
+        emptyReset.addEventListener("click", resetAllFilters);
+    }
+
+    viewButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            viewButtons.forEach(function (item) {
+                item.classList.remove("active");
+            });
+
+            button.classList.add("active");
+
+            const view = button.dataset.view;
+
+            if (grid) {
+                grid.classList.toggle(
+                    "arm-compact-view",
+                    view === "compact"
+                );
+            }
+        });
+    });
+
+    document.querySelectorAll(".arm-view-detail-btn:not(.disabled)").forEach(function (button) {
+        button.addEventListener("click", function () {
+            if (button.classList.contains("arm-loading")) {
+                return;
+            }
+
+            button.classList.add("arm-loading");
+
+            const icon = button.querySelector("i");
+
+            if (icon) {
+                icon.classList.remove("bi-arrow-right");
+                icon.classList.add("bi-arrow-repeat", "arm-spin");
+            }
+        });
+    });
+
+    document.querySelectorAll(".arm-reset-filter").forEach(function (button) {
+        button.addEventListener("click", resetAllFilters);
+    });
+
+    applyFilters();
+});
+    </script>
+{% endblock %}

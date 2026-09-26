@@ -1,0 +1,351 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Student Attendance{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/jordan/student_attendance.css' %}">
+{% endblock %}
+
+{% block nav_researchProject_open %}open{% endblock %}
+{% block nav_researchProject_submenu %}open{% endblock %}
+{% block nav_tracking_project %}active{% endblock %}
+
+{% block content %}
+<div class="attendance-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Student Attendance</h1>
+            <p>Track attendance for all your courses</p>
+        </div>
+        <div class="header-actions">
+            <button class="attendance-btn" onclick="refreshData()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+            <button class="attendance-btn primary-btn" onclick="window.location.href='{% url 'staff_dashboard' uuid=request.user.uuid %}'">
+                <i class="ti ti-dashboard"></i> Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-users"></i>
+            </div>
+            <div>
+                <h3 id="statTotalStudents">0</h3>
+                <span>Total Students</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-user-check"></i>
+            </div>
+            <div>
+                <h3 id="statPresentStudents">0</h3>
+                <span>Present</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon red">
+                <i class="ti ti-user-x"></i>
+            </div>
+            <div>
+                <h3 id="statAbsentStudents">0</h3>
+                <span>Absent</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div>
+                <h3 id="statLateStudents">0</h3>
+                <span>Late</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Export -->
+    <div class="filter-section card">
+        <div class="filter-row">
+            <!-- Course Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-book"></i> Course</label>
+                <select id="courseFilter" class="filter-input">
+                    <option value="">All Courses</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="science">Science</option>
+                    <option value="english">English</option>
+                    <option value="history">History</option>
+                    <option value="computer-science">Computer Science</option>
+                </select>
+            </div>
+            
+            <!-- Faculty Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-user"></i> Faculty</label>
+                <select id="facultyFilter" class="filter-input">
+                    <option value="">All Faculty</option>
+                    <option value="dr-smith">Dr. Smith</option>
+                    <option value="prof-johnson">Prof. Johnson</option>
+                    <option value="dr-williams">Dr. Williams</option>
+                    <option value="prof-brown">Prof. Brown</option>
+                    <option value="dr-davis">Dr. Davis</option>
+                </select>
+            </div>
+            
+            <!-- Day Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-calendar-week"></i> Day</label>
+                <select id="dayFilter" class="filter-input">
+                    <option value="">All Days</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+            
+            <!-- Status Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="statusFilter" class="filter-input">
+                    <option value="">All Status</option>
+                    <option value="present">Present</option>
+                    <option value="absent">Absent</option>
+                    <option value="late">Late</option>
+                    <option value="half-day">Half Day</option>
+                    <option value="leave">Leave</option>
+                </select>
+            </div>
+            
+            <!-- Search Input -->
+            <div class="filter-group" style="flex: 2;">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="searchInput" placeholder="Search by student name or ID..." class="filter-input" style="flex: 1;">
+                    <button class="filter-search-btn" onclick="applySearch()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="filter-actions">
+                <div class="export-buttons">
+                    <button class="filter-btn reset-btn" onclick="resetFilters()">
+                        <i class="ti ti-refresh"></i> Reset
+                    </button>
+                    <button class="filter-btn export-excel" onclick="exportData('excel')">
+                        <i class="ti ti-file-spreadsheet"></i> Excel
+                    </button>
+                    <button class="filter-btn export-pdf" onclick="exportData('pdf')">
+                        <i class="ti ti-file-type-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Grid -->
+    <div class="course-section">
+        <div class="section-header">
+            <h3><i class="ti ti-th-large"></i> My Courses</h3>
+            <span class="record-count" id="courseCount">0 Courses</span>
+        </div>
+        <div class="course-grid" id="courseGrid">
+            <!-- Course cards will be dynamically generated -->
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card table-card" id="attendanceTableWrapper" style="display: none;">
+        <div class="card-header">
+            <div class="table-title">
+                <div>
+                    <h3 id="selectedCourseTitle">Course Name</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                        <i class="ti ti-user"></i> Faculty: <span id="facultyName">-</span>
+                        <span style="margin: 0 8px;">|</span>
+                        <i class="ti ti-code"></i> Code: <span id="courseCode">-</span>
+                        <span style="margin: 0 8px;">|</span>
+                        <i class="ti ti-clock"></i> Schedule: <span id="courseSchedule">-</span>
+                        <span style="margin: 0 8px;">|</span>
+                        <i class="ti ti-door"></i> Room: <span id="courseRoom">-</span>
+                    </p>
+                </div>
+            </div>
+            <div class="table-actions">
+                <button class="filter-btn export-excel" onclick="exportData('excel')">
+                    <i class="ti ti-file-spreadsheet"></i> Excel
+                </button>
+                <button class="filter-btn export-pdf" onclick="exportData('pdf')">
+                    <i class="ti ti-file-type-pdf"></i> PDF
+                </button>
+                <button class="filter-btn reset-btn" onclick="closeTable()">
+                    <i class="ti ti-x"></i> Close
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="attendance-table" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>S.No</th>
+                        <th>Student Name</th>
+                        <th>Student ID</th>
+                        <th>Course</th>
+                        <th>Faculty</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                    <!-- Attendance records will be dynamically generated -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-section">
+            <div class="pagination-info" id="paginationInfo">
+                Showing 0 to 0 of 0 entries
+            </div>
+            <div class="pagination-controls" id="paginationControls">
+                <span class="page-link disabled">&laquo;</span>
+                <span class="page-link disabled">&lsaquo;</span>
+                <span class="page-link active">1</span>
+                <span class="page-link disabled">&rsaquo;</span>
+                <span class="page-link disabled">&raquo;</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Section: Monthly Attendance & Quick Summary -->
+    <div class="bottom-grid">
+        <!-- Monthly Attendance Chart -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Monthly Attendance Overview</h3>
+                <span class="month-label" id="currentMonthLabel">Current Month</span>
+            </div>
+            <div class="monthly-stats" id="monthlyStats">
+                <div class="monthly-stat-item">
+                    <span class="stat-label">Present</span>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar present-bar" id="presentBar" style="width: 0%"></div>
+                    </div>
+                    <span class="stat-percentage" id="presentPercent">0%</span>
+                </div>
+                <div class="monthly-stat-item">
+                    <span class="stat-label">Absent</span>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar absent-bar" id="absentBar" style="width: 0%"></div>
+                    </div>
+                    <span class="stat-percentage" id="absentPercent">0%</span>
+                </div>
+                <div class="monthly-stat-item">
+                    <span class="stat-label">Late</span>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar late-bar" id="lateBar" style="width: 0%"></div>
+                    </div>
+                    <span class="stat-percentage" id="latePercent">0%</span>
+                </div>
+                <div class="monthly-stat-item">
+                    <span class="stat-label">Half Day</span>
+                    <div class="stat-bar-wrapper">
+                        <div class="stat-bar halfday-bar" id="halfdayBar" style="width: 0%"></div>
+                    </div>
+                    <span class="stat-percentage" id="halfdayPercent">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Summary -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Quick Summary</h3>
+                <span class="record-count" id="summaryDate">Today</span>
+            </div>
+            <div class="summary-grid" id="summaryGrid">
+                <div class="summary-item">
+                    <div class="summary-icon total-icon">
+                        <i class="ti ti-users"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryTotalStudents">0</h4>
+                        <p>Total Students</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon present-icon">
+                        <i class="ti ti-user-check"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryPresent">0</h4>
+                        <p>Present</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon absent-icon">
+                        <i class="ti ti-user-x"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryAbsent">0</h4>
+                        <p>Absent</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon late-icon">
+                        <i class="ti ti-clock"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryLate">0</h4>
+                        <p>Late</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon leave-icon">
+                        <i class="ti ti-calendar-off"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryLeave">0</h4>
+                        <p>On Leave</p>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon attendance-icon">
+                        <i class="ti ti-percentage"></i>
+                    </div>
+                    <div>
+                        <h4 id="summaryAttendanceRate">0%</h4>
+                        <p>Attendance Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="{% static 'js/jordan/student_attendance.js' %}"></script>
+{% endblock %}

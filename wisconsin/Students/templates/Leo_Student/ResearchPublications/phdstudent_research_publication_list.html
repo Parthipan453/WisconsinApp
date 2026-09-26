@@ -1,0 +1,614 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}Research Publications{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <link rel="stylesheet"
+        href="{% static "css/Leo_Student/ResearchPublications/publication_list.css" %}">
+{% endblock %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_phdstudent_research_publications_list %}active{% endblock %}
+{% block content %}
+  <div class="rpw" id="rpwRoot">
+    {% if messages %}
+      <div id="djangoMessages" hidden>
+        {% for message in messages %}
+          <div class="django-message"
+               data-level="{{ message.tags }}"
+               data-message="{{ message|escapejs }}"></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <!-- BACK -->
+    <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}"
+       class="rpw-back">
+      <i class="ti ti-arrow-left"></i> Back to PhD Dashboard
+    </a>
+    <!-- HERO -->
+    <div class="rpw-hero">
+      <div class="rpw-hero-content">
+        <div class="rpw-hero-icon">
+          <i class="ti ti-books"></i>
+        </div>
+        <div class="rpw-hero-text">
+          <span class="rpw-eyebrow">Doctoral Research</span>
+          <h1>Research Publications</h1>
+          <p>Build, track and maintain your complete research publication record throughout your PhD journey.</p>
+          <div class="rpw-hero-meta">
+            <span><i class="ti ti-file-check"></i>Academic Record</span>
+            <span><i class="ti ti-target-arrow"></i>Milestone Linked</span>
+            <span><i class="ti ti-database"></i>Indexing Tracked</span>
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'Student:phdstudent_research_publication_create' uuid=request.user.uuid %}"
+         class="rpw-btn-primary">
+        <i class="ti ti-plus"></i> Add Publication <i class="ti ti-arrow-up-right" style="font-size:1rem;"></i>
+      </a>
+    </div>
+    <!-- STATS -->
+    <div class="rpw-stats">
+      <div class="rpw-stat">
+        <div class="rpw-stat-icon red">
+          <i class="ti ti-books"></i>
+        </div>
+        <div class="rpw-stat-content"><span>Total</span><strong id="totalCount">0</strong><small>publications</small></div>
+      </div>
+      <div class="rpw-stat">
+        <div class="rpw-stat-icon green">
+          <i class="ti ti-circle-check"></i>
+        </div>
+        <div class="rpw-stat-content"><span>Indexed</span><strong id="indexedCount">0</strong><small>indexed</small></div>
+      </div>
+      <div class="rpw-stat">
+        <div class="rpw-stat-icon blue">
+          <i class="ti ti-link"></i>
+        </div>
+        <div class="rpw-stat-content"><span>DOI</span><strong id="doiCount">0</strong><small>permanent IDs</small></div>
+      </div>
+      <div class="rpw-stat">
+        <div class="rpw-stat-icon purple">
+          <i class="ti ti-target-arrow"></i>
+        </div>
+        <div class="rpw-stat-content"><span>Milestone</span><strong id="milestoneCount">0</strong><small>linked</small></div>
+      </div>
+    </div>
+    <!-- GRID -->
+    <div class="rpw-grid">
+      <div>
+        <!-- TOOLBAR -->
+        <div class="rpw-toolbar">
+          <div class="rpw-search">
+            <i class="ti ti-search"></i>
+            <input id="publicationSearch"
+                   type="text"
+                   autocomplete="off"
+                   placeholder="Search title, authors, journal, DOI...">
+            <button type="button"
+                    id="clearSearch"
+                    style="background:none;
+                           border:none;
+                           color:#8f9fb0;
+                           cursor:pointer;
+                           display:none">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <div class="rpw-filter-group">
+            <div class="rpw-filter">
+              <i class="ti ti-chart-dots"></i>
+              <select id="indexingFilter">
+                <option value="ALL">All Indexing</option>
+                <option value="INDEXED">Indexed</option>
+                <option value="NOT_INDEXED">Not Indexed</option>
+                <option value="UNDER_REVIEW">Under Review</option>
+              </select>
+            </div>
+            <div class="rpw-filter">
+              <i class="ti ti-category"></i>
+              <select id="typeFilter">
+                <option value="ALL">All Types</option>
+              </select>
+            </div>
+            <button type="button" id="clearFilters" class="rpw-clear-btn"><i class="ti ti-refresh"></i> Clear all</button>
+          </div>
+        </div>
+        <div class="rpw-live">
+          <span><i class="ti ti-adjustments-horizontal" style="color:#b31b1b;"></i> Live filters</span>
+          <span><strong id="liveCount">{{ publications|length }}</strong> matching records</span>
+        </div>
+        <!-- LIST -->
+        <div class="rpw-card-list" id="publicationList">
+          {% for publication in publications %}
+            <div class="rpw-card"
+                 data-indexing="{{ publication.indexed_status|default:'' }}"
+                 data-type="{{ publication.publication_type|default:''|lower }}"
+                 data-doi="{% if publication.doi %}1{% else %}0{% endif %}"
+                 data-milestone="{% if publication.milestone %}1{% else %}0{% endif %}"
+                 data-manuscript="{% if publication.manuscript_file %}1{% else %}0{% endif %}"
+                 data-acceptance="{% if publication.acceptance_letter %}1{% else %}0{% endif %}"
+                 data-supporting="{% if publication.supporting_document %}1{% else %}0{% endif %}"
+                 data-search=" {{ publication.title|default:''|lower }} {{ publication.authors|default:''|lower }} {{ publication.journal|default:''|lower }} {{ publication.doi|default:''|lower }} {{ publication.abstract|default:''|lower }} {{ publication.keywords|default:''|lower }} {{ publication.publication_type|default:''|lower }} {{ publication.indexing_database|default:''|lower }} {{ publication.milestone.milestone_title|default:''|lower }} "
+                 data-date="{{ publication.publication_date|date:'Y-m-d' }}">
+              <div class="rpw-card-header">
+                <div class="rpw-card-title">
+                  <div style="display:flex;
+                              flex-wrap:wrap;
+                              gap:6px;
+                              align-items:center;
+                              margin-bottom:2px">
+                    <span style="font-size:0.6rem;
+                                 font-weight:700;
+                                 color:#b31b1b;
+                                 text-transform:uppercase"><i class="ti ti-file-text"></i> Publication</span>
+                    {% if publication.publication_type %}
+                      <span class="rpw-badge-type"><i class="ti ti-category"></i> {{ publication.get_publication_type_display|default:publication.publication_type }}</span>
+                    {% endif %}
+                  </div>
+                  <h3>{{ publication.title }}</h3>
+                  {% if publication.authors %}
+                    <div class="rpw-authors"><i class="ti ti-users"></i> {{ publication.authors }}</div>
+                  {% endif %}
+                </div>
+                <div class="rpw-card-status">
+                  {% if publication.publication_status %}
+                    <span class="rpw-status pub-status"><i class="ti ti-progress-check"></i> {{ publication.get_publication_status_display|default:publication.publication_status }}</span>
+                  {% endif %}
+                  {% if publication.indexed_status == "INDEXED" %}
+                    <span class="rpw-status indexed"><i class="ti ti-circle-check"></i> Indexed</span>
+                  {% elif publication.indexed_status == "NOT_INDEXED" %}
+                    <span class="rpw-status not-indexed"><i class="ti ti-circle-x"></i> Not Indexed</span>
+                  {% else %}
+                    <span class="rpw-status review"><i class="ti ti-clock"></i> Under Review</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="rpw-card-body">
+                <div class="rpw-detail-grid">
+                  <div class="rpw-detail-item"><span><i class="ti ti-building"></i> Journal / Venue</span><strong>{{ publication.journal|default:"Not provided" }}</strong></div>
+                  <div class="rpw-detail-item">
+                    <span><i class="ti ti-calendar-event"></i> Publication Date</span><strong>
+                      {% if publication.publication_date %}
+                        {{ publication.publication_date|date:"d M Y" }}
+                      {% else %}
+                        Not provided
+                      {% endif %}
+                    </strong>
+                  </div>
+                  <div class="rpw-detail-item">
+                    <span><i class="ti ti-link"></i> DOI</span><strong class="{% if publication.doi %}rpw-doi{% else %}rpw-muted{% endif %}">
+                    {% if publication.doi %}
+                      {{ publication.doi }}
+                    {% else %}
+                      Not available
+                    {% endif %}
+                  </strong>
+                </div>
+                <div class="rpw-detail-item">
+                  <span><i class="ti ti-database"></i> Indexing Database</span><strong>
+                    {% if publication.indexing_database %}
+                      {{ publication.get_indexing_database_display|default:publication.indexing_database }}
+                    {% else %}
+                      <span class="rpw-muted">Not applicable</span>
+                    {% endif %}
+                  </strong>
+                </div>
+              </div>
+              {% if publication.abstract %}
+                <div class="rpw-abstract">
+                  <div class="rpw-abstract-label"><span><i class="ti ti-align-left"></i> Research Summary</span> <small>{{ publication.abstract|length }} characters</small></div>
+                  <p>{{ publication.abstract }}</p>
+                </div>
+              {% endif %}
+              {% if publication.keywords %}
+                <div class="rpw-keywords"><i class="ti ti-tags"></i> {{ publication.keywords }}</div>
+              {% endif %}
+              <div class="rpw-docs">
+                <span class="{% if publication.manuscript_file %}avail{% else %}missing{% endif %}"><i class="ti ti-file-text"></i> Manuscript</span>
+                <span class="{% if publication.acceptance_letter %}avail{% else %}missing{% endif %}"><i class="ti ti-file-certificate"></i> Acceptance</span>
+                <span class="{% if publication.supporting_document %}avail{% else %}missing{% endif %}"><i class="ti ti-paperclip"></i> Supporting</span>
+              </div>
+              <div class="rpw-milestone {% if not publication.milestone %}unlinked{% endif %}">
+                <i class="ti ti-target-arrow"></i>
+                <div>
+                  <span>Research Milestone</span>
+                  <strong>
+                    {% if publication.milestone %}
+                      Milestone {{ publication.milestone.sequence_number }} · {{ publication.milestone.milestone_title }}
+                    {% else %}
+                      No milestone linked
+                    {% endif %}
+                  </strong>
+                </div>
+                {% if publication.milestone %}
+                  <i class="ti ti-circle-check rpw-check" style="font-size:1.2rem;"></i>
+                {% endif %}
+              </div>
+              {% if publication.additional_remarks %}
+                <div style="display:flex;
+                            gap:8px;
+                            padding:8px 0;
+                            font-size:0.75rem;
+                            color:#4a5a72;
+                            border-top:1px solid #ece6e6;
+                            margin-top:8px">
+                  <i class="ti ti-notes" style="color:#b31b1b;"></i>
+                  <div>
+                    <span style="font-weight:700;
+                                 font-size:0.6rem;
+                                 text-transform:uppercase;
+                                 color:#7a8a9e">Additional Remarks</span>
+                    <p style="margin:0;">{{ publication.additional_remarks }}</p>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+            <div class="rpw-card-footer">
+              <div class="rpw-completeness">
+                <div class="rpw-complete-label"><span>Record completeness</span> <strong class="rpw-health-percent">0%</strong></div>
+                <div class="rpw-bar">
+                  <span class="rpw-bar-fill rpw-health-fill"></span>
+                </div>
+              </div>
+              <a href="{% url 'Student:phdstudent_research_publication_detail' uuid=request.user.uuid publication_id=publication.publication_id %}"
+                 class="rpw-btn-outline">View Publication <i class="ti ti-arrow-right"></i></a>
+            </div>
+          </div>
+        {% empty %}
+          <div class="rpw-empty">
+            <i class="ti ti-books-off"></i>
+            <h3>No Publications Yet</h3>
+            <p>Your research publications will appear here once you add your first publication record.</p>
+            <a href="{% url 'Student:phdstudent_research_publication_create' uuid=request.user.uuid %}"
+               class="rpw-btn-primary"
+               style="display:inline-flex"> Add Your First Publication</a>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="rpw-no-results" id="noResults">
+        <i class="ti ti-search-off"
+           style="font-size:2.8rem;
+                  color:#b31b1b;
+                  opacity:0.3"></i>
+        <h3 style="margin:6px 0 4px;">No Publications Found</h3>
+        <p style="color:#5f738c;">Nothing matches your current search or filters. Try changing your search criteria.</p>
+        <button type="button"
+                id="clearFiltersEmpty"
+                class="rpw-clear-btn"
+                style="margin:0 auto"><i class="ti ti-refresh"></i> Reset Filters</button>
+      </div>
+    </div>
+    <!-- SIDEBAR -->
+    <div class="rpw-sidebar">
+      <div class="rpw-side-card">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;
+                      height:36px;
+                      background:#fdeaea;
+                      border-radius:12px;
+                      display:flex;
+                      align-items:center;
+                      justify-content:center;
+                      color:#b31b1b;
+                      font-size:1.2rem">
+            <i class="ti ti-bulb"></i>
+          </div>
+          <div>
+            <span class="rpw-side-eyebrow">Research Tip</span>
+            <h4 style="margin:0;">Keep Your Record Complete</h4>
+          </div>
+        </div>
+        <p>Your publication record is more useful when metadata, indexing, milestones and evidence are maintained together.</p>
+        <div class="rpw-tip-list">
+          <div><i class="ti ti-check"></i> Use the official publication title</div>
+          <div><i class="ti ti-check"></i> Enter authors in publication order</div>
+          <div><i class="ti ti-check"></i> Verify the journal or venue name</div>
+          <div><i class="ti ti-check"></i> Verify the DOI before saving</div>
+          <div><i class="ti ti-check"></i> Link the correct completed milestone</div>
+          <div><i class="ti ti-check"></i> Keep supporting documents available</div>
+        </div>
+      </div>
+      <div class="rpw-side-card">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;
+                      height:36px;
+                      background:#e6edfd;
+                      border-radius:12px;
+                      display:flex;
+                      align-items:center;
+                      justify-content:center;
+                      color:#1a4cba;
+                      font-size:1.2rem">
+            <i class="ti ti-chart-dots-3"></i>
+          </div>
+          <div>
+            <span class="rpw-side-eyebrow">Publication Snapshot</span>
+            <h4 style="margin:0;">Your Research Record</h4>
+          </div>
+        </div>
+        <div class="rpw-snapshot-grid">
+          <div class="rpw-snapshot-item"><span>Records</span><strong id="sideTotal">0</strong></div>
+          <div class="rpw-snapshot-item"><span>Indexed</span><strong id="sideIndexed">0</strong></div>
+          <div class="rpw-snapshot-item"><span>DOI</span><strong id="sideDoi">0</strong></div>
+          <div class="rpw-snapshot-item"><span>Milestones</span><strong id="sideMilestone">0</strong></div>
+        </div>
+        <div class="rpw-progress">
+          <div class="rpw-progress-label"><span>Indexing coverage</span> <strong id="indexingCoverage">0%</strong></div>
+          <div class="rpw-progress-track">
+            <span id="indexingProgress"></span>
+          </div>
+        </div>
+      </div>
+      <div class="rpw-side-card">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;
+                      height:36px;
+                      background:#efeafe;
+                      border-radius:12px;
+                      display:flex;
+                      align-items:center;
+                      justify-content:center;
+                      color:#5e3a9c;
+                      font-size:1.2rem">
+            <i class="ti ti-files"></i>
+          </div>
+          <div>
+            <span class="rpw-side-eyebrow">Document Control</span>
+            <h4 style="margin:0;">Evidence Coverage</h4>
+          </div>
+        </div>
+        <div class="rpw-doc-summary">
+          <div><span><i class="ti ti-file-text"></i> Manuscript</span> <strong id="manuscriptCount">0</strong></div>
+          <div><span><i class="ti ti-file-certificate"></i> Acceptance Letter</span> <strong id="acceptanceCount">0</strong></div>
+          <div><span><i class="ti ti-paperclip"></i> Supporting Document</span> <strong id="supportingCount">0</strong></div>
+        </div>
+      </div>
+      {% comment %} <div class="rpw-side-card">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;
+                      height:36px;
+                      background:#fef1d6;
+                      border-radius:12px;
+                      display:flex;
+                      align-items:center;
+                      justify-content:center;
+                      color:#9b6f1a;
+                      font-size:1.2rem">
+            <i class="ti ti-help-circle"></i>
+          </div>
+          <div>
+            <span class="rpw-side-eyebrow">Quick Help</span>
+            <h4 style="margin:0;">Frequently Asked</h4>
+          </div>
+        </div>
+        <div class="rpw-faq">
+          <button type="button" class="rpw-faq-btn">Can I add multiple publications? <i class="ti ti-chevron-down"></i></button>
+          <div class="rpw-faq-answer">Yes. Each publication should be maintained as a separate research record.</div>
+        </div>
+        <div class="rpw-faq">
+          <button type="button" class="rpw-faq-btn">Why link a milestone? <i class="ti ti-chevron-down"></i></button>
+          <div class="rpw-faq-answer">Linking a completed milestone connects your publication with the related research contribution.</div>
+        </div>
+        <div class="rpw-faq">
+          <button type="button" class="rpw-faq-btn">What documents should I keep? <i class="ti ti-chevron-down"></i></button>
+          <div class="rpw-faq-answer">Keep the manuscript, acceptance letter and any relevant supporting evidence whenever available.</div>
+        </div>
+      </div> {% endcomment %}
+    </div>
+  </div>
+  <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}"
+     class="rpw-back"
+     style="margin-top:24px">
+    <i class="ti ti-arrow-left"></i> Back to PhD Dashboard
+  </a>
+</div>
+{% endblock %}
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+(function(){
+  const root = document.getElementById('rpwRoot');
+  if(!root) return;
+
+  const cards = Array.from(root.querySelectorAll('.rpw-card'));
+  const searchInput = document.getElementById('publicationSearch');
+  const indexingFilter = document.getElementById('indexingFilter');
+  const typeFilter = document.getElementById('typeFilter');
+  const clearFilters = document.getElementById('clearFilters');
+  const clearFiltersEmpty = document.getElementById('clearFiltersEmpty');
+  const clearSearch = document.getElementById('clearSearch');
+  const noResults = document.getElementById('noResults');
+  const publicationList = document.getElementById('publicationList');
+
+  // stats
+  const totalCount = document.getElementById('totalCount');
+  const indexedCount = document.getElementById('indexedCount');
+  const doiCount = document.getElementById('doiCount');
+  const milestoneCount = document.getElementById('milestoneCount');
+  const sideTotal = document.getElementById('sideTotal');
+  const sideIndexed = document.getElementById('sideIndexed');
+  const sideDoi = document.getElementById('sideDoi');
+  const sideMilestone = document.getElementById('sideMilestone');
+  const manuscriptCount = document.getElementById('manuscriptCount');
+  const acceptanceCount = document.getElementById('acceptanceCount');
+  const supportingCount = document.getElementById('supportingCount');
+  const indexingCoverage = document.getElementById('indexingCoverage');
+  const indexingProgress = document.getElementById('indexingProgress');
+  const liveCount = document.getElementById('liveCount');
+
+  function animateNumber(el, target) {
+    if(!el) return;
+    const duration = 400, start = performance.now();
+    function update(now) {
+      const p = Math.min((now-start)/duration,1);
+      const eased = 1 - Math.pow(1-p,3);
+      el.textContent = Math.round(target * eased);
+      if(p<1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  function getCompleteness(card) {
+    let c=0, total=8;
+    if(card.dataset.indexing) c++;
+    if(card.dataset.doi==='1') c++;
+    if(card.dataset.milestone==='1') c++;
+    if(card.dataset.manuscript==='1') c++;
+    if(card.dataset.acceptance==='1') c++;
+    if(card.dataset.supporting==='1') c++;
+    const journal = card.querySelector('.rpw-detail-item:first-child strong');
+    if(journal && journal.textContent.trim() && !journal.textContent.includes('Not provided')) c++;
+    const title = card.querySelector('.rpw-card-title h3');
+    if(title && title.textContent.trim()) c++;
+    return Math.round((c/total)*100);
+  }
+
+  function updateCompleteness(card) {
+    const p = getCompleteness(card);
+    const percent = card.querySelector('.rpw-health-percent');
+    const fill = card.querySelector('.rpw-health-fill');
+    if(percent) percent.textContent = p+'%';
+    if(fill) fill.style.width = p+'%';
+  }
+
+  function buildTypeFilter() {
+    if(!typeFilter) return;
+    const types = new Map();
+    cards.forEach(c => {
+      const raw = c.dataset.type || '';
+      if(!raw) return;
+      const badge = c.querySelector('.rpw-badge-type');
+      const label = badge ? badge.textContent.trim().replace(/[^a-zA-Z ]/g,'').trim() : raw;
+      if(!types.has(raw)) types.set(raw, label);
+    });
+    [...types.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([val,label])=>{
+      const opt = document.createElement('option');
+      opt.value = val; opt.textContent = label; typeFilter.appendChild(opt);
+    });
+  }
+
+  function getSearchText(card) { return (card.dataset.search || card.textContent || '').toLowerCase(); }
+
+  function applyFilters() {
+    const query = (searchInput ? searchInput.value.trim().toLowerCase() : '');
+    const indexing = indexingFilter ? indexingFilter.value : 'ALL';
+    const type = typeFilter ? typeFilter.value : 'ALL';
+    let visible = 0;
+    cards.forEach(c => {
+      const searchable = getSearchText(c);
+      const cardIndexing = c.dataset.indexing || '';
+      const cardType = c.dataset.type || '';
+      const matchSearch = !query || searchable.includes(query);
+      const matchIndex = indexing === 'ALL' || cardIndexing === indexing;
+      const matchType = type === 'ALL' || cardType === type;
+      const show = matchSearch && matchIndex && matchType;
+      c.style.display = show ? '' : 'none';
+      if(show) visible++;
+    });
+    if(liveCount) liveCount.textContent = visible;
+    if(noResults) {
+      noResults.classList.toggle('show', visible === 0 && cards.length > 0);
+    }
+    if(clearSearch) {
+      clearSearch.style.display = query ? 'inline-block' : 'none';
+    }
+    calculateStats(visible);
+  }
+
+  function calculateStats(filteredCount) {
+    const total = cards.length;
+    const visible = (filteredCount !== undefined) ? filteredCount : cards.filter(c=>c.style.display!=='none').length;
+    const indexed = cards.filter(c => c.dataset.indexing === 'INDEXED' && c.style.display!=='none').length;
+    const doi = cards.filter(c => c.dataset.doi === '1' && c.style.display!=='none').length;
+    const milestone = cards.filter(c => c.dataset.milestone === '1' && c.style.display!=='none').length;
+    const manuscript = cards.filter(c => c.dataset.manuscript === '1' && c.style.display!=='none').length;
+    const acceptance = cards.filter(c => c.dataset.acceptance === '1' && c.style.display!=='none').length;
+    const supporting = cards.filter(c => c.dataset.supporting === '1' && c.style.display!=='none').length;
+
+    animateNumber(totalCount, visible);
+    animateNumber(indexedCount, indexed);
+    animateNumber(doiCount, doi);
+    animateNumber(milestoneCount, milestone);
+    animateNumber(sideTotal, visible);
+    animateNumber(sideIndexed, indexed);
+    animateNumber(sideDoi, doi);
+    animateNumber(sideMilestone, milestone);
+    animateNumber(manuscriptCount, manuscript);
+    animateNumber(acceptanceCount, acceptance);
+    animateNumber(supportingCount, supporting);
+
+    const coverage = visible > 0 ? Math.round((indexed/visible)*100) : 0;
+    if(indexingCoverage) indexingCoverage.textContent = coverage+'%';
+    if(indexingProgress) indexingProgress.style.width = coverage+'%';
+  }
+
+  function clearAllFilters() {
+    if(searchInput) { searchInput.value = ''; }
+    if(indexingFilter) indexingFilter.value = 'ALL';
+    if(typeFilter) typeFilter.value = 'ALL';
+    if(clearSearch) clearSearch.style.display = 'none';
+    applyFilters();
+  }
+
+  function sortCards() {
+    if(!publicationList) return;
+    const sorted = [...cards].sort((a,b)=>{
+      const dateA = a.dataset.date || '';
+      const dateB = b.dataset.date || '';
+      return dateB.localeCompare(dateA);
+    });
+    sorted.forEach(c => publicationList.appendChild(c));
+  }
+
+  // Event listeners
+  if(searchInput) searchInput.addEventListener('input', applyFilters);
+  if(indexingFilter) indexingFilter.addEventListener('change', applyFilters);
+  if(typeFilter) typeFilter.addEventListener('change', applyFilters);
+  if(clearFilters) clearFilters.addEventListener('click', clearAllFilters);
+  if(clearFiltersEmpty) clearFiltersEmpty.addEventListener('click', clearAllFilters);
+  if(clearSearch) clearSearch.addEventListener('click', function(){ if(searchInput){ searchInput.value=''; searchInput.focus(); } applyFilters(); });
+
+  // FAQ
+  root.querySelectorAll('.rpw-faq-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const faq = this.closest('.rpw-faq');
+      if(!faq) return;
+      const open = faq.classList.contains('open');
+      root.querySelectorAll('.rpw-faq.open').forEach(f => f.classList.remove('open'));
+      if(!open) faq.classList.add('open');
+    });
+  });
+
+  // Init
+  buildTypeFilter();
+  cards.forEach(c => updateCompleteness(c));
+  sortCards();
+  applyFilters();
+
+  // Choices
+  if(typeof Choices !== 'undefined') {
+    try {
+      new Choices(indexingFilter, { searchEnabled: true, searchChoices: true, shouldSort: false, itemSelectText: '', searchPlaceholderValue: 'Search indexing...' });
+      new Choices(typeFilter, { searchEnabled: true, searchChoices: true, shouldSort: false, itemSelectText: '', searchPlaceholderValue: 'Search type...' });
+    } catch(e){}
+  }
+
+  // Django messages
+  const msgs = document.querySelectorAll('.django-message');
+  if(msgs.length && typeof Swal !== 'undefined') {
+    msgs.forEach(el => {
+      const msg = el.dataset.message || '';
+      const level = el.dataset.level || 'info';
+      let icon = 'info', title = 'Information';
+      if(level.includes('error') || level.includes('danger')) { icon='error'; title='Unable to Continue'; }
+      else if(level.includes('success')) { icon='success'; title='Success'; }
+      else if(level.includes('warning')) { icon='warning'; title='Attention'; }
+      Swal.fire({ icon, title, text: msg, confirmButtonText: 'OK', confirmButtonColor: '#b31b1b', background: '#fff', color: '#0b1a2f', allowOutsideClick: false });
+    });
+  }
+})();
+  </script>
+{% endblock %}

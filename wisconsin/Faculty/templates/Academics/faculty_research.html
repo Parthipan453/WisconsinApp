@@ -1,0 +1,378 @@
+<!-- Gayathri G-->
+
+{% extends "faculty_base.html" %} {% load static %} {% block title %} Faculty
+Research {% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Academics/academics.css' %}" />
+<link
+  rel="stylesheet"
+  href="{% static 'css/Academics/faculty_research.css' %}"
+/>
+{% endblock %} {% block nav_research %}active{% endblock %} {% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Research</div>
+
+    <div class="page-sub">
+      Manage and monitor your research projects and scholarly work.
+    </div>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon si-purple">
+      <i class="ti ti-microscope"></i>
+    </div>
+    <div>
+      <div class="stat-label">Total Projects</div>
+      <div class="stat-value">{{ total_projects }}</div>
+      <div class="stat-trend neutral">Career Total</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon si-blue">
+      <i class="ti ti-progress-check"></i>
+    </div>
+    <div>
+      <div class="stat-label">Ongoing Projects</div>
+      <div class="stat-value">{{ completed_projects }}</div>
+      <div class="stat-trend">Active Research</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon si-green">
+      <i class="ti ti-check"></i>
+    </div>
+    <div>
+      <div class="stat-label">Completed Projects</div>
+      <div class="stat-value">{{ completed_projects }}</div>
+      <div class="stat-trend neutral">Successfully Finished</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon si-orange">
+      <i class="ti ti-star"></i>
+    </div>
+    <!-- Research score may come from FacultyEvaluation.research_score-->
+    <div>
+      <div class="stat-label">Research Score</div>
+      <div class="stat-value">
+          {% if latest_evaluation %}
+              {{ latest_evaluation.research_score }}
+          {% else %}
+              --
+          {% endif %}
+      </div>
+      <div class="stat-trend">
+          {% if latest_evaluation %}
+              {{ latest_evaluation.get_overall_rating_display }}
+          {% else %}
+              No Evaluation
+          {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-row">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Research Progress</div>
+    </div>
+
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>Completed Projects</span>
+        <span>{{ completed_percentage }}%</span>
+      </div>
+
+      <div class="prog-bar">
+        <div
+          class="prog-fill pf-green"
+          style="width: {{ completed_percentage }}%"
+        ></div>
+      </div>
+    </div>
+
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>Ongoing Projects</span>
+        <span>{{ ongoing_percentage }}%</span>
+      </div>
+
+      <div class="prog-bar">
+        <div
+          class="prog-fill pf-blue"
+          style="width: {{ ongoing_percentage }}%"
+        ></div>
+      </div>
+    </div>
+
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>On-hold Projects</span>
+        <span>{{ on_hold_percentage}}%</span>
+      </div>
+
+      <div class="prog-bar">
+        <div
+          class="prog-fill pf-orange"
+          style="width: {{ on_hold_percentage }}%"
+        ></div>
+      </div>
+    </div>
+
+    <div class="prog-row">
+      <div class="prog-label">
+        <span>Cancelled Projects</span>
+        <span>{{ cancelled_percentage }}%</span>
+      </div>
+
+      <div class="prog-bar">
+        <div
+          class="prog-fill pf-red"
+          style="width: {{ cancelled_percentage }}%"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Research Areas</div>
+    </div>
+
+    {% for area in research_areas %}
+    <div class="course-row">
+      <span>{{ area.research_area }}</span>
+      <span
+        >{{ area.project_count }} Project{{ area.project_count|pluralize}}</span>
+    </div>
+    {% empty %}
+    <div class="empty-state">No research areas found.</div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Project Status</div>
+    </div>
+
+    <div class="course-row">
+      <span>Ongoing</span>
+      <strong>{{ongoing_projects}}</strong>
+    </div>
+
+    <div class="course-row">
+      <span>Completed</span>
+      <strong>{{completed_projects}}</strong>
+    </div>
+
+    <div class="course-row">
+      <span>On Hold</span>
+      <strong>{{on_hold_projects}}</strong>
+    </div>
+
+    <div class="course-row">
+      <span>Cancelled</span>
+      <strong>{{cancelled_projects}}</strong>
+    </div>
+  </div>
+</div>
+
+    <!-- Search & Filters -->
+    <form method="GET" class="card research-toolbar" id="researchForm">
+
+        <div class="search-wrapper">
+            <i class="ti ti-search"></i>
+
+            <input
+                type="text"
+                id="searchInput"
+                name="search"
+                value="{{ request.GET.search }}"
+                placeholder="Search by project title or research area..."
+            >
+
+            <button
+                type="button"
+                class="clear-search"
+                id="clearSearchBtn"
+                onclick="clearSearchBox()">
+
+                <i class="ti ti-x"></i>
+
+            </button>
+
+        </div>
+
+        <div class="toolbar-filters">
+
+            <div class="filter-group">
+
+                <select name="status" data-filter id="statusFilter" onchange="this.form.submit()">
+
+                    <option value="">All Status</option>
+
+                    <option value="ONGOING"
+                        {% if request.GET.status == "ONGOING" %}
+                            selected
+                        {% endif %}>
+                        Ongoing
+                    </option>
+
+                    <option value="COMPLETED"
+                        {% if request.GET.status == "COMPLETED" %}
+                            selected
+                        {% endif %}>
+                        Completed
+                    </option>
+
+                    <option value="ON_HOLD"
+                        {% if request.GET.status == "ON_HOLD" %}
+                            selected
+                        {% endif %}>
+                        On Hold
+                    </option>
+
+                    <option value="CANCELLED"
+                        {% if request.GET.status == "CANCELLED" %}
+                            selected
+                        {% endif %}>
+                        Cancelled
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="filter-group">
+
+                <select name="sort" data-sort data-default-sort="-start_date" id="sortFilter" onchange="this.form.submit()">
+
+                    <option value="-start_date"
+                        {% if request.GET.sort == "-start_date" %}
+                            selected
+                        {% endif %}>
+                        Newest First
+                    </option>
+
+                    <option value="start_date"
+                        {% if request.GET.sort == "start_date" %}
+                            selected
+                        {% endif %}>
+                        Oldest First
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+        <button type="submit" hidden></button>
+
+    </form>
+
+{% comment %} Research Directory {% endcomment %}
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Research Projects</div>
+  </div>
+
+  <div class="research-directory">
+    {% for project in research_projects %}
+
+    <div class="research-item">
+      <div class="research-title">{{ project.research_title }}</div>
+
+      <div class="research-status">
+        <span
+          class="research-badge {% if project.status == 'ONGOING' %} badge-ongoing {% elif project.status == 'COMPLETED' %} badge-completed {% elif project.status == 'ON_HOLD' %} badge-onhold {% else %} badge-cancelled {% endif %}"
+        >
+          {% comment %} To display human readable status {% endcomment %} 
+          {{ project.get_status_display }}
+        </span>
+      </div>
+
+      <div class="research-info">
+        <div class="research-label">RESEARCH AREA</div>
+
+        <div class="research-value">{{ project.research_area }}</div>
+      </div>
+
+      <div class="research-info">
+        <div class="research-label">DURATION</div>
+
+        <div class="research-value">
+          {% comment %} j for date with no leading zeros and M for abbreviated
+          month name {% endcomment %}
+          {{ project.start_date|date:"j M Y" }} 
+          – 
+          {% if project.end_date %} 
+          {{ project.end_date|date:"j M Y" }}
+          {% else %}
+          Present 
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% empty %}
+
+    <div class="empty-state">No research projects found.</div>
+
+    {% endfor %}
+  </div>
+
+      <div class="pagination-info">
+        Showing page {{ research_projects.number }}
+        of {{ research_projects.paginator.num_pages }}
+        ({{ research_projects.paginator.count }} projects)
+      </div>
+
+  {% comment %} Pagination {% endcomment %}
+  <div class="pagination-wrapper">
+
+      {% if research_projects.has_previous %}
+          <a
+              href="?page={{ research_projects.previous_page_number }}&search={{ request.GET.search }}&status={{ request.GET.status }}&sort={{ request.GET.sort }}"
+              class="page-btn"
+          >
+              <i class="ti ti-chevron-left"></i>
+          </a>
+      {% endif %}
+
+      {% for page in research_projects.paginator.page_range %}
+
+          <a
+              href="?page={{ page }}&search={{ request.GET.search }}&status={{ request.GET.status }}&sort={{ request.GET.sort }}"
+              class="page-btn {% if research_projects.number == page %}active{% endif %}"
+          >
+              {{ page }}
+          </a>
+
+      {% endfor %}
+
+      {% if research_projects.has_next %}
+          <a
+              href="?page={{ research_projects.next_page_number }}&search={{ request.GET.search }}&status={{ request.GET.status }}&sort={{ request.GET.sort }}"
+              class="page-btn"
+          >
+              <i class="ti ti-chevron-right"></i>
+          </a>
+      {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Academics/academics.js' %}"></script>
+{% endblock %}

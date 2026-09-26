@@ -1,0 +1,1372 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}
+    {% if is_edit %}
+        Edit Dissertation Proposal
+    {% else %}
+        Create Dissertation Proposal
+    {% endif %}
+{% endblock %}
+{% block nav_phd_workflow_open %}open{% endblock nav_phd_workflow_open %}
+{% block nav_phd_workflow_submenu %}open{% endblock nav_phd_workflow_submenu %}
+{% block nav_student_dissertation %}active{% endblock nav_student_dissertation %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/dissertation_proposal_form.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="proposal-page">
+        <div class="proposal-page-header">
+            <div class="proposal-header-content">
+                <div class="proposal-header-icon">
+                    <i class="ti ti-file-description"></i>
+                </div>
+                <div class="proposal-header-text">
+                    <span class="proposal-eyebrow">PhD Workflow</span>
+                    <h1>
+                        {% if is_edit %}
+                            Edit Dissertation Proposal
+                        {% else %}
+                            Dissertation Proposal
+                        {% endif %}
+                    </h1>
+                    <p>
+                        {% if is_edit %}
+                            Update your proposal details and supporting document.
+                        {% else %}
+                            Create and submit your dissertation proposal for advisor review.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}"
+               class="proposal-back-btn">
+                <i class="ti ti-arrow-left"></i>
+                <span>Back to Dashboard</span>
+            </a>
+        </div>
+        {% if messages %}
+            <div class="django-messages" aria-hidden="true">
+                {% for message in messages %}
+                    <div class="django-message"
+                         data-message="{{ message|escapejs }}"
+                         data-message-level="{{ message.tags|default:'info' }}"></div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if form.non_field_errors %}
+            <div class="proposal-alert proposal-alert-error">
+                <div class="proposal-alert-icon">
+                    <i class="ti ti-alert-circle"></i>
+                </div>
+                <div>
+                    <strong>Please review the form</strong>
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        <div class="proposal-layout">
+            <main class="proposal-main-card">
+                <div class="card-heading">
+                    <div>
+                        <span class="section-kicker">Proposal Information</span>
+                        <h2>
+                            {% if is_edit %}
+                                Update Proposal
+                            {% else %}
+                                Create Your Proposal
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <div class="draft-badge">
+                        <span class="draft-dot"></span>
+                        {% if is_edit %}
+                            Editing
+                        {% else %}
+                            Draft
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="post"
+                      enctype="multipart/form-data"
+                      id="proposalForm"
+                      novalidate>
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <!-- Proposal Title -->
+                        <div class="field-group">
+                            <label for="{{ form.proposal_title.id_for_label }}">
+                                Proposal Title
+                                <span>*</span>
+                            </label>
+                            <div class="input-shell {% if form.proposal_title.errors %}has-error{% endif %}">
+                                <i class="ti ti-heading"></i>
+                                {{ form.proposal_title }}
+                            </div>
+                            <div class="character-counter title-character-counter"
+                                 id="titleCharacterCounter">
+                                <span id="titleCount">0</span>
+                                <span>characters</span>
+                                <span class="character-minimum">Minimum 20 characters</span>
+                            </div>
+                            {% if form.proposal_title.errors %}
+                                <div class="field-error">
+                                    <i class="ti ti-alert-circle"></i>
+                                    {% for error in form.proposal_title.errors %}<span>{{ error }}</span>{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="field-hint">Enter a clear and specific title for your research proposal.</div>
+                        </div>
+                        <!-- Proposal Abstract -->
+                        <div class="field-group">
+                            <label for="{{ form.abstract.id_for_label }}">
+                                Proposal Abstract
+                                <span>*</span>
+                            </label>
+                            <div class="textarea-shell {% if form.abstract.errors %}has-error{% endif %}">{{ form.abstract }}</div>
+                            <div class="character-counter" id="abstractCharacterCounter">
+                                <span id="abstractCount">0</span>
+                                <span>characters</span>
+                                <span class="character-minimum">Minimum 50 characters</span>
+                            </div>
+                            {% if form.abstract.errors %}
+                                <div class="field-error">
+                                    <i class="ti ti-alert-circle"></i>
+                                    {% for error in form.abstract.errors %}<span>{{ error }}</span>{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="field-hint">Provide the main research problem, purpose, scope and expected contribution.</div>
+                        </div>
+                        <!-- Proposal Document -->
+                        <div class="field-group">
+                            <label for="{{ form.proposal_file.id_for_label }}">
+                                Proposal Document
+                                <span>*</span>
+                            </label>
+                            <div class="upload-zone {% if form.proposal_file.errors %}has-error{% endif %}"
+                                 id="uploadZone"
+                                 tabindex="0"
+                                 role="button"
+                                 aria-label="Upload dissertation proposal">
+                                <div class="upload-icon">
+                                    <i class="ti ti-cloud-upload"></i>
+                                </div>
+                                <div class="upload-content">
+                                    <strong id="uploadTitle">
+                                        {% if proposal and proposal.proposal_file %}
+                                            Replace proposal document
+                                        {% else %}
+                                            Upload proposal document
+                                        {% endif %}
+                                    </strong>
+                                    <span id="uploadText">Supported: PDF, DOC, DOCX</span>
+                                    <small class="upload-format-note">Maximum file size: 100 MB</small>
+                                </div>
+                                <button type="button" class="browse-btn" id="browseBtn">Browse</button>
+                                <div class="selected-file" id="selectedFile" hidden>
+                                    <i class="ti ti-file"></i>
+                                    <span id="selectedFileName"></span>
+                                    <button type="button" id="removeFile" aria-label="Remove selected file">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                                {{ form.proposal_file }}
+                            </div>
+                            {% if proposal and proposal.proposal_file %}
+                                <div class="current-file">
+                                    <div class="current-file-icon">
+                                        <i class="ti ti-file-check"></i>
+                                    </div>
+                                    <div class="current-file-info">
+                                        <span>Current document</span>
+                                        <strong>{{ proposal.proposal_file.name|cut:"dissertation_proposals/" }}</strong>
+                                    </div>
+                                    <a href="{{ proposal.proposal_file.url }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="view-file-btn">
+                                        <i class="ti ti-external-link"></i>
+                                        View
+                                    </a>
+                                </div>
+                            {% endif %}
+                            {% if form.proposal_file.errors %}
+                                <div class="field-error">
+                                    <i class="ti ti-alert-circle"></i>
+                                    {% for error in form.proposal_file.errors %}<span>{{ error }}</span>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- Workflow Note -->
+                    <div class="workflow-note">
+                        <div class="workflow-note-icon">
+                            <i class="ti ti-info-circle"></i>
+                        </div>
+                        <div>
+                            <strong>What happens after submission?</strong>
+                            <p>
+                                Your proposal will first go to your assigned advisor for review.
+                                Once approved, it will move to committee evaluation.
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <a href="{% if proposal %}{% url 'Student:student_dissertation_proposal_detail' uuid=request.user.uuid %}{% else %}{% url 'Student:phd_dashboard' uuid=request.user.uuid %}{% endif %}"
+                           class="secondary-btn">
+                            <i class="ti ti-x"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" class="primary-btn" id="saveProposalBtn" disabled>
+                            <i class="ti ti-device-floppy"></i>
+                            {% if is_edit %}
+                                Save Changes
+                            {% else %}
+                                Save Proposal
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </main>
+            <!-- Sidebar -->
+            <aside class="proposal-sidebar">
+                <!-- Student Card -->
+                <div class="student-card">
+                    <div class="student-card-top">
+                        <div class="student-avatar">
+                            {% if request.user.profile_photo %}
+                                <img src="{{ request.user.profile_photo.url }}"
+                                     alt="{{ request.user.get_full_name }}">
+                            {% else %}
+                                <span>{{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="student-label">PhD Student</span>
+                            <h3>{{ request.user.get_full_name }}</h3>
+                        </div>
+                    </div>
+                    <div class="student-details">
+                        {% if phd_student.phd_program %}
+                            <div class="student-detail">
+                                <i class="ti ti-school"></i>
+                                <div>
+                                    <span>Program</span>
+                                    <strong>{{ phd_student.phd_program.program_name }}</strong>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if advisor %}
+                            <div class="student-detail">
+                                <i class="ti ti-user-star"></i>
+                                <div>
+                                    <span>Advisor</span>
+                                    <strong>{{ advisor.user.get_full_name }}</strong>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="student-detail warning-detail">
+                                <i class="ti ti-alert-triangle"></i>
+                                <div>
+                                    <span>Advisor</span>
+                                    <strong>Not assigned</strong>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Workflow Card -->
+                <div class="workflow-card">
+                    <div class="workflow-card-heading">
+                        <div class="workflow-card-icon">
+                            <i class="ti ti-route"></i>
+                        </div>
+                        <div>
+                            <span>Workflow</span>
+                            <h3>Proposal Process</h3>
+                        </div>
+                    </div>
+                    <div class="workflow-steps">
+                        <div class="workflow-step current">
+                            <div class="step-marker">
+                                <i class="ti ti-pencil"></i>
+                            </div>
+                            <div class="step-content">
+                                <strong>Student Creates</strong>
+                                <span>Prepare and submit proposal</span>
+                            </div>
+                        </div>
+                        <div class="workflow-line"></div>
+                        <div class="workflow-step">
+                            <div class="step-marker">
+                                <i class="ti ti-user-check"></i>
+                            </div>
+                            <div class="step-content">
+                                <strong>Advisor Review</strong>
+                                <span>Advisor reviews proposal</span>
+                            </div>
+                        </div>
+                        <div class="workflow-line"></div>
+                        <div class="workflow-step">
+                            <div class="step-marker">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div class="step-content">
+                                <strong>Committee Evaluation</strong>
+                                <span>Committee members evaluate</span>
+                            </div>
+                        </div>
+                        <div class="workflow-line"></div>
+                        <div class="workflow-step">
+                            <div class="step-marker">
+                                <i class="ti ti-award"></i>
+                            </div>
+                            <div class="step-content">
+                                <strong>Chair Finalizes</strong>
+                                <span>Chair publishes final result</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Requirements -->
+                <div class="requirements-card">
+                    <div class="requirements-heading">
+                        <i class="ti ti-clipboard-check"></i>
+                        <h3>Before You Submit</h3>
+                    </div>
+                    <ul>
+                        <li>
+                            <i class="ti ti-circle-check"></i>
+                            <span>Use a clear research title.</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-circle-check"></i>
+                            <span>Write a meaningful abstract.</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-circle-check"></i>
+                            <span>Upload the latest proposal document.</span>
+                        </li>
+                        <li>
+                            <i class="ti ti-circle-check"></i>
+                            <span>Make sure your advisor is assigned.</span>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+(function () {
+
+    "use strict";
+
+
+    const form =
+        document.getElementById("proposalForm");
+
+
+    const titleInput =
+        document.getElementById(
+            "{{ form.proposal_title.id_for_label }}"
+        );
+
+
+    const abstractInput =
+        document.getElementById(
+            "{{ form.abstract.id_for_label }}"
+        );
+
+
+    const abstractCount =
+        document.getElementById("abstractCount");
+
+
+    const abstractCharacterCounter =
+        document.getElementById(
+            "abstractCharacterCounter"
+        );
+
+
+    const fileInput =
+        document.getElementById(
+            "{{ form.proposal_file.id_for_label }}"
+        );
+
+
+    const uploadZone =
+        document.getElementById("uploadZone");
+
+
+    const browseBtn =
+        document.getElementById("browseBtn");
+
+
+    const selectedFile =
+        document.getElementById("selectedFile");
+
+
+    const selectedFileName =
+        document.getElementById("selectedFileName");
+
+
+    const removeFile =
+        document.getElementById("removeFile");
+
+
+    const uploadTitle =
+        document.getElementById("uploadTitle");
+
+
+    const saveButton =
+        document.getElementById("saveProposalBtn");
+
+
+    const MIN_TITLE_LENGTH = 20;
+
+    const MIN_ABSTRACT_LENGTH = 50;
+
+    const MAX_FILE_SIZE =
+        100 * 1024 * 1024;
+
+
+    const ALLOWED_EXTENSIONS = [
+        ".pdf",
+        ".doc",
+        ".docx"
+    ];
+
+
+    const hasExistingFile =
+        {% if proposal and proposal.proposal_file %}
+            true
+        {% else %}
+            false
+        {% endif %};
+
+
+    let titleCount = null;
+
+    let titleCharacterCounter = null;
+
+
+    if (titleInput) {
+
+        titleCharacterCounter =
+            document.getElementById(
+                "titleCharacterCounter"
+            );
+
+
+        if (!titleCharacterCounter) {
+
+            titleCharacterCounter =
+                document.createElement("div");
+
+            titleCharacterCounter.id =
+                "titleCharacterCounter";
+
+            titleCharacterCounter.className =
+                "character-counter";
+
+
+            const titleFieldGroup =
+                titleInput.closest(
+                    ".field-group"
+                );
+
+
+            if (titleFieldGroup) {
+
+                const hint =
+                    titleFieldGroup.querySelector(
+                        ".field-hint"
+                    );
+
+
+                if (hint) {
+
+                    hint.parentNode.insertBefore(
+                        titleCharacterCounter,
+                        hint
+                    );
+
+                } else {
+
+                    titleInput.parentNode
+                        .parentNode
+                        .appendChild(
+                            titleCharacterCounter
+                        );
+
+                }
+
+            }
+
+
+            titleCount =
+                document.createElement("span");
+
+            titleCount.id =
+                "titleCount";
+
+
+            const titleCountLabel =
+                document.createElement("span");
+
+            titleCountLabel.textContent =
+                "characters";
+
+
+            titleCharacterCounter.appendChild(
+                titleCount
+            );
+
+
+            titleCharacterCounter.appendChild(
+                titleCountLabel
+            );
+
+        } else {
+
+            titleCount =
+                document.getElementById(
+                    "titleCount"
+                );
+
+
+            if (!titleCount) {
+
+                titleCount =
+                    document.createElement("span");
+
+                titleCount.id =
+                    "titleCount";
+
+                titleCharacterCounter.prepend(
+                    titleCount
+                );
+
+            }
+
+        }
+
+    }
+
+
+    document
+        .querySelectorAll("select")
+        .forEach(
+            function (select) {
+
+                if (
+                    !select.dataset
+                        .choicesInitialized
+                ) {
+
+                    new Choices(
+                        select,
+                        {
+                            searchEnabled: true,
+                            itemSelectText: "",
+                            shouldSort: false,
+                            allowHTML: false,
+                            noResultsText:
+                                "No options found",
+                            noChoicesText:
+                                "No choices available"
+                        }
+                    );
+
+
+                    select.dataset
+                        .choicesInitialized =
+                        "true";
+
+                }
+
+            }
+        );
+
+
+    function updateTitleCounter() {
+
+        if (
+            !titleInput ||
+            !titleCount
+        ) {
+            return;
+        }
+
+
+        const count =
+            titleInput.value.length;
+
+
+        titleCount.textContent =
+            count;
+
+
+        if (titleCharacterCounter) {
+
+            titleCharacterCounter
+                .classList
+                .remove(
+                    "counter-warning",
+                    "counter-valid"
+                );
+
+
+            if (
+                count < MIN_TITLE_LENGTH
+            ) {
+
+                titleCharacterCounter
+                    .classList
+                    .add(
+                        "counter-warning"
+                    );
+
+            } else {
+
+                titleCharacterCounter
+                    .classList
+                    .add(
+                        "counter-valid"
+                    );
+
+            }
+
+        }
+
+    }
+
+
+    function updateAbstractCounter() {
+
+        if (
+            !abstractInput ||
+            !abstractCount
+        ) {
+            return;
+        }
+
+
+        const count =
+            abstractInput.value.length;
+
+
+        abstractCount.textContent =
+            count;
+
+
+        if (abstractCharacterCounter) {
+
+            abstractCharacterCounter
+                .classList
+                .remove(
+                    "counter-warning",
+                    "counter-valid"
+                );
+
+
+            if (
+                count < MIN_ABSTRACT_LENGTH
+            ) {
+
+                abstractCharacterCounter
+                    .classList
+                    .add(
+                        "counter-warning"
+                    );
+
+            } else {
+
+                abstractCharacterCounter
+                    .classList
+                    .add(
+                        "counter-valid"
+                    );
+
+            }
+
+        }
+
+    }
+
+
+    function hasValidFile() {
+
+        if (!fileInput) {
+
+            return hasExistingFile;
+
+        }
+
+
+        if (
+            !fileInput.files ||
+            !fileInput.files.length
+        ) {
+
+            return hasExistingFile;
+
+        }
+
+
+        const file =
+            fileInput.files[0];
+
+
+        if (
+            file.size >
+            MAX_FILE_SIZE
+        ) {
+
+            return false;
+
+        }
+
+
+        const extension =
+            "." +
+            file.name
+                .split(".")
+                .pop()
+                .toLowerCase();
+
+
+        return ALLOWED_EXTENSIONS
+            .includes(
+                extension
+            );
+
+    }
+
+
+    function updateButtonState() {
+
+        if (!saveButton) {
+
+            return;
+
+        }
+
+
+        const titleValid =
+            titleInput &&
+            titleInput.value
+                .trim()
+                .length >=
+            MIN_TITLE_LENGTH;
+
+
+        const abstractValid =
+            abstractInput &&
+            abstractInput.value
+                .trim()
+                .length >=
+            MIN_ABSTRACT_LENGTH;
+
+
+        const fileValid =
+            hasValidFile();
+
+
+        const isValid =
+            titleValid &&
+            abstractValid &&
+            fileValid;
+
+
+        saveButton.disabled =
+            !isValid;
+
+
+        saveButton
+            .classList
+            .toggle(
+                "is-disabled",
+                !isValid
+            );
+
+
+        saveButton.setAttribute(
+            "aria-disabled",
+            String(!isValid)
+        );
+
+    }
+
+
+    function updateValidation() {
+
+        updateTitleCounter();
+
+        updateAbstractCounter();
+
+        updateButtonState();
+
+    }
+
+
+    function showSelectedFile(file) {
+
+        if (
+            !file ||
+            !selectedFile ||
+            !selectedFileName
+        ) {
+
+            return;
+
+        }
+
+
+        selectedFileName.textContent =
+            file.name;
+
+
+        selectedFile.hidden =
+            false;
+
+
+        if (uploadTitle) {
+
+            uploadTitle.textContent =
+                "Document selected";
+
+        }
+
+
+        if (uploadZone) {
+
+            uploadZone
+                .classList
+                .add(
+                    "file-selected"
+                );
+
+        }
+
+
+        updateButtonState();
+
+    }
+
+
+    function clearSelectedFile() {
+
+        if (!fileInput) {
+
+            return;
+
+        }
+
+
+        fileInput.value =
+            "";
+
+
+        if (selectedFile) {
+
+            selectedFile.hidden =
+                true;
+
+        }
+
+
+        if (selectedFileName) {
+
+            selectedFileName.textContent =
+                "";
+
+        }
+
+
+        if (uploadTitle) {
+
+            uploadTitle.textContent =
+                hasExistingFile
+                    ? "Replace proposal document"
+                    : "Upload proposal document";
+
+        }
+
+
+        if (uploadZone) {
+
+            uploadZone
+                .classList
+                .remove(
+                    "file-selected"
+                );
+
+        }
+
+
+        updateButtonState();
+
+    }
+
+
+    function showValidationError(
+        message,
+        element
+    ) {
+
+        if (element) {
+
+            element.focus();
+
+        }
+
+
+        if (
+            typeof Swal !== "undefined"
+        ) {
+
+            Swal.fire(
+                {
+                    icon: "warning",
+                    title: "Check the form",
+                    text: message,
+                    confirmButtonText:
+                        "Okay",
+                    confirmButtonColor:
+                        "#c5050c"
+                }
+            );
+
+        } else {
+
+            alert(message);
+
+        }
+
+    }
+
+
+    if (titleInput) {
+
+        titleInput.addEventListener(
+            "input",
+            function () {
+
+                updateTitleCounter();
+
+                updateButtonState();
+
+            }
+        );
+
+    }
+
+
+    if (abstractInput) {
+
+        abstractInput.addEventListener(
+            "input",
+            function () {
+
+                updateAbstractCounter();
+
+                updateButtonState();
+
+            }
+        );
+
+    }
+
+
+    if (
+        browseBtn &&
+        fileInput
+    ) {
+
+        browseBtn.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                fileInput.click();
+
+            }
+        );
+
+    }
+
+
+    if (
+        uploadZone &&
+        fileInput
+    ) {
+
+        uploadZone.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target.closest(
+                        ".browse-btn"
+                    ) ||
+                    event.target.closest(
+                        "#removeFile"
+                    ) ||
+                    event.target.closest(
+                        ".selected-file"
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                fileInput.click();
+
+            }
+        );
+
+
+        uploadZone.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                ) {
+
+                    event.preventDefault();
+
+                    fileInput.click();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    if (fileInput) {
+
+        fileInput.addEventListener(
+            "change",
+            function () {
+
+                const file =
+                    this.files &&
+                    this.files.length
+                        ? this.files[0]
+                        : null;
+
+
+                if (!file) {
+
+                    updateButtonState();
+
+                    return;
+
+                }
+
+
+                const extension =
+                    "." +
+                    file.name
+                        .split(".")
+                        .pop()
+                        .toLowerCase();
+
+
+                if (
+                    !ALLOWED_EXTENSIONS
+                        .includes(
+                            extension
+                        )
+                ) {
+
+                    clearSelectedFile();
+
+
+                    showValidationError(
+                        "Only PDF, DOC and DOCX files are allowed.",
+                        fileInput
+                    );
+
+
+                    return;
+
+                }
+
+
+                if (
+                    file.size >
+                    MAX_FILE_SIZE
+                ) {
+
+                    clearSelectedFile();
+
+
+                    showValidationError(
+                        "File size cannot exceed 100 MB.",
+                        fileInput
+                    );
+
+
+                    return;
+
+                }
+
+
+                showSelectedFile(file);
+
+            }
+        );
+
+    }
+
+
+    if (removeFile) {
+
+        removeFile.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                clearSelectedFile();
+
+            }
+        );
+
+    }
+
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+
+                const titleLength =
+                    titleInput
+                        ? titleInput.value
+                            .trim()
+                            .length
+                        : 0;
+
+
+                const abstractLength =
+                    abstractInput
+                        ? abstractInput.value
+                            .trim()
+                            .length
+                        : 0;
+
+
+                if (
+                    titleLength <
+                    MIN_TITLE_LENGTH
+                ) {
+
+                    event.preventDefault();
+
+
+                    showValidationError(
+                        "Proposal title must contain at least 20 characters.",
+                        titleInput
+                    );
+
+
+                    return;
+
+                }
+
+
+                if (
+                    abstractLength <
+                    MIN_ABSTRACT_LENGTH
+                ) {
+
+                    event.preventDefault();
+
+
+                    showValidationError(
+                        "Proposal description must contain at least 50 characters.",
+                        abstractInput
+                    );
+
+
+                    return;
+
+                }
+
+
+                if (
+                    !hasValidFile()
+                ) {
+
+                    event.preventDefault();
+
+
+                    showValidationError(
+                        "Please upload a valid proposal document.",
+                        fileInput
+                    );
+
+
+                    return;
+
+                }
+
+
+                if (
+                    !form.checkValidity()
+                ) {
+
+                    event.preventDefault();
+
+
+                    showValidationError(
+                        "Please complete all required fields before continuing.",
+                        form.querySelector(
+                            ":invalid"
+                        )
+                    );
+
+
+                    return;
+
+                }
+
+
+                if (saveButton) {
+
+                    saveButton.disabled =
+                        true;
+
+
+                    saveButton
+                        .classList
+                        .add(
+                            "is-loading"
+                        );
+
+
+                    saveButton.innerHTML =
+                        '<i class="ti ti-loader-2 proposal-spinner"></i> Saving...';
+
+                }
+
+            }
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(
+            ".django-message"
+        )
+        .forEach(
+            function (messageElement) {
+
+                const message =
+                    messageElement
+                        .dataset
+                        .message ||
+                    "";
+
+
+                const level =
+                    messageElement
+                        .dataset
+                        .messageLevel ||
+                    "info";
+
+
+                let icon =
+                    "info";
+
+
+                if (
+                    level.includes(
+                        "success"
+                    )
+                ) {
+
+                    icon =
+                        "success";
+
+                } else if (
+                    level.includes(
+                        "warning"
+                    )
+                ) {
+
+                    icon =
+                        "warning";
+
+                } else if (
+                    level.includes(
+                        "error"
+                    )
+                ) {
+
+                    icon =
+                        "error";
+
+                }
+
+
+                if (
+                    message &&
+                    typeof Swal !==
+                        "undefined"
+                ) {
+
+                    Swal.fire(
+                        {
+                            icon: icon,
+                            text: message,
+                            toast: true,
+                            position:
+                                "top-end",
+                            showConfirmButton:
+                                false,
+                            timer: 3500,
+                            timerProgressBar:
+                                true
+                        }
+                    );
+
+                }
+
+            }
+        );
+
+
+    updateValidation();
+
+
+})();
+
+    </script>
+{% endblock extra_js %}

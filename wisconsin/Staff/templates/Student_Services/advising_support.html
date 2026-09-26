@@ -1,0 +1,448 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Advising Support — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'Student_Services/advising.css' %}" />
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_advising %}active{% endblock %}
+
+{% block content %}
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================= -->
+
+<div class="advising-page-header">
+
+    <div>
+        <h1>Advising Support</h1>
+        <p>Manage academic advising across every department and program.</p>
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ADVISING SUMMARY
+========================================================= -->
+
+<div class="advising-stats">
+
+    <!-- Departments -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-icon">
+            <i class="ti ti-building-community"></i>
+        </div>
+
+        <div class="advising-stat-content">
+
+            <span class="advising-stat-label">
+                Departments
+            </span>
+
+            <strong class="advising-stat-number">
+                {{ total_departments }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- Programs -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-icon">
+            <i class="ti ti-school"></i>
+        </div>
+
+        <div class="advising-stat-content">
+
+            <span class="advising-stat-label">
+                Programs
+            </span>
+
+            <strong class="advising-stat-number">
+                {{ total_programs }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- Students -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-icon">
+            <i class="ti ti-users"></i>
+        </div>
+
+        <div class="advising-stat-content">
+
+            <span class="advising-stat-label">
+                Active Students
+            </span>
+
+            <strong class="advising-stat-number">
+                {{ total_active_students }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <!-- Advisors -->
+
+    <div class="advising-stat-card">
+
+        <div class="advising-stat-icon">
+            <i class="ti ti-user-check"></i>
+        </div>
+
+        <div class="advising-stat-content">
+
+            <span class="advising-stat-label">
+                Active Advisors
+            </span>
+
+            <strong class="advising-stat-number">
+                {{ total_active_advisors }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     SEARCH & FILTER (live — filters as you type, no click needed)
+========================================================= -->
+
+<div class="advising-filter-section">
+
+    <form method="GET"
+          class="advising-filter-form"
+          id="departmentFilterForm">
+
+        <div class="advising-search-wrapper">
+
+            <i class="ti ti-search"></i>
+
+            <input
+                type="text"
+                name="q"
+                value="{{ search }}"
+                id="departmentSearchInput"
+                class="advising-search-input"
+                placeholder="Search departments by name or code..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <button type="submit"
+                class="advising-filter-btn">
+
+            <i class="ti ti-search"></i>
+
+            Search
+
+        </button>
+
+
+        <a href="{% url 'staff_advising' uuid=user.uuid %}"
+           class="advising-clear-btn"
+           id="departmentClearBtn"
+           {% if not search %}hidden{% endif %}>
+
+            <i class="ti ti-x"></i>
+
+            Clear
+
+        </a>
+
+    </form>
+
+    <div class="advising-active-filter"
+         id="departmentFilterChip"
+         {% if not search %}hidden{% endif %}>
+
+        <i class="ti ti-filter"></i>
+
+        Showing results for
+        <strong id="departmentFilterQuery">&ldquo;{{ search }}&rdquo;</strong>
+
+        <span class="advising-active-filter-count" id="departmentFilterCount">
+            {{ departments|length }} department{{ departments|length|pluralize }}
+        </span>
+
+    </div>
+
+</div>
+
+<!-- Department Cards -->
+<div class="advising-department-section">
+
+    <div class="advising-section-header">
+        <div>
+            <h2>Departments</h2>
+            <p>Select a department to manage academic advising.</p>
+        </div>
+    </div>
+
+    <div class="advising-department-grid" id="departmentGrid">
+
+        {% for department in departments %}
+
+            <a href="{% url 'staff_advising_department' uuid=user.uuid department_id=department.department_id %}"
+               class="advising-department-card"
+               data-department-card
+               data-name="{{ department.department_name|lower }}"
+               data-code="{{ department.department_code|lower }} {{ department.short_name|default:''|lower }}">
+
+                <!-- Card Top -->
+                <div class="advising-card-top">
+
+                    <div class="department-avatar">
+                        {{ department.short_name|default:department.department_code|first|upper }}
+                    </div>
+
+                    <div class="department-title">
+                        <h3>
+                            {{ department.department_name }}
+                        </h3>
+
+                        <span>
+                            {{ department.department_code }}
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- Card Divider -->
+                <div class="advising-card-divider"></div>
+
+
+                <!-- Card Information -->
+                <div class="advising-card-info">
+
+                    <div class="advising-info-row">
+                        <span>
+                            <i class="ti ti-school"></i>
+                            Programs
+                        </span>
+
+                        <strong>
+                            {{ department.active_program_count }}
+                        </strong>
+                    </div>
+
+
+                    <div class="advising-info-row">
+                        <span>
+                            <i class="ti ti-circle-check"></i>
+                            Status
+                        </span>
+
+                        <span class="advising-level-badge">
+                            <i class="ti ti-point-filled"></i>
+                            Active
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- Card Footer -->
+                <div class="advising-card-footer">
+
+                    <span class="department-action">
+                        View Programs
+                    </span>
+
+                    <i class="ti ti-arrow-right"></i>
+
+                </div>
+
+            </a>
+
+        {% empty %}
+
+            <div class="advising-empty-state" id="departmentServerEmptyState">
+
+                <i class="ti ti-building-off"></i>
+
+                {% if search %}
+
+                    <h3>No Matches Found</h3>
+
+                    <p>
+                        No departments match &ldquo;{{ search }}&rdquo;. Try a different name or code.
+                    </p>
+
+                    <a href="{% url 'staff_advising' uuid=user.uuid %}"
+                       class="advising-empty-clear-btn">
+                        <i class="ti ti-x"></i>
+                        Clear Search
+                    </a>
+
+                {% else %}
+
+                    <h3>No Departments Found</h3>
+
+                    <p>
+                        There are currently no active departments available.
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+
+    <!-- Shown only when a live (client-side) search matches nothing -->
+
+    <div class="advising-empty-state" id="departmentLiveEmptyState" hidden>
+
+        <i class="ti ti-building-off"></i>
+
+        <h3>No Matches Found</h3>
+
+        <p>
+            No departments match your search. Try a different name or code.
+        </p>
+
+        <button type="button"
+                class="advising-empty-clear-btn"
+                id="departmentLiveClearBtn">
+            <i class="ti ti-x"></i>
+            Clear Search
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+(function () {
+
+    var input     = document.getElementById('departmentSearchInput');
+    var form      = document.getElementById('departmentFilterForm');
+    var clearBtn  = document.getElementById('departmentClearBtn');
+    var chip      = document.getElementById('departmentFilterChip');
+    var chipQuery = document.getElementById('departmentFilterQuery');
+    var chipCount = document.getElementById('departmentFilterCount');
+    var grid      = document.getElementById('departmentGrid');
+    var liveEmpty = document.getElementById('departmentLiveEmptyState');
+    var liveClear = document.getElementById('departmentLiveClearBtn');
+
+    if (!input || !grid) { return; }
+
+    var cards = Array.prototype.slice.call(
+        grid.querySelectorAll('[data-department-card]')
+    );
+
+    // Nothing to filter (server already rendered the "no departments" state)
+    if (cards.length === 0) { return; }
+
+    function runFilter() {
+
+        var query = input.value.trim().toLowerCase();
+        var visibleCount = 0;
+
+        cards.forEach(function (card) {
+
+            var name = card.getAttribute('data-name') || '';
+            var code = card.getAttribute('data-code') || '';
+
+            var matches = !query ||
+                name.indexOf(query) !== -1 ||
+                code.indexOf(query) !== -1;
+
+            card.hidden = !matches;
+
+            if (matches) { visibleCount += 1; }
+
+        });
+
+        var hasQuery = query.length > 0;
+
+        if (chip) { chip.hidden = !hasQuery; }
+        if (clearBtn) { clearBtn.hidden = !hasQuery; }
+
+        if (hasQuery && chipQuery) {
+            chipQuery.textContent = '\u201c' + input.value.trim() + '\u201d';
+        }
+
+        if (hasQuery && chipCount) {
+            chipCount.textContent = visibleCount + ' department' + (visibleCount === 1 ? '' : 's');
+        }
+
+        if (liveEmpty) {
+            liveEmpty.hidden = !(hasQuery && visibleCount === 0);
+        }
+
+    }
+
+    input.addEventListener('input', runFilter);
+
+    // Prevent a full page reload — Enter / Search button just re-runs the live filter
+    if (form) {
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            runFilter();
+        });
+
+    }
+
+    if (clearBtn) {
+
+        clearBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            input.value = '';
+            runFilter();
+            input.focus();
+        });
+
+    }
+
+    if (liveClear) {
+
+        liveClear.addEventListener('click', function () {
+            input.value = '';
+            runFilter();
+            input.focus();
+        });
+
+    }
+
+    // Respect a pre-filled value from a shared/bookmarked ?q= link on first load
+    if (input.value.trim()) {
+        runFilter();
+    }
+
+})();
+</script>
+
+
+{% endblock %}

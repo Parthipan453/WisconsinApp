@@ -1,0 +1,335 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Students Grade{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Elsa/course_grade.css' %}">
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div id="cgMsgBox" class="cg-msgbox"></div>
+
+<div id="cgConfirmModal" class="cg-confirm-overlay" style="display:none;">
+  <div class="cg-confirm-box">
+    <div class="cg-confirm-icon"><i class="ti ti-lock"></i></div>
+    <h4 class="cg-confirm-title">Final Submit Grades?</h4>
+    <p class="cg-confirm-text">
+      This locks all grades for this course/section. Students will no longer be editable.
+    </p>
+    <div class="cg-confirm-actions">
+      <button type="button" class="cg-btn cg-confirm-cancel" onclick="cgCloseConfirm()">Cancel</button>
+      <button type="button" class="cg-btn cg-confirm-ok" onclick="cgConfirmFinalize()">
+        <i class="ti ti-lock"></i> Yes, Final Submit
+      </button>
+    </div>
+  </div>
+</div>
+<div class="cg-page"
+     data-course-code="{{ selected_course.course_code|escapejs }}"
+     data-course-id="{{ selected_course.course_id|default:'' }}"
+     data-section-id="{{ section_id|default:'' }}"
+     data-pending-count="{{ pending_count|default:0 }}"
+     data-pending-review-count="{{ pending_review_count|default:0 }}"
+     data-finalize-url="{% url 'finalize_course_grades' %}"
+     data-save-url-base="{% url 'course_grade_dashboard' %}"
+     data-update-request-url="{% url 'update_request' %}">
+
+  <div class="cg-header">
+    <div class="cg-header-left">
+      <h1 class="cg-title">Course Grade Entry</h1>
+      <p class="cg-subtitle">Enter student numeric scores. Letter grades and grade points are generated automatically.</p>
+    </div>
+    <div class="cg-header-right">   
+      <a href="{% url 'course_grade_dashboard' %}" class="cg-back-btn">
+          <i class="ti ti-arrow-left"></i>
+          Back to Grade Dashboard
+      </a>
+    </div>
+  </div>
+
+  <div class="cg-stats-grid">
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-blue"><i class="ti ti-book"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">
+          {{ selected_course.course_code|default:"—" }}{% if selected_section %} · Sec {{ selected_section.section_number }}{% endif %}
+        </h3>
+        <span class="cg-stat-label">Course ID{% if selected_section %} / Section{% endif %}</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-green"><i class="ti ti-user"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ instructor.employee_id }}</h3>
+        <span class="cg-stat-label">Instructor</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-orange"><i class="ti ti-calendar"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ semester|default:"—" }}</h3>
+        <span class="cg-stat-label">Semester</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-red"><i class="ti ti-users"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ total_students }}</h3>
+        <span class="cg-stat-label">Students</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-purple"><i class="ti ti-book-2"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ selected_course.credits|default:"—" }}</h3>
+        <span class="cg-stat-label">Credits</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-success"><i class="ti ti-check"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ graded_count }}</h3>
+        <span class="cg-stat-label">Graded</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-warning"><i class="ti ti-clock"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ pending_count }}</h3>
+        <span class="cg-stat-label">Pending</span>
+      </div>
+    </div>
+    <div class="cg-stat-card">
+      <div class="cg-stat-icon cg-info"><i class="ti ti-chart-bar"></i></div>
+      <div class="cg-stat-content">
+        <h3 class="cg-stat-value">{{ progress }}%</h3>
+        <span class="cg-stat-label">Progress</span>
+      </div>
+    </div>
+  </div>
+
+  {% if all_finalized %}
+  <div class="cg-finalized-banner">
+    <i class="ti ti-lock"></i>
+    Grades for {{ selected_course.course_code }}{% if selected_section %} — Sec {{ selected_section.section_number }}{% endif %}
+    are finalized. No further direct edits allowed.
+  </div>
+  {% endif %}
+
+  <div class="cg-card">
+  <div class="cg-table-header">
+      <div>
+          <h4 class="cg-table-title">{{ selected_course.course_name }}</h4>        
+      </div>
+      <div class="cg-actions">
+          <button type="button"
+                  class="cg-btn cg-btn-print"
+                  onclick="printGradeTable()">
+              <i class="ti ti-printer"></i>
+              Print
+          </button>
+          <div class="cg-export">
+              <button type="button"
+                      class="cg-btn cg-btn-export"
+                      onclick="toggleExportMenu()">
+                  <i class="ti ti-download"></i>
+                  Export
+                  <i class="ti ti-chevron-down"></i>
+              </button>
+              <div class="cg-export-menu" id="cgExportMenu">
+                  <a href="{% url 'export_grades' %}?course={{ selected_course.course_id }}&format=xlsx">
+                      <i class="ti ti-file-spreadsheet"></i>
+                      Excel
+                  </a>
+                  <a href="{% url 'export_grades' %}?course={{ selected_course.course_id }}&format=csv">
+                      <i class="ti ti-file-type-csv"></i>
+                      CSV
+                  </a>
+                  <a href="{% url 'export_grades' %}?course={{ selected_course.course_id }}&format=pdf">
+                      <i class="ti ti-file-type-pdf"></i>
+                      PDF
+                  </a>
+              </div>
+          </div>
+      </div>
+  </div>
+    <div class="cg-card-body">
+      <div class="course-section" id="course-{{ selected_course.course_id }}">
+  
+        <div class="cg-table-card">
+
+          <div class="cg-table-header">
+            <div>
+              <h2 class="cg-table-title">{{ selected_course.course_name }}</h2>
+              <p class="cg-table-subtitle">Enter numeric score for each student.</p>
+            </div>
+            <div class="cg-table-header-actions">
+              <a href="{% url 'update_request' %}?view=history&course_id={{ selected_course.course_code }}{% if section_id %}&section_id={{ section_id }}{% endif %}"
+                 class="cg-btn cg-btn-view">
+                  <i class="ti ti-history"></i> View
+              </a>
+              {% if not all_finalized %}
+              <button id="cgFinalizeBtn"
+                      class="cg-btn cg-btn-finalize{% if pending_count > 0 or pending_review_count > 0 %} cg-btn-disabled{% endif %}"
+                      type="button"
+                      onclick="cgFinalizeGrades()"
+                      {% if pending_count > 0 or pending_review_count > 0 %}
+                      title="{% if pending_count > 0 %}{{ pending_count }} score(s) not entered. {% endif %}{% if pending_review_count > 0 %}{{ pending_review_count }} pending review(s).{% endif %}"
+                      {% endif %}>
+                <i class="ti ti-lock"></i> Final Submit
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          <div style="padding: 14px 16px 0;">
+            <div class="cg-bulk-bar" id="cgBulkBar" style="display:none;">
+              <span class="cg-bulk-count">
+                <i class="ti ti-checks"></i>
+                <span class="cg-bulk-count-number">0</span> student(s) selected
+              </span>
+              <button class="cg-bulk-btn" type="button" id="cgBulkSaveBtn" onclick="cgBulkSaveGrades()">
+                <i class="ti ti-refresh-dot"></i> Bulk Save Scores
+              </button>
+            </div>
+          </div>
+          <div class="cg-table-wrapper table-responsive">
+            <table class="table align-middle cg-table"
+                  data-sections="{% for s in sections %}Sec {{ s.section_number }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="cg-select-all" id="cgSelectAll" onclick="cgToggleSelectAll(this)"></th>
+                  <th>#</th>
+                  <th>Student ID</th>
+                  <th>Student Name</th>
+                  <th>Numeric Score</th>
+                  <th>Letter Grade</th>
+                  <th>Grade Points</th>
+                  <th>Grade Date</th>
+                  <th class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for g in grades %}
+              <tr data-grade-id="{{ g.id }}" data-student-id="{{ g.student.student_number }}">
+                <td>
+                  {% if g.ui_state == "unsaved" %}
+                  <input type="checkbox" class="cg-row-checkbox" onclick="cgRowChecked()">
+                  {% endif %}
+                </td>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ g.student.student_number }}</td>
+                <td>{{ g.student.preferred_name|default:g.student.user.get_full_name }}</td>
+                <td>
+                  <input type="text" class="form-control cg-input" inputmode="decimal" maxlength="6"
+                        value="{% if g.numeric_score is not None %}{{ g.numeric_score }}{% endif %}"
+                        data-grade-id="{{ g.id }}"
+                        {% if g.ui_state == "graded" or g.ui_state == "pending" or g.ui_state == "finalized" or all_finalized %}readonly{% endif %}>
+                </td>
+                <td>
+                  <span class="cg-grade-badge {% if g.grade_scale and not g.grade_scale.passing_grade %}cg-grade-fail{% endif %}">
+                      {% if g.grade_scale %}
+                          {{ g.grade_scale.letter_grade }}
+                      {% else %}
+                          —
+                      {% endif %}
+                  </span>
+                </td>
+                <td>
+                    {% if g.grade_scale %}
+                        {{ g.grade_scale.grade_points }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ g.grade_date|date:"d M Y"|default:"—" }}</td>
+                <td class="text-center">
+                  <div class="cg-row-actions{% if all_finalized or g.ui_state == "finalized" %} cg-row-disabled{% endif %}">
+                    {% if g.ui_state == "unsaved" %}
+                      <button class="cg-btn cg-btn-save" type="button" onclick="cgSaveGrade({{ g.id }})">Save</button>
+                    {% elif g.ui_state == "finalized" %}
+                      <span class="cg-badge-finalized"><i class="ti ti-lock"></i> Finalized</span>
+                    {% elif g.ui_state == "graded" %}
+                      <a href="{% url 'update_request' %}?student_id={{ g.student.student_number }}&course_id={{ selected_course.course_code }}{% if section_id %}&section_id={{ section_id }}{% endif %}"
+                        class="cg-btn cg-btn-request">
+                        Request Update
+                      </a>
+                    {% elif g.ui_state == "pending" %}
+                      <span class="cg-badge-pending">Pending review</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr class="cg-empty-row">
+                  <td colspan="9">
+                      <div class="cg-empty">
+                          <svg class="cg-empty-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M2 21v-2a4 4 0 0 1 4-4h4c.5 0 .98.08 1.43.23"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            <path d="M17 14a4 4 0 0 1 4 4v3"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                          </svg>
+                          <div class="cg-empty-title">No Students Found</div>
+                          <div class="cg-empty-text">
+                              No students are currently enrolled in this course.
+                          </div>
+                      </div>
+                  </td>
+              </tr>              
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cg-pagination">
+    <div class="cg-page-info">
+        Showing {{ grades.start_index }}–{{ grades.end_index }} of {{ grades.paginator.count }} Students
+    </div>
+    <div class="cg-page-nav">
+        <!-- Previous -->
+        {% if grades.has_previous %}
+            <a class="cg-page-btn cg-page-arrow"
+               href="?course={{ selected_course.course_id }}{% if section_id %}&section={{ section_id }}{% endif %}&page={{ grades.previous_page_number }}">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        {% else %}
+            <span class="cg-page-btn cg-page-arrow cg-page-disabled">
+                <i class="ti ti-chevron-left"></i>
+            </span>
+        {% endif %}
+        <!-- Page Numbers -->
+        {% for num in grades.paginator.page_range %}
+            {% if grades.number == num %}
+                <span class="cg-page-btn cg-page-active">{{ num }}</span>
+            {% else %}
+                <a class="cg-page-btn"
+                   href="?course={{ selected_course.course_id }}{% if section_id %}&section={{ section_id }}{% endif %}&page={{ num }}">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+        <!-- Next -->
+        {% if grades.has_next %}
+            <a class="cg-page-btn cg-page-arrow"
+               href="?course={{ selected_course.course_id }}{% if section_id %}&section={{ section_id }}{% endif %}&page={{ grades.next_page_number }}">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+        {% else %}
+            <span class="cg-page-btn cg-page-arrow cg-page-disabled">
+                <i class="ti ti-chevron-right"></i>
+            </span>
+        {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Elsa/course_grade.js' %}"></script>
+{% endblock %}

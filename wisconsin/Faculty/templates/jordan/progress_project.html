@@ -1,0 +1,299 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Research Project Progress{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/jordan/progress_project.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+<div class="progress-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Research Project Progress</h1>
+            <p>Track and monitor research project progress</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url "application_project_page" uuid=request.user.uuid %}">
+                <button class="action-btn secondary-btn">
+                    <i class="ti ti-file"></i> My Application
+                </button>
+            </a>
+            <a href="{% url "approval_project_page" uuid=request.user.uuid %}">
+                <button class="action-btn primary-btn">
+                    <i class="ti ti-check-circle"></i> View Approvals
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="icon purple">
+                <i class="ti ti-files"></i>
+            </div>
+            <div>
+                <h3 id="statTotalProjects">0</h3>
+                <span>Total Projects</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-progress"></i>
+            </div>
+            <div>
+                <h3 id="statInProgress">0</h3>
+                <span>In Progress</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div>
+                <h3 id="statPendingReview">0</h3>
+                <span>Pending Review</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-player-pause"></i>
+            </div>
+            <div>
+                <h3 id="statOnHold">0</h3>
+                <span>On Hold</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section card">
+        <div class="filter-row">
+            <!-- Project Type Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-file"></i> Project Type</label>
+                <select id="projectTypeFilter" class="filter-input">
+                    <option value="">All Types</option>
+                    <option value="faculty">Faculty Projects</option>
+                    <option value="student">Student Projects</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="statusFilter" class="filter-input">
+                    <option value="">All Status</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="pending-review">Pending Review</option>
+                    <option value="on-hold">On Hold</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending-approval">Pending Approval</option>
+                </select>
+            </div>
+
+            <!-- Department Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-building"></i> Department</label>
+                <select id="departmentFilter" class="filter-input">
+                    <option value="">All Departments</option>
+                    <option value="computer-science">Computer Science</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="physics">Physics</option>
+                    <option value="chemistry">Chemistry</option>
+                    <option value="biology">Biology</option>
+                    <option value="engineering">Engineering</option>
+                </select>
+            </div>
+
+            <!-- Progress Filter -->
+            <div class="filter-group">
+                <label><i class="ti ti-chart"></i> Progress</label>
+                <select id="progressFilter" class="filter-input">
+                    <option value="">All Progress</option>
+                    <option value="0-25">0% - 25%</option>
+                    <option value="25-50">25% - 50%</option>
+                    <option value="50-75">50% - 75%</option>
+                    <option value="75-100">75% - 100%</option>
+                </select>
+            </div>
+
+            <!-- Search Input -->
+            <div class="filter-group" style="flex: 2;">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="searchInput" placeholder="Search by project title, student name..." class="filter-input" style="flex: 1;">
+                    <button class="filter-search-btn" onclick="applySearch()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <button class="quick-filter-btn active" onclick="setQuickFilter('all')">All Projects</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('faculty')">My Projects</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('student')">Student Projects</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('in-progress')">In Progress</button>
+            <button class="quick-filter-btn" onclick="setQuickFilter('completed')">Completed</button>
+        </div>
+    </div>
+
+    <!-- Project Grid -->
+    <div class="project-section">
+        <div class="section-header">
+            <h3><i class="ti ti-folder-open"></i> Research Projects</h3>
+            <span class="record-count" id="projectCount">0 Projects</span>
+        </div>
+        <div class="project-grid" id="projectGrid">
+            <!-- Project cards will be dynamically generated -->
+        </div>
+    </div>
+
+    <!-- Project Details Modal -->
+    <div class="modal-overlay" id="projectModal" style="display: none;">
+        <div class="modal-container project-modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2 id="modalProjectTitle">Project Title</h2>
+                    <div class="modal-status-group">
+                        <span class="modal-status" id="modalStatus">In Progress</span>
+                        <span class="modal-type" id="modalType">Faculty Project</span>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Progress Overview -->
+                <div class="modal-section progress-section">
+                    <h4><i class="ti ti-chart"></i> Progress Overview</h4>
+                    <div class="progress-overview">
+                        <div class="progress-circle-container">
+                            <div class="progress-circle" id="progressCircle">
+                                <span id="progressPercentage">0%</span>
+                            </div>
+                        </div>
+                        <div class="progress-details">
+                            <div class="progress-stat">
+                                <label>Status</label>
+                                <span id="modalStatusDetail">-</span>
+                            </div>
+                            <div class="progress-stat">
+                                <label>Last Updated</label>
+                                <span id="modalLastUpdated">-</span>
+                            </div>
+                            <div class="progress-stat">
+                                <label>Start Date</label>
+                                <span id="modalStartDate">-</span>
+                            </div>
+                            <div class="progress-stat">
+                                <label>Expected Completion</label>
+                                <span id="modalEndDate">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Details -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-file-text"></i> Project Details</h4>
+                    <div class="info-grid">
+                        <div class="info-item full-width">
+                            <label>Project Title</label>
+                            <span id="modalProjectTitleDetail">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Research Type</label>
+                            <span id="modalResearchType">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Department</label>
+                            <span id="modalDepartment">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Abstract</label>
+                            <p id="modalAbstract">-</p>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Research Objectives</label>
+                            <ul id="modalObjectives"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Members -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-users"></i> Team Members</h4>
+                    <div class="team-grid" id="modalTeam">
+                        <!-- Team members will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Milestones -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-flag"></i> Milestones</h4>
+                    <div class="milestone-timeline" id="modalMilestones">
+                        <!-- Milestones will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-activity"></i> Recent Activity</h4>
+                    <div class="activity-feed" id="modalActivity">
+                        <!-- Activity feed will be dynamically generated -->
+                    </div>
+                </div>
+
+                <!-- Faculty Comments -->
+                <div class="modal-section">
+                    <h4><i class="ti ti-message"></i> Review Notes</h4>
+                    <div class="info-grid">
+                        <div class="info-item full-width">
+                            <label>Your Comments</label>
+                            <textarea id="modalComments" rows="3" placeholder="Add review notes..." class="comment-textarea"></textarea>
+                            <div style="margin-top: 8px;">
+                                <button class="modal-btn approve-btn" onclick="saveReviewNotes()">
+                                    <i class="ti ti-save"></i> Save Notes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="modal-btn on-hold-btn" onclick="updateProjectStatus('on-hold')">
+                    <i class="ti ti-pause"></i> On Hold
+                </button>
+                <button class="modal-btn pending-btn" onclick="updateProjectStatus('pending-review')">
+                    <i class="ti ti-clock"></i> Pending Review
+                </button>
+                <button class="modal-btn approve-btn" onclick="updateProjectStatus('completed')">
+                    <i class="ti ti-check-circle"></i> Mark Complete
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'script/jordan/progress_project.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+{% endblock %}

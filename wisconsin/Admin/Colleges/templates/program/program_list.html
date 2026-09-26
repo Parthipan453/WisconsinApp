@@ -1,0 +1,479 @@
+<!-- Steve code -->
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Academic Programs{% endblock %}
+{% block page_title %}Academic Programs{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'colleges/css/program_list.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="prog-page">
+
+    <!-- Page Header -->
+    <div class="prog-page-header-card">
+        <div class="prog-page-header-left">
+            <h2 class="prog-page-title">Academic Programs</h2>
+            <nav class="prog-breadcrumb">
+                <span>Dashboard</span>
+                <span class="sep">›</span>
+                <span>Administration</span>
+                <span class="sep">›</span>
+                <span class="active">Programs</span>
+            </nav>
+        </div>
+        <div class="prog-page-header-right">
+            <div class="header-stat">
+                <span class="header-stat-label">Total</span>
+                <span class="header-stat-value">{{ all_count }}</span>
+            </div>
+            {% if has_departments and has_degrees %}
+
+            <a href="{% url 'add_program' %}" class="btn-add-program">
+                + Add Program
+            </a>
+
+            {% else %}
+
+            <button
+                class="btn-add-program"
+                data-bs-toggle="modal"
+                data-bs-target="#programRequirementModal">
+
+                + Add Program
+
+            </button>
+
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="prog-stats-row">
+
+        <div class="prog-stat-card">
+            <p class="stat-label">Total Programs</p>
+            <div class="stat-body">
+                <div class="stat-icon red">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-number">{{ all_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="prog-stat-card">
+            <p class="stat-label">Active</p>
+            <div class="stat-body">
+                <div class="stat-icon green">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-number">{{ active_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="prog-stat-card">
+            <p class="stat-label">Inactive</p>
+            <div class="stat-body">
+                <div class="stat-icon orange">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-number">{{ inactive_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="prog-stat-card">
+            <p class="stat-label">Full Time</p>
+            <div class="stat-body">
+                <div class="stat-icon blue">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="stat-number">{{ full_time_count }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Search + Filter Bar -->
+    <div class="prog-search-bar">
+        <div class="search-input-wrap">
+            <svg class="search-icon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+                type="text"
+                id="programSearch"
+                placeholder="Search by name, code, department, or degree..."
+                class="search-input"
+                value="{{ search_query }}"
+                autocomplete="off">
+        </div>
+        <div class="filter-actions">
+            <!-- Status filter pills -->
+            <div class="status-pills">
+                <button class="status-pill active" data-status="ALL">All</button>
+                <button class="status-pill" data-status="ACTIVE">Active</button>
+                <button class="status-pill" data-status="INACTIVE">Inactive</button>
+            </div>
+            <!-- Program Type filter -->
+            <div class="type-pills">
+                <button class="type-pill active" data-type="ALL">All Types</button>
+                <button class="type-pill" data-type="FULL_TIME">Full Time</button>
+                <button class="type-pill" data-type="PART_TIME">Part Time</button>
+                <button class="type-pill" data-type="ONLINE">Online</button>
+            </div>
+            <button class="btn-reset" id="resetSearch">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                </svg>
+                Reset
+            </button>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="prog-table-card">
+        <div class="table-responsive">
+            <table class="prog-table " id="programTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Program</th>
+                        <th>Department</th>
+                        <th>Degree</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for program in programs %}
+                    <tr class="prog-row" data-status="{{ program.status }}" data-type="{{ program.program_type }}">
+                        <td class="row-num">{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'program_detail' program.program_id %}" class="row-link">
+                                <div class="prog-cell">
+                                    <div class="prog-avatar prog-avatar-{{ program.status|lower }}">
+                                        {{ program.program_name|slice:":1"|upper }}
+                                    </div>
+                                    <div class="prog-content">
+
+                                        <div class="prog-name">
+                                            {{ program.program_name }}
+                                        </div>
+
+                                        <div class="prog-meta">
+
+                                            {{ program.program_code }}
+
+                                            •
+
+                                            {{ program.get_program_type_display }}
+
+                                            •
+
+                                            {{ program.total_credits }} Credits
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </a>
+                        </td>
+        
+                        <td>
+                            <span
+                                class="dept-badge"
+                                title="{{ program.department.department_name }}">
+                                {{ program.department.department_name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="degree-badge">{{ program.degree.degree_name }}</span>
+                        </td>
+
+                        <td>
+                            <span class="dur-badge">{{ program.duration }} year{{ program.duration|pluralize }}</span>
+                        </td>
+
+                        <td>
+                            <span class="status-badge status-{{ program.status|lower }}">
+                                {{ program.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="{% url 'edit_program' program.pk %}" class="icon-btn edit" title="Edit">
+                                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L18 8.625"/>
+                                    </svg>
+                                </a>
+                                {% if program.status == "ACTIVE" %}
+
+                                <button
+                                    type="button"
+                                    class="icon-btn deactivate-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#statusModal"
+                                    data-url="{% url 'toggle_program_status' program.pk %}"
+                                    data-name="{{ program.program_name }}"
+                                    data-action="deactivate"
+                                    title="Deactivate">
+
+                                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                                    </svg>
+
+                                </button>
+
+                                {% else %}
+
+                                <button
+                                    type="button"
+                                    class="icon-btn activate-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#statusModal"
+                                    data-url="{% url 'toggle_program_status' program.pk %}"
+                                    data-name="{{ program.program_name }}"
+                                    data-action="activate"
+                                    title="Activate">
+
+                                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                                    </svg>
+
+                                </button>
+
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10">
+                            <div class="empty-state">
+
+                                <h5>No Programs Found</h5>
+                                <p>
+                                    {% if search_query %}
+                                        No results for "<strong>{{ search_query }}</strong>". Try a different search.
+                                    {% else %}
+                                        Click "+ Add Program" to add your first academic program.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if paginator.num_pages > 1 %}
+        <div class="prog-pagination-bar">
+            <span class="pag-info">
+                Showing
+                <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong>
+                of
+                <strong>{{ paginator.count }}</strong>
+                programs
+            </span>
+            <nav class="pag-nav" aria-label="Program pagination">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="pag-btn pag-arrow" title="Previous">‹</a>
+                {% else %}
+                <span class="pag-btn pag-arrow disabled">‹</span>
+                {% endif %}
+
+                {% for p in smart_pages %}
+                    {% if p == None %}
+                        <span class="pag-ellipsis">…</span>
+                    {% elif p == page_obj.number %}
+                        <span class="pag-btn pag-active">{{ p }}</span>
+                    {% else %}
+                        <a href="?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                           class="pag-btn">{{ p }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="pag-btn pag-arrow" title="Next">›</a>
+                {% else %}
+                <span class="pag-btn pag-arrow disabled">›</span>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block global_modal %}
+<div class="modal fade"
+     id="statusModal"
+     tabindex="-1"
+     aria-labelledby="statusModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modern-status-modal">
+            <div class="status-modal-header">
+                <div class="status-modal-icon">!</div>
+                <h4 class="status-modal-title" id="statusModalLabel">Confirm Action</h4>
+            </div>
+            <div class="status-modal-body">
+                <p id="statusMessage">Are you sure?</p>
+            </div>
+            <div class="status-modal-footer">
+                <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="confirmStatusBtn" class="btn-confirm">Confirm</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Program Requirement Modal -->
+<div class="modal fade"
+     id="programRequirementModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content modern-status-modal">
+
+            <!-- Header -->
+            <div class="status-modal-header">
+
+                <div class="status-modal-icon">
+
+                    <svg width="34"
+                         height="34"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+
+                        <path d="M12 2L3 7l9 5 9-5-9-5z"/>
+                        <path d="M5 10v5c0 3 3 5 7 5s7-2 7-5v-5"/>
+
+                    </svg>
+
+                </div>
+
+                <h4 class="status-modal-title">
+                    Requirements Missing
+                </h4>
+
+            </div>
+
+            <!-- Body -->
+            <div class="status-modal-body">
+
+                <p>
+                    Before creating an
+                    <strong>Academic Program</strong>,
+                    the following prerequisites must exist.
+                </p>
+
+                <div style="margin-top:20px;text-align:left;display:inline-block;">
+
+                    <!-- Department -->
+                    {% if has_departments %}
+                        <div style="margin-bottom:12px;color:#198754;font-weight:600;">
+                            ✓ Department Available
+                        </div>
+                    {% else %}
+                        <div style="margin-bottom:12px;color:#dc3545;font-weight:600;">
+                            ✕ Department Required
+                        </div>
+                    {% endif %}
+
+                    <!-- Degree -->
+                    {% if has_degrees %}
+                        <div style="color:#198754;font-weight:600;">
+                            ✓ Degree Available
+                        </div>
+                    {% else %}
+                        <div style="color:#dc3545;font-weight:600;">
+                            ✕ Degree Required
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="status-modal-footer">
+
+                <button
+                    type="button"
+                    class="btn-cancel"
+                    data-bs-dismiss="modal">
+
+                    Stay Here
+
+                </button>
+
+                {% if not has_departments %}
+                <a href="{% url 'department_add' %}"
+                   class="btn-confirm">
+
+                    Create Department
+
+                </a>
+                {% endif %}
+
+                {% if not has_degrees %}
+                <a href="{% url 'add_degree' %}"
+                   class="btn-confirm">
+
+                    Create Degree
+
+                </a>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'colleges/js/program_list.js' %}"></script>
+{% endblock %}

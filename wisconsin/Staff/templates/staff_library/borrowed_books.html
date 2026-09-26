@@ -1,0 +1,1213 @@
+{% extends "staff_base.html" %}
+{% load static %}
+
+
+{% block title %}My Borrowed Books | Staff Portal{% endblock %}
+
+
+{% block nav_library_open %}open{% endblock %}
+{% block nav_library_submenu %}open{% endblock %}
+{% block nav_library_borrowed %}active{% endblock %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/staff_library/borrowed_books.css' %}" />
+{% endblock %}
+
+
+{% block content %}
+
+<div class="lib-home">
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="lib-page-header">
+
+        <div>
+
+            <h1>My Borrowed Books</h1>
+
+            <p>
+                Everything you currently have checked out,
+                and when it's due.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    {% if not has_library_profile %}
+
+
+        <!-- =================================================
+             NO LIBRARY PROFILE
+        ================================================== -->
+
+        <section class="lib-panel">
+
+            <p style="color: var(--lib-text-gray); font-size: 14px;">
+
+                Your library account isn't set up yet.
+                Please contact library staff to get access to borrowing.
+
+            </p>
+
+        </section>
+
+
+    {% else %}
+
+
+        <!-- =================================================
+             ACTIVE LOANS
+        ================================================== -->
+
+        <section class="lib-panel">
+
+
+            <div class="lib-panel-header">
+
+                <h3 class="lib-section-title">
+                    Active Loans
+                </h3>
+
+            </div>
+
+
+            {% if loans %}
+
+
+                <!-- =============================================
+                     FILTER TABS
+                ============================================== -->
+
+                <div
+                    class="lib-filter-tabs"
+                    id="libFilterTabs"
+                >
+
+                    <button
+                        type="button"
+                        class="lib-filter-tab active"
+                        data-filter="ALL"
+                    >
+                        All
+                        <span class="lib-tab-count"></span>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="lib-filter-tab"
+                        data-filter="ACTIVE"
+                    >
+                        Active
+                        <span class="lib-tab-count"></span>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="lib-filter-tab"
+                        data-filter="DUE_SOON"
+                    >
+                        Due Soon
+                        <span class="lib-tab-count"></span>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="lib-filter-tab"
+                        data-filter="OVERDUE"
+                    >
+                        Overdue
+                        <span class="lib-tab-count"></span>
+                    </button>
+
+                    <button
+                        type="button"
+                        class="lib-filter-tab"
+                        data-filter="RETURNED"
+                    >
+                        Returned
+                        <span class="lib-tab-count"></span>
+                    </button>
+
+                </div>
+
+
+                <!-- =============================================
+                     LOAN LIST
+                ============================================== -->
+
+                <ul
+                    class="lib-book-list"
+                    id="libLoanList"
+                >
+
+
+                    {% for loan in loans %}
+
+
+                        <li
+                            data-status="{{ loan.computed_status }}"
+                        >
+
+
+                            <!-- =================================
+                                 BOOK COVER
+                            ================================== -->
+
+                            {% if loan.transaction.copy.resource.cover_image %}
+
+                                <span class="lib-mini-cover">
+
+                                    <img
+                                        src="{{ loan.transaction.copy.resource.cover_image.url }}"
+                                        alt="{{ loan.transaction.copy.resource.title }}"
+                                    >
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="lib-mini-cover lib-mini-default">
+
+                                    <i class="ti ti-book"></i>
+
+                                </span>
+
+                            {% endif %}
+
+
+                            <!-- =================================
+                                 BOOK INFORMATION
+                            ================================== -->
+
+                            <div style="flex: 1;">
+
+                                <p class="lib-book-title">
+
+                                    {{ loan.transaction.copy.resource.title }}
+
+                                </p>
+
+
+                                <p class="lib-book-author">
+
+                                    {{ loan.transaction.copy.resource.author }}
+
+                                    &middot;
+
+                                    {{ loan.transaction.copy.resource.library.library_name|default:"—" }}
+
+                                </p>
+
+
+                                <!-- =================================
+                                     DUE INFORMATION
+                                ================================== -->
+
+                                
+                                {% if loan.computed_status == "RETURNED" %}
+
+                                    <p class="lib-due-line lib-due-returned">
+                                        Returned
+                                        {% if loan.transaction.return_date %}
+                                            &middot;
+                                            {{ loan.transaction.return_date|date:"M d, Y" }}
+                                        {% endif %}
+                                    </p>
+
+
+                                {% elif loan.computed_status == "OVERDUE" %}
+
+                                    <p class="lib-due-line lib-due-overdue">
+                                        {{ loan.days_overdue }}
+                                        day{{ loan.days_overdue|pluralize }}
+                                        overdue
+                                        &middot;
+                                        due
+                                        {{ loan.transaction.due_date|date:"M d, Y" }}
+                                    </p>
+
+
+                                {% elif loan.computed_status == "DUE_SOON" %}
+
+                                    <p class="lib-due-line lib-due-soon">
+                                        Due
+                                        {{ loan.transaction.due_date|date:"M d, Y" }}
+                                        &middot;
+                                        {{ loan.days_left }}
+                                        day{{ loan.days_left|pluralize }}
+                                        left
+                                    </p>
+
+
+                                {% else %}
+
+                                    <p class="lib-due-line lib-due-active">
+                                        Due
+                                        {{ loan.transaction.due_date|date:"M d, Y" }}
+                                        &middot;
+                                        {{ loan.days_left }}
+                                        day{{ loan.days_left|pluralize }}
+                                        left
+                                    </p>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <!-- =================================
+                                 STATUS + RENEW BUTTON
+                            ================================== -->
+
+                            <div class="lib-loan-actions">
+
+                                {% if loan.computed_status == "OVERDUE" %}
+
+                                    <span class="lib-request-status lib-request-status-overdue">
+                                        Overdue
+                                    </span>
+
+
+                                {% elif loan.computed_status == "DUE_SOON" %}
+
+                                    <!-- Current loan status -->
+                                    <span class="lib-request-status lib-request-status-due-soon">
+                                        Due Soon
+                                    </span>
+
+
+                                    <!-- =========================================
+                                        RENEWAL REQUEST ALREADY SUBMITTED
+                                    ========================================== -->
+
+                                    {% if loan.transaction.renewal_requested %}
+
+                                        <div class="lib-renew-pending">
+
+                                            <i class="ti ti-clock"></i>
+
+                                            <div>
+                                                <strong>Renewal Requested</strong>
+
+                                                <span>
+                                                    Waiting for library approval
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+
+                                    <!-- =========================================
+                                        FIRST RENEWAL ALREADY USED
+                                    ========================================== -->
+
+                                    {% elif loan.transaction.renewal_count == 1 %}
+
+                                        <div class="lib-renew-info">
+
+                                            <i class="ti ti-refresh"></i>
+
+                                            <div>
+                                                <strong>Renewed 1 / 2</strong>
+
+                                                <span>
+                                                    One renewal used
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- Allow second renewal -->
+
+                                        <button
+                                            type="button"
+                                            class="lib-renew-btn"
+                                            data-renew-modal="renewModal{{ loan.transaction.id }}"
+                                        >
+
+                                            <i class="ti ti-refresh"></i>
+
+                                            <span>
+                                                Request Renewal
+                                            </span>
+
+                                        </button>
+
+
+                                    <!-- =========================================
+                                        NO RENEWAL USED YET
+                                    ========================================== -->
+
+                                    {% elif loan.transaction.renewal_count == 0 %}
+
+                                        <div class="lib-renew-info lib-renew-info-first">
+
+                                            <i class="ti ti-refresh"></i>
+
+                                            <div>
+                                                <strong>Renew 0 / 2</strong>
+
+                                                <span>
+                                                    No renewal used yet
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+
+                                        <button
+                                            type="button"
+                                            class="lib-renew-btn"
+                                            data-renew-modal="renewModal{{ loan.transaction.id }}"
+                                        >
+
+                                            <i class="ti ti-refresh"></i>
+
+                                            <span>
+                                                Request Renewal
+                                            </span>
+
+                                        </button>
+
+
+                                    <!-- =========================================
+                                        MAXIMUM RENEWALS USED
+                                    ========================================== -->
+
+                                    {% else %}
+
+                                        <div class="lib-renew-limit">
+
+                                            <i class="ti ti-circle-check"></i>
+
+                                            <div>
+                                                <strong>Renewed 2 / 2</strong>
+
+                                                <span>
+                                                    Maximum renewals reached
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    {% endif %}
+
+
+                                {% else %}
+
+                                    <!-- =========================================
+                                        NORMAL ACTIVE LOAN
+                                    ========================================== -->
+
+                                    <span class="lib-request-status lib-request-status-active">
+                                        Active
+                                    </span>
+
+
+                                    {% if loan.transaction.renewal_requested %}
+
+                                        <div class="lib-renew-pending">
+
+                                            <i class="ti ti-clock"></i>
+
+                                            <div>
+                                                <strong>Renewal Requested</strong>
+
+                                                <span>
+                                                    Waiting for library approval
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    {% elif loan.transaction.renewal_count == 1 %}
+
+                                        <div class="lib-renew-info">
+
+                                            <i class="ti ti-refresh"></i>
+
+                                            <div>
+                                                <strong>Renewed 1 / 2</strong>
+
+                                                <span>
+                                                    One renewal used
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    {% elif loan.transaction.renewal_count >= 2 %}
+
+                                        <div class="lib-renew-limit">
+
+                                            <i class="ti ti-circle-check"></i>
+
+                                            <div>
+                                                <strong>Renewed 2 / 2</strong>
+
+                                                <span>
+                                                    Maximum renewals reached
+                                                </span>
+                                            </div>
+
+                                        </div>
+
+                                    {% endif %}
+
+                                {% endif %}
+
+                            </div>
+
+
+                        </li>
+
+
+                    {% endfor %}
+
+                </ul>
+
+
+                <!-- =============================================
+                     EMPTY FILTER MESSAGE
+                ============================================== -->
+
+                <p
+                    class="lib-filter-empty"
+                    id="libFilterEmpty"
+                    style="display: none;"
+                >
+                    No loans in this category.
+                </p>
+
+
+                <!-- =================================================
+                     RENEWAL MODALS
+                ================================================== -->
+
+                {% for loan in loans %}
+
+                    {% if loan.computed_status == "DUE_SOON" and loan.transaction.renewal_count < 2 %}
+
+
+                        <div
+                            class="lib-renew-modal"
+                            id="renewModal{{ loan.transaction.id }}"
+                            aria-hidden="true"
+                        >
+
+
+                            <!-- =====================================
+                                 MODAL OVERLAY
+                            ====================================== -->
+
+                            <div
+                                class="lib-renew-modal-overlay"
+                                data-close-renew-modal
+                            ></div>
+
+
+                            <!-- =====================================
+                                 MODAL DIALOG
+                            ====================================== -->
+
+                            <div
+                                class="lib-renew-modal-dialog"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="renewModalTitle{{ loan.transaction.id }}"
+                            >
+
+
+                                <!-- =================================
+                                     MODAL HEADER
+                                ================================== -->
+
+                                <div class="lib-renew-modal-header">
+
+
+                                    <div>
+
+                                        <p class="lib-renew-modal-label">
+                                            Library Renewal
+                                        </p>
+
+                                        <h3
+                                            id="renewModalTitle{{ loan.transaction.id }}"
+                                            class="lib-renew-modal-title"
+                                        >
+                                            Request Book Renewal
+                                        </h3>
+
+                                    </div>
+
+
+                                    <button
+                                        type="button"
+                                        class="lib-renew-modal-close"
+                                        data-close-renew-modal
+                                        aria-label="Close"
+                                    >
+
+                                        <i class="ti ti-x"></i>
+
+                                    </button>
+
+
+                                </div>
+
+
+                                <!-- =================================
+                                     MODAL BODY
+                                ================================== -->
+
+                                <div class="lib-renew-modal-body">
+
+
+                                    <!-- =============================
+                                         BOOK INFORMATION
+                                    ============================== -->
+
+                                    <div class="lib-renew-book-info">
+
+
+                                        {% if loan.transaction.copy.resource.cover_image %}
+
+                                            <div class="lib-renew-cover">
+
+                                                <img
+                                                    src="{{ loan.transaction.copy.resource.cover_image.url }}"
+                                                    alt="{{ loan.transaction.copy.resource.title }}"
+                                                >
+
+                                            </div>
+
+                                        {% else %}
+
+                                            <div
+                                                class="lib-renew-cover lib-mini-default"
+                                            >
+
+                                                <i class="ti ti-book"></i>
+
+                                            </div>
+
+                                        {% endif %}
+
+
+                                        <div>
+
+                                            <h4>
+                                                {{ loan.transaction.copy.resource.title }}
+                                            </h4>
+
+
+                                            {% if loan.transaction.copy.resource.author %}
+
+                                                <p>
+                                                    {{ loan.transaction.copy.resource.author }}
+                                                </p>
+
+                                            {% endif %}
+
+
+                                            <p>
+
+                                                {{ loan.transaction.copy.resource.library.library_name|default:"—" }}
+
+                                            </p>
+
+                                        </div>
+
+
+                                    </div>
+
+
+                                    <!-- =============================
+                                         RENEWAL DETAILS
+                                    ============================== -->
+
+                                    <div class="lib-renew-details">
+
+
+                                        <div class="lib-renew-detail-item">
+
+                                            <span>
+                                                Current Due Date
+                                            </span>
+
+                                            <strong>
+                                                {{ loan.transaction.due_date|date:"M d, Y" }}
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div class="lib-renew-detail-item">
+
+                                            <span>
+                                                Renewal Used
+                                            </span>
+
+                                            <strong>
+                                                {{ loan.transaction.renewal_count }} / 2
+                                            </strong>
+
+                                        </div>
+
+
+                                        <div class="lib-renew-detail-item">
+
+                                            <span>
+                                                Request Status
+                                            </span>
+
+                                            <strong>
+                                                Waiting for Approval
+                                            </strong>
+
+                                        </div>
+
+
+                                    </div>
+
+
+                                    <!-- =============================
+                                         INFORMATION NOTICE
+                                    ============================== -->
+
+                                    <div class="lib-renew-notice">
+
+                                        <i class="ti ti-info-circle"></i>
+
+                                        <p>
+                                            Your renewal request will be sent to the library
+                                            for approval. The due date will remain unchanged
+                                            until the request is approved.
+                                        </p>
+
+                                    </div>
+
+
+                                </div>
+
+
+                                <!-- =================================
+                                     MODAL FOOTER
+                                ================================== -->
+
+                                <div class="lib-renew-modal-footer">
+
+
+                                    <button
+                                        type="button"
+                                        class="lib-renew-cancel"
+                                        data-close-renew-modal
+                                    >
+                                        Cancel
+                                    </button>
+
+
+                                    <form
+                                        method="POST"
+                                        action="{% url 'staff_library_renew_book' uuid loan.transaction.id %}"
+                                    >
+
+                                        {% csrf_token %}
+
+
+                                        <button
+                                              type="submit"
+                                              class="lib-renew-confirm"
+                                          >
+
+                                              <i class="ti ti-send"></i>
+
+                                              Request Renewal
+
+                                          </button>
+
+                                    </form>
+
+
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    {% endif %}
+
+                {% endfor %}
+
+
+            {% else %}
+
+
+                <!-- =============================================
+                     NO BORROWED BOOKS
+                ============================================== -->
+
+                <p
+                    style="
+                        color: var(--lib-text-gray);
+                        font-size: 13.5px;
+                        padding: 12px 0;
+                    "
+                >
+
+                    You don't have any books checked out right now.
+
+                    <a
+                        href="{% url 'staff_library_home' uuid=request.user.uuid %}"
+                        style="
+                            color: var(--lib-red);
+                            font-weight: 600;
+                        "
+                    >
+                        Search the catalog
+                    </a>
+
+                    to request one.
+
+                </p>
+
+
+            {% endif %}
+
+
+        </section>
+
+
+    {% endif %}
+
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+
+    /* =====================================================
+       DJANGO MESSAGES
+    ===================================================== */
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            {% if message.tags == "error" %}
+
+                toastError("{{ message|escapejs }}");
+
+            {% elif message.tags == "success" %}
+
+                toastSuccess("{{ message|escapejs }}");
+
+            {% elif message.tags == "warning" %}
+
+                toastWarning("{{ message|escapejs }}");
+
+            {% else %}
+
+                toastInfo("{{ message|escapejs }}");
+
+            {% endif %}
+
+        {% endfor %}
+
+    {% endif %}
+
+
+
+    /* =====================================================
+       BORROWED BOOK FILTERS
+    ===================================================== */
+
+    (function () {
+
+
+        var tabsWrap =
+            document.getElementById("libFilterTabs");
+
+
+        if (!tabsWrap) {
+            return;
+        }
+
+
+        var rows =
+            document.querySelectorAll(
+                "#libLoanList > li"
+            );
+
+
+        var emptyMsg =
+            document.getElementById(
+                "libFilterEmpty"
+            );
+
+
+        var tabs =
+            tabsWrap.querySelectorAll(
+                ".lib-filter-tab"
+            );
+
+
+        function countFor(filter) {
+
+
+            if (filter === "ALL") {
+                return rows.length;
+            }
+
+
+            var count = 0;
+
+
+            rows.forEach(function (row) {
+
+
+                if (
+                    row.getAttribute("data-status") === filter
+                ) {
+
+                    count++;
+
+                }
+
+
+            });
+
+
+            return count;
+
+        }
+
+
+
+        tabs.forEach(function (tab) {
+
+
+            var filter =
+                tab.getAttribute(
+                    "data-filter"
+                );
+
+
+            var countElement =
+                tab.querySelector(
+                    ".lib-tab-count"
+                );
+
+
+            if (countElement) {
+
+                countElement.textContent =
+                    countFor(filter);
+
+            }
+
+
+        });
+
+
+
+        function applyFilter(filter) {
+
+
+            var visibleCount = 0;
+
+
+            rows.forEach(function (row) {
+
+
+                var match =
+                    filter === "ALL" ||
+                    row.getAttribute("data-status") === filter;
+
+
+                row.classList.toggle(
+                    "lib-row-hidden",
+                    !match
+                );
+
+
+                if (match) {
+
+                    visibleCount++;
+
+                }
+
+
+            });
+
+
+            if (emptyMsg) {
+
+                emptyMsg.style.display =
+                    visibleCount === 0
+                        ? "block"
+                        : "none";
+
+            }
+
+
+        }
+
+
+
+        tabs.forEach(function (tab) {
+
+
+            tab.addEventListener(
+                "click",
+                function () {
+
+
+                    tabs.forEach(function (item) {
+
+                        item.classList.remove(
+                            "active"
+                        );
+
+                    });
+
+
+                    tab.classList.add(
+                        "active"
+                    );
+
+
+                    applyFilter(
+                        tab.getAttribute(
+                            "data-filter"
+                        )
+                    );
+
+
+                }
+            );
+
+
+        });
+
+
+    })();
+
+
+
+    /* =====================================================
+       RENEW BOOK MODALS
+    ===================================================== */
+
+    (function () {
+
+
+        var renewButtons =
+            document.querySelectorAll(
+                "[data-renew-modal]"
+            );
+
+
+        var closeButtons =
+            document.querySelectorAll(
+                "[data-close-renew-modal]"
+            );
+
+
+
+        function openRenewModal(modal) {
+
+
+            if (!modal) {
+                return;
+            }
+
+
+            modal.classList.add(
+                "is-open"
+            );
+
+
+            modal.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
+
+            document.body.classList.add(
+                "lib-renew-modal-open"
+            );
+
+
+        }
+
+
+
+        function closeRenewModal(modal) {
+
+
+            if (!modal) {
+                return;
+            }
+
+
+            modal.classList.remove(
+                "is-open"
+            );
+
+
+            modal.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+
+
+            if (
+                !document.querySelector(
+                    ".lib-renew-modal.is-open"
+                )
+            ) {
+
+                document.body.classList.remove(
+                    "lib-renew-modal-open"
+                );
+
+            }
+
+
+        }
+
+
+
+        /* ================================================
+           OPEN MODAL
+        ================================================= */
+
+        renewButtons.forEach(function (button) {
+
+
+            button.addEventListener(
+                "click",
+                function () {
+
+
+                    var modalId =
+                        button.getAttribute(
+                            "data-renew-modal"
+                        );
+
+
+                    var modal =
+                        document.getElementById(
+                            modalId
+                        );
+
+
+                    openRenewModal(
+                        modal
+                    );
+
+
+                }
+            );
+
+
+        });
+
+
+
+        /* ================================================
+           CLOSE BUTTONS
+        ================================================= */
+
+        closeButtons.forEach(function (button) {
+
+
+            button.addEventListener(
+                "click",
+                function () {
+
+
+                    var modal =
+                        button.closest(
+                            ".lib-renew-modal"
+                        );
+
+
+                    closeRenewModal(
+                        modal
+                    );
+
+
+                }
+            );
+
+
+        });
+
+
+
+        /* ================================================
+           ESCAPE KEY
+        ================================================= */
+
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+
+                if (
+                    event.key !== "Escape"
+                ) {
+
+                    return;
+
+                }
+
+
+                document
+                    .querySelectorAll(
+                        ".lib-renew-modal.is-open"
+                    )
+                    .forEach(
+                        function (modal) {
+
+                            closeRenewModal(
+                                modal
+                            );
+
+                        }
+                    );
+
+
+            }
+        );
+
+
+    })();
+
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,643 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Medical Staff Dashboard{% endblock %}
+{% block page_title %}Medical Staff Dashboard{% endblock %}
+
+
+{% block extra_css %}
+    <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800;900&family=Encode+Sans+Expanded:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Dominic/medical_staff_dashboard_staff_focus.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="med-dashboard" id="medDashboardRoot" data-open-role-modal="{% if open_role_modal %}true{% else %}false{% endif %}">
+        <section class="med-banner med-banner--premium" id="welcome">
+            <div class="med-banner__grid" aria-hidden="true"></div>
+            <div class="med-banner__glow med-banner__glow--a" aria-hidden="true"></div>
+            <div class="med-banner__glow med-banner__glow--b" aria-hidden="true"></div>
+
+            <svg class="med-banner__pulse med-banner__pulse--echo" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
+                <path class="med-pulse-path med-pulse-path--echo" d="M0,60 L140,60 L165,20 L190,100 L215,60 L260,60 L280,40 L300,60 L1000,60" />
+            </svg>
+            <svg class="med-banner__pulse" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                    <linearGradient id="medPulseGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
+                        <stop offset="30%" stop-color="rgba(255,255,255,0.85)"/>
+                        <stop offset="70%" stop-color="rgba(255,255,255,1)"/>
+                        <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+                    </linearGradient>
+                    <filter id="medPulseGlow" x="-20%" y="-50%" width="140%" height="200%">
+                        <feGaussianBlur stdDeviation="2.4" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                <path class="med-pulse-path med-pulse-path--main" filter="url(#medPulseGlow)" stroke="url(#medPulseGrad)" d="M0,60 L140,60 L165,20 L190,100 L215,60 L260,60 L280,40 L300,60 L1000,60" />
+            </svg>
+            <span class="med-banner__pulse-dot" aria-hidden="true"></span>
+
+            <div class="med-banner__content">
+                <p class="med-banner__eyebrow">
+                    <i data-lucide="sun"></i> Good Morning
+                </p>
+                <h1 class="med-banner__title">
+                    Welcome, {{ request.user.first_name|default:request.user.username }}
+                </h1>
+                <p class="med-banner__meta">
+                    {% if is_admin_view %}
+                        <span>
+                            <i data-lucide="hospital"></i> All Departments (Administrator View)
+                        </span>
+                    {% else %}
+                        <span>
+                            <i data-lucide="hospital"></i> {{ staff_profile.department.department_name }}
+                        </span>
+                    {% endif %}
+                    <span class="med-dot">•</span>
+                    <span id="medBannerDate">
+                        <i data-lucide="calendar"></i>
+                    </span>
+                </p>
+                <p class="med-banner__desc">
+                    <strong>{{ on_duty_today }} of {{ total_staff }} staff</strong> are on duty today, <strong>{{ on_leave_count }} on leave/off duty</strong>, across <strong>{{ departments_covered }} department{{ departments_covered|pluralize }}</strong>.
+                </p>
+                <div class="med-banner__cta">
+                    <a href="{% url 'Medical:assign_medical_staff' %}" class="med-btn med-btn--light">
+                        <i data-lucide="user-plus"></i> Assign Medical Staff
+                    </a>
+                    <a href="#schedule" class="med-btn med-btn--ghost">
+                        <i data-lucide="calendar-check"></i> Today's Schedule
+                    </a>
+                </div>
+            </div>
+            <div class="med-banner__art" aria-hidden="true">
+                <span class="med-banner__art-ring med-banner__art-ring--1"></span>
+                <span class="med-banner__art-ring med-banner__art-ring--2"></span>
+                <span class="med-banner__art-ring med-banner__art-ring--3"></span>
+                <i data-lucide="heart-pulse" class="med-banner__icon-big"></i>
+            </div>
+        </section>
+
+        <section class="med-section" aria-label="Key staff statistics">
+            <div class="med-stat-grid">
+
+                <div class="med-stat-card">
+                    <div class="med-stat-card__top">
+                        <span class="med-stat-icon med-stat-icon--red"><i data-lucide="id-card"></i></span>
+                    </div>
+                    <h3 class="med-stat-number" data-count="{{ total_staff }}">0</h3>
+                    <p class="med-stat-label">Total Medical Staff</p>
+                </div>
+
+                <div class="med-stat-card">
+                    <div class="med-stat-card__top">
+                        <span class="med-stat-icon med-stat-icon--green"><i data-lucide="calendar-check-2"></i></span>
+                    </div>
+                    <h3 class="med-stat-number" data-count="{{ on_duty_today }}">0</h3>
+                    <p class="med-stat-label">On Duty Today</p>
+                </div>
+
+                <div class="med-stat-card">
+                    <div class="med-stat-card__top">
+                        <span class="med-stat-icon med-stat-icon--amber"><i data-lucide="calendar-off"></i></span>
+                    </div>
+                    <h3 class="med-stat-number" data-count="{{ on_leave_count }}">0</h3>
+                    <p class="med-stat-label">On Leave / Off Duty</p>
+                </div>
+
+                <div class="med-stat-card">
+                    <div class="med-stat-card__top">
+                        <span class="med-stat-icon med-stat-icon--blue"><i data-lucide="tags"></i></span>
+                    </div>
+                    <h3 class="med-stat-number" data-count="{{ total_roles }}">0</h3>
+                    <p class="med-stat-label">Roles / Types</p>
+                </div>
+
+                <div class="med-stat-card">
+                    <div class="med-stat-card__top">
+                        <span class="med-stat-icon med-stat-icon--red"><i data-lucide="workflow"></i></span>
+                    </div>
+                    <h3 class="med-stat-number" data-count="{{ departments_covered }}">0</h3>
+                    <p class="med-stat-label">Departments Covered</p>
+                </div>
+
+                <div class="med-stat-card">
+                    <div class="med-stat-card__top">
+                        <span class="med-stat-icon med-stat-icon--green"><i data-lucide="user-plus"></i></span>
+                    </div>
+                    <h3 class="med-stat-number" data-count="{{ new_staff_this_month }}">0</h3>
+                    <p class="med-stat-label">New Staff This Month</p>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="med-section">
+            <div class="med-ops-strip med-ops-strip--premium">
+                <div class="med-ops-strip__item med-ops-strip__item--blue">
+                    <span class="med-ops-strip__tile"><i data-lucide="calendar-clock"></i></span>
+                    <div>
+                        <strong>{{ appointments_today }}</strong>
+                        <span>Appointments Today</span>
+                    </div>
+                </div>
+                <div class="med-ops-strip__divider"></div>
+                <div class="med-ops-strip__item med-ops-strip__item--amber">
+                    <span class="med-ops-strip__tile"><i data-lucide="flask-conical"></i></span>
+                    <div>
+                        <strong>{{ pending_labs }}</strong>
+                        <span>Pending Lab Reports</span>
+                    </div>
+                </div>
+                <div class="med-ops-strip__divider"></div>
+                <div class="med-ops-strip__item med-ops-strip__item--alert med-ops-strip__item--red">
+                    <span class="med-ops-strip__tile"><i data-lucide="alert-triangle"></i></span>
+                    <div>
+                        <strong>{{ emergency_count }}</strong>
+                        <span>Active Emergency Cases</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="med-section">
+            <div class="row g-4">
+
+                <div class="col-lg-6" id="schedule">
+                    <div class="med-card med-card--tall">
+                        <div class="med-card__header">
+                            <h2 class="med-card__title">
+                                <span class="med-card__title-icon"><i data-lucide="calendar-clock"></i></span> Today's Staff Schedule
+                            </h2>
+                            {% if todays_schedule|length > 1 %}  
+                                <button class="med-card__view-more">
+                                    <a href="{% url 'Medical:staff_schedule' %}" class="med-view-more-btn">
+                                        <span>View More</span>
+
+                                        <span class="med-view-more-icon">
+                                            <i data-lucide="arrow-right"></i>
+                                        </span>
+                                    </a>
+                                </button>
+                            {% endif %}
+                        </div>
+                        <div class="med-timeline-scroll">
+                            <div class="med-timeline">
+                                {% for sched in todays_schedule %}
+                                    <div class="med-timeline__item">
+                                        <div class="med-timeline__time">
+                                            {{ sched.start_time|time:"h:i A" }}
+                                        </div>
+                                        <div class="med-timeline__dot"></div>
+                                        <div class="med-timeline__body">
+                                            <h4>{{ sched.medical_staff.user.full_name }}</h4>
+                                            <p>
+                                                {{ sched.medical_staff.role.name }} · {{ sched.department.department_name }}{% if sched.hospital.hospital_name %} {{ sched.hospital.hospital_name }} {% endif %}{% if sched.room_number %} · Room {{ sched.room_number }}{% endif %}
+                                            </p>
+                                            <span class="med-badge med-badge--upcoming">{{ sched.shift_label }}</span>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <p class="text-muted small mb-0">No staff scheduled for today.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6" id="recent-staff">
+                    <div class="med-card med-card--tall">
+                        <div class="med-card__header">
+                            <h2 class="med-card__title">
+                                <span class="med-card__title-icon"><i data-lucide="user-plus"></i></span> Recently Assigned Staff
+                            </h2>
+                        </div>
+                        <div class="table-responsive med-table-wrap">
+                            <table class="table med-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Staff Member</th>
+                                        <th class="d-none d-xl-table-cell">Role</th>
+                                        <th class="d-none d-xl-table-cell">Department</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in recent_staff %}
+                                        <tr>
+                                            <td>
+                                                <div class="med-patient">
+                                                    <img src="https://ui-avatars.com/api/?name={{ member.user.full_name|urlencode }}&background=c5050c&color=fff&size=64" alt="">
+                                                    <span>{{ member.user.full_name }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="d-none d-xl-table-cell">{{ member.role.name }}</td>
+                                            <td class="d-none d-xl-table-cell">{{ member.department.department_name }}</td>
+                                            <td>
+                                                <span class="med-badge med-badge--{% if member.status == 'ACTIVE' %}done{% elif member.status == 'ON_LEAVE' %}upcoming{% else %}critical{% endif %}">{{ member.get_status_display }}</span>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-muted small">No medical staff assigned yet.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="med-section" id="quick-actions">
+            <div class="med-section__heading">
+                <div class="d-flex">
+                    <span class="med-section__heading-icon"><i data-lucide="zap"></i></span>
+                    <div class="ms-2">
+                        <h2>Quick Actions</h2>
+                        <p>Jump straight into the most common medical-staff tasks</p>
+                    </div>
+                </div>
+            </div>
+            <div class="med-quick-grid">
+                <a href="{% url 'Medical:assign_medical_staff' %}" class="med-quick-card">
+                    <span class="med-quick-icon"><i data-lucide="user-plus"></i></span>
+                    <span>Assign Medical Staff</span>
+                </a>
+                <a href="#" class="med-quick-card" data-bs-toggle="modal" data-bs-target="#manageRolesModal">
+                    <span class="med-quick-icon">
+                        <i data-lucide="tags"></i>
+                    </span>
+                    <span>Manage Roles / Types</span> 
+                </a>
+                <a href="#staff" class="med-quick-card">
+                    <span class="med-quick-icon">
+                        <i data-lucide="id-card"></i>
+                    </span>
+                    <span>Staff Availability</span>
+                </a>
+                <a href="{% url 'Medical:staff_schedule' %}" class="med-quick-card">
+                    <span class="med-quick-icon">
+                        <i data-lucide="calendar-check"></i>
+                    </span>
+                    <span>Staff Schedule</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="med-section" id="departments">
+            
+            <div class="med-section__heading">
+                <div class="d-flex">
+                    <span class="med-section__heading-icon"><i data-lucide="workflow"></i></span>
+                    <div class="ms-2">
+                        <h2>Department Overview</h2>
+                        <p>Staff coverage {% if is_admin_view %}across every department{% else %}for your department{% endif %} today</p>
+                    </div>
+                </div>
+                <div>
+                    {% if department_stats|length > 6 %}
+                        <div class="med-view-all-wrap">
+                            <button type="button" class="med-view-all-btn" data-bs-toggle="modal" data-bs-target="#departmentOverviewModal">
+                                <i data-lucide="layout-grid"></i> View All Departments ({{ department_stats|length }})
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="med-dept-scroll">
+                <div class="med-dept-grid">
+                    {% for dept in department_stats|slice:6 %}
+                        <div class="med-dept-card">
+                            <div class="med-dept-card__head">
+                                <span class="med-dept-icon">
+                                    <i data-lucide="heart-pulse"></i>
+                                </span>
+                                <h4>{{ dept.department_name }}</h4>
+                            </div>
+                            <div class="med-dept-stats">
+                                <div>
+                                    <strong>{{ dept.total_staff }}</strong><span>Total Staff</span>
+                                </div>
+                                <div>
+                                    <strong>{{ dept.on_duty_today }}</strong><span>On Duty Today</span>
+                                </div>
+                            </div>
+                            <div class="med-dept-roles">
+                                <span class="med-dept-role med-dept-role--red"><i data-lucide="stethoscope"></i> {{ dept.doctors }} Doctors</span>
+                                <span class="med-dept-role med-dept-role--blue"><i data-lucide="heart-handshake"></i> {{ dept.nurses }} Nurses</span>
+                                <span class="med-dept-role med-dept-role--green"><i data-lucide="activity"></i> {{ dept.physio }} Physio</span>
+                                <span class="med-dept-role med-dept-role--amber"><i data-lucide="flask-conical"></i> {{ dept.lab_techs }} Lab</span>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">No department data available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="med-section" id="analytics">
+            <div class="med-section__heading">
+                <div class="d-flex">
+                    <span class="med-section__heading-icon"><i data-lucide="bar-chart-3"></i></span>
+                    <div class="ms-2">
+                        <h2>Staff Analytics</h2>
+                        <p>Role mix, employment type and hiring trend, built from live data</p>
+                    </div>
+                </div>
+            </div>
+            <div class="med-chart-grid med-chart-grid--three">
+                <div class="med-chart-card">
+                    <div class="med-chart-card__head">
+                        <h3><i data-lucide="tags"></i> Staff by Role</h3>
+                    </div>
+                    <div class="med-chart-card__body">
+                        <canvas id="medRoleChart"></canvas>
+                    </div>
+                </div>
+                <div class="med-chart-card">
+                    <div class="med-chart-card__head">
+                        <h3><i data-lucide="briefcase"></i> Employment Type</h3>
+                    </div>
+                    <div class="med-chart-card__body">
+                        <canvas id="medEmploymentChart"></canvas>
+                    </div>
+                </div>
+                <div class="med-chart-card">
+                    <div class="med-chart-card__head">
+                        <h3><i data-lucide="trending-up"></i> New Staff — Last 6 Months</h3>
+                    </div>
+                    <div class="med-chart-card__body">
+                        <canvas id="medHiringTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="med-section" id="staff">
+            <div class="med-section__heading">
+                <div class="d-flex">
+                    <span class="med-section__heading-icon"><i data-lucide="id-card"></i></span>
+                    <div class="ms-2">
+                        <h2>Staff Availability</h2>
+                        <p>Real-time status of {% if is_admin_view %}all on-duty medical staff{% else %}your department colleagues{% endif %}</p>
+                    </div>
+                </div>
+                <div>
+                    {% if department_staff|length > 12 %}
+                        <div class="med-view-all-wrap">
+                            <button type="button" class="med-view-all-btn" data-bs-toggle="modal" data-bs-target="#staffAvailabilityModal">
+                                <i data-lucide="users"></i> View All Staff ({{ department_staff|length }})
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="med-staff-scroll">
+                <div class="med-staff-grid">
+                    {% for member in department_staff|slice:":12" %}
+                        <div class="med-staff-card">
+                            <img src="https://ui-avatars.com/api/?name={{ member.user.full_name|urlencode }}&background=c5050c&color=fff&size=120" alt="{{ member.user.full_name }}">
+                            <h4>{{ member.user.full_name }}</h4>
+                            <p>{{ member.role.name }} · {{ member.department.department_name }}</p>
+                            <div class="med-staff-card__status-row">
+                                <span class="med-status med-status--{% if member.status == 'ACTIVE' %}available{% elif member.status == 'ON_LEAVE' %}leave{% else %}busy{% endif %}">
+                                    <span class="med-status-dot"></span> {{ member.get_status_display }}
+                                </span>
+                                {% if member.todays_shift %}
+                                    <span class="med-shift-chip">
+                                        <i data-lucide="clock"></i> {{ member.todays_shift.shift_label }} · {{ member.todays_shift.start_time|time:"h:i A" }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">No other medical staff found.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
+{% endblock %}
+
+{% block global_modal %}
+
+    {{ staff_directory|json_script:"staffDirectoryData" }}
+    <div class="modal fade med-modal" id="manageRolesModal" tabindex="-1" aria-labelledby="manageRolesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content med-modal__content">
+
+                <div class="modal-header med-modal__header">
+                    <h5 class="modal-title" id="manageRolesModalLabel">
+                    <i data-lucide="tags"></i> Manage Medical Roles / Types
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body med-modal__body">
+
+                    <h6 class="med-modal__subhead">Existing Roles</h6>
+                    <div class="med-role-grid">
+                        {% for role in medical_staff_roles %}
+                            <div class="med-role-card med-role-card--{{ role.category|lower }}">
+                                <span class="med-role-card__icon">
+                                    <i data-lucide="{% if role.category == 'DOCTOR' %}stethoscope{% elif role.category == 'NURSE' %}heart-handshake{% elif role.category == 'PHYSIO' %}activity{% elif role.category == 'LAB' %}flask-conical{% elif role.category == 'PHARMACY' %}pill{% elif role.category == 'FRONT_DESK' %}badge-info{% else %}tag{% endif %}"></i>
+                                </span>
+                                <div class="med-role-card__body">
+                                    <strong>{{ role.name }}</strong>
+                                    <span class="med-role-card__category">{{ role.get_category_display }}</span>
+                                </div>
+                                <div class="med-role-card__side">
+                                    <span class="med-role-card__count">{{ role.staff_count }}</span>
+                                    <span class="med-role-card__count-label">assigned</span>
+                                </div>
+
+                                {% has_permission "medicalstaffprofile_create" as can_create_medical_staff_profile %}
+                                {% if can_create_medical_staff_profile %}
+                                    <a href="{% url 'Medical:assign_medical_staff' %}?category={{ role.category }}" class="med-role-card__assign" title="Assign staff to this role">
+                                        <i data-lucide="user-plus"></i>
+                                    </a>
+                                {% endif %}
+
+                            </div>
+                        {% empty %}
+                            <p class="text-muted small mb-0">No medical roles created yet.</p>
+                        {% endfor %}
+                    </div>
+
+                    <hr class="med-modal__divider">
+
+                        {% has_permission "medicalstaffrole_create" as can_create_medical_role %}
+
+                        {% if can_create_medical_role %}
+                            <div class="med-form-modern">
+                                <div class="med-form-modern__head">
+                                    <span class="med-form-modern__icon"><i data-lucide="plus"></i></span>
+                                    <div>
+                                        <h6 class="med-modal__subhead med-modal__subhead--modern">Create New Role</h6>
+                                        <p class="med-form-modern__sub">Fill the details below to add a new role</p>
+                                    </div>
+                                </div>
+
+                                <form method="post" action="{% url 'Medical:create_medical_role' %}" id="createMedicalRoleForm">
+                                    {% csrf_token %}
+                                    <div class="row g-3">
+                                        {% for field in medical_staff_role_form %}
+                                            <div class="col-md-6">
+                                                <div class="med-form-modern__field">
+                                                    <label class="form-label med-modal__label">{{ field.label }}</label>
+                                                    {{ field }}
+                                                </div>
+                                                {% if field.errors %}
+                                                    <div class="med-modal__error">{{ field.errors|striptags }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="med-modal__footer med-modal__footer--inline">
+                                    <button type="submit" class="med-form-modern__submit">
+                                        <i data-lucide="plus"></i> Create Role
+                                    </button>
+                                    </div>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="med-permission-notice">
+                                <span class="med-permission-notice__icon"><i data-lucide="lock"></i></span>
+                                <div>
+                                    <strong>Restricted</strong>
+                                    <p>You don't have permission to create new medical roles. Contact your Administrator if you need access.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                </div>
+            </div>
+        </div> 
+    </div>
+
+    <div class="modal fade med-modal" id="staffAvailabilityModal" tabindex="-1" aria-labelledby="staffAvailabilityModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content med-modal__content">
+
+                <div class="modal-header med-modal__header">
+                    <h5 class="modal-title" id="staffAvailabilityModalLabel">
+                    <i data-lucide="id-card"></i> All Medical Staff ({{ department_staff|length }})
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="med-modal-search-bar">
+                    <div class="med-modal-search">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="staffModalSearch" placeholder="Search by name, role or department..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="modal-body med-modal__body">
+                    <div class="med-staff-grid" id="staffModalGrid">
+                        {% for member in department_staff %}
+                            <div class="med-staff-card" data-staff-search="{{ member.user.full_name|lower }} {{ member.role.name|lower }} {{ member.department.department_name|lower }}">
+                                <img src="https://ui-avatars.com/api/?name={{ member.user.full_name|urlencode }}&background=c5050c&color=fff&size=120" alt="{{ member.user.full_name }}">
+                                <h4>{{ member.user.full_name }}</h4>
+                                <p>{{ member.role.name }} · {{ member.department.department_name }}</p>
+                                <div class="med-staff-card__status-row">
+                                    <span class="med-status med-status--{% if member.status == 'ACTIVE' %}available{% elif member.status == 'ON_LEAVE' %}leave{% else %}busy{% endif %}">
+                                    <span class="med-status-dot"></span> {{ member.get_status_display }}
+                                    </span>
+                                    {% if member.todays_shift %}
+                                    <span class="med-shift-chip">
+                                        <i data-lucide="clock"></i> {{ member.todays_shift.get_shift_display }} · {{ member.todays_shift.start_time|time:"h:i A" }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted small mb-0">No medical staff found.</p>
+                        {% endfor %}
+                    </div>
+                    <p class="med-modal-empty-msg d-none" id="staffModalEmptyMsg">No staff match your search.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade med-modal" id="departmentOverviewModal" tabindex="-1" aria-labelledby="departmentOverviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content med-modal__content">
+
+            <div class="modal-header med-modal__header">
+                <h5 class="modal-title" id="departmentOverviewModalLabel">
+                <i data-lucide="workflow"></i> All Departments ({{ department_stats|length }})
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="med-modal-search-bar">
+                <div class="med-modal-search">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="deptModalSearch" placeholder="Search departments..." autocomplete="off">
+                </div>
+            </div>
+
+            <div class="modal-body med-modal__body">
+                <div class="med-dept-grid" id="deptModalGrid">
+                    {% for dept in department_stats %}
+                        <div class="med-dept-card" data-dept-name="{{ dept.department_name|lower }}">
+                            <div class="med-dept-card__head">
+                                <span class="med-dept-icon">
+                                <i data-lucide="heart-pulse"></i>
+                                </span>
+                                <h4>{{ dept.department_name }}</h4>
+                            </div>
+                            <div class="med-dept-stats">
+                                <div>
+                                <strong>{{ dept.total_staff }}</strong><span>Total Staff</span>
+                                </div>
+                                <div>
+                                <strong>{{ dept.on_duty_today }}</strong><span>On Duty Today</span>
+                                </div>
+                            </div>
+                            <div class="med-dept-roles">
+                                <span class="med-dept-role med-dept-role--red"><i data-lucide="stethoscope"></i> {{ dept.doctors }} Doctors</span>
+                                <span class="med-dept-role med-dept-role--blue"><i data-lucide="heart-handshake"></i> {{ dept.nurses }} Nurses</span>
+                                <span class="med-dept-role med-dept-role--green"><i data-lucide="activity"></i> {{ dept.physio }} Physio</span>
+                                <span class="med-dept-role med-dept-role--amber"><i data-lucide="flask-conical"></i> {{ dept.lab_techs }} Lab</span>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small mb-0">No department data available.</p>
+                    {% endfor %}
+                </div>
+                <p class="med-modal-empty-msg d-none" id="deptModalEmptyMsg">No departments match your search.</p>
+            </div>
+
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        window.medDashboardData = {
+            roleLabels: {{ role_labels_json|safe }},
+            roleValues: {{ role_values_json|safe }},
+            employmentLabels: {{ employment_labels_json|safe }},
+            employmentValues: {{ employment_values_json|safe }},
+            monthLabels: {{ month_labels_json|safe }},
+            monthCounts: {{ month_counts_json|safe }}
+        };
+    </script>
+    <script src="{% static 'js/Dominic/medical_staff_dashboard.js' %}"></script>
+{% endblock %}

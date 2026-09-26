@@ -1,0 +1,741 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Issue Queue{% endblock %}
+{% block page_title %}Issue Queue{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/library_admin/nancy/issue_queue.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="iq-page">
+
+  <div class="iq-header">
+    <div class="iq-header-inner">
+      <span class="iq-header-icon"><i data-lucide="clipboard-list"></i></span>
+      <div>
+        <h1 class="iq-title">Issue Queue</h1>
+        <!-- <p class="iq-subtitle">Students approved to borrow, waiting to pick up their book.</p> -->
+          <div class="breadcrumb">
+                <a href="{% url 'library_dashboard' request.user.uuid %}">Dashboard</a>
+                <span>›</span>
+
+                <!-- <a href="#">Library</a>
+                <span>›</span> -->
+
+                <span class="active">Issue Queue</span>
+            </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- STAT CARDS ---------- -->
+  <div class="iq-stat-grid">
+    <div class="iq-stat-card">
+      <div class="iq-stat-icon iq-stat-icon--waiting"><i data-lucide="clock"></i></div>
+      <div>
+        <p class="iq-stat-number">{{ pending_count }}</p>
+        <p class="iq-stat-label">Waiting to Issue</p>
+      </div>
+    </div>
+
+    <div class="iq-stat-card">
+      <div class="iq-stat-icon iq-stat-icon--stale"><i data-lucide="alarm-clock"></i></div>
+      <div>
+        <p class="iq-stat-number">{{ stale_count }}</p>
+        <p class="iq-stat-label">Waiting 3+ Days</p>
+      </div>
+    </div>
+
+    <div class="iq-stat-card">
+      <div class="iq-stat-icon iq-stat-icon--blocked"><i data-lucide="alert-triangle"></i></div>
+      <div>
+        <p class="iq-stat-number">{{ no_copies_count }}</p>
+        <p class="iq-stat-label">Blocked &middot; No Copies</p>
+      </div>
+    </div>
+
+   <a href="{% url 'active_loans' %}" class="iq-stat-card iq-stat-card--clickable">
+
+      <div class="iq-stat-icon iq-stat-icon--issued">
+          <i data-lucide="check-circle"></i>
+      </div>
+
+      <div>
+          <p class="iq-stat-number">
+              {{ issued_today_count }}
+          </p>
+
+          <p class="iq-stat-label">
+              Issued Today
+          </p>
+      </div>
+
+  </a>
+  </div>
+
+  <!-- ---------- TOOLBAR: search + filter button ---------- -->
+  <form method="get" id="iqFilterForm">
+
+    <div class="iq-toolbar">
+      <div class="iq-search-bar">
+        <i data-lucide="search"></i>
+        <input
+          type="text"
+          id="searchInput"
+          name="q"
+          value="{{ search_query }}"
+          placeholder="Search by student name, book title, or ISBN..."
+        >
+      </div>
+
+      <button type="button" class="iq-filter-btn" id="iqFilterToggle">
+        <i data-lucide="sliders-horizontal"></i>
+      </button>
+
+      <div class="iq-chip-row">
+
+        <button
+            type="button"
+            data-waiting="all"
+            class="iq-chip {% if waiting_filter == 'all' %}active{% endif %}">
+            All ({{ all_count }})
+        </button>
+
+        <button
+            type="button"
+            data-waiting="today"
+            class="iq-chip {% if waiting_filter == 'today' %}active{% endif %}">
+            Ready Today ({{ ready_today_count }})
+        </button>
+
+        <button
+            type="button"
+            data-waiting="gt3"
+            class="iq-chip {% if waiting_filter == 'gt3' %}active{% endif %}">
+            Waiting &gt; 3 Days ({{ stale_count }})
+        </button>
+
+        <button
+            type="button"
+            data-waiting="stale"
+            class="iq-chip {% if waiting_filter == 'stale' %}active{% endif %}">
+            Stale Requests ({{ stale_count }})
+        </button>
+
+    </div>
+    </div>
+
+    <!-- ---------- FILTER PANEL (hidden until toggled) ---------- -->
+    <!-- ---------- FILTER PANEL ---------- -->
+    <div class="iq-filter-panel" id="iqFilterPanel">
+
+    <!-- Library -->
+    <div class="iq-filter-group">
+        <label class="iq-filter-label">Library</label>
+        <select class="iq-filter-select library-choice" id="libraryFilter" name="library" >
+        <option value="">All Libraries</option>
+
+        {% for lib in libraries %}
+        <option value="{{ lib.library_code }}"
+            {% if selected_library == lib.library_code %}selected{% endif %}>
+            {{ lib.library_name }}
+        </option>
+        {% endfor %}
+        </select>
+    </div>
+
+    <!-- Waiting Time -->
+    <div class="iq-filter-group">
+        <label class="iq-filter-label">Waiting Time</label>
+
+        <select class="iq-filter-select library-choice" id="waitingFilter" name="waiting">
+        <option value="all"
+            {% if waiting_filter == "all" %}selected{% endif %}>
+            All
+        </option>
+
+        <option value="today"
+            {% if waiting_filter == "today" %}selected{% endif %}>
+            Today
+        </option>
+
+        <option value="1-3"
+            {% if waiting_filter == "1-3" %}selected{% endif %}>
+            1 - 3 Days
+        </option>
+
+        <option value="gt3"
+            {% if waiting_filter == "gt3" %}selected{% endif %}>
+            More than 3 Days
+        </option>
+        </select>
+    </div>
+
+    <!-- User Type -->
+    <div class="iq-filter-group">
+        <label class="iq-filter-label">User Type</label>
+
+        <select class="iq-filter-select library-choice" id="userTypeFilter" name="user_type">
+        <option value="">All Users</option>
+
+        {% for code,label in user_type_choices %}
+        <option value="{{ code }}"
+            {% if selected_user_type == code %}selected{% endif %}>
+            {{ label }}
+        </option>
+        {% endfor %}
+        </select>
+    </div>
+
+    <!-- Category -->
+    <div class="iq-filter-group">
+        <label class="iq-filter-label">Book Category</label>
+
+        <select class="iq-filter-select library-choice" id="categoryFilter" name="category">
+        <option value="">All Categories</option>
+
+        {% for cat in categories %}
+        <option value="{{ cat.id }}"
+            {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+            {{ cat.title }}
+        </option>
+        {% endfor %}
+        </select>
+    </div>
+
+    <!-- Sort -->
+    <div class="iq-filter-group">
+        <label class="iq-filter-label">Sort By</label>
+
+        <select class="iq-filter-select library-choice" id="sortFilter" name="sort">
+        <option value="oldest_waiting"
+            {% if sort_by == "oldest_waiting" or not sort_by %}selected{% endif %}>
+            Oldest Waiting
+        </option>
+
+        <option value="newest_approved"
+            {% if sort_by == "newest_approved" %}selected{% endif %}>
+            Newest Approved
+        </option>
+
+        <option value="student_name"
+            {% if sort_by == "student_name" %}selected{% endif %}>
+            Student Name (A-Z)
+        </option>
+
+        <option value="book_title"
+            {% if sort_by == "book_title" %}selected{% endif %}>
+            Book Title (A-Z)
+        </option>
+        </select>
+    </div>
+
+    <!-- Buttons -->
+    <div class="iq-filter-actions">
+
+        <a href="{% url 'issue_queue' %}"
+        class="iq-filter-reset">
+        Reset
+        </a>
+
+        <button type="submit"
+                class="iq-filter-apply">
+        Apply Filters
+        </button>
+
+    </div>
+
+    </div>
+
+  </form>
+
+  <div id="issueQueueResults">
+    <div class="card iq-card">
+      <div class="card-body p-0">
+
+        {% if page_obj.object_list %}
+          <div class="table-responsive">
+            <table class="table iq-table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Book</th>
+                  <th>Library</th>
+                  <th>Approved</th>
+                  <th>Waiting</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in page_obj %}
+                  <tr class="{% if row.is_stale %}iq-row-stale{% endif %} {% if row.no_copies %}iq-row-blocked{% endif %}">
+                    <td>
+                      <div class="iq-student">
+                        <span class="iq-avatar">
+                          {{ row.request.library_user.user.first_name|slice:":1" }}{{ row.request.library_user.user.last_name|slice:":1" }}
+                        </span>
+                        <div>
+                          <p class="iq-student-name">{{ row.request.library_user.user.get_full_name }}</p>
+                          <p class="iq-student-sub">{{ row.request.library_user.get_user_type_display }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <p class="iq-book-title">{{ row.request.resource.title }}</p>
+                      <p class="iq-book-sub">{{ row.request.resource.author }}</p>
+                      {% if row.no_copies %}
+                        <span class="iq-blocked-tag">
+                          <i data-lucide="alert-triangle"></i> No copies available
+                        </span>
+                      {% endif %}
+                    </td>
+                    <td class="iq-muted">
+                      {{ row.request.resource.library.library_name|default:"—" }}
+                    </td>
+                    <td class="iq-muted">
+                      {{ row.request.approved_date|date:"M d, Y" }}
+                    </td>
+                    <td>
+                      {% if row.waiting_days is not None %}
+                        <span class="badge iq-wait-badge {% if row.is_stale %}iq-wait-badge--stale{% endif %}">
+                          {{ row.waiting_days }} day{{ row.waiting_days|pluralize }}
+                        </span>
+                      {% else %}
+                        <span class="iq-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">
+                      {% if row.no_copies %}
+                        <button type="button" class="btn btn-sm iq-issue-btn iq-issue-btn--disabled" disabled>
+                          <i data-lucide="ban"></i>
+                          Issue
+                        </button>
+                      {% else %}
+                        <a href="{% url 'issue_book_detail' request_uuid=row.request.uuid %}" class="btn btn-sm iq-issue-btn">
+                          <i data-lucide="check-circle"></i>
+                          Issue
+                        </a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="iq-pagination">
+
+              <div class="iq-pagination-info">
+
+                  Showing
+                  {{ page_obj.start_index }}
+                  -
+                  {{ page_obj.end_index }}
+                  of
+                  {{ page_obj.paginator.count }}
+                  requests
+
+              </div>
+
+              <div class="iq-pagination-nav">
+
+                  <!-- Previous -->
+
+                  {% if page_obj.has_previous %}
+
+                      <button
+                          type="button"
+                          class="iq-page-btn"
+                          data-page="{{ page_obj.previous_page_number }}">
+
+                          <i data-lucide="chevron-left"></i>
+
+                      </button>
+
+                  {% else %}
+
+                      <button
+                          type="button"
+                          class="iq-page-btn"
+                          disabled>
+
+                          <i data-lucide="chevron-left"></i>
+
+                      </button>
+
+                  {% endif %}
+
+                  <!-- Page Numbers -->
+
+                  {% for num in page_obj.paginator.page_range %}
+
+                      {% if num == page_obj.number %}
+
+                          <button
+                              type="button"
+                              class="iq-page-number active">
+
+                              {{ num }}
+
+                          </button>
+
+                      {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+
+                          <button
+                              type="button"
+                              class="iq-page-number"
+                              data-page="{{ num }}">
+
+                              {{ num }}
+
+                          </button>
+
+                      {% endif %}
+
+                  {% endfor %}
+
+                  <!-- Next -->
+
+                  {% if page_obj.has_next %}
+
+                      <button
+                          type="button"
+                          class="iq-page-btn"
+                          data-page="{{ page_obj.next_page_number }}">
+
+                          <i data-lucide="chevron-right"></i>
+
+                      </button>
+
+                  {% else %}
+
+                      <button
+                          type="button"
+                          class="iq-page-btn"
+                          disabled>
+
+                          <i data-lucide="chevron-right"></i>
+
+                      </button>
+
+                  {% endif %}
+
+              </div>
+
+          </div>
+        {% else %}
+          <div class="iq-empty">
+            <i data-lucide="inbox"></i>
+            <p>
+              {% if search_query or selected_libraries or selected_user_types or selected_categories or waiting_filter != "all" %}
+                No requests match your filters.
+              {% else %}
+                No approved requests are waiting to be issued right now.
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+
+</div>
+{% endblock %}
+
+{% block page_toasts %}
+  {% if messages %}
+    {% for message in messages %}
+      <span data-toast-tag="{{ message.tags }}" data-toast-message="{{ message|escape }}"></span>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+
+if (window.lucide) {
+    lucide.createIcons();
+}
+
+/* -------------------------------------------------
+   FILTER PANEL
+------------------------------------------------- */
+
+(function () {
+
+    var toggleBtn = document.getElementById("iqFilterToggle");
+    var panel = document.getElementById("iqFilterPanel");
+
+    if (!toggleBtn || !panel) return;
+
+    toggleBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        panel.classList.toggle("open");
+    });
+
+    document.addEventListener("click", function (e) {
+
+        if (!panel.contains(e.target) && e.target !== toggleBtn) {
+            panel.classList.remove("open");
+        }
+
+    });
+
+    document.querySelectorAll(".iq-all-toggle").forEach(function (allBox) {
+
+        var group = allBox.getAttribute("data-group");
+
+        var groupBoxes = document.querySelectorAll(
+            'input[data-group="' + group + '"]:not(.iq-all-toggle)'
+        );
+
+        allBox.addEventListener("change", function () {
+
+            if (allBox.checked) {
+
+                groupBoxes.forEach(function (box) {
+
+                    box.checked = false;
+
+                });
+
+            }
+
+        });
+
+        groupBoxes.forEach(function (box) {
+
+            box.addEventListener("change", function () {
+
+                if (box.checked) {
+
+                    allBox.checked = false;
+
+                }
+
+            });
+
+        });
+
+    });
+
+})();
+
+
+/* -------------------------------------------------
+   AJAX
+------------------------------------------------- */
+
+let currentPage = 1;
+
+function loadIssueQueue() {
+
+    const params = new URLSearchParams();
+
+    params.append(
+        "q",
+        document.getElementById("searchInput").value
+    );
+
+    params.append(
+        "library",
+        document.getElementById("libraryFilter").value
+    );
+
+    params.append(
+        "waiting",
+        document.getElementById("waitingFilter").value
+    );
+
+    params.append(
+        "category",
+        document.getElementById("categoryFilter").value
+    );
+
+    params.append(
+        "user_type",
+        document.getElementById("userTypeFilter").value
+    );
+
+    params.append(
+        "sort",
+        document.getElementById("sortFilter").value
+    );
+
+    /* Pagination */
+    params.append(
+        "page",
+        currentPage
+    );
+
+    fetch(
+        window.location.pathname + "?" + params.toString(),
+        {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        }
+    )
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        const parser = new DOMParser();
+
+        const doc = parser.parseFromString(
+            data.html,
+            "text/html"
+        );
+
+        document.getElementById("issueQueueResults").innerHTML =
+            doc.getElementById("issueQueueResults").innerHTML;
+
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+    });
+
+}
+
+
+/* -------------------------------------------------
+   LIVE SEARCH
+------------------------------------------------- */
+
+let timer;
+
+document
+.getElementById("searchInput")
+.addEventListener("keyup", function () {
+
+    clearTimeout(timer);
+
+    timer = setTimeout(function () {
+
+        currentPage = 1;
+
+        loadIssueQueue();
+
+    }, 300);
+
+});
+
+
+/* -------------------------------------------------
+   FILTERS
+------------------------------------------------- */
+
+document
+.getElementById("libraryFilter")
+.addEventListener("change", function () {
+
+    currentPage = 1;
+
+    loadIssueQueue();
+
+});
+
+
+document
+.getElementById("waitingFilter")
+.addEventListener("change", function () {
+
+    currentPage = 1;
+
+    loadIssueQueue();
+
+});
+
+
+document
+.getElementById("categoryFilter")
+.addEventListener("change", function () {
+
+    currentPage = 1;
+
+    loadIssueQueue();
+
+});
+
+
+document
+.getElementById("userTypeFilter")
+.addEventListener("change", function () {
+
+    currentPage = 1;
+
+    loadIssueQueue();
+
+});
+
+
+document
+.getElementById("sortFilter")
+.addEventListener("change", function () {
+
+    currentPage = 1;
+
+    loadIssueQueue();
+
+});
+
+
+/* -------------------------------------------------
+   AJAX PAGINATION
+------------------------------------------------- */
+
+document.addEventListener("click", function (e) {
+
+    const pageButton = e.target.closest("[data-page]");
+
+    if (!pageButton) return;
+
+    e.preventDefault();
+
+    currentPage = parseInt(pageButton.dataset.page);
+
+    loadIssueQueue();
+
+});
+
+/* -------------------------------------------------
+   FILTER CHIPS (AJAX)
+------------------------------------------------- */
+
+document.addEventListener("click", function (e) {
+
+    const chip = e.target.closest(".iq-chip");
+
+    if (!chip) return;
+
+    e.preventDefault();
+
+    // Reset to first page
+    currentPage = 1;
+
+    // Update hidden/select filter used by AJAX
+    document.getElementById("waitingFilter").value =
+        chip.dataset.waiting;
+
+    // Update active chip
+    document.querySelectorAll(".iq-chip").forEach(function (item) {
+        item.classList.remove("active");
+    });
+
+    chip.classList.add("active");
+
+    // Reload
+    loadIssueQueue();
+
+});
+
+</script>
+{% endblock %}

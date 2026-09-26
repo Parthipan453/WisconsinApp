@@ -1,0 +1,4895 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Rooms{% endblock %}
+{% block page_title %}Rooms{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Rixie/room.css' %}">
+<style>
+    .room-field-error {
+        display: none;
+        margin-top: 5px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #c5050c;
+    }
+
+    .room-field-error.room-field-error-visible {
+        display: block;
+    }
+
+    .room-form-control.room-control-invalid {
+        border-color: #c5050c;
+    }
+
+    .room-form-control.room-control-invalid:focus {
+        box-shadow: 0 0 0 2px rgba(197, 5, 12, .12);
+    }
+
+    .room-dropdown {
+        position: relative;
+        width: 100%;
+    }
+
+    .room-dropdown-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .room-dropdown-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .room-dropdown-caret {
+        flex-shrink: 0;
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid #9ca3af;
+        transition: transform .15s ease;
+    }
+
+    .room-dropdown.open .room-dropdown-caret {
+        transform: rotate(180deg);
+    }
+
+    .room-dropdown-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 180px;
+        overflow-y: auto;
+        list-style: none;
+        margin: 0;
+        padding: 6px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, .12);
+    }
+
+    .room-dropdown.open .room-dropdown-menu {
+        display: block;
+    }
+
+    .room-dropdown-menu li {
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #374151;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .room-dropdown-menu li:hover {
+        background: #f3f4f6;
+    }
+
+    .room-dropdown-menu li.selected {
+        background: #fff0f0;
+        color: #c5050c;
+        font-weight: 600;
+    }
+
+    .room-dropdown-hidden-select {
+        display: none;
+    }
+
+    .room-building-type {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 35px;
+        padding: 5px 9px;
+        border-radius: 20px;
+        background: #fff7ed;
+        color: #ea580c;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .room-table th:nth-child(1),
+    .room-table td:nth-child(1) {
+        width: 18%;
+    }
+
+    .room-table th:nth-child(2),
+    .room-table td:nth-child(2) {
+        width: 12%;
+    }
+
+    .room-table th:nth-child(3),
+    .room-table td:nth-child(3) {
+        width: 9%;
+    }
+
+    .room-table th:nth-child(4),
+    .room-table td:nth-child(4) {
+        width: 8%;
+    }
+
+    .room-table th:nth-child(5),
+    .room-table td:nth-child(5) {
+        width: 11%;
+    }
+
+    .room-table th:nth-child(6),
+    .room-table td:nth-child(6) {
+        width: 8%;
+    }
+
+    .room-table th:nth-child(7),
+    .room-table td:nth-child(7) {
+        width: 17%;
+    }
+
+    .room-table th:nth-child(8),
+    .room-table td:nth-child(8) {
+        width: 9%;
+    }
+
+    .room-table th:nth-child(9),
+    .room-table td:nth-child(9) {
+        width: 8%;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="room-dashboard">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="room-header">
+
+        <div class="room-header-content">
+
+            <h1>Room Management</h1>
+
+            <p>
+                Manage and monitor all university rooms.
+            </p>
+
+        </div>
+
+        <!-- Button only for Step 1 -->
+ <button 
+    type="button" 
+    class="room-add-btn" 
+    data-bs-toggle="modal" 
+    data-bs-target="#addRoomModal"
+>
+    <i data-lucide="plus"></i>
+    Add Room
+</button>
+
+    </div>
+
+
+    <!-- =====================================================
+         SUMMARY CARDS
+    ====================================================== -->
+
+    <div class="room-summary-grid">
+
+        <!-- NORMAL ROOMS -->
+
+        <div class="room-summary-card">
+
+            <div class="summary-card-top">
+
+                <p class="summary-card-label">
+                    Normal Rooms
+                </p>
+
+                <div class="summary-card-icon">
+                    <i data-lucide="building"></i>
+                </div>
+
+            </div>
+
+           <p
+    class="summary-card-number"
+    id="normalRoomsCount"
+>
+    {{ normal_rooms }}
+</p>
+
+        </div>
+
+
+        <!-- AVAILABLE -->
+
+        <div class="room-summary-card summary-card-available">
+
+            <div class="summary-card-top">
+
+                <p class="summary-card-label">
+                    Available
+                </p>
+
+                <div class="summary-card-icon">
+                    <i data-lucide="circle-check"></i>
+                </div>
+
+            </div>
+
+           <p
+    class="summary-card-number"
+    id="availableRoomsCount"
+>
+    {{ available_rooms }}
+</p>
+
+        </div>
+
+
+        <!-- MAINTENANCE -->
+
+        <div class="room-summary-card summary-card-maintenance">
+
+            <div class="summary-card-top">
+
+                <p class="summary-card-label">
+                    Maintenance
+                </p>
+
+                <div class="summary-card-icon">
+                    <i data-lucide="wrench"></i>
+                </div>
+
+            </div>
+
+            <p
+    class="summary-card-number"
+    id="maintenanceRoomsCount"
+>
+    {{ maintenance_rooms }}
+</p>
+
+        </div>
+
+
+        <!-- BLOCKED -->
+
+        <div class="room-summary-card summary-card-blocked">
+
+            <div class="summary-card-top">
+
+                <p class="summary-card-label">
+                    Blocked
+                </p>
+
+                <div class="summary-card-icon">
+                    <i data-lucide="ban"></i>
+                </div>
+
+            </div>
+
+          <p
+    class="summary-card-number"
+    id="blockedRoomsCount"
+>
+    {{ blocked_rooms }}
+</p>
+
+        </div>
+
+
+        <!-- MEDICAL ROOMS -->
+
+        <div class="room-summary-card summary-card-capacity">
+
+            <div class="summary-card-top">
+
+                <p class="summary-card-label">
+                    Medical Rooms
+                </p>
+
+                <div class="summary-card-icon">
+                    <i data-lucide="heart-pulse"></i>
+                </div>
+
+            </div>
+
+          <p
+    class="summary-card-number"
+    id="medicalRoomsCount"
+>
+    {{ medical_rooms }}
+</p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ROOM TABLE CONTAINER
+    ====================================================== -->
+
+    <div class="room-table-container">
+
+        <!-- TABLE HEADER -->
+
+        <div class="room-table-header">
+
+            <div class="room-table-title">
+
+                <h2>
+                    Rooms
+                </h2>
+
+                <p>
+                    All registered university rooms
+                </p>
+
+            </div>
+
+
+            <div class="room-table-filters">
+
+                <!-- SEARCH -->
+
+                <div class="room-search">
+
+                    <input
+                        type="text"
+                        id="roomSearch"
+                        placeholder="Search rooms..."
+                    >
+
+                </div>
+
+
+                <!-- BUILDING -->
+
+                <select
+                    id="roomBuildingFilter"
+                    class="room-building-select"
+                >
+
+                    <option value="ALL">
+                        All Buildings
+                    </option>
+
+                </select>
+
+
+                <!-- FLOOR -->
+
+                <select
+                    id="roomFloorFilter"
+                    class="room-floor-select"
+                >
+
+                    <option value="ALL">
+                        All Floors
+                    </option>
+
+                </select>
+
+
+                <!-- STATUS -->
+
+                <select
+                    id="roomStatusFilter"
+                    class="room-status-select"
+                >
+
+                    <option value="ALL">
+                        All Status
+                    </option>
+
+                    <option value="AVAILABLE">
+                        Available
+                    </option>
+
+                    <option value="MAINTENANCE">
+                        Maintenance
+                    </option>
+
+                    <option value="BLOCKED">
+                        Blocked
+                    </option>
+
+                </select>
+
+
+                <!-- BUILDING TYPE FILTER -->
+
+                <div class="d-flex gap-1">
+
+                    <button type="button" class="btn btn-sm room-type-btn {% if building_type_filter == '' %}active{% endif %}" data-type="ALL" onclick="filterByRoomType('ALL')" style="font-size:12px;border-radius:8px;padding:6px 14px;{% if building_type_filter == '' %}background:#c5050c;color:#fff;border:none;{% else %}background:#fff;color:#374151;border:1px solid #e5e7eb;{% endif %}">
+                        All
+                    </button>
+
+                    <button type="button" class="btn btn-sm room-type-btn {% if building_type_filter == 'NORMAL' %}active{% endif %}" data-type="NORMAL" onclick="filterByRoomType('NORMAL')" style="font-size:12px;border-radius:8px;padding:6px 14px;{% if building_type_filter == 'NORMAL' %}background:#c5050c;color:#fff;border:none;{% else %}background:#fff;color:#374151;border:1px solid #e5e7eb;{% endif %}">
+                        Normal
+                    </button>
+
+                    <button type="button" class="btn btn-sm room-type-btn {% if building_type_filter == 'MEDICAL' %}active{% endif %}" data-type="MEDICAL" onclick="filterByRoomType('MEDICAL')" style="font-size:12px;border-radius:8px;padding:6px 14px;{% if building_type_filter == 'MEDICAL' %}background:#c5050c;color:#fff;border:none;{% else %}background:#fff;color:#374151;border:1px solid #e5e7eb;{% endif %}">
+                        Medical
+                    </button>
+
+                </div>
+
+
+                <!-- EXPORT -->
+
+                <div class="d-flex gap-2">
+
+                    <a
+                        href="{% url 'room_excel' %}"
+                        class="btn btn-sm btn-outline-success room-export-btn"
+                        title="Download Excel"
+                    >
+                        <i
+                            data-lucide="file-spreadsheet"
+                        ></i>
+
+                        Excel
+                    </a>
+
+                    <a
+                        href="{% url 'room_pdf' %}"
+                        class="btn btn-sm btn-outline-danger room-export-btn"
+                        title="Download PDF"
+                    >
+                        <i
+                            data-lucide="file-text"
+                        ></i>
+
+                        PDF
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             ROOM TABLE
+        ================================================== -->
+
+        <div class="room-table-wrapper">
+
+            <table class="room-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Room
+                        </th>
+
+                        <th>
+                            Building
+                        </th>
+
+                        <th>
+                            Building Type
+                        </th>
+
+                        <th>
+                            Floor
+                        </th>
+
+                        <th>
+                            Room Type
+                        </th>
+
+                        <th>
+                            Capacity
+                        </th>
+
+                        <th>
+                            Facilities
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="roomTableBody">
+                     {% for room in paginated_rooms %}
+
+                    <tr
+                        data-room-number="{{ room.room_number|lower }}"
+                        data-room-name="{{ room.room_name|lower }}"
+                        data-building="{{ room.floor.building.building_name|lower }}"
+                        data-building-type="{{ room.floor.building.building_type }}"
+                        data-floor="{{ room.floor.floor_number|lower }}"
+                        data-room-type="{{ room.get_room_type_display|lower }}"
+                        data-status="{{ room.status }}"
+                    >
+
+                        <!-- ROOM -->
+
+                        <td>
+
+                            <div class="room-name-wrapper">
+
+                                <div class="room-thumbnail">
+
+                                    <i data-lucide="door-open"></i>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="room-name">
+
+                                        Room {{ room.room_number }}
+
+                                    </div>
+
+
+                                    <div class="room-code">
+
+                                        {% if room.room_name %}
+                                            {{ room.room_name }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- BUILDING -->
+
+                        <td>
+
+                            <div class="room-building-name">
+
+                                {{ room.floor.building.building_name }}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- BUILDING TYPE -->
+
+                        <td>
+
+                            <span class="room-building-type">
+                                {% if room.floor.building.building_type == "MEDICAL" %}
+                                Medical
+                                {% else %}
+                                Normal
+                                {% endif %}
+                            </span>
+
+                        </td>
+
+
+                        <!-- FLOOR -->
+
+                        <td>
+
+                            {{ room.floor.floor_number }}
+
+                        </td>
+
+
+                        <!-- ROOM TYPE -->
+
+                        <td>
+
+                            {% if room.get_room_type_display %}
+                                {{ room.get_room_type_display }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- CAPACITY -->
+
+                        <td>
+
+                            <span class="room-capacity">
+
+                                {% if room.capacity %}
+                                    {{ room.capacity }}
+                                {% else %}
+                                    —
+                                {% endif %}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- FACILITIES -->
+
+                        <td>
+
+                            <div class="room-facilities">
+
+                                {% if room.has_computers %}
+
+                                    <span
+                                        class="facility-item"
+                                        title="Computers"
+                                    >
+                                        <i data-lucide="monitor"></i>
+                                        Computers
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if room.has_projector %}
+
+                                    <span
+                                        class="facility-item"
+                                        title="Projector"
+                                    >
+                                        <i data-lucide="projector"></i>
+                                        Projector
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if room.has_ac %}
+
+                                    <span
+                                        class="facility-item"
+                                        title="Air Conditioning"
+                                    >
+                                        <i data-lucide="snowflake"></i>
+                                        AC
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if not room.has_computers and not room.has_projector and not room.has_ac %}
+
+                                    <span class="facility-empty">
+                                        —
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% if room.status == "AVAILABLE" %}
+
+                                <span class="room-status-badge available">
+                                    Available
+                                </span>
+
+                            {% elif room.status == "MAINTENANCE" %}
+
+                                <span class="room-status-badge maintenance">
+                                    Maintenance
+                                </span>
+
+                            {% elif room.status == "BLOCKED" %}
+
+                                <span class="room-status-badge blocked">
+                                    Blocked
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- ACTIONS -->
+
+                        <td>
+
+                            <div class="room-actions">
+
+                              <button
+    type="button"
+    class="room-action-btn view-room-btn"
+    title="View"
+
+    data-room-id="{{ room.pk }}"
+    data-room-number="{{ room.room_number|escapejs }}"
+    data-room-name="{{ room.room_name|escapejs }}"
+    data-building="{{ room.floor.building.building_name|escapejs }}"
+    data-floor="{{ room.floor.floor_number|escapejs }}"
+    data-room-type="{{ room.get_room_type_display|escapejs }}"
+    data-capacity="{{ room.capacity }}"
+    data-status="{{ room.status }}"
+    data-status-display="{{ room.get_status_display|escapejs }}"
+    data-ac="{{ room.has_ac|yesno:'true,false' }}"
+    data-projector="{{ room.has_projector|yesno:'true,false' }}"
+    data-computers="{{ room.has_computers|yesno:'true,false' }}"
+>
+    <i class="fa-regular fa-eye"></i>
+</button>
+
+<button
+    type="button"
+    class="room-action-btn edit-room-btn"
+    title="Edit"
+
+    data-room-id="{{ room.pk }}"
+    data-room-number="{{ room.room_number|escapejs }}"
+    data-room-name="{{ room.room_name|escapejs }}"
+    data-building-id="{{ room.floor.building.pk }}"
+    data-floor-id="{{ room.floor.pk }}"
+    data-room-type="{{ room.room_type }}"
+    data-capacity="{{ room.capacity }}"
+    data-status="{{ room.status }}"
+    data-ac="{{ room.has_ac|yesno:'true,false' }}"
+    data-projector="{{ room.has_projector|yesno:'true,false' }}"
+    data-computers="{{ room.has_computers|yesno:'true,false' }}"
+>
+    <i class="fa-regular fa-pen-to-square"></i>
+</button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td colspan="9">
+
+                            <div class="room-empty">
+
+                                <div class="room-empty-icon">
+
+                                    <i data-lucide="door-open"></i>
+
+                                </div>
+
+                                <h3>
+                                    No Rooms Found
+                                </h3>
+
+                                <p>
+                                    No rooms have been added yet.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- =================================================
+             PAGINATION
+        ================================================== -->
+<div class="room-pagination">
+
+    <small>
+        Showing
+        {{ paginated_rooms.start_index }}
+        –
+        {{ paginated_rooms.end_index }}
+        of
+        {{ paginated_rooms.paginator.count }}
+        rooms
+    </small>
+
+
+    <div class="d-flex gap-2">
+
+        {% if paginated_rooms.has_previous %}
+
+            <a
+                href="?page={{ paginated_rooms.previous_page_number }}{% if building_type_filter %}&building_type={{ building_type_filter }}{% endif %}"
+                class="room-pg-btn"
+            >
+                <i data-lucide="chevron-left"></i>
+                Prev
+            </a>
+
+        {% else %}
+
+            <span class="room-pg-btn disabled">
+                <i data-lucide="chevron-left"></i>
+                Prev
+            </span>
+
+        {% endif %}
+
+
+        {% for num in paginated_rooms.paginator.page_range %}
+
+            {% if num == paginated_rooms.number %}
+
+                <span class="room-pg-btn room-pg-active">
+                    {{ num }}
+                </span>
+
+            {% elif num == paginated_rooms.number|add:"-1" or num == paginated_rooms.number|add:"1" %}
+
+                <a
+                    href="?page={{ num }}{% if building_type_filter %}&building_type={{ building_type_filter }}{% endif %}"
+                    class="room-pg-btn"
+                >
+                    {{ num }}
+                </a>
+
+            {% endif %}
+
+        {% endfor %}
+
+
+        {% if paginated_rooms.has_next %}
+
+            <a
+                href="?page={{ paginated_rooms.next_page_number }}{% if building_type_filter %}&building_type={{ building_type_filter }}{% endif %}"
+                class="room-pg-btn"
+            >
+                Next
+                <i data-lucide="chevron-right"></i>
+            </a>
+
+        {% else %}
+
+            <span class="room-pg-btn disabled">
+                Next
+                <i data-lucide="chevron-right"></i>
+            </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+    </div>
+
+</div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const addRoomForm =
+        document.getElementById("addRoomForm");
+
+    const buildingSelect =
+        document.getElementById("addRoomBuilding");
+
+    const floorSelect =
+        document.getElementById("addRoomFloor");
+
+    const submitButton =
+        document.getElementById("addRoomSubmitBtn");
+
+    const buildingTypeSelect =
+        document.getElementById("addRoomBuildingType");
+
+
+
+    function applyAddRoomBuildingTypeFilter() {
+
+        const selectedType =
+            buildingTypeSelect.value;
+
+        /* Filter hidden select options */
+
+        Array.from(buildingSelect.options).forEach(
+            function (option) {
+
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                const optionType =
+                    option.getAttribute("data-building-type") ||
+                    "NORMAL";
+
+                option.hidden =
+                    selectedType !== "" &&
+                    optionType !== selectedType;
+
+            }
+        );
+
+        /* Filter custom dropdown list items */
+
+        const buildingList =
+            document.getElementById("addRoomBuildingList");
+
+        if (buildingList) {
+
+            buildingList.querySelectorAll("li").forEach(
+                function (item) {
+
+                    const itemType =
+                        item.getAttribute("data-building-type") ||
+                        "NORMAL";
+
+                    item.style.display =
+                        (
+                            selectedType === "" ||
+                            itemType === selectedType
+                        )
+                            ? ""
+                            : "none";
+
+                }
+            );
+        }
+
+        /* Reset building + floor when type changes */
+
+        buildingSelect.value = "";
+
+        if (
+            typeof syncRoomBuildingDropdown === "function"
+        ) {
+            syncRoomBuildingDropdown("addRoomBuilding");
+        }
+
+        floorSelect.innerHTML =
+            '<option value="">Select Building First</option>';
+
+        floorSelect.disabled = true;
+
+
+        /* Medical → hide Room Name, Room Type,
+           Capacity and Facilities */
+
+        const isMedical =
+            selectedType === "MEDICAL";
+
+        document.getElementById(
+            "addRoomNameGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "addRoomTypeGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "addRoomCapacityGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "addRoomFacilitiesGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "addRoomName"
+        ).required = !isMedical;
+
+        document.getElementById(
+            "addRoomType"
+        ).required = !isMedical;
+
+        document.getElementById(
+            "addRoomCapacity"
+        ).required = !isMedical;
+
+    }
+
+    buildingTypeSelect.addEventListener(
+        "change",
+        applyAddRoomBuildingTypeFilter
+    );
+
+
+    /*  BUILDING → FLOOR */
+
+    buildingSelect.addEventListener("change", function () {
+
+        const buildingId = this.value;
+
+        floorSelect.innerHTML =
+            '<option value="">Select Floor</option>';
+
+        floorSelect.disabled = true;
+
+        if (!buildingId) {
+            floorSelect.innerHTML =
+                '<option value="">Select Building First</option>';
+            return;
+        }
+
+        floorSelect.innerHTML =
+            '<option value="">Loading floors...</option>';
+
+        fetch(
+            "{% url 'room_floors' %}?building_id=" +
+            encodeURIComponent(buildingId),
+            {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        )
+        .then(function (response) {
+
+            if (!response.ok) {
+                throw new Error("Failed to load floors.");
+            }
+
+            return response.json();
+
+        })
+        .then(function (data) {
+
+            floorSelect.innerHTML =
+                '<option value="">Select Floor</option>';
+
+            if (
+                !data.success ||
+                !data.floors ||
+                data.floors.length === 0
+            ) {
+
+                floorSelect.innerHTML =
+                    '<option value="">No Floors Available</option>';
+
+                floorSelect.disabled = true;
+
+                return;
+            }
+
+            data.floors.forEach(function (floor) {
+
+                const option =
+                    document.createElement("option");
+
+                option.value = floor.id;
+                option.textContent = floor.floor_number;
+
+                floorSelect.appendChild(option);
+
+            });
+
+            floorSelect.disabled = false;
+
+        })
+        .catch(function () {
+
+            floorSelect.innerHTML =
+                '<option value="">Unable to load floors</option>';
+
+            floorSelect.disabled = true;
+
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: "Could not load floors for this building."
+            });
+
+        });
+
+    });
+
+
+    /* ADD ROOM */
+
+    addRoomForm.addEventListener("submit", function (event) {
+
+        event.preventDefault();
+
+        const roomNumber =
+            document.getElementById("addRoomNumber")
+                .value.trim();
+
+        const roomName =
+            document.getElementById("addRoomName")
+                .value.trim();
+
+        const building =
+            document.getElementById("addRoomBuilding")
+                .value;
+
+        const floor =
+            document.getElementById("addRoomFloor")
+                .value;
+
+        const roomType =
+            document.getElementById("addRoomType")
+                .value;
+
+        const capacity =
+            document.getElementById("addRoomCapacity")
+                .value;
+
+        const status =
+            document.getElementById("addRoomStatus")
+                .value;
+
+        const buildingType =
+            buildingTypeSelect.value;
+
+        const isMedicalRoom =
+            buildingType === "MEDICAL";
+
+
+        /* REQUIRED VALIDATION */
+
+        const addBuildingTypeEl =
+            document.getElementById("addRoomBuildingType");
+
+        const addBuildingEl =
+            document.getElementById("addRoomBuildingToggle");
+
+        const addFloorEl =
+            document.getElementById("addRoomFloor");
+
+        const addNumberEl =
+            document.getElementById("addRoomNumber");
+
+        const addNameEl =
+            document.getElementById("addRoomName");
+
+        const addTypeEl =
+            document.getElementById("addRoomType");
+
+        const addCapacityEl =
+            document.getElementById("addRoomCapacity");
+
+        const addStatusEl =
+            document.getElementById("addRoomStatus");
+
+        let valid = true;
+
+        if (!buildingType) {
+            showFieldError(
+                addBuildingTypeEl,
+                "Please select a building type."
+            );
+            valid = false;
+        } else {
+            clearFieldError(addBuildingTypeEl);
+        }
+
+        if (!building) {
+            showFieldError(
+                addBuildingEl,
+                "Please select a building."
+            );
+            valid = false;
+        } else {
+            clearFieldError(addBuildingEl);
+        }
+
+
+        if (!floor) {
+            showFieldError(
+                addFloorEl,
+                "Please select a floor."
+            );
+            valid = false;
+        } else {
+            clearFieldError(addFloorEl);
+        }
+
+
+        if (!roomNumber) {
+            showFieldError(
+                addNumberEl,
+                "Please enter the room number."
+            );
+            valid = false;
+        } else if (!/^\d+$/.test(roomNumber)) {
+            showFieldError(
+                addNumberEl,
+                "Room number must contain only numbers."
+            );
+            valid = false;
+        } else if (Number(roomNumber) > 50) {
+            showFieldError(
+                addNumberEl,
+                "Room number cannot exceed 50."
+            );
+            valid = false;
+        } else if (
+            typeof roomList !== "undefined" &&
+            roomList.some(function (room) {
+                return String(room.floor_id) === String(floor) &&
+                       String(room.room_number).trim().toLowerCase() ===
+                       roomNumber.toLowerCase();
+            })
+        ) {
+            showFieldError(
+                addNumberEl,
+                "A room with this number already exists on this floor."
+            );
+            valid = false;
+        } else {
+            clearFieldError(addNumberEl);
+        }
+
+
+        if (!isMedicalRoom) {
+
+            if (!roomName) {
+                showFieldError(
+                    addNameEl,
+                    "Please enter the room name."
+                );
+                valid = false;
+            } else if (!/^[A-Za-z0-9 ]+$/.test(roomName)) {
+                showFieldError(
+                    addNameEl,
+                    "Room name can only contain letters, numbers and spaces."
+                );
+                valid = false;
+            } else if (
+                typeof roomList !== "undefined" &&
+                roomList.some(function (room) {
+                    return String(room.room_name).trim().toLowerCase() ===
+                           roomName.toLowerCase();
+                })
+            ) {
+                showFieldError(
+                    addNameEl,
+                    "A room with this room name already exists."
+                );
+                valid = false;
+            } else {
+                clearFieldError(addNameEl);
+            }
+
+
+            if (!roomType) {
+                showFieldError(
+                    addTypeEl,
+                    "Please select a room type."
+                );
+                valid = false;
+            } else {
+                clearFieldError(addTypeEl);
+            }
+
+
+            if (!capacity || Number(capacity) <= 0) {
+                showFieldError(
+                    addCapacityEl,
+                    "Capacity must be greater than 0."
+                );
+                valid = false;
+            } else if (Number(capacity) > 200) {
+                showFieldError(
+                    addCapacityEl,
+                    "Capacity cannot exceed 200."
+                );
+                valid = false;
+            } else {
+                clearFieldError(addCapacityEl);
+            }
+
+        } else {
+
+            clearFieldError(addNameEl);
+            clearFieldError(addTypeEl);
+            clearFieldError(addCapacityEl);
+
+        }
+
+
+        if (!status) {
+            showFieldError(
+                addStatusEl,
+                "Please select a status."
+            );
+            valid = false;
+        } else {
+            clearFieldError(addStatusEl);
+        }
+
+
+        if (!valid) {
+            const firstInvalid =
+                document.querySelector(
+                    "#addRoomModal .room-control-invalid"
+                );
+
+            if (firstInvalid) {
+                firstInvalid.focus();
+            }
+
+            return;
+        }
+
+
+        const formData =
+            new FormData(addRoomForm);
+
+        const originalButton =
+            submitButton.innerHTML;
+
+        submitButton.disabled = true;
+
+        submitButton.innerHTML = "Adding...";
+
+
+        /* AJAX SAVE */
+
+        fetch(
+            addRoomForm.action,
+            {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        )
+        .then(function (response) {
+
+            return response.json();
+
+        })
+        .then(function (data) {
+
+            if (!data.success) {
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text:
+                        data.message ||
+                        "Failed to add room."
+                });
+
+                return;
+            }
+
+
+            /*CLOSE MODAL */
+
+            const modalElement =
+                document.getElementById("addRoomModal");
+
+            const modal =
+                bootstrap.Modal.getInstance(modalElement);
+
+            if (modal) {
+                modal.hide();
+            }
+
+
+            /*  ROOM DATA */
+
+            const room = data.room;
+
+            const tableBody =
+                document.getElementById("roomTableBody");
+
+
+            /*  REMOVE EMPTY STATE */
+
+            const emptyRow =
+                tableBody.querySelector(".room-empty");
+
+            if (emptyRow) {
+                tableBody.innerHTML = "";
+            }
+
+
+            /*  FACILITIES */
+
+            let facilities = "";
+
+
+            if (room.has_computers) {
+
+                facilities += `
+                    <span
+                        class="facility-item"
+                        title="Computers"
+                    >
+                        <i data-lucide="monitor"></i>
+                        Computers
+                    </span>
+                `;
+
+            }
+
+
+            if (room.has_projector) {
+
+                facilities += `
+                    <span
+                        class="facility-item"
+                        title="Projector"
+                    >
+                        <i data-lucide="projector"></i>
+                        Projector
+                    </span>
+                `;
+
+            }
+
+
+            if (room.has_ac) {
+
+                facilities += `
+                    <span
+                        class="facility-item"
+                        title="Air Conditioning"
+                    >
+                        <i data-lucide="snowflake"></i>
+                        AC
+                    </span>
+                `;
+
+            }
+
+
+            if (!facilities) {
+
+                facilities = `
+                    <span class="facility-empty">—</span>
+                `;
+
+            }
+
+
+            /*  STATUS CLASS */
+
+            let statusClass = "available";
+
+            if (room.status === "MAINTENANCE") {
+                statusClass = "maintenance";
+            }
+
+            else if (room.status === "BLOCKED") {
+                statusClass = "blocked";
+            }
+
+
+            /*CREATE TABLE ROW */
+
+            const newRow =
+                document.createElement("tr");
+
+
+            newRow.setAttribute(
+                "data-room-number",
+                String(room.room_number).toLowerCase()
+            );
+
+            newRow.setAttribute(
+                "data-room-name",
+                String(room.room_name).toLowerCase()
+            );
+
+            newRow.setAttribute(
+                "data-building",
+                String(room.building).toLowerCase()
+            );
+
+            newRow.setAttribute(
+                "data-building-type",
+                String(room.building_type).toLowerCase()
+            );
+
+            newRow.setAttribute(
+                "data-floor",
+                String(room.floor).toLowerCase()
+            );
+
+            newRow.setAttribute(
+                "data-room-type",
+                String(room.room_type).toLowerCase()
+            );
+
+            newRow.setAttribute(
+                "data-status",
+                room.status
+            );
+
+
+            newRow.innerHTML = `
+
+                <td>
+
+                    <div class="room-name-wrapper">
+
+                        <div class="room-thumbnail">
+
+                            <i data-lucide="door-open"></i>
+
+                        </div>
+
+                        <div>
+
+                            <div class="room-name">
+                                Room ${room.room_number}
+                            </div>
+
+                            <div class="room-code">
+                                ${room.room_name || "—"}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <td>
+
+                    <div class="room-building-name">
+                        ${room.building}
+                    </div>
+
+                </td>
+
+
+                <td>
+
+                    <span class="room-building-type">
+                        ${room.building_type === "MEDICAL" ? "Medical" : "Normal"}
+                    </span>
+
+                </td>
+
+
+                <td>
+                    ${room.floor}
+                </td>
+
+
+                <td>
+                    ${room.room_type || "—"}
+                </td>
+
+
+                <td>
+
+                    <span class="room-capacity">
+                        ${room.capacity ? room.capacity : "—"}
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <div class="room-facilities">
+
+                        ${facilities}
+
+                    </div>
+
+                </td>
+
+
+                <td>
+
+                    <span
+                        class="room-status-badge ${statusClass}"
+                    >
+                        ${room.status_display}
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <div class="room-actions">
+
+                     <button
+    type="button"
+    class="room-action-btn view-room-btn"
+    title="View"
+
+    data-room-id="${room.id}"
+    data-room-number="${room.room_number}"
+    data-room-name="${room.room_name || ''}"
+    data-building="${room.building}"
+    data-floor="${room.floor}"
+    data-room-type="${room.room_type || ''}"
+    data-capacity="${room.capacity}"
+    data-status="${room.status}"
+    data-status-display="${room.status_display}"
+    data-ac="${room.has_ac}"
+    data-projector="${room.has_projector}"
+    data-computers="${room.has_computers}"
+>
+    <i class="fa-regular fa-eye"></i>
+</button>
+
+
+                       <button
+    type="button"
+    class="room-action-btn edit-room-btn"
+    title="Edit"
+
+    data-room-id="${room.id}"
+    data-room-number="${room.room_number}"
+    data-room-name="${room.room_name || ''}"
+    data-building-id="${room.building_id}"
+    data-floor-id="${room.floor_id}"
+    data-room-type="${room.room_type_value || ''}"
+    data-capacity="${room.capacity}"
+    data-status="${room.status}"
+    data-ac="${room.has_ac}"
+    data-projector="${room.has_projector}"
+    data-computers="${room.has_computers}"
+>
+    <i class="fa-regular fa-pen-to-square"></i>
+</button>
+
+                    </div>
+
+                </td>
+
+            `;
+
+
+            /* INSERT NEW ROW */
+
+            tableBody.insertBefore(
+                newRow,
+                tableBody.firstChild
+            );
+
+
+            /* SYNC ROOM LIST WITH NEW ROOM */
+
+            if (typeof roomList !== "undefined") {
+
+                let floorName = String(room.floor);
+
+                const knownFloor = roomList.find(function (r) {
+                    return String(r.floor_id) ===
+                           String(room.floor_id);
+                });
+
+                if (knownFloor && knownFloor.floor_name) {
+                    floorName = knownFloor.floor_name;
+                }
+
+                roomList.unshift({
+                    id: room.id,
+                    room_number: room.room_number,
+                    room_name: room.room_name,
+                    building: room.building,
+                    floor: room.floor,
+                    floor_name: floorName,
+                    room_type_display: room.room_type,
+                    room_type_value: room.room_type_value,
+                    capacity: room.capacity,
+                    status: room.status,
+                    status_display: room.status_display,
+                    has_ac: room.has_ac,
+                    has_projector: room.has_projector,
+                    has_computers: room.has_computers,
+                    building_id: room.building_id,
+                    floor_id: room.floor_id
+                });
+            }
+
+            if (
+                typeof isRoomFilterActive === "function" &&
+                isRoomFilterActive()
+            ) {
+                applyRoomFilters();
+            }
+
+
+            /*  UPDATE STATISTICS */
+
+            document.getElementById(
+                "normalRoomsCount"
+            ).textContent =
+                data.statistics.normal_rooms;
+
+
+            document.getElementById(
+                "availableRoomsCount"
+            ).textContent =
+                data.statistics.available_rooms;
+
+
+            document.getElementById(
+                "maintenanceRoomsCount"
+            ).textContent =
+                data.statistics.maintenance_rooms;
+
+
+            document.getElementById(
+                "blockedRoomsCount"
+            ).textContent =
+                data.statistics.blocked_rooms;
+
+
+            document.getElementById(
+                "medicalRoomsCount"
+            ).textContent =
+                data.statistics.medical_rooms;
+
+
+            /*  RESET FORM */
+
+            addRoomForm.reset();
+
+            applyAddRoomBuildingTypeFilter();
+
+            floorSelect.innerHTML =
+                '<option value="">Select Building First</option>';
+
+            floorSelect.disabled = true;
+
+
+            /* RE-RENDER LUCIDE*/
+
+            if (typeof lucide !== "undefined") {
+                lucide.createIcons();
+            }
+
+
+            /*  SUCCESS */
+
+            Swal.fire({
+                icon: "success",
+                title: "Room Added!",
+                text: data.message,
+                timer: 1800,
+                showConfirmButton: false
+            });
+
+        })
+        .catch(function () {
+
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text:
+                    "Something went wrong. Please try again."
+            });
+
+        })
+        .finally(function () {
+
+            submitButton.disabled = false;
+
+            submitButton.innerHTML =
+                originalButton;
+
+        });
+
+    });
+
+
+    /*  RESET MODAL WHEN CLOSED */
+
+    const addRoomModal =
+        document.getElementById("addRoomModal");
+
+
+    addRoomModal.addEventListener(
+        "hidden.bs.modal",
+        function () {
+
+            addRoomForm.reset();
+
+            applyAddRoomBuildingTypeFilter();
+
+            if (typeof resetRoomBuildingDropdown === "function") {
+                resetRoomBuildingDropdown("addRoomBuilding");
+            }
+
+            floorSelect.innerHTML =
+                '<option value="">Select Building First</option>';
+
+            floorSelect.disabled = true;
+
+        }
+    );
+
+
+    /*  LUCIDE ICONS */
+
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
+
+});
+
+
+
+/*  VIEW ROOM */
+
+document.addEventListener("click", function (event) {
+
+    const button =
+        event.target.closest(".view-room-btn");
+
+    if (!button) {
+        return;
+    }
+
+
+    /* GET ROOM DATA */
+
+    const roomNumber =
+        button.dataset.roomNumber || "—";
+
+    const roomName =
+        button.dataset.roomName || "—";
+
+    const building =
+        button.dataset.building || "—";
+
+    const floor =
+        button.dataset.floor || "—";
+
+    const roomType =
+        button.dataset.roomType || "—";
+
+    const capacity =
+        button.dataset.capacity || "—";
+
+    const status =
+        button.dataset.status || "";
+
+    const statusDisplay =
+        button.dataset.statusDisplay || "—";
+
+    const hasAc =
+        button.dataset.ac === "true";
+
+    const hasProjector =
+        button.dataset.projector === "true";
+
+    const hasComputers =
+        button.dataset.computers === "true";
+
+
+    /*  BASIC INFORMATION */
+
+    document.getElementById(
+        "viewRoomNumber"
+    ).textContent =
+        "Room " + roomNumber;
+
+
+    document.getElementById(
+        "viewRoomName"
+    ).textContent =
+        roomName;
+
+
+    document.getElementById(
+        "viewRoomBuilding"
+    ).textContent =
+        building;
+
+
+    document.getElementById(
+        "viewRoomFloor"
+    ).textContent =
+        floor;
+
+
+    document.getElementById(
+        "viewRoomType"
+    ).textContent =
+        roomType;
+
+
+    document.getElementById(
+        "viewRoomCapacity"
+    ).textContent =
+        capacity;
+
+
+    /* STATUS */
+
+    const statusElement =
+        document.getElementById(
+            "viewRoomStatus"
+        );
+
+
+    let statusClass =
+        "available";
+
+
+    if (status === "MAINTENANCE") {
+        statusClass = "maintenance";
+    }
+
+    else if (status === "BLOCKED") {
+        statusClass = "blocked";
+    }
+
+
+    statusElement.innerHTML = `
+        <span class="room-status-badge ${statusClass}">
+            ${statusDisplay}
+        </span>
+    `;
+
+
+    /*  FACILITIES */
+
+    const facilitiesElement =
+        document.getElementById(
+            "viewRoomFacilities"
+        );
+
+
+    let facilities = "";
+
+
+    if (hasAc) {
+
+        facilities += `
+            <div class="room-view-facility">
+                <i data-lucide="snowflake"></i>
+                Air Conditioning
+            </div>
+        `;
+
+    }
+
+
+    if (hasComputers) {
+
+        facilities += `
+            <div class="room-view-facility">
+                <i data-lucide="monitor"></i>
+                Computers
+            </div>
+        `;
+
+    }
+
+
+    if (hasProjector) {
+
+        facilities += `
+            <div class="room-view-facility">
+                <i data-lucide="projector"></i>
+                Projector
+            </div>
+        `;
+
+    }
+
+
+    if (!facilities) {
+
+        facilities = `
+            <div class="room-view-no-facilities">
+                No facilities configured.
+            </div>
+        `;
+
+    }
+
+
+    facilitiesElement.innerHTML =
+        facilities;
+
+
+    /*  OPEN MODAL */
+
+    const modalElement =
+        document.getElementById(
+            "viewRoomModal"
+        );
+
+
+    const modal =
+        bootstrap.Modal.getOrCreateInstance(
+            modalElement
+        );
+
+
+    modal.show();
+
+
+    /*  LUCIDE ICONS */
+
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
+
+});
+
+
+
+
+/* EDIT ROOM */
+
+document.addEventListener("click", function (event) {
+
+    const button =
+        event.target.closest(".edit-room-btn");
+
+    if (!button) {
+        return;
+    }
+
+
+    const roomId =
+        button.dataset.roomId || "";
+
+    const roomNumber =
+        button.dataset.roomNumber || "";
+
+    const roomName =
+        button.dataset.roomName || "";
+
+    const buildingId =
+        button.dataset.buildingId || "";
+
+    const floorId =
+        button.dataset.floorId || "";
+
+    const roomType =
+        button.dataset.roomType || "";
+
+    const capacity =
+        button.dataset.capacity || "";
+
+    const status =
+        button.dataset.status || "AVAILABLE";
+
+    const hasAc =
+        button.dataset.ac === "true";
+
+    const hasProjector =
+        button.dataset.projector === "true";
+
+    const hasComputers =
+        button.dataset.computers === "true";
+
+    /* Building type comes from the row
+       (set for both normal and medical rooms) */
+
+    const editRow =
+        button.closest("tr");
+
+    const buildingType =
+        (
+            editRow &&
+            editRow.dataset.buildingType
+        )
+            ? editRow.dataset.buildingType.toUpperCase()
+            : "NORMAL";
+
+
+    /*  SET FORM VALUES */
+
+    document.getElementById(
+        "editRoomId"
+    ).value = roomId;
+
+    document.getElementById(
+        "editRoomBuildingType"
+    ).value = buildingType;
+
+    if (
+        typeof applyEditRoomBuildingTypeFilter === "function"
+    ) {
+        applyEditRoomBuildingTypeFilter();
+    }
+
+    document.getElementById(
+        "editRoomNumber"
+    ).value = roomNumber;
+
+    document.getElementById(
+        "editRoomName"
+    ).value = roomName;
+
+    document.getElementById(
+        "editRoomType"
+    ).value = roomType;
+
+    document.getElementById(
+        "editRoomCapacity"
+    ).value = capacity;
+
+    document.getElementById(
+        "editRoomStatus"
+    ).value = status;
+
+    document.getElementById(
+        "editRoomAc"
+    ).checked = hasAc;
+
+    document.getElementById(
+        "editRoomProjector"
+    ).checked = hasProjector;
+
+    document.getElementById(
+        "editRoomComputers"
+    ).checked = hasComputers;
+
+
+    /*  SET BUILDING */
+
+    const buildingSelect =
+        document.getElementById(
+            "editRoomBuilding"
+        );
+
+    const floorSelect =
+        document.getElementById(
+            "editRoomFloor"
+        );
+
+    buildingSelect.value = buildingId;
+
+    if (typeof syncRoomBuildingDropdown === "function") {
+        syncRoomBuildingDropdown("editRoomBuilding");
+    }
+
+    floorSelect.innerHTML =
+        '<option value="">Loading floors...</option>';
+
+    floorSelect.disabled = true;
+
+
+    /*  LOAD FLOORS */
+
+    fetch(
+        "{% url 'room_floors' %}?building_id=" +
+        encodeURIComponent(buildingId),
+        {
+            method: "GET",
+            headers: {
+                "X-Requested-With":
+                    "XMLHttpRequest"
+            }
+        }
+    )
+    .then(function (response) {
+        return response.json();
+    })
+    .then(function (data) {
+
+        floorSelect.innerHTML =
+            '<option value="">Select Floor</option>';
+
+
+        if (
+            !data.success ||
+            !data.floors ||
+            data.floors.length === 0
+        ) {
+
+            floorSelect.innerHTML =
+                '<option value="">No Floors Available</option>';
+
+            return;
+        }
+
+
+        data.floors.forEach(function (floor) {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                floor.id;
+
+            option.textContent =
+                floor.floor_number;
+
+            floorSelect.appendChild(option);
+
+        });
+
+
+        floorSelect.disabled = false;
+
+        /*
+         * Set the original floor after
+         * all options are loaded.
+         */
+
+        floorSelect.value = floorId;
+
+    })
+    .catch(function () {
+
+        floorSelect.innerHTML =
+            '<option value="">Unable to load floors</option>';
+
+        floorSelect.disabled = true;
+
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Could not load floors."
+        });
+
+    });
+
+
+    /* FORM ACTION */
+
+    const editForm =
+        document.getElementById(
+            "editRoomForm"
+        );
+
+    editForm.action =
+        "{% url 'edit_room' 0 %}".replace(
+            "0",
+            roomId
+        );
+
+
+    /* OPEN MODAL */
+
+    const modalElement =
+        document.getElementById(
+            "editRoomModal"
+        );
+
+    const modal =
+        bootstrap.Modal.getOrCreateInstance(
+            modalElement
+        );
+
+    modal.show();
+
+
+    if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+    }
+
+});
+
+
+/*  EDIT ROOM SUBMIT */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const editForm =
+        document.getElementById("editRoomForm");
+
+    const submitButton =
+        document.getElementById(
+            "editRoomSubmitBtn"
+        );
+
+
+    editForm.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+
+            const roomNumber =
+                document.getElementById(
+                    "editRoomNumber"
+                ).value.trim();
+
+            const roomName =
+                document.getElementById(
+                    "editRoomName"
+                ).value.trim();
+
+            const roomId =
+                document.getElementById(
+                    "editRoomId"
+                ).value;
+
+            const building =
+                document.getElementById(
+                    "editRoomBuilding"
+                ).value;
+
+            const floor =
+                document.getElementById(
+                    "editRoomFloor"
+                ).value;
+
+            const roomType =
+                document.getElementById(
+                    "editRoomType"
+                ).value;
+
+            const capacity =
+                document.getElementById(
+                    "editRoomCapacity"
+                ).value;
+
+            const status =
+                document.getElementById(
+                    "editRoomStatus"
+                ).value;
+
+            const editNumberEl =
+                document.getElementById("editRoomNumber");
+
+            const editNameEl =
+                document.getElementById("editRoomName");
+
+            const editBuildingEl =
+                document.getElementById("editRoomBuildingToggle");
+
+            const editFloorEl =
+                document.getElementById("editRoomFloor");
+
+            const editTypeEl =
+                document.getElementById("editRoomType");
+
+            const editCapacityEl =
+                document.getElementById("editRoomCapacity");
+
+            const editStatusEl =
+                document.getElementById("editRoomStatus");
+
+            const editBuildingTypeEl =
+                document.getElementById("editRoomBuildingType");
+
+            const editTypeValue =
+                editBuildingTypeEl.value;
+
+            const isMedicalRoom =
+                editTypeValue === "MEDICAL";
+
+            let valid = true;
+
+            if (!editTypeValue) {
+                showFieldError(
+                    editBuildingTypeEl,
+                    "Please select a building type."
+                );
+                valid = false;
+            } else {
+                clearFieldError(editBuildingTypeEl);
+            }
+
+            if (!building) {
+                showFieldError(
+                    editBuildingEl,
+                    "Please select a building."
+                );
+                valid = false;
+            } else {
+                clearFieldError(editBuildingEl);
+            }
+
+
+            if (!floor) {
+                showFieldError(
+                    editFloorEl,
+                    "Please select a floor."
+                );
+                valid = false;
+            } else {
+                clearFieldError(editFloorEl);
+            }
+
+
+            if (!roomNumber) {
+                showFieldError(
+                    editNumberEl,
+                    "Please enter the room number."
+                );
+                valid = false;
+            } else if (!/^\d+$/.test(roomNumber)) {
+                showFieldError(
+                    editNumberEl,
+                    "Room number must contain only numbers."
+                );
+                valid = false;
+            } else if (Number(roomNumber) > 50) {
+                showFieldError(
+                    editNumberEl,
+                    "Room number cannot exceed 50."
+                );
+                valid = false;
+            } else if (
+                typeof roomList !== "undefined" &&
+                roomList.some(function (room) {
+                    return String(room.id) !== String(roomId) &&
+                           String(room.floor_id) === String(floor) &&
+                           String(room.room_number).trim().toLowerCase() ===
+                           roomNumber.toLowerCase();
+                })
+            ) {
+                showFieldError(
+                    editNumberEl,
+                    "A room with this number already exists on this floor."
+                );
+                valid = false;
+            } else {
+                clearFieldError(editNumberEl);
+            }
+
+
+            if (!isMedicalRoom) {
+
+                if (!roomName) {
+                    showFieldError(
+                        editNameEl,
+                        "Please enter the room name."
+                    );
+                    valid = false;
+                } else if (!/^[A-Za-z0-9 ]+$/.test(roomName)) {
+                    showFieldError(
+                        editNameEl,
+                        "Room name can only contain letters, numbers and spaces."
+                    );
+                    valid = false;
+                } else if (
+                    typeof roomList !== "undefined" &&
+                    roomList.some(function (room) {
+                        return String(room.id) !== String(roomId) &&
+                               String(room.room_name).trim().toLowerCase() ===
+                               roomName.toLowerCase();
+                    })
+                ) {
+                    showFieldError(
+                        editNameEl,
+                        "A room with this room name already exists."
+                    );
+                    valid = false;
+                } else {
+                    clearFieldError(editNameEl);
+                }
+
+
+                if (!roomType) {
+                    showFieldError(
+                        editTypeEl,
+                        "Please select a room type."
+                    );
+                    valid = false;
+                } else {
+                    clearFieldError(editTypeEl);
+                }
+
+
+                if (
+                    !capacity ||
+                    Number(capacity) <= 0
+                ) {
+                    showFieldError(
+                        editCapacityEl,
+                        "Capacity must be greater than 0."
+                    );
+                    valid = false;
+                } else if (Number(capacity) > 200) {
+                    showFieldError(
+                        editCapacityEl,
+                        "Capacity cannot exceed 200."
+                    );
+                    valid = false;
+                } else {
+                    clearFieldError(editCapacityEl);
+                }
+
+            } else {
+
+                clearFieldError(editNameEl);
+                clearFieldError(editTypeEl);
+                clearFieldError(editCapacityEl);
+
+            }
+
+
+            if (!status) {
+                showFieldError(
+                    editStatusEl,
+                    "Please select a status."
+                );
+                valid = false;
+            } else {
+                clearFieldError(editStatusEl);
+            }
+
+
+            if (!valid) {
+                const firstInvalid =
+                    document.querySelector(
+                        "#editRoomModal .room-control-invalid"
+                    );
+
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                }
+
+                return;
+            }
+
+
+            const formData =
+                new FormData(editForm);
+
+            const originalText =
+                submitButton.innerHTML;
+
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = "Saving...";
+
+
+            fetch(
+                editForm.action,
+                {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                }
+            )
+            .then(function (response) {
+
+                return response.json();
+
+            })
+            .then(function (data) {
+
+                if (!data.success) {
+
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text:
+                            data.message ||
+                            "Failed to update room."
+                    });
+
+                    return;
+                }
+
+
+                /* UPDATED ROOM */
+
+                const room =
+                    data.room;
+
+
+                /*  FIND EXISTING TABLE ROW */
+
+                const editButton =
+                    document.querySelector(
+                        `.edit-room-btn[data-room-id="${room.id}"]`
+                    );
+
+
+                const row =
+                    editButton ?
+                    editButton.closest("tr") :
+                    null;
+
+
+                if (row) {
+
+                    /*  Update data attributes */
+
+                    row.dataset.roomNumber =
+                        room.room_number.toLowerCase();
+
+                    row.dataset.roomName =
+                        room.room_name.toLowerCase();
+
+                    row.dataset.building =
+                        room.building.toLowerCase();
+
+                    row.dataset.buildingType =
+                        String(
+                            room.building_type
+                        ).toLowerCase();
+
+                    row.dataset.floor =
+                        String(
+                            room.floor
+                        ).toLowerCase();
+
+                    row.dataset.roomType =
+                        room.room_type.toLowerCase();
+
+                    row.dataset.status =
+                        room.status;
+
+
+                    /*  Facilities */
+
+                    let facilities = "";
+
+
+                    if (room.has_computers) {
+
+                        facilities += `
+                            <span
+                                class="facility-item"
+                                title="Computers"
+                            >
+                                <i data-lucide="monitor"></i>
+                                Computers
+                            </span>
+                        `;
+
+                    }
+
+
+                    if (room.has_projector) {
+
+                        facilities += `
+                            <span
+                                class="facility-item"
+                                title="Projector"
+                            >
+                                <i data-lucide="projector"></i>
+                                Projector
+                            </span>
+                        `;
+
+                    }
+
+
+                    if (room.has_ac) {
+
+                        facilities += `
+                            <span
+                                class="facility-item"
+                                title="Air Conditioning"
+                            >
+                                <i data-lucide="snowflake"></i>
+                                AC
+                            </span>
+                        `;
+
+                    }
+
+
+                    if (!facilities) {
+
+                        facilities = `
+                            <span class="facility-empty">—</span>
+                        `;
+
+                    }
+
+
+                    /*  Status class */
+
+                    let statusClass =
+                        "available";
+
+
+                    if (
+                        room.status ===
+                        "MAINTENANCE"
+                    ) {
+
+                        statusClass =
+                            "maintenance";
+
+                    }
+
+                    else if (
+                        room.status ===
+                        "BLOCKED"
+                    ) {
+
+                        statusClass =
+                            "blocked";
+
+                    }
+
+
+                    /*  Update row */
+
+                    row.innerHTML = `
+
+                        <td>
+
+                            <div class="room-name-wrapper">
+
+                                <div class="room-thumbnail">
+
+                                    <i data-lucide="door-open"></i>
+
+                                </div>
+
+                                <div>
+
+                                    <div class="room-name">
+                                        Room ${room.room_number}
+                                    </div>
+
+                                    <div class="room-code">
+                                        ${room.room_name || "—"}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="room-building-name">
+                                ${room.building}
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="room-building-type">
+                                ${room.building_type === "MEDICAL" ? "Medical" : "Normal"}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            ${room.floor}
+                        </td>
+
+
+                        <td>
+                            ${room.room_type || "—"}
+                        </td>
+
+
+                        <td>
+
+                            <span class="room-capacity">
+                                ${room.capacity ? room.capacity : "—"}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="room-facilities">
+                                ${facilities}
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="room-status-badge ${statusClass}"
+                            >
+                                ${room.status_display}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="room-actions">
+
+                                <button
+                                    type="button"
+                                    class="room-action-btn view-room-btn"
+                                    title="View"
+
+                                    data-room-id="${room.id}"
+                                    data-room-number="${room.room_number}"
+                                    data-room-name="${room.room_name || ''}"
+                                    data-building="${room.building}"
+                                    data-floor="${room.floor}"
+                                    data-room-type="${room.room_type || ''}"
+                                    data-capacity="${room.capacity}"
+                                    data-status="${room.status}"
+                                    data-status-display="${room.status_display}"
+                                    data-ac="${room.has_ac}"
+                                    data-projector="${room.has_projector}"
+                                    data-computers="${room.has_computers}"
+                                >
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="room-action-btn edit-room-btn"
+                                    title="Edit"
+
+                                    data-room-id="${room.id}"
+                                    data-room-number="${room.room_number}"
+                                    data-room-name="${room.room_name || ''}"
+                                    data-building-id="${room.building_id}"
+                                    data-floor-id="${room.floor_id}"
+                                    data-room-type="${room.room_type_value || ''}"
+                                    data-capacity="${room.capacity}"
+                                    data-status="${room.status}"
+                                    data-ac="${room.has_ac}"
+                                    data-projector="${room.has_projector}"
+                                    data-computers="${room.has_computers}"
+                                >
+                                    <i class="fa-regular fa-pen-to-square"></i>
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    `;
+
+                }
+
+
+                /* UPDATE SUMMARY */
+
+                document.getElementById(
+                    "normalRoomsCount"
+                ).textContent =
+                    data.statistics.normal_rooms;
+
+
+                document.getElementById(
+                    "availableRoomsCount"
+                ).textContent =
+                    data.statistics.available_rooms;
+
+
+                document.getElementById(
+                    "maintenanceRoomsCount"
+                ).textContent =
+                    data.statistics.maintenance_rooms;
+
+
+                document.getElementById(
+                    "blockedRoomsCount"
+                ).textContent =
+                    data.statistics.blocked_rooms;
+
+
+            document.getElementById(
+                "medicalRoomsCount"
+            ).textContent =
+                data.statistics.medical_rooms;
+
+
+            /*  SYNC ROOM LIST WITH UPDATED ROOM */
+
+            if (typeof roomList !== "undefined") {
+
+                var roomIndex = roomList.findIndex(
+                    function (r) {
+                        return String(r.id) === String(room.id);
+                    }
+                );
+
+                if (roomIndex !== -1) {
+
+                    let floorName = String(room.floor);
+
+                    const knownFloor = roomList.find(function (r) {
+                        return String(r.floor_id) ===
+                               String(room.floor_id);
+                    });
+
+                    if (knownFloor && knownFloor.floor_name) {
+                        floorName = knownFloor.floor_name;
+                    }
+
+                    roomList[roomIndex] = {
+                        id: room.id,
+                        room_number: room.room_number,
+                        room_name: room.room_name,
+                        building: room.building,
+                        floor: room.floor,
+                        floor_name: floorName,
+                        room_type_display: room.room_type,
+                        room_type_value: room.room_type_value,
+                        capacity: room.capacity,
+                        status: room.status,
+                        status_display: room.status_display,
+                        has_ac: room.has_ac,
+                        has_projector: room.has_projector,
+                        has_computers: room.has_computers,
+                        building_id: room.building_id,
+                        floor_id: room.floor_id
+                    };
+                }
+            }
+
+            if (
+                typeof isRoomFilterActive === "function" &&
+                isRoomFilterActive()
+            ) {
+                applyRoomFilters();
+            }
+
+
+            /*  CLOSE MODAL */
+
+                const modalElement =
+                    document.getElementById(
+                        "editRoomModal"
+                    );
+
+                const modal =
+                    bootstrap.Modal.getInstance(
+                        modalElement
+                    );
+
+                if (modal) {
+                    modal.hide();
+                }
+
+
+                /* SUCCESS */
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Room Updated!",
+                    text: data.message,
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+
+
+                if (typeof lucide !== "undefined") {
+                    lucide.createIcons();
+                }
+
+            })
+            .catch(function () {
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text:
+                        "Something went wrong. Please try again."
+                });
+
+            })
+            .finally(function () {
+
+                submitButton.disabled = false;
+
+                submitButton.innerHTML =
+                    originalText;
+
+            });
+
+        }
+    );
+
+});
+
+
+</script>
+
+
+<!--  ROOM SEARCH + FILTERS Searches and filters across ALL rooms client-side. -->
+{{ rooms_json|json_script:"roomListData" }}
+
+<script>
+    /* Full room dataset rendered from the server.
+       Used for searching, filtering and duplicate checks. */
+    var roomList = JSON.parse(
+        document.getElementById("roomListData").textContent
+    );
+
+    var originalRoomTbodyHTML = null;
+    var originalShowingText = "";
+    var roomPaginationButtons = null;
+    var roomShowingText = null;
+
+    /* Building type filter (All/Normal/Medical) */
+
+    window.filterByRoomType = function (type) {
+
+        var url = new URL(window.location.href);
+
+        url.searchParams.delete("building_type");
+
+        if (type !== "ALL") {
+            url.searchParams.set("building_type", type);
+        }
+
+        window.location.href = url.toString();
+    };
+
+    function showFieldError(input, message) {
+        if (!input) {
+            return;
+        }
+
+        input.classList.add("room-control-invalid");
+
+        var group = input.closest(".room-form-group");
+
+        if (group) {
+            var error = group.querySelector(".room-field-error");
+
+            if (error) {
+                error.textContent = message;
+                error.classList.add("room-field-error-visible");
+            }
+        }
+    }
+
+    function clearFieldError(input) {
+        if (!input) {
+            return;
+        }
+
+        input.classList.remove("room-control-invalid");
+
+        var group = input.closest(".room-form-group");
+
+        if (group) {
+            var error = group.querySelector(".room-field-error");
+
+            if (error) {
+                error.textContent = "";
+                error.classList.remove("room-field-error-visible");
+            }
+        }
+    }
+
+    function populateRoomFilters() {
+        var buildingEl = document.getElementById("roomBuildingFilter");
+        var floorEl = document.getElementById("roomFloorFilter");
+
+        if (!buildingEl || !floorEl) {
+            return;
+        }
+
+        var buildings = [];
+        var floors = [];
+
+        roomList.forEach(function (room) {
+            var buildingName = String(room.building);
+
+            if (buildings.indexOf(buildingName) === -1) {
+                buildings.push(buildingName);
+            }
+
+            var floorName = String(room.floor_name || room.floor);
+
+            if (floors.indexOf(floorName) === -1) {
+                floors.push(floorName);
+            }
+        });
+
+        buildings.sort();
+        floors.sort();
+
+        buildings.forEach(function (name) {
+            var option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            buildingEl.appendChild(option);
+        });
+
+        floors.forEach(function (name) {
+            var option = document.createElement("option");
+            option.value = name;
+            option.textContent = name;
+            floorEl.appendChild(option);
+        });
+    }
+
+    function isRoomFilterActive() {
+        var searchEl = document.getElementById("roomSearch");
+        var buildingEl = document.getElementById("roomBuildingFilter");
+        var floorEl = document.getElementById("roomFloorFilter");
+        var statusEl = document.getElementById("roomStatusFilter");
+
+        if (!searchEl || !buildingEl || !floorEl || !statusEl) {
+            return false;
+        }
+
+        return (
+            searchEl.value.trim() !== "" ||
+            buildingEl.value !== "ALL" ||
+            floorEl.value !== "ALL" ||
+            statusEl.value !== "ALL"
+        );
+    }
+
+    function buildRoomRow(room) {
+        var facilities = "";
+
+        if (room.has_computers) {
+            facilities +=
+                '<span class="facility-item" title="Computers">' +
+                '<i data-lucide="monitor"></i> Computers</span>';
+        }
+
+        if (room.has_projector) {
+            facilities +=
+                '<span class="facility-item" title="Projector">' +
+                '<i data-lucide="projector"></i> Projector</span>';
+        }
+
+        if (room.has_ac) {
+            facilities +=
+                '<span class="facility-item" title="Air Conditioning">' +
+                '<i data-lucide="snowflake"></i> AC</span>';
+        }
+
+        if (!facilities) {
+            facilities = '<span class="facility-empty">—</span>';
+        }
+
+        var statusClass = "available";
+
+        if (room.status === "MAINTENANCE") {
+            statusClass = "maintenance";
+        } else if (room.status === "BLOCKED") {
+            statusClass = "blocked";
+        }
+
+        var row = document.createElement("tr");
+
+        row.setAttribute(
+            "data-room-number",
+            String(room.room_number).toLowerCase()
+        );
+
+        row.setAttribute(
+            "data-room-name",
+            String(room.room_name).toLowerCase()
+        );
+
+        row.setAttribute(
+            "data-building",
+            String(room.building).toLowerCase()
+        );
+
+        row.setAttribute(
+            "data-building-type",
+            String(room.building_type).toLowerCase()
+        );
+
+        row.setAttribute(
+            "data-floor",
+            String(room.floor).toLowerCase()
+        );
+
+        row.setAttribute(
+            "data-room-type",
+            String(room.room_type_display).toLowerCase()
+        );
+
+        row.setAttribute(
+            "data-status",
+            room.status
+        );
+
+        row.innerHTML = [
+            '<td>',
+            '<div class="room-name-wrapper">',
+            '<div class="room-thumbnail"><i data-lucide="door-open"></i></div>',
+            '<div>',
+            '<div class="room-name">Room ' + room.room_number + '</div>',
+            '<div class="room-code">' + (room.room_name || "—") + '</div>',
+            '</div>',
+            '</div>',
+            '</td>',
+            '<td><div class="room-building-name">' + room.building + '</div></td>',
+            '<td><span class="room-building-type">' +
+            (room.building_type === "MEDICAL" ? "Medical" : "Normal") + '</span></td>',
+            '<td>' + room.floor + '</td>',
+            '<td>' + (room.room_type_display || "—") + '</td>',
+            '<td><span class="room-capacity">' + (room.capacity ? room.capacity : "—") + '</span></td>',
+            '<td><div class="room-facilities">' + facilities + '</div></td>',
+            '<td><span class="room-status-badge ' + statusClass + '">' +
+            room.status_display + '</span></td>',
+            '<td>',
+            '<div class="room-actions">',
+            '<button type="button" class="room-action-btn view-room-btn" title="View" ' +
+            'data-room-id="' + room.id + '" ' +
+            'data-room-number="' + room.room_number + '" ' +
+            'data-room-name="' + (room.room_name || "") + '" ' +
+            'data-building="' + room.building + '" ' +
+            'data-floor="' + room.floor + '" ' +
+            'data-room-type="' + (room.room_type_display || "") + '" ' +
+            'data-capacity="' + room.capacity + '" ' +
+            'data-status="' + room.status + '" ' +
+            'data-status-display="' + room.status_display + '" ' +
+            'data-ac="' + room.has_ac + '" ' +
+            'data-projector="' + room.has_projector + '" ' +
+            'data-computers="' + room.has_computers + '">',
+            '<i class="fa-regular fa-eye"></i>',
+            '</button>',
+            '<button type="button" class="room-action-btn edit-room-btn" title="Edit" ' +
+            'data-room-id="' + room.id + '" ' +
+            'data-room-number="' + room.room_number + '" ' +
+            'data-room-name="' + (room.room_name || "") + '" ' +
+            'data-building-id="' + room.building_id + '" ' +
+            'data-floor-id="' + room.floor_id + '" ' +
+            'data-room-type="' + (room.room_type_value || "") + '" ' +
+            'data-capacity="' + room.capacity + '" ' +
+            'data-status="' + room.status + '" ' +
+            'data-ac="' + room.has_ac + '" ' +
+            'data-projector="' + room.has_projector + '" ' +
+            'data-computers="' + room.has_computers + '">',
+            '<i class="fa-regular fa-pen-to-square"></i>',
+            '</button>',
+            '</div>',
+            '</td>'
+        ].join("\n");
+
+        return row;
+    }
+
+    function applyRoomFilters() {
+        var searchEl = document.getElementById("roomSearch");
+        var buildingEl = document.getElementById("roomBuildingFilter");
+        var floorEl = document.getElementById("roomFloorFilter");
+        var statusEl = document.getElementById("roomStatusFilter");
+
+        var tableBody = document.getElementById("roomTableBody");
+
+        if (!searchEl || !buildingEl || !floorEl || !statusEl || !tableBody) {
+            return;
+        }
+
+        var searchValue = searchEl.value.trim().toLowerCase();
+        var buildingValue = buildingEl.value;
+        var floorValue = floorEl.value;
+        var statusValue = statusEl.value;
+
+        var isActive = (
+            searchValue !== "" ||
+            buildingValue !== "ALL" ||
+            floorValue !== "ALL" ||
+            statusValue !== "ALL"
+        );
+
+        if (!isActive) {
+
+            if (originalRoomTbodyHTML !== null) {
+                tableBody.innerHTML = originalRoomTbodyHTML;
+            }
+
+            if (roomPaginationButtons) {
+                roomPaginationButtons.style.display = "";
+            }
+
+            if (roomShowingText && originalShowingText) {
+                roomShowingText.textContent = originalShowingText;
+            }
+
+            return;
+        }
+
+        var filtered = roomList.filter(function (room) {
+            var ok = true;
+
+            if (searchValue) {
+                var haystack = (
+                    String(room.room_number) + " " +
+                    String(room.room_name) + " " +
+                    String(room.building) + " " +
+                    String(room.floor_name || room.floor) + " " +
+                    String(room.room_type_display) + " " +
+                    String(room.status_display)
+                ).toLowerCase();
+
+                ok = ok && haystack.indexOf(searchValue) !== -1;
+            }
+
+            if (buildingValue !== "ALL") {
+                ok = ok && String(room.building).toLowerCase() ===
+                            String(buildingValue).toLowerCase();
+            }
+
+            if (floorValue !== "ALL") {
+                ok = ok && String(room.floor_name || room.floor).toLowerCase() ===
+                            String(floorValue).toLowerCase();
+            }
+
+            if (statusValue !== "ALL") {
+                ok = ok && room.status === statusValue;
+            }
+
+            return ok;
+        });
+
+        tableBody.innerHTML = "";
+
+        if (filtered.length === 0) {
+
+            tableBody.innerHTML =
+                '<tr>' +
+                '<td colspan="9">' +
+                '<div class="room-empty">' +
+                '<div class="room-empty-icon"><i data-lucide="door-open"></i></div>' +
+                '<h3>No Rooms Found</h3>' +
+                '<p>No rooms match your search.</p>' +
+                '</div>' +
+                '</td>' +
+                '</tr>';
+
+        } else {
+
+            filtered.forEach(function (room) {
+                tableBody.appendChild(buildRoomRow(room));
+            });
+        }
+
+        if (roomPaginationButtons) {
+            roomPaginationButtons.style.display = "none";
+        }
+
+        if (roomShowingText) {
+            roomShowingText.textContent =
+                "Showing " + filtered.length +
+                " of " + roomList.length + " rooms";
+        }
+
+        if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+        }
+    }
+
+    /* Custom building dropdown helpers */
+
+    function closeRoomDropdowns() {
+        document.querySelectorAll(
+            ".room-dropdown.open"
+        ).forEach(function (dd) {
+            dd.classList.remove("open");
+        });
+    }
+
+    function syncRoomBuildingDropdown(selectId) {
+        var select = document.getElementById(selectId);
+
+        if (!select) {
+            return;
+        }
+
+        var group = select.closest(".room-form-group");
+        var textEl = group.querySelector(".room-dropdown-text");
+        var menu = group.querySelector(".room-dropdown-menu");
+
+        var selectedOption = select.options[select.selectedIndex];
+
+        if (selectedOption && selectedOption.value !== "") {
+            textEl.textContent = selectedOption.textContent;
+        } else {
+            textEl.textContent = "Select Building";
+        }
+
+        if (menu) {
+            menu.querySelectorAll("li").forEach(function (li) {
+                var isSelected =
+                    li.getAttribute("data-value") ===
+                    String(select.value);
+
+                if (isSelected) {
+                    li.classList.add("selected");
+                } else {
+                    li.classList.remove("selected");
+                }
+            });
+        }
+    }
+
+    function resetRoomBuildingDropdown(selectId) {
+        var select = document.getElementById(selectId);
+
+        if (!select) {
+            return;
+        }
+
+        select.value = "";
+
+        syncRoomBuildingDropdown(selectId);
+    }
+
+    /* Building type filter for EDIT modal (Normal → normal buildings, Medical → medical buildings + hide name/type/capacity/facilities) */
+
+    window.applyEditRoomBuildingTypeFilter = function () {
+
+        var typeSelect =
+            document.getElementById("editRoomBuildingType");
+
+        var buildingSelect =
+            document.getElementById("editRoomBuilding");
+
+        var floorSelect =
+            document.getElementById("editRoomFloor");
+
+        if (!typeSelect || !buildingSelect || !floorSelect) {
+            return;
+        }
+
+        var selectedType = typeSelect.value;
+
+        /* Filter hidden select options */
+
+        Array.from(buildingSelect.options).forEach(
+            function (option) {
+
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                var optionType =
+                    option.getAttribute("data-building-type") ||
+                    "NORMAL";
+
+                option.hidden =
+                    selectedType !== "" &&
+                    optionType !== selectedType;
+
+            }
+        );
+
+        /* Filter custom dropdown list items */
+
+        var buildingList =
+            document.getElementById("editRoomBuildingList");
+
+        if (buildingList) {
+
+            buildingList.querySelectorAll("li").forEach(
+                function (item) {
+
+                    var itemType =
+                        item.getAttribute("data-building-type") ||
+                        "NORMAL";
+
+                    item.style.display =
+                        (
+                            selectedType === "" ||
+                            itemType === selectedType
+                        )
+                            ? ""
+                            : "none";
+
+                }
+            );
+        }
+
+        /* Reset building + floor when type changes */
+
+        buildingSelect.value = "";
+
+        syncRoomBuildingDropdown("editRoomBuilding");
+
+        floorSelect.innerHTML =
+            '<option value="">Select Building First</option>';
+
+        floorSelect.disabled = true;
+
+
+        /* Medical → hide Room Name, Room Type,
+           Capacity and Facilities */
+
+        var isMedical =
+            selectedType === "MEDICAL";
+
+        document.getElementById(
+            "editRoomNameGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "editRoomTypeGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "editRoomCapacityGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "editRoomFacilitiesGroup"
+        ).style.display = isMedical ? "none" : "";
+
+        document.getElementById(
+            "editRoomName"
+        ).required = !isMedical;
+
+        document.getElementById(
+            "editRoomType"
+        ).required = !isMedical;
+
+        document.getElementById(
+            "editRoomCapacity"
+        ).required = !isMedical;
+
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        var editTypeSelect =
+            document.getElementById("editRoomBuildingType");
+
+        if (editTypeSelect) {
+            editTypeSelect.addEventListener(
+                "change",
+                window.applyEditRoomBuildingTypeFilter
+            );
+        }
+
+    });
+
+    function initRoomBuildingDropdown(selectId) {
+        var select = document.getElementById(selectId);
+
+        if (!select) {
+            return;
+        }
+
+        var group = select.closest(".room-form-group");
+        var toggle = group.querySelector(".room-dropdown-toggle");
+        var dropdown = group.querySelector(".room-dropdown");
+        var menu = group.querySelector(".room-dropdown-menu");
+
+        if (!toggle || !dropdown || !menu) {
+            return;
+        }
+
+        toggle.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            var isOpen = dropdown.classList.contains("open");
+
+            closeRoomDropdowns();
+
+            if (!isOpen) {
+                dropdown.classList.add("open");
+            }
+        });
+
+        menu.querySelectorAll("li").forEach(function (item) {
+            item.addEventListener("click", function () {
+                select.value =
+                    item.getAttribute("data-value");
+
+                syncRoomBuildingDropdown(selectId);
+
+                dropdown.classList.remove("open");
+
+                clearFieldError(toggle);
+
+                select.dispatchEvent(
+                    new Event("change")
+                );
+            });
+        });
+
+        select.addEventListener("change", function () {
+            syncRoomBuildingDropdown(selectId);
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!dropdown.contains(event.target)) {
+                dropdown.classList.remove("open");
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        var tableBody = document.getElementById("roomTableBody");
+
+        if (tableBody) {
+            originalRoomTbodyHTML = tableBody.innerHTML;
+        }
+
+        roomPaginationButtons = document.querySelector(
+            ".room-pagination .d-flex.gap-2"
+        );
+
+        roomShowingText = document.querySelector(
+            ".room-pagination small"
+        );
+
+        if (roomShowingText) {
+            originalShowingText = roomShowingText.textContent;
+        }
+
+        var searchEl = document.getElementById("roomSearch");
+        var buildingEl = document.getElementById("roomBuildingFilter");
+        var floorEl = document.getElementById("roomFloorFilter");
+        var statusEl = document.getElementById("roomStatusFilter");
+
+        if (searchEl) {
+            searchEl.addEventListener("input", applyRoomFilters);
+        }
+
+        if (buildingEl) {
+            buildingEl.addEventListener("change", applyRoomFilters);
+        }
+
+        if (floorEl) {
+            floorEl.addEventListener("change", applyRoomFilters);
+        }
+
+        if (statusEl) {
+            statusEl.addEventListener("change", applyRoomFilters);
+        }
+
+        populateRoomFilters();
+
+        initRoomBuildingDropdown("addRoomBuilding");
+        initRoomBuildingDropdown("editRoomBuilding");
+
+        /* Room number accepts digits only */
+
+        var addRoomNumberInput =
+            document.getElementById("addRoomNumber");
+
+        var editRoomNumberInput =
+            document.getElementById("editRoomNumber");
+
+        function restrictDigitsOnly(el) {
+            if (!el) {
+                return;
+            }
+
+            el.addEventListener("input", function () {
+                var cleaned = this.value.replace(/[^0-9]/g, "");
+
+                if (cleaned !== this.value) {
+                    this.value = cleaned;
+                }
+
+                clearFieldError(this);
+            });
+        }
+
+        restrictDigitsOnly(addRoomNumberInput);
+        restrictDigitsOnly(editRoomNumberInput);
+
+        /* Clear inline errors while typing */
+
+        var clearOnInputEls = document.querySelectorAll(
+            "#addRoomModal .room-form-control, " +
+            "#editRoomModal .room-form-control"
+        );
+
+        clearOnInputEls.forEach(function (el) {
+            el.addEventListener("input", function () {
+                clearFieldError(this);
+            });
+
+            el.addEventListener("change", function () {
+                clearFieldError(this);
+            });
+        });
+
+        /* Clear errors when modals close */
+
+        ["addRoomModal", "editRoomModal"].forEach(
+            function (modalId) {
+                var modalEl =
+                    document.getElementById(modalId);
+
+                if (!modalEl) {
+                    return;
+                }
+
+                modalEl.addEventListener(
+                    "hidden.bs.modal",
+                    function () {
+                        modalEl.querySelectorAll(
+                            ".room-form-control"
+                        ).forEach(function (el) {
+                            clearFieldError(el);
+                        });
+
+                        closeRoomDropdowns();
+                    }
+                );
+            }
+        );
+    });
+</script>
+
+{% endblock %}
+
+{% block global_modal %}
+
+<!--  ADD ROOM MODA -->
+
+<div
+    class="modal fade"
+    id="addRoomModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div
+            class="modal-content room-add-modal-content"
+        >
+
+            <!-- HEADER -->
+
+            <div class="room-modal-header">
+
+                <div class="room-modal-heading">
+
+                    <div class="room-modal-icon">
+                        <i data-lucide="door-open"></i>
+                    </div>
+
+                    <div>
+
+                        <h5>
+                            Add Room
+                        </h5>
+
+                        <p>
+                            Create a new university room
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+
+            <!-- FORM -->
+
+            <form
+                id="addRoomForm"
+                method="POST"
+                action="{% url 'rixie_add_room' %}"
+            >
+
+                {% csrf_token %}
+
+                <div class="room-modal-body">
+
+                    <!-- BUILDING TYPE -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Building Type
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="building_type"
+                            id="addRoomBuildingType"
+                            class="room-form-control"
+                            required
+                        >
+
+                            <option value="">
+                                Select Building Type
+                            </option>
+
+                            <option value="NORMAL">
+                                Normal
+                            </option>
+
+                            <option value="MEDICAL">
+                                Medical
+                            </option>
+
+                        </select>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- BUILDING -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Building
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="building"
+                            id="addRoomBuilding"
+                            class="room-form-control room-dropdown-hidden-select"
+                        >
+
+                            <option value="">
+                                Select Building
+                            </option>
+
+                            {% for building in buildings %}
+
+                                <option
+                                    value="{{ building.pk }}"
+                                    data-building-type="{{ building.building_type }}"
+                                >
+                                    {{ building.building_name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <div
+                            class="room-dropdown"
+                            id="addRoomBuildingDropdown"
+                        >
+
+                            <button
+                                type="button"
+                                class="room-form-control room-dropdown-toggle"
+                                id="addRoomBuildingToggle"
+                            >
+
+                                <span
+                                    class="room-dropdown-text"
+                                    id="addRoomBuildingText"
+                                >
+                                    Select Building
+                                </span>
+
+                                <span class="room-dropdown-caret"></span>
+
+                            </button>
+
+                            <ul
+                                class="room-dropdown-menu"
+                                id="addRoomBuildingList"
+                            >
+
+                                {% for building in buildings %}
+
+                                    <li
+                                        data-value="{{ building.pk }}"
+                                        data-building-type="{{ building.building_type }}"
+                                    >
+                                        {{ building.building_name }}
+                                    </li>
+
+                                {% endfor %}
+
+                            </ul>
+
+                        </div>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- FLOOR -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Floor
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="floor"
+                            id="addRoomFloor"
+                            class="room-form-control"
+                            required
+                            disabled
+                        >
+
+                            <option value="">
+                                Select Building First
+                            </option>
+
+                        </select>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- ROOM NUMBER + ROOM NAME -->
+
+                    <div class="room-form-row">
+
+                        <div class="room-form-group">
+
+                            <label>
+                                Room Number
+                                <span>*</span>
+                            </label>
+
+                            <input
+                                type="text"
+                                name="room_number"
+                                id="addRoomNumber"
+                                class="room-form-control"
+                                placeholder="101"
+                                maxlength="50"
+                                inputmode="numeric"
+                                required
+                            >
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+
+                        <div class="room-form-group" id="addRoomNameGroup">
+
+                            <label>
+                                Room Name
+                                <span>*</span>
+                            </label>
+
+                            <input
+                                type="text"
+                                name="room_name"
+                                id="addRoomName"
+                                class="room-form-control"
+                                placeholder="Computer Science Room"
+                                maxlength="150"
+                                required
+                            >
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ROOM TYPE + CAPACITY -->
+
+                    <div class="room-form-row">
+
+                        <div class="room-form-group" id="addRoomTypeGroup">
+
+                            <label>
+                                Room Type
+                                <span>*</span>
+                            </label>
+
+                            <select
+                                name="room_type"
+                                id="addRoomType"
+                                class="room-form-control"
+                                required
+                            >
+
+                                <option value="">
+                                    Select Room Type
+                                </option>
+
+                                <option value="CLASSROOM">
+                                    Classroom
+                                </option>
+
+                                <option value="LAB">
+                                    Laboratory
+                                </option>
+
+                                <option value="EXAM_HALL">
+                                    Exam Hall
+                                </option>
+
+                                <option value="SEMINAR">
+                                    Seminar Hall
+                                </option>
+
+                            </select>
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+
+                        <div class="room-form-group" id="addRoomCapacityGroup">
+
+                            <label>
+                                Capacity
+                                <span>*</span>
+                            </label>
+
+                            <input
+                                type="number"
+                                name="capacity"
+                                id="addRoomCapacity"
+                                class="room-form-control"
+                                placeholder="60"
+                                min="1"
+                                max="200"
+                                required
+                            >
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- STATUS -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Status
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="status"
+                            id="addRoomStatus"
+                            class="room-form-control"
+                            required
+                        >
+
+                            <option value="AVAILABLE" selected>
+                                Available
+                            </option>
+
+                            <option value="MAINTENANCE">
+                                Maintenance
+                            </option>
+
+                            <option value="BLOCKED">
+                                Blocked
+                            </option>
+
+                        </select>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- FACILITIES -->
+
+                    <div class="room-form-group" id="addRoomFacilitiesGroup">
+
+                        <label>
+                            Facilities
+                        </label>
+
+                        <div class="room-facility-options">
+
+                            <label class="room-checkbox">
+
+                                <input
+                                    type="checkbox"
+                                    name="has_ac"
+                                    checked
+                                >
+
+                                <span>
+                                    Air Conditioning
+                                </span>
+
+                            </label>
+
+
+                            <label class="room-checkbox">
+
+                                <input
+                                    type="checkbox"
+                                    name="has_projector"
+                                >
+
+                                <span>
+                                    Projector
+                                </span>
+
+                            </label>
+
+
+                            <label class="room-checkbox">
+
+                                <input
+                                    type="checkbox"
+                                    name="has_computers"
+                                >
+
+                                <span>
+                                    Computers
+                                </span>
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FOOTER -->
+
+                <div class="room-modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary room-cancel-btn"
+                        data-bs-dismiss="modal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="room-save-btn"
+                        id="addRoomSubmitBtn"
+                    >
+
+                        <i data-lucide="check"></i>
+
+                        Add Room
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+<!-- VIEW ROOM MODAL -->
+
+<div
+    class="modal fade"
+    id="viewRoomModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content room-view-modal-content">
+
+            <!-- HEADER -->
+
+            <div class="room-view-modal-header">
+
+                <div class="room-view-heading">
+
+                    <div class="room-view-icon">
+                        <i data-lucide="door-open"></i>
+                    </div>
+
+                    <div>
+
+                        <h5>
+                            Room Details
+                        </h5>
+
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+
+            <!-- BODY -->
+
+            <div class="room-view-modal-body">
+
+                <!-- ROOM TITLE -->
+
+                <div class="room-view-title-section">
+
+                    <div class="room-view-door-icon">
+                        <i data-lucide="door-open"></i>
+                    </div>
+
+                    <div>
+
+                        <h3 id="viewRoomNumber">
+                            Room 101
+                        </h3>
+
+                        <p id="viewRoomName">
+                            Computer Science Classroom
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- INFORMATION -->
+
+                <div class="room-view-information">
+
+                    <div class="room-view-info-row">
+
+                        <div class="room-view-info-label">
+                            Building
+                        </div>
+
+                        <div
+                            class="room-view-info-value"
+                            id="viewRoomBuilding"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="room-view-info-row">
+
+                        <div class="room-view-info-label">
+                            Floor
+                        </div>
+
+                        <div
+                            class="room-view-info-value"
+                            id="viewRoomFloor"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="room-view-info-row">
+
+                        <div class="room-view-info-label">
+                            Room Type
+                        </div>
+
+                        <div
+                            class="room-view-info-value"
+                            id="viewRoomType"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="room-view-info-row">
+
+                        <div class="room-view-info-label">
+                            Capacity
+                        </div>
+
+                        <div
+                            class="room-view-info-value"
+                            id="viewRoomCapacity"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="room-view-info-row">
+
+                        <div class="room-view-info-label">
+                            Status
+                        </div>
+
+                        <div
+                            class="room-view-info-value"
+                            id="viewRoomStatus"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FACILITIES -->
+
+                <div class="room-view-facilities-section">
+
+                    <div class="room-view-section-title">
+                        Facilities
+                    </div>
+
+
+                    <div
+                        class="room-view-facilities"
+                        id="viewRoomFacilities"
+                    >
+
+                        <!-- Filled by JavaScript -->
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOTER -->
+
+            <div class="room-view-modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary room-view-close-btn"
+                    data-bs-dismiss="modal"
+                >
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+<!-- EDIT ROOM MODAL -->
+
+<div
+    class="modal fade"
+    id="editRoomModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content room-edit-modal-content">
+
+            <!-- HEADER -->
+
+            <div class="room-edit-modal-header">
+
+                <div class="room-edit-heading">
+
+                    <div class="room-edit-icon">
+                        <i data-lucide="pencil"></i>
+                    </div>
+
+                    <div>
+
+                        <h5>
+                            Edit Room
+                        </h5>
+
+                        <p>
+                            Update room information
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+
+            <!-- FORM -->
+
+            <form
+                id="editRoomForm"
+                method="POST"
+                action=""
+            >
+
+                {% csrf_token %}
+
+                <input
+                    type="hidden"
+                    id="editRoomId"
+                    name="room_id"
+                >
+
+
+                <div class="room-edit-modal-body">
+
+                    <!-- BUILDING TYPE -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Building Type
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="building_type"
+                            id="editRoomBuildingType"
+                            class="room-form-control"
+                            required
+                        >
+
+                            <option value="">
+                                Select Building Type
+                            </option>
+
+                            <option value="NORMAL">
+                                Normal
+                            </option>
+
+                            <option value="MEDICAL">
+                                Medical
+                            </option>
+
+                        </select>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- BUILDING -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Building
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="building"
+                            id="editRoomBuilding"
+                            class="room-form-control room-dropdown-hidden-select"
+                        >
+
+                            <option value="">
+                                Select Building
+                            </option>
+
+                            {% for building in buildings %}
+
+                                <option
+                                    value="{{ building.pk }}"
+                                    data-building-type="{{ building.building_type }}"
+                                >
+                                    {{ building.building_name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <div
+                            class="room-dropdown"
+                            id="editRoomBuildingDropdown"
+                        >
+
+                            <button
+                                type="button"
+                                class="room-form-control room-dropdown-toggle"
+                                id="editRoomBuildingToggle"
+                            >
+
+                                <span
+                                    class="room-dropdown-text"
+                                    id="editRoomBuildingText"
+                                >
+                                    Select Building
+                                </span>
+
+                                <span class="room-dropdown-caret"></span>
+
+                            </button>
+
+                            <ul
+                                class="room-dropdown-menu"
+                                id="editRoomBuildingList"
+                            >
+
+                                {% for building in buildings %}
+
+                                    <li
+                                        data-value="{{ building.pk }}"
+                                        data-building-type="{{ building.building_type }}"
+                                    >
+                                        {{ building.building_name }}
+                                    </li>
+
+                                {% endfor %}
+
+                            </ul>
+
+                        </div>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- FLOOR -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Floor
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="floor"
+                            id="editRoomFloor"
+                            class="room-form-control"
+                            required
+                            disabled
+                        >
+
+                            <option value="">
+                                Select Building First
+                            </option>
+
+                        </select>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- ROOM NUMBER + NAME -->
+
+                    <div class="room-form-row">
+
+                        <div class="room-form-group">
+
+                            <label>
+                                Room Number
+                                <span>*</span>
+                            </label>
+
+                            <input
+                                type="text"
+                                name="room_number"
+                                id="editRoomNumber"
+                                class="room-form-control"
+                                maxlength="50"
+                                inputmode="numeric"
+                                required
+                            >
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+
+                        <div class="room-form-group" id="editRoomNameGroup">
+
+                            <label>
+                                Room Name
+                                <span>*</span>
+                            </label>
+
+                            <input
+                                type="text"
+                                name="room_name"
+                                id="editRoomName"
+                                class="room-form-control"
+                                maxlength="150"
+                                required
+                            >
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- TYPE + CAPACITY -->
+
+                    <div class="room-form-row">
+
+                        <div class="room-form-group" id="editRoomTypeGroup">
+
+                            <label>
+                                Capacity
+                                <span>*</span>
+                            </label>
+
+                            <select
+                                name="room_type"
+                                id="editRoomType"
+                                class="room-form-control"
+                                required
+                            >
+
+                                <option value="">
+                                    Select Room Type
+                                </option>
+
+                                <option value="CLASSROOM">
+                                    Classroom
+                                </option>
+
+                                <option value="LAB">
+                                    Laboratory
+                                </option>
+
+                                <option value="EXAM_HALL">
+                                    Exam Hall
+                                </option>
+
+                                <option value="SEMINAR">
+                                    Seminar Hall
+                                </option>
+
+                            </select>
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+
+                        <div class="room-form-group" id="editRoomCapacityGroup">
+
+                            <label>
+                                Capacity
+                                <span>*</span>
+                            </label>
+
+                            <input
+                                type="number"
+                                name="capacity"
+                                id="editRoomCapacity"
+                                class="room-form-control"
+                                min="1"
+                                max="200"
+                                required
+                            >
+
+                            <div class="room-field-error"></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- STATUS -->
+
+                    <div class="room-form-group">
+
+                        <label>
+                            Status
+                            <span>*</span>
+                        </label>
+
+                        <select
+                            name="status"
+                            id="editRoomStatus"
+                            class="room-form-control"
+                            required
+                        >
+
+                            <option value="AVAILABLE">
+                                Available
+                            </option>
+
+                            <option value="MAINTENANCE">
+                                Maintenance
+                            </option>
+
+                            <option value="BLOCKED">
+                                Blocked
+                            </option>
+
+                        </select>
+
+                        <div class="room-field-error"></div>
+
+                    </div>
+
+
+                    <!-- FACILITIES -->
+
+                    <div class="room-form-group" id="editRoomFacilitiesGroup">
+
+                        <label>
+                            Facilities
+                        </label>
+
+                        <div class="room-facility-options">
+
+                            <label class="room-checkbox">
+
+                                <input
+                                    type="checkbox"
+                                    name="has_ac"
+                                    id="editRoomAc"
+                                >
+
+                                <span>
+                                    Air Conditioning
+                                </span>
+
+                            </label>
+
+
+                            <label class="room-checkbox">
+
+                                <input
+                                    type="checkbox"
+                                    name="has_projector"
+                                    id="editRoomProjector"
+                                >
+
+                                <span>
+                                    Projector
+                                </span>
+
+                            </label>
+
+
+                            <label class="room-checkbox">
+
+                                <input
+                                    type="checkbox"
+                                    name="has_computers"
+                                    id="editRoomComputers"
+                                >
+
+                                <span>
+                                    Computers
+                                </span>
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FOOTER -->
+
+                <div class="room-edit-modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary room-cancel-btn"
+                        data-bs-dismiss="modal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="room-save-btn"
+                        id="editRoomSubmitBtn"
+                    >
+                        <i data-lucide="save"></i>
+                        Save Changes
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

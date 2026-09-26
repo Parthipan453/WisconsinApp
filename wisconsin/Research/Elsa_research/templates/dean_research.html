@@ -1,0 +1,214 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}
+Faculty Dashboard
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dean_research.css' %}">
+<link rel="stylesheet" href="{% static 'css/hod_research.css' %}">
+<link  rel="stylesheet"  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+{% endblock %}
+
+{% block content %}
+<div class="deanr-page">
+
+    <!-- Header -->
+    <div class="deanr-page-header">
+        <div>
+            <h1>Dean's Research Approvals</h1>
+            <p>Final review of research proposals cleared by department heads</p>
+        </div>
+        <div class="deanr-header-actions">
+            <button class="deanr-btn deanr-btn-primary" onclick="exportDeanReport()">
+                <i class="ti ti-download"></i> Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="deanr-stats-grid" id="deanStatsGrid">
+        <div class="deanr-stat-card">
+            <div class="deanr-icon deanr-icon-red"><i class="ti ti-folder"></i></div>
+            <div><h3 id="deanStatTotal">0</h3><span>Awaiting Dean Review</span></div>
+        </div>
+        <div class="deanr-stat-card">
+            <div class="deanr-icon deanr-icon-orange"><i class="ti ti-clock"></i></div>
+            <div><h3 id="deanStatPending">0</h3><span>Pending Decision</span></div>
+        </div>
+        <div class="deanr-stat-card">
+            <div class="deanr-icon deanr-icon-green"><i class="ti ti-circle-check"></i></div>
+            <div><h3 id="deanStatApproved">0</h3><span>Approved</span></div>
+        </div>
+        <div class="deanr-stat-card">
+            <div class="deanr-icon deanr-icon-rose"><i class="ti ti-circle-x"></i></div>
+            <div><h3 id="deanStatRejected">0</h3><span>Rejected</span></div>
+        </div>
+        <div class="deanr-stat-card">
+            <div class="deanr-icon deanr-icon-purple"><i class="ti ti-cash"></i></div>
+            <div><h3 id="deanStatBudget">$0</h3><span>Total Budget Requested</span></div>
+        </div>
+        <div class="deanr-stat-card">
+            <div class="deanr-icon deanr-icon-blue"><i class="ti ti-building"></i></div>
+            <div><h3 id="deanStatDepts">0</h3><span>Departments Represented</span></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="deanr-filter-section">
+        <div class="deanr-filter-row">
+            <div class="deanr-filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="deanStatusFilter" class="deanr-input" onchange="filterDeanCards()">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+
+            <div class="deanr-filter-group">
+                <label><i class="ti ti-building"></i> Department</label>
+                <select id="deanDeptFilter" class="deanr-input" onchange="filterDeanCards()">
+                    <option value="">All</option>
+                </select>
+            </div>
+
+            <div class="deanr-filter-group">
+                <label><i class="ti ti-cash"></i> Funding</label>
+                <select id="deanFundingFilter" class="deanr-input" onchange="filterDeanCards()">
+                    <option value="">All Fund</option>
+                    <option value="external">External Sponsor</option>
+                    <option value="federal">Federal Grant</option>
+                    <option value="department">Department Funding</option>
+                    <option value="unfunded">Unfunded / Self-Directed</option>
+                </select>
+            </div>
+
+            <div class="deanr-filter-group deanr-filter-group-wide">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div class="deanr-search-wrap">
+                    <input type="text" id="deanSearchInput" class="deanr-input"
+                           placeholder="Search by code, title, or PI..."
+                           oninput="filterDeanCards()">
+                    <button class="deanr-search-btn" onclick="filterDeanCards()" aria-label="Search" type="button">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="deanr-filter-group deanr-filter-group-reset">
+                <label class="deanr-label-hidden">Reset</label>
+                <button class="deanr-btn deanr-btn-reset" onclick="resetDeanFilters()" type="button">
+                    <i class="ti ti-refresh"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Research Requests Grid -->
+    <div class="deanr-section">
+        <div class="deanr-section-header">
+            <h3><i class="ti ti-clipboard-list"></i> Proposals Awaiting Final Approval</h3>
+            <span class="deanr-record-count" id="deanRecordCount">0 Requests</span>
+        </div>
+        <div class="deanr-grid" id="deanResearchGrid">
+            <!-- Cards rendered by JS -->
+        </div>
+    </div>
+
+    <!-- Research Detail Modal -->
+    <div class="deanr-modal-overlay" id="deanDetailModal" style="display: none;">
+        <div class="deanr-modal deanr-modal-large">
+            <div class="deanr-modal-header">
+                <h3><i class="ti ti-microscope"></i> Proposal Details
+                    <span id="deanModalCode" class="deanr-research-code"></span>
+                </h3>
+                <button class="deanr-modal-close" onclick="closeDeanModal('deanDetailModal')" type="button">&times;</button>
+            </div>
+            <div class="deanr-modal-body" id="deanDetailBody">
+                <!-- populated by JS -->
+            </div>
+            <div class="deanr-modal-footer" id="deanDetailActions">
+                <!-- Approve/Reject buttons injected here only when status is pending -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Reason Modal -->
+    <div class="deanr-modal-overlay" id="deanRejectModal" style="display: none;">
+        <div class="deanr-modal">
+            <div class="deanr-modal-header">
+                <h3><i class="ti ti-circle-x"></i> Reject Proposal</h3>
+                <button class="deanr-modal-close" onclick="closeDeanModal('deanRejectModal')" type="button">&times;</button>
+            </div>
+            <div class="deanr-modal-body">
+                <div class="deanr-form-group">
+                    <label>Reason for rejection <span class="deanr-required">*</span></label>
+                    <textarea id="deanRejectReasonInput" class="deanr-input" rows="4"
+                              placeholder="Explain what needs to change or why this is being rejected..."></textarea>
+                </div>
+            </div>
+            <div class="deanr-modal-footer">
+                <button class="deanr-btn deanr-btn-reset" onclick="closeDeanModal('deanRejectModal')" type="button">Cancel</button>
+                <button class="deanr-btn deanr-btn-reject" onclick="confirmDeanReject()" type="button">
+                    <i class="ti ti-circle-x"></i> Confirm Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uploads Modal -->
+    <div class="modal-overlay hod-research-page" id="uploadsModal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="ti ti-files"></i> Uploaded Documents</h3>
+                <button class="modal-close" onclick="closeHodModal('uploadsModal')"> &times; </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-item">
+                    <div class="upload-info">
+                        <i class="ti ti-file-type-pdf"></i>
+                        <div>
+                            <h4>Research Proposal.pdf</h4>
+                            <small>Uploaded by Student</small>
+                        </div>
+                    </div>
+                    <button class="filter-btn view-btn"><i class="ti ti-eye"></i> View </button>
+                    <button class="filter-btn download-btn"><i class="ti ti-download"></i> Download</button>
+                </div>
+                <div class="upload-item">
+                    <div class="upload-info">
+                        <i class="ti ti-file-type-pdf"></i>
+                        <div>
+                            <h4>Synopsis.pdf</h4>
+                            <small>Uploaded by Student</small>
+                        </div>
+                    </div>
+                    <button class="filter-btn view-btn"><i class="ti ti-eye"></i> View </button>
+                    <button class="filter-btn download-btn"><i class="ti ti-download"></i> Download</button>
+                </div>
+                <div class="upload-item">
+                    <div class="upload-info">
+                        <i class="ti ti-file-type-doc"></i>
+                        <div>
+                            <h4>Consent Form.docx</h4>
+                            <small>Uploaded by Student</small>
+                        </div>
+                    </div>
+                    <button class="filter-btn view-btn"><i class="ti ti-eye"></i> View </button>
+                    <button class="filter-btn download-btn"><i class="ti ti-download"></i> Download</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/dean_research.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,905 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Advisee Workspace{% endblock title %}
+{% block nav_Teaching_submenu %}open{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/leo/PhD/advisee_workspace.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+{% endblock extra_css %}
+
+{% block content %}
+<div class="advisor-faculty-shell">
+<div class="container-fluid px-3 px-md-4 px-xxl-5 py-3 py-lg-4">
+
+  <div class="advisor-faculty-header-row mb-4">
+    <div class="advisor-faculty-header-left">
+      {% comment %} <nav aria-label="breadcrumb">
+        <ol class="advisor-faculty-breadcrumb">
+          <li><a href="#">Faculty Dashboard</a></li>
+          <li><a href="#">PhD Management</a></li>
+          <li><a href="{% url 'faculty_advisor_list' uuid=faculty.user.uuid %}">Advisees</a></li>
+          <li class="advisor-faculty-breadcrumb-active">Workspace</li>
+        </ol>
+      </nav> {% endcomment %}
+      <div class="advisor-faculty-title-group">
+        <h2>Advisee Workspace</h2>
+      </div>
+      <p class="advisor-faculty-subtitle mt-1">Comprehensive doctoral supervision workspace for {{ phd_student.student.user.get_full_name|default:"this advisee" }}.</p>
+    </div>
+    <div class="advisor-faculty-header-right">
+      <span class="advisor-faculty-status-badge advisor-faculty-status-badge-active">
+        <span class="advisor-faculty-status-dot"></span>
+        <span>{{ phd_student.current_status|default:"ACTIVE" }}</span>
+      </span>
+      <a href="{% url 'faculty_advisor_list' uuid=faculty.user.uuid %}" class="advisor-faculty-back-btn">
+        <i class="bi bi-arrow-left"></i> <span>Back to Advisees</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-hero-card mb-4">
+    <div class="advisor-faculty-hero-card-body">
+      <div class="advisor-faculty-hero-row">
+        <div>
+          <div class="advisor-faculty-student-info">
+            <div class="advisor-faculty-student-avatar-wrapper">
+              {% if phd_student.student.user.profile_photo %}
+                <img src="{{ phd_student.student.user.profile_photo.url }}" alt="{{ phd_student.student.user.get_full_name }}" class="advisor-faculty-student-avatar-img">
+              {% else %}
+                <span class="advisor-faculty-student-avatar-initials">{{ phd_student.student.user.first_name|first|upper }}{{ phd_student.student.user.last_name|first|upper }}</span>
+              {% endif %}
+              <span class="advisor-faculty-avatar-status-indicator advisor-faculty-status-indicator-active"></span>
+            </div>
+            <div class="advisor-faculty-student-details">
+              <div class="advisor-faculty-student-badges">
+                <span class="advisor-faculty-scholar-badge"><i class="bi bi-mortarboard-fill"></i> Ph.D. Scholar</span>
+                {% if candidacy_approved %}
+                  <span class="advisor-faculty-candidacy-approved-badge"><i class="bi bi-award-fill"></i> Candidacy Approved</span>
+                {% elif candidacy_eligible %}
+                  <span class="advisor-faculty-candidacy-eligible-badge"><i class="bi bi-award"></i> Candidacy Eligible</span>
+                {% endif %}
+                {% comment %} <span class="advisor-faculty-doctoral-badge"><i class="bi bi-check2-circle"></i> Doctoral Candidacy</span> {% endcomment %}
+              </div>
+              <h2 class="advisor-faculty-student-name">{{ phd_student.student.user.get_full_name|default:"Unnamed Student" }}</h2>
+              <div class="advisor-faculty-student-number"><i class="bi bi-person-badge me-1"></i> {{ phd_student.student.student_number|default:"N/A" }}</div>
+              <div class="advisor-faculty-hero-meta-grid">
+                <div class="advisor-faculty-hero-meta-item">
+                  <span class="advisor-faculty-hero-meta-icon"><i class="bi bi-mortarboard"></i></span>
+                  <span><small>Program</small><strong>{{ phd_program.program_name|default:"PhD Program" }}</strong></span>
+                </div>
+                <div class="advisor-faculty-hero-meta-item">
+                  <span class="advisor-faculty-hero-meta-icon"><i class="bi bi-building"></i></span>
+                  <span><small>Department</small><strong>{{ department.department_name|default:"Department" }}</strong></span>
+                </div>
+                <div class="advisor-faculty-hero-meta-item">
+                  <span class="advisor-faculty-hero-meta-icon"><i class="bi bi-envelope"></i></span>
+                  <span><small>Email</small><strong class="text-break">{{ phd_student.student.user.email|default:"N/A" }}</strong></span>
+                </div>
+                <div class="advisor-faculty-hero-meta-item">
+                  <span class="advisor-faculty-hero-meta-icon"><i class="bi bi-journal-bookmark-fill"></i></span>
+                  <span><small>Research Area</small><strong>{{ phd_student.research_area|default:"Not specified" }}</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="advisor-faculty-hero-progress-panel">
+            <div class="advisor-faculty-hero-progress-header">
+              <div>
+                <span class="advisor-faculty-hero-progress-label">Doctoral Progress</span>
+                <h3 class="advisor-faculty-hero-progress-value">{{ overall_progress }}%</h3>
+              </div>
+              <div class="advisor-faculty-hero-progress-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            </div>
+            <div class="advisor-faculty-hero-progress-bar" role="progressbar" aria-valuenow="{{ overall_progress }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="advisor-faculty-hero-progress-fill" style="width:{{ overall_progress }}%;"></div>
+            </div>
+            <div class="advisor-faculty-hero-progress-meta">
+              <span>{{ completed_stage_count }} completed</span>
+              <span>{{ total_stage_count }} stages</span>
+            </div>
+            <div class="advisor-faculty-hero-years-in-program">
+              <div class="advisor-faculty-flex-between">
+                <span class="advisor-faculty-text-muted-small">Years in program</span>
+                <strong>{{ years_in_program|default:"0" }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-stats-row">
+    <div class="advisor-faculty-stat-card">
+      <div class="advisor-faculty-stat-body">
+        <div class="advisor-faculty-stat-header">
+          <div class="advisor-faculty-stat-icon advisor-faculty-stat-icon-primary"><i class="bi bi-speedometer2"></i></div>
+          <span class="advisor-faculty-stat-percentage">{{ overall_progress }}%</span>
+        </div>
+        <div class="advisor-faculty-stat-content">
+          <div class="advisor-faculty-stat-number">{{ overall_progress }}%</div>
+          <div class="advisor-faculty-stat-title">Overall Progress</div>
+        </div>
+      </div>
+    </div>
+    <div class="advisor-faculty-stat-card">
+      <div class="advisor-faculty-stat-body">
+        <div class="advisor-faculty-stat-header">
+          <div class="advisor-faculty-stat-icon advisor-faculty-stat-icon-success"><i class="bi bi-journal-check"></i></div>
+          <span class="advisor-faculty-stat-percentage">{{ coursework_completion_percentage }}%</span>
+        </div>
+        <div class="advisor-faculty-stat-content">
+          <div class="advisor-faculty-stat-number">{{ completed_courseworks }}/{{ total_courseworks }}</div>
+          <div class="advisor-faculty-stat-title">Coursework Complete</div>
+        </div>
+      </div>
+    </div>
+    <div class="advisor-faculty-stat-card">
+      <div class="advisor-faculty-stat-body">
+        <div class="advisor-faculty-stat-header">
+          <div class="advisor-faculty-stat-icon advisor-faculty-stat-icon-warning"><i class="bi bi-clipboard-check"></i></div>
+          <span class="advisor-faculty-stat-percentage">{{ passed_examinations }} passed</span>
+        </div>
+        <div class="advisor-faculty-stat-content">
+          <div class="advisor-faculty-stat-number">{{ total_examinations }}</div>
+          <div class="advisor-faculty-stat-title">Doctoral Exams</div>
+        </div>
+      </div>
+    </div>
+    <div class="advisor-faculty-stat-card">
+      <div class="advisor-faculty-stat-body">
+        <div class="advisor-faculty-stat-header">
+          <div class="advisor-faculty-stat-icon advisor-faculty-stat-icon-danger"><i class="bi bi-exclamation-triangle"></i></div>
+          <span class="advisor-faculty-stat-percentage">Action</span>
+        </div>
+        <div class="advisor-faculty-stat-content">
+          <div class="advisor-faculty-stat-number">{{ actions|length }}</div>
+          <div class="advisor-faculty-stat-title">Advisor Actions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-supervision-row">
+    <div class="advisor-faculty-focus-card">
+      <div class="advisor-faculty-card-header">
+        <div class="advisor-faculty-focus-header">
+          <div>
+            <span class="advisor-faculty-section-eyebrow"><i class="bi bi-lightning-charge-fill"></i>ADVISOR ATTENTION</span>
+            <h4 class="advisor-faculty-focus-title">Supervision Priorities</h4>
+            <p class="advisor-faculty-focus-subtitle">Academic items that may require your attention.</p>
+          </div>
+          <span class="advisor-faculty-action-count-badge">{{ actions|length }} item{{ actions|length|pluralize }}</span>
+        </div>
+      </div>
+      <div class="advisor-faculty-card-body">
+        {% if actions %}
+          <div class="advisor-faculty-action-list">
+            {% for item in actions %}
+              <div class="advisor-faculty-attention-item advisor-faculty-attention-{{ item.priority }}">
+                <div class="advisor-faculty-attention-icon"><i class="{{ item.icon }}"></i></div>
+                <div class="advisor-faculty-attention-content">
+                  <div class="advisor-faculty-attention-headline">
+                    <strong>{{ item.title }}</strong>
+                    <span class="advisor-faculty-priority-badge advisor-faculty-priority-{{ item.priority }}">{{ item.priority|upper }}</span>
+                  </div>
+                  <p class="advisor-faculty-attention-description">{{ item.description }}</p>
+                </div>
+                <button type="button" class="advisor-faculty-attention-action-btn">{{ item.action }} <i class="bi bi-arrow-right ms-1"></i></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="advisor-faculty-empty-success-state">
+            <div class="advisor-faculty-empty-success-icon"><i class="bi bi-check2-circle"></i></div>
+            <h5>No Immediate Actions</h5>
+            <p>This advisee currently has no major supervision items requiring attention.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="advisor-faculty-candidacy-card">
+      <div class="advisor-faculty-candidacy-card-body">
+        <div class="advisor-faculty-candidacy-header">
+          <div>
+            <span class="advisor-faculty-section-eyebrow"><i class="bi bi-award-fill"></i>DOCTORAL CANDIDACY</span>
+            <h5 class="advisor-faculty-candidacy-title">Candidacy Readiness</h5>
+          </div>
+          {% if candidacy_approved %}
+            <span class="advisor-faculty-candidacy-status-badge advisor-faculty-candidacy-status-approved"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
+          {% elif candidacy_eligible %}
+            <span class="advisor-faculty-candidacy-status-badge advisor-faculty-candidacy-status-eligible"><i class="bi bi-clock-fill me-1"></i>Eligible</span>
+          {% else %}
+            <span class="advisor-faculty-candidacy-status-badge advisor-faculty-candidacy-status-inprogress">In Progress</span>
+          {% endif %}
+        </div>
+        <div class="advisor-faculty-candidacy-score">
+          <div class="advisor-faculty-candidacy-score-number">{{ candidacy_readiness }}%</div>
+          <div class="advisor-faculty-candidacy-score-label">Requirements Complete</div>
+        </div>
+        <div class="advisor-faculty-candidacy-progress-bar">
+          <div class="advisor-faculty-candidacy-progress-fill" style="width:{{ candidacy_readiness }}%;"></div>
+        </div>
+        <div class="advisor-faculty-candidacy-requirements-list">
+          <div class="advisor-faculty-candidacy-check-row">
+            <span><i class="bi bi-person-check me-2"></i>Advisor Assigned</span>
+            {% if candidacy_requirements.advisor_assigned %}<i class="bi bi-check-circle-fill advisor-faculty-check-success"></i>{% else %}<i class="bi bi-circle advisor-faculty-check-muted"></i>{% endif %}
+          </div>
+          <div class="advisor-faculty-candidacy-check-row">
+            <span><i class="bi bi-people me-2"></i>Committee Approved</span>
+            {% if candidacy_requirements.committee_approved %}<i class="bi bi-check-circle-fill advisor-faculty-check-success"></i>{% else %}<i class="bi bi-circle advisor-faculty-check-muted"></i>{% endif %}
+          </div>
+          <div class="advisor-faculty-candidacy-check-row">
+            <span><i class="bi bi-journal-check me-2"></i>Coursework Complete</span>
+            {% if candidacy_requirements.coursework_completed %}<i class="bi bi-check-circle-fill advisor-faculty-check-success"></i>{% else %}<i class="bi bi-circle advisor-faculty-check-muted"></i>{% endif %}
+          </div>
+          <div class="advisor-faculty-candidacy-check-row">
+            <span><i class="bi bi-clipboard-check me-2"></i>Examination Passed</span>
+            {% if candidacy_requirements.examination_passed %}<i class="bi bi-check-circle-fill advisor-faculty-check-success"></i>{% else %}<i class="bi bi-circle advisor-faculty-check-muted"></i>{% endif %}
+          </div>
+          <div class="advisor-faculty-candidacy-check-row">
+            <span><i class="bi bi-file-earmark-check me-2"></i>Proposal Approved</span>
+            {% if candidacy_requirements.proposal_approved %}<i class="bi bi-check-circle-fill advisor-faculty-check-success"></i>{% else %}<i class="bi bi-circle advisor-faculty-check-muted"></i>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-progression-health-row">
+    <div class="advisor-faculty-progression-card">
+      <div class="advisor-faculty-card-header">
+        <span class="advisor-faculty-section-eyebrow"><i class="bi bi-signpost-split-fill"></i>DOCTORAL JOURNEY</span>
+        <h4 class="advisor-faculty-progression-title">PhD Progression</h4>
+        <p class="advisor-faculty-progression-subtitle">Current position across the doctoral lifecycle.</p>
+      </div>
+      <div class="advisor-faculty-card-body">
+        <div class="advisor-faculty-doctoral-stage-grid">
+          {% for stage in stage_items %}
+            <div class="advisor-faculty-doctoral-stage {% if stage.completed %}advisor-faculty-stage-completed{% else %}advisor-faculty-stage-pending{% endif %}">
+              <div class="advisor-faculty-stage-icon"><i class="{{ stage.icon }}"></i></div>
+              <div class="advisor-faculty-stage-content">
+                <strong>{{ stage.name }}</strong>
+                {% if stage.completed %}
+                  <span><i class="bi bi-check-circle-fill me-1"></i>Completed</span>
+                {% else %}
+                  <span><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="advisor-faculty-health-card">
+      <div class="advisor-faculty-card-header">
+        <span class="advisor-faculty-section-eyebrow"><i class="bi bi-bar-chart-fill"></i>ACADEMIC HEALTH</span>
+        <h4 class="advisor-faculty-health-title">Progress Snapshot</h4>
+        <p class="advisor-faculty-health-subtitle">Key supervision indicators.</p>
+      </div>
+      <div class="advisor-faculty-health-card-body">
+        <div class="advisor-faculty-health-metric">
+          <div class="advisor-faculty-health-metric-label">
+            <span>Coursework</span>
+            <strong>{{ coursework_completion_percentage }}%</strong>
+          </div>
+          <div class="advisor-faculty-health-progress">
+            <div class="advisor-faculty-health-progress-bar advisor-faculty-health-bar-primary" style="width:{{ coursework_completion_percentage }}%;"></div>
+          </div>
+        </div>
+        <div class="advisor-faculty-health-metric">
+          <div class="advisor-faculty-health-metric-label">
+            <span>Credits</span>
+            <strong>{{ credit_completion_percentage }}%</strong>
+          </div>
+          <div class="advisor-faculty-health-progress">
+            <div class="advisor-faculty-health-progress-bar advisor-faculty-health-bar-success" style="width:{{ credit_completion_percentage }}%;"></div>
+          </div>
+        </div>
+        <div class="advisor-faculty-health-metric">
+          <div class="advisor-faculty-health-metric-label">
+            <span>Milestones</span>
+            <strong>{{ milestone_completion_percentage }}%</strong>
+          </div>
+          <div class="advisor-faculty-health-progress">
+            <div class="advisor-faculty-health-progress-bar advisor-faculty-health-bar-warning" style="width:{{ milestone_completion_percentage }}%;"></div>
+          </div>
+        </div>
+        <div class="advisor-faculty-health-metric">
+          <div class="advisor-faculty-health-metric-label">
+            <span>Publications Indexed</span>
+            <strong>{{ publication_indexing_percentage }}%</strong>
+          </div>
+          <div class="advisor-faculty-health-progress">
+            <div class="advisor-faculty-health-progress-bar advisor-faculty-health-bar-info" style="width:{{ publication_indexing_percentage }}%;"></div>
+          </div>
+        </div>
+        <div class="advisor-faculty-health-metric advisor-faculty-health-metric-last">
+          <div class="advisor-faculty-health-metric-label">
+            <span>Exam Success</span>
+            <strong>{{ examination_success_percentage }}%</strong>
+          </div>
+          <div class="advisor-faculty-health-progress">
+            <div class="advisor-faculty-health-progress-bar advisor-faculty-health-bar-danger" style="width:{{ examination_success_percentage }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-coursework-exams-row">
+    <div class="advisor-faculty-coursework-card">
+      <div class="advisor-faculty-card-header">
+        <div class="advisor-faculty-coursework-header">
+          <div>
+            <span class="advisor-faculty-section-eyebrow"><i class="bi bi-journal-bookmark-fill"></i>COURSEWORK</span>
+            <h4 class="advisor-faculty-coursework-title">Academic Coursework</h4>
+          </div>
+          <span class="advisor-faculty-coursework-count-badge">{{ total_courseworks }} course{{ total_courseworks|pluralize }}</span>
+        </div>
+      </div>
+      <div class="advisor-faculty-card-body">
+        <div class="advisor-faculty-mini-stats">
+          <div class="advisor-faculty-mini-stat"><strong>{{ completed_courseworks }}</strong><span>Completed</span></div>
+          <div class="advisor-faculty-mini-stat"><strong>{{ in_progress_courseworks }}</strong><span>In Progress</span></div>
+          <div class="advisor-faculty-mini-stat"><strong>{{ pending_courseworks }}</strong><span>Pending</span></div>
+          <div class="advisor-faculty-mini-stat"><strong>{{ failed_courseworks }}</strong><span>Failed</span></div>
+        </div>
+        {% if coursework_list %}
+          <div class="advisor-faculty-table-wrapper">
+            <table class="advisor-faculty-table">
+              <thead>
+                <tr>
+                  <th>Course</th>
+                  <th>Year</th>
+                  <th>Status</th>
+                  <th>Progress</th>
+                  <th>Grade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cw in coursework_list %}
+                  <tr>
+                    <td>
+                      <div class="advisor-faculty-course-name">{{ cw.coursework.coursework_name|default:"Unnamed Coursework" }}</div>
+                      {% if cw.coursework.course_code %}<small class="advisor-faculty-text-muted">{{ cw.coursework.course_code }}</small>{% endif %}
+                    </td>
+                    <td>{{ cw.academic_year|default:"N/A" }}</td>
+                    <td>
+                      <span class="advisor-faculty-course-status-badge advisor-faculty-course-status-{{ cw.status|lower }}">{{ cw.get_status_display }}</span>
+                    </td>
+                    <td>
+                      <div class="advisor-faculty-progress-label">
+                        <span>{{ cw.progress_percentage|default:0 }}%</span>
+                      </div>
+                      <div class="advisor-faculty-course-progress">
+                        <div class="advisor-faculty-course-progress-fill" style="width:{{ cw.progress_percentage|default:0 }}%;"></div>
+                      </div>
+                    </td>
+                    <td>
+    {% if cw.submission and cw.submission.evaluation and cw.submission.evaluation.grade %}
+        <span class="advisor-faculty-grade">
+            {{ cw.submission.evaluation.grade }}
+        </span>
+    {% else %}
+        <span class="advisor-faculty-text-muted">—</span>
+    {% endif %}
+</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="advisor-faculty-empty-state">
+            <i class="bi bi-journal-x"></i>
+            <h6>No Coursework Records</h6>
+            <p>Coursework activity will appear here when records are assigned.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="advisor-faculty-exams-card">
+      <div class="advisor-faculty-card-header">
+        <div class="advisor-faculty-exams-header">
+          <div>
+            <span class="advisor-faculty-section-eyebrow"><i class="bi bi-calendar2-check-fill"></i>EXAMINATIONS</span>
+            <h4 class="advisor-faculty-exams-title">Doctoral Exams</h4>
+          </div>
+          <span class="advisor-faculty-scheduled-exams-badge">{{ scheduled_examinations }} scheduled</span>
+        </div>
+      </div>
+      <div class="advisor-faculty-exams-card-body">
+        {% if upcoming_exam %}
+          <div class="advisor-faculty-upcoming-exam">
+            <div class="advisor-faculty-upcoming-exam-inner">
+              <div>
+                <span class="advisor-faculty-upcoming-exam-label">Upcoming</span>
+                <h5 class="advisor-faculty-upcoming-exam-title">{{ upcoming_exam.title|default:"Doctoral Examination" }}</h5>
+                <div class="advisor-faculty-upcoming-exam-date"><i class="bi bi-calendar3 me-1"></i>{{ upcoming_exam.exam_date|date:"M d, Y" }}</div>
+              </div>
+              <div class="advisor-faculty-upcoming-exam-icon"><i class="bi bi-calendar-event"></i></div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="advisor-faculty-exam-mini-stats">
+          <div class="advisor-faculty-mini-stat"><strong>{{ completed_examinations }}</strong><span>Completed</span></div>
+          <div class="advisor-faculty-mini-stat"><strong>{{ passed_examinations }}</strong><span>Passed</span></div>
+          <div class="advisor-faculty-mini-stat"><strong>{{ pending_examinations }}</strong><span>Pending</span></div>
+        </div>
+        {% if examination_list %}
+          <div class="advisor-faculty-exam-list">
+            {% for exam in examination_list|slice:":4" %}
+              <div class="advisor-faculty-exam-list-item">
+                <div class="advisor-faculty-exam-list-icon"><i class="bi bi-clipboard-check"></i></div>
+                <div class="advisor-faculty-exam-list-content">
+                  <div class="advisor-faculty-exam-list-title">{{ exam.title|default:"Untitled Examination" }}</div>
+                  <div class="advisor-faculty-exam-list-date">{{ exam.exam_date|date:"M d, Y"|default:"Date not set" }}</div>
+                </div>
+                <span class="advisor-faculty-exam-status-badge advisor-faculty-exam-status-{{ exam.status|lower }}">{{ exam.get_status_display }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="advisor-faculty-empty-state">
+            <i class="bi bi-clipboard-x"></i>
+            <p>No examination records available.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-committee-research-row">
+    <div class="advisor-faculty-committee-card">
+      <div class="advisor-faculty-card-header">
+        <span class="advisor-faculty-section-eyebrow"><i class="bi bi-people-fill"></i>DOCTORAL COMMITTEE</span>
+        <div class="advisor-faculty-committee-header">
+          <h4 class="advisor-faculty-committee-title">Committee</h4>
+          {% if committee %}
+            <span class="advisor-faculty-committee-status-badge advisor-faculty-committee-status-{{ committee.approval_status|lower }}">{{ committee.approval_status }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="advisor-faculty-committee-card-body">
+        {% if committee %}
+          <div class="advisor-faculty-committee-chair-card">
+            <div class="advisor-faculty-committee-member-avatar advisor-faculty-committee-chair-avatar">
+              {% if chair_faculty and chair_faculty.user.profile_photo %}
+                <img src="{{ chair_faculty.user.profile_photo.url }}" alt="Committee Chair" class="advisor-faculty-committee-avatar-img">
+              {% else %}
+                <span class="advisor-faculty-committee-avatar-initials">{{ chair_faculty.user.first_name|first|upper }}{{ chair_faculty.user.last_name|first|upper }}</span>
+              {% endif %}
+            </div>
+            <div class="advisor-faculty-committee-chair-details">
+              <span class="advisor-faculty-committee-chair-label">Committee Chair</span>
+              <strong class="advisor-faculty-committee-chair-name">Dr. {{ chair_faculty.user.get_full_name|default:"Not Assigned" }}</strong>
+            </div>
+          </div>
+          <div class="advisor-faculty-committee-members-list">
+            {% for member in committee_members %}
+              <div class="advisor-faculty-committee-member-row">
+                <div class="advisor-faculty-committee-member-avatar advisor-faculty-committee-avatar-small">
+                  {% if member.faculty.user.profile_photo %}
+                    <img src="{{ member.faculty.user.profile_photo.url }}" alt="Committee Member" class="advisor-faculty-committee-avatar-img">
+                  {% else %}
+                    <span class="advisor-faculty-committee-avatar-initials">{{ member.faculty.user.first_name|first|upper }}{{ member.faculty.user.last_name|first|upper }}</span>
+                  {% endif %}
+                </div>
+                <div class="advisor-faculty-committee-member-info">
+                  <strong class="advisor-faculty-committee-member-name">Dr. {{ member.faculty.user.get_full_name }}</strong>
+                  <small class="advisor-faculty-committee-member-role">{{ member.get_role_display }}</small>
+                </div>
+              </div>
+            {% empty %}
+              <div class="advisor-faculty-text-center">No additional committee members assigned.</div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="advisor-faculty-empty-warning-state">
+            <div class="advisor-faculty-empty-warning-icon"><i class="bi bi-people"></i></div>
+            <h6>Committee Not Formed</h6>
+            <p>This advisee currently has no doctoral committee.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="advisor-faculty-research-card">
+      <div class="advisor-faculty-card-header">
+        <span class="advisor-faculty-section-eyebrow"><i class="bi bi-file-earmark-text-fill"></i>RESEARCH DEVELOPMENT</span>
+        <h4 class="advisor-faculty-research-title">Proposal & Dissertation</h4>
+      </div>
+      <div class="advisor-faculty-research-card-body">
+        <div class="advisor-faculty-research-status-card advisor-faculty-research-status-mb">
+          <div class="advisor-faculty-research-status-icon"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="advisor-faculty-research-status-content">
+            <span class="advisor-faculty-research-status-label">Dissertation Proposal</span>
+            <strong class="advisor-faculty-research-status-value">{{ proposal_title|default:"Proposal not submitted" }}</strong>
+            <span class="advisor-faculty-proposal-status-badge advisor-faculty-proposal-status-{{ proposal_status|lower }}">{{ proposal_status|default:"PENDING" }}</span>
+          </div>
+        </div>
+        <div class="advisor-faculty-research-status-card">
+          <div class="advisor-faculty-research-status-icon advisor-faculty-dissertation-icon"><i class="bi bi-file-earmark-richtext"></i></div>
+          <div class="advisor-faculty-research-status-content">
+            <span class="advisor-faculty-research-status-label">Dissertation</span>
+            <strong class="advisor-faculty-research-status-value">{{ dissertation_title|default:"Dissertation not started" }}</strong>
+            <div class="advisor-faculty-dissertation-meta">
+              <span class="advisor-faculty-dissertation-status-badge advisor-faculty-dissertation-status-{{ dissertation_status|lower }}">{{ dissertation_status|default:"DRAFT" }}</span>
+              {% if dissertation_version %}
+                <span class="advisor-faculty-dissertation-version-badge">Version {{ dissertation_version }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-portfolio-activity-row">
+    <div class="advisor-faculty-portfolio-card">
+      <div class="advisor-faculty-card-header">
+        <span class="advisor-faculty-section-eyebrow"><i class="bi bi-microscope"></i>RESEARCH ACTIVITY</span>
+        <h4 class="advisor-faculty-portfolio-title">Research Portfolio</h4>
+      </div>
+      <div class="advisor-faculty-portfolio-card-body">
+        <div class="advisor-faculty-portfolio-stats">
+          <div class="advisor-faculty-research-stat"><strong>{{ total_publications }}</strong><span>Publications</span></div>
+          <div class="advisor-faculty-research-stat"><strong>{{ indexed_publications }}</strong><span>Indexed</span></div>
+          <div class="advisor-faculty-research-stat"><strong>{{ total_milestones }}</strong><span>Milestones</span></div>
+        </div>
+        <div class="advisor-faculty-progress-label-row">
+          <span>Publication Indexing</span>
+          <strong>{{ publication_indexing_percentage }}%</strong>
+        </div>
+        <div class="advisor-faculty-portfolio-progress">
+          <div class="advisor-faculty-portfolio-progress-fill" style="width:{{ publication_indexing_percentage }}%;"></div>
+        </div>
+        {% if next_milestone %}
+          <div class="advisor-faculty-next-milestone-card">
+            <span class="advisor-faculty-next-milestone-label">Next Research Milestone</span>
+            <strong class="advisor-faculty-next-milestone-name">{{ next_milestone.milestone_name|default:"Upcoming Milestone" }}</strong>
+            <span class="advisor-faculty-next-milestone-status">{{ next_milestone.status|default:"PENDING" }}</span>
+          </div>
+        {% else %}
+          <div class="advisor-faculty-next-milestone-card">
+            <span class="advisor-faculty-next-milestone-label">Research Milestones</span>
+            <strong class="advisor-faculty-next-milestone-name">No pending milestone</strong>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="advisor-faculty-activity-card">
+      <div class="advisor-faculty-card-header">
+        <div class="advisor-faculty-activity-header">
+          <div>
+            <span class="advisor-faculty-section-eyebrow"><i class="bi bi-clock-history"></i>ACTIVITY</span>
+            <h4 class="advisor-faculty-activity-title">Recent Academic Activity</h4>
+          </div>
+          <span class="advisor-faculty-activity-live-badge">Live Record</span>
+        </div>
+      </div>
+      <div class="advisor-faculty-activity-card-body">
+        {% if recent_activities %}
+          <div class="advisor-faculty-activity-timeline">
+            {% for activity in recent_activities %}
+              <div class="advisor-faculty-activity-item">
+                <div class="advisor-faculty-activity-icon"><i class="{{ activity.icon }}"></i></div>
+                <div class="advisor-faculty-activity-content">
+                  <div class="advisor-faculty-activity-headline">
+                    <strong class="advisor-faculty-activity-title-text">{{ activity.title }}</strong>
+                    {% if activity.date %}<small class="advisor-faculty-activity-date">{{ activity.date|date:"M d, Y" }}</small>{% endif %}
+                  </div>
+                  <p class="advisor-faculty-activity-description">{{ activity.description }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="advisor-faculty-empty-state">
+            <i class="bi bi-activity"></i>
+            <h6>No Recent Activity</h6>
+            <p>Academic activity will appear here as the advisee progresses.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+<div class="advisor-faculty-review-card advisor-faculty-annual-review-card">
+
+    <div class="advisor-faculty-card-header advisor-faculty-annual-review-header">
+        <div class="advisor-faculty-annual-review-heading">
+            <div class="advisor-faculty-annual-review-icon">
+                <i class="bi bi-clipboard-data-fill"></i>
+            </div>
+
+            <div>
+                <span class="advisor-faculty-section-eyebrow">
+                    <i class="bi bi-stars"></i>
+                    ANNUAL PROGRESS
+                </span>
+
+                <h4 class="advisor-faculty-review-title">
+                    Annual Progress Review
+                </h4>
+
+                <p class="advisor-faculty-annual-review-subtitle">
+                    Latest annual academic progress assessment
+                </p>
+            </div>
+        </div>
+
+        <div class="advisor-faculty-annual-review-count">
+            <span>{{ total_reviews }}</span>
+            <small>Review{{ total_reviews|pluralize }}</small>
+        </div>
+    </div>
+
+
+    <div class="advisor-faculty-review-card-body advisor-faculty-annual-review-body">
+
+        {% if reviews %}
+
+            {% with latest_review=reviews|first %}
+
+                <div class="advisor-faculty-latest-review-card">
+
+                    <div class="advisor-faculty-latest-review-top">
+
+                        <div class="advisor-faculty-review-year-box">
+                            <span class="advisor-faculty-review-year-label">
+                                REVIEW YEAR
+                            </span>
+
+                            <strong>
+                                {{ latest_review.review_year }}
+                            </strong>
+                        </div>
+
+                        <div class="advisor-faculty-latest-review-status
+                            advisor-faculty-review-status-{{ latest_review.status|lower }}">
+
+                            {% if latest_review.status == "SATISFACTORY" %}
+                                <i class="bi bi-check-circle-fill"></i>
+                            {% elif latest_review.status == "NEEDS_IMPROVEMENT" %}
+                                <i class="bi bi-exclamation-circle-fill"></i>
+                            {% elif latest_review.status == "UNSATISFACTORY" %}
+                                <i class="bi bi-x-circle-fill"></i>
+                            {% else %}
+                                <i class="bi bi-clock-fill"></i>
+                            {% endif %}
+
+                            <span>
+                                {{ latest_review.status|default:"PENDING" }}
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="advisor-faculty-latest-review-main">
+
+                        <div class="advisor-faculty-latest-review-info">
+
+                            <div class="advisor-faculty-latest-review-label">
+                                <i class="bi bi-calendar-event"></i>
+                                Assessment Date
+                            </div>
+
+                            <strong>
+                                {{ latest_review.review_date|date:"M d, Y"|default:"Date not available" }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="advisor-faculty-latest-review-score">
+
+                            <div class="advisor-faculty-latest-review-score-icon">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+
+                            <div>
+                                <span>Progress Score</span>
+
+                                <strong>
+                                    {{ latest_review.progress_score|default:"0" }}
+                                    <small>/ 100</small>
+                                </strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="advisor-faculty-latest-review-progress">
+
+                        <div class="advisor-faculty-latest-review-progress-track">
+                            <div
+                                class="advisor-faculty-latest-review-progress-fill"
+                                style="width: {{ latest_review.progress_score|default:0 }}%;">
+                            </div>
+                        </div>
+
+                        <div class="advisor-faculty-latest-review-progress-meta">
+                            <span>Overall Academic Progress</span>
+                            <strong>
+                                {{ latest_review.progress_score|default:"0" }}%
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    {% if latest_review.committee_comments %}
+
+                        <div class="advisor-faculty-latest-review-comment">
+
+                            <div class="advisor-faculty-latest-review-comment-icon">
+                                <i class="bi bi-chat-left-text-fill"></i>
+                            </div>
+
+                            <div class="advisor-faculty-latest-review-comment-content">
+
+                                <span>
+                                    COMMITTEE COMMENTS
+                                </span>
+
+                                <p>
+                                    {{ latest_review.committee_comments|truncatechars:180 }}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="advisor-faculty-annual-review-footer">
+
+                    <div class="advisor-faculty-annual-review-summary">
+
+                        <div class="advisor-faculty-annual-review-summary-item">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>
+                                {{ satisfactory_reviews }} Satisfactory
+                            </span>
+                        </div>
+
+                        <div class="advisor-faculty-annual-review-summary-item">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            <span>
+                                {{ needs_improvement_reviews }} Attention
+                            </span>
+                        </div>
+
+                        <div class="advisor-faculty-annual-review-summary-item">
+                            <i class="bi bi-clock-history"></i>
+                            <span>
+                                {{ total_reviews }} Total Reviews
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <a
+                      href="{% url 'faculty_advisor_annual_progress_all_reviews' faculty.user.uuid phd_student.phd_student_id %}"
+                      class="advisor-faculty-view-all-reviews-btn"
+                  >
+                      <i class="bi bi-journal-text"></i>
+                      View All Annual Reviews
+                      <i class="bi bi-arrow-right"></i>
+                  </a>
+
+                </div>
+
+            {% endwith %}
+
+        {% else %}
+
+            <div class="advisor-faculty-annual-review-empty">
+
+                <div class="advisor-faculty-annual-review-empty-icon">
+                    <i class="bi bi-clipboard-x"></i>
+                </div>
+
+                <div>
+                    <span class="advisor-faculty-section-eyebrow">
+                        ANNUAL PROGRESS
+                    </span>
+
+                    <h5>
+                        No Annual Review Available
+                    </h5>
+
+                    <p>
+                        No annual progress review has been recorded for this advisee yet.
+                    </p>
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+  <div class="advisor-faculty-quick-actions-card">
+    <div class="advisor-faculty-card-header">
+      <div class="advisor-faculty-quick-actions-header">
+        <div>
+          <span class="advisor-faculty-section-eyebrow"><i class="bi bi-grid-1x2-fill"></i>SUPERVISION CONTROL</span>
+          <h4 class="advisor-faculty-quick-actions-title">Advisor Quick Actions</h4>
+          <p class="advisor-faculty-quick-actions-subtitle">Navigate directly to the academic modules used for this advisee.</p>
+        </div>
+        <span class="advisor-faculty-quick-actions-scholar-badge">{{ phd_student.student.student_number|default:"Scholar" }}</span>
+      </div>
+    </div>
+    <div class="advisor-faculty-quick-actions-body">
+      <div class="advisor-faculty-quick-actions-grid">
+        <a href="{% url 'faculty_coursework_list' uuid=faculty.user.uuid %}" class="advisor-faculty-quick-action-link">
+          <span class="advisor-faculty-quick-action-icon"><i class="bi bi-journal-text"></i></span>
+          <span class="advisor-faculty-quick-action-content">
+            <strong>Coursework</strong>
+            <small>Review academic coursework</small>
+          </span>
+          <i class="bi bi-arrow-up-right"></i>
+        </a>
+        <a href="{% url 'faculty_doctoral_committee' uuid=faculty.user.uuid %}" class="advisor-faculty-quick-action-link">
+          <span class="advisor-faculty-quick-action-icon"><i class="bi bi-people"></i></span>
+          <span class="advisor-faculty-quick-action-content">
+            <strong>Committee</strong>
+            <small>View doctoral committee</small>
+          </span>
+          <i class="bi bi-arrow-up-right"></i>
+        </a>
+        <a href="{% url 'faculty_preliminary_exam_list' uuid=faculty.user.uuid %}" class="advisor-faculty-quick-action-link">
+          <span class="advisor-faculty-quick-action-icon"><i class="bi bi-clipboard-check"></i></span>
+          <span class="advisor-faculty-quick-action-content">
+            <strong>Examinations</strong>
+            <small>Review doctoral examinations</small>
+          </span>
+          <i class="bi bi-arrow-up-right"></i>
+        </a>
+        <button type="button" onclick="window.print()" class="advisor-faculty-quick-action-link advisor-faculty-quick-action-button">
+          <span class="advisor-faculty-quick-action-icon"><i class="bi bi-printer"></i></span>
+          <span class="advisor-faculty-quick-action-content">
+            <strong>Print Workspace</strong>
+            <small>Generate printable overview</small>
+          </span>
+          <i class="bi bi-arrow-up-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="advisor-faculty-footer-card">
+    <div class="advisor-faculty-footer-card-body">
+      <div class="advisor-faculty-footer-row">
+        <div class="advisor-faculty-footer-info">
+          <div class="advisor-faculty-footer-status-icon"><i class="bi bi-shield-check"></i></div>
+          <div>
+            <h6 class="advisor-faculty-footer-title">Advisor Supervision Workspace</h6>
+            <p class="advisor-faculty-footer-description">This workspace consolidates academic, research, examination, candidacy, committee and dissertation progress for the selected doctoral advisee.</p>
+          </div>
+        </div>
+        <div class="advisor-faculty-footer-badges">
+          <span class="advisor-faculty-footer-badge"><i class="bi bi-database-check me-1"></i>Academic Records</span>
+          <span class="advisor-faculty-footer-badge"><i class="bi bi-clock-history me-1"></i>Live Workspace</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+{% endblock content %}

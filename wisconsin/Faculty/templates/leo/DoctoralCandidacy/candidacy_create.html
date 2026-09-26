@@ -1,0 +1,2421 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Create &amp; Approve Doctoral Candidacy{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/DoctoralCandidacy/candidacy_create.css' %}">
+{% endblock %}
+{% block content %}
+    {% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+        <i class="ti ti-layout-dashboard"></i>
+        <span>Dashboard</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+        <i class="ti ti-school"></i>
+        <span>PhD Management</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    {% comment %} <a href="{% url 'faculty_advisor_dissertation_proposal_list' uuid=request.user.uuid %}">
+        <i class="ti ti-file-description"></i>
+        <span>Dissertation Proposals</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <span class="common-breadcrumb-current">
+        <i class="ti ti-file-text"></i>
+        <span>Current Page</span>
+    </span> 
+</nav> {% endcomment %}
+<div class="dc-create-page">
+<div class="dc-create-header">
+<div class="dc-create-header-left">
+<a href="{% url 'faculty_doctoral_candidacy_list' uuid=faculty.user.uuid %}" class="dc-back-btn" aria-label="Back to Doctoral Candidacy">
+<i class="bi bi-arrow-left"></i>
+</a>
+<div class="dc-header-icon">
+<i class="bi bi-mortarboard-fill"></i>
+</div>
+<div class="dc-header-text">
+<span class="dc-eyebrow">PhD Management</span>
+<h1>Create &amp; Approve Doctoral Candidacy</h1>
+<p>
+Verify the scholar's academic progress before initiating
+doctoral candidacy.
+</p>
+</div>
+</div>
+<div class="dc-header-badge">
+<i class="bi bi-shield-check"></i>
+Chair Faculty
+</div>
+</div>
+<div class="dc-create-layout">
+<div class="dc-main-column">
+<div class="dc-panel dc-student-panel">
+<div class="dc-panel-header">
+<div class="dc-panel-title">
+<div class="dc-panel-icon">
+<i class="bi bi-person-badge-fill"></i>
+</div>
+<div>
+<span>Step 01</span>
+<h2>Select PhD Scholar</h2>
+</div>
+</div>
+<span class="dc-required-label">Required</span>
+</div>
+<div class="dc-panel-body">
+<div class="dc-field-group">
+<label for="{{ form.phd_student.id_for_label }}" class="dc-field-label">
+PhD Student
+<span>*</span>
+</label>
+<div class="dc-select-wrapper">
+<i class="bi bi-person-search"></i>
+{{ form.phd_student }}
+</div>
+{% if form.phd_student.errors %}
+<div class="dc-field-error">
+{% for error in form.phd_student.errors %}
+<span>
+<i class="bi bi-exclamation-circle"></i>
+{{ error }}
+</span>
+{% endfor %}
+</div>
+{% endif %}
+<small class="dc-field-help">Select an active PhD scholar assigned to your doctoral committee.</small>
+</div>
+<div class="dc-selected-student" id="selectedStudentCard" hidden>
+<div class="dc-selected-avatar" id="selectedStudentAvatar">
+<i class="bi bi-person-fill"></i>
+</div>
+<div class="dc-selected-info">
+<span>Selected Scholar</span>
+<strong id="selectedStudentName">—</strong>
+<small id="selectedStudentMeta">Academic progress will be checked below.</small>
+</div>
+<div class="dc-selected-status">
+<i class="bi bi-check-circle-fill"></i>
+Selected
+</div>
+</div>
+<button type="button" id="checkStatusBtn" class="dc-check-status-btn" disabled>
+<span class="check-default">
+<i class="bi bi-shield-check"></i>
+Check Academic Status
+</span>
+<span class="check-loading" hidden>
+<span class="dc-spinner"></span>
+Checking Academic Progress...
+</span>
+</button>
+</div>
+</div>
+<div class="dc-panel dc-eligibility-panel" id="eligibilityPanel">
+<div class="dc-panel-header">
+<div class="dc-panel-title">
+<div class="dc-panel-icon eligibility-icon">
+<i class="bi bi-list-check"></i>
+</div>
+<div>
+<span>Step 02</span>
+<h2>Academic Eligibility</h2>
+</div>
+</div>
+<div class="dc-check-state" id="checkState">
+<i class="bi bi-hourglass-split"></i>
+Awaiting Check
+</div>
+</div>
+<div class="dc-panel-body">
+<div class="dc-status-placeholder" id="statusPlaceholder">
+<div class="dc-placeholder-icon">
+<i class="bi bi-clipboard2-check"></i>
+</div>
+<h3>Academic status not checked</h3>
+<p>
+Select a PhD scholar and click
+<strong>Check Academic Status</strong>
+to verify all candidacy requirements.
+</p>
+</div>
+<div id="eligibilityContent" hidden>
+<div class="dc-overall-result" id="overallResult">
+<div class="dc-result-icon" id="overallResultIcon">
+<i class="bi bi-shield-check"></i>
+</div>
+<div class="dc-result-content">
+<span id="overallResultLabel">Eligibility Status</span>
+<strong id="overallResultTitle">Checking...</strong>
+<p id="overallResultMessage">Academic requirements are being evaluated.</p>
+</div>
+</div>
+<div class="dc-progress-summary">
+<div class="dc-summary-heading">
+<div>
+<span>Eligibility Progress</span>
+<strong id="progressPercentage">0%</strong>
+</div>
+<small id="progressSummaryText">Requirements completed</small>
+</div>
+<div class="dc-progress-track">
+<div class="dc-progress-bar" id="eligibilityProgressBar" style="width: 0%"></div>
+</div>
+</div>
+<div class="dc-checklist">
+<div class="dc-checklist-heading">
+<div>
+<span>Requirement Checklist</span>
+<small>All first five requirements must be completed.</small>
+</div>
+<span class="dc-checklist-count" id="checklistCount">0 / 5</span>
+</div>
+<div class="dc-checklist-items">
+<div class="dc-check-item" id="check-advisor" data-key="advisor_assigned">
+<div class="dc-check-number">01</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Advisor Assigned</strong>
+<span>PhD scholar must have an assigned advisor.</span>
+</div>
+<div class="dc-check-status">
+<span class="pending-status">Pending</span>
+</div>
+</div>
+<div class="dc-check-item" id="check-committee" data-key="committee_approved">
+<div class="dc-check-number">02</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Doctoral Committee Approved</strong>
+<span>The scholar's doctoral committee must be approved.</span>
+</div>
+<div class="dc-check-status">
+<span class="pending-status">Pending</span>
+</div>
+</div>
+<div class="dc-check-item" id="check-coursework" data-key="coursework_completed">
+<div class="dc-check-number">03</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Coursework Credits Completed</strong>
+<span>Required PhD coursework credits must be completed.</span>
+</div>
+<div class="dc-check-status">
+<span class="pending-status">Pending</span>
+</div>
+</div>
+<div class="dc-check-item" id="check-exam" data-key="preliminary_exam_passed">
+<div class="dc-check-number">04</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Preliminary / Qualifying Examination Passed</strong>
+<span>The preliminary or qualifying examination must be passed.</span>
+</div>
+<div class="dc-check-status">
+<span class="pending-status">Pending</span>
+</div>
+</div>
+<div class="dc-check-item" id="check-proposal" data-key="dissertation_proposal_approved">
+<div class="dc-check-number">05</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Dissertation Proposal Approved</strong>
+<span>Dissertation proposal must have an approved result.</span>
+</div>
+<div class="dc-check-status">
+<span class="pending-status">Pending</span>
+</div>
+</div>
+<div class="dc-check-item milestone-item" id="check-candidacy" data-key="doctoral_candidacy_approved">
+<div class="dc-check-number">06</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Doctoral Candidacy</strong>
+<span>Current milestone. It becomes active after approval.</span>
+</div>
+<div class="dc-check-status">
+<span class="milestone-status">Milestone</span>
+</div>
+</div>
+<div class="dc-check-item milestone-item" id="check-dissertation" data-key="dissertation_completed">
+<div class="dc-check-number">07</div>
+<div class="dc-check-icon">
+<i class="bi bi-hourglass-split"></i>
+</div>
+<div class="dc-check-content">
+<strong>Dissertation Completed</strong>
+<span>Later doctoral milestone. Not required for candidacy.</span>
+</div>
+<div class="dc-check-status">
+<span class="milestone-status">Future</span>
+</div>
+</div>
+</div>
+</div>
+<div class="dc-coursework-box" id="courseworkBox">
+<div class="dc-coursework-header">
+<div class="dc-coursework-icon">
+<i class="bi bi-journal-check"></i>
+</div>
+<div>
+<span>Coursework Credits</span>
+<strong>Academic Credit Progress</strong>
+</div>
+</div>
+<div class="dc-credit-grid">
+<div class="dc-credit-item">
+<span>Required</span>
+<strong id="requiredCredits">0</strong>
+<small>Credits</small>
+</div>
+<div class="dc-credit-divider"></div>
+<div class="dc-credit-item completed">
+<span>Completed</span>
+<strong id="completedCredits">0</strong>
+<small>Credits</small>
+</div>
+<div class="dc-credit-divider"></div>
+<div class="dc-credit-item remaining">
+<span>Remaining</span>
+<strong id="remainingCredits">0</strong>
+<small>Credits</small>
+</div>
+</div>
+<div class="dc-credit-progress">
+<div class="dc-credit-progress-label">
+<span>Coursework Completion</span>
+<strong id="creditPercentage">0%</strong>
+</div>
+<div class="dc-progress-track">
+<div class="dc-progress-bar credit-bar" id="creditProgressBar" style="width: 0%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<form method="POST" id="candidacyForm" class="dc-panel dc-form-panel" novalidate>
+{% csrf_token %}
+<div class="dc-panel-header">
+<div class="dc-panel-title">
+<div class="dc-panel-icon">
+<i class="bi bi-file-earmark-plus-fill"></i>
+</div>
+<div>
+<span>Step 03</span>
+<h2>Candidacy Details</h2>
+</div>
+</div>
+<span class="dc-approved-badge">
+<i class="bi bi-check-circle-fill"></i>
+Approved on Creation
+</span>
+</div>
+<div class="dc-panel-body">
+<div class="dc-form-grid">
+<div class="dc-field-group">
+<label for="{{ form.candidacy_date.id_for_label }}" class="dc-field-label">
+Candidacy Date
+<span>*</span>
+</label>
+<div class="dc-input-wrapper">
+<i class="bi bi-calendar3"></i>
+{{ form.candidacy_date }}
+</div>
+{% if form.candidacy_date.errors %}
+<div class="dc-field-error">
+{% for error in form.candidacy_date.errors %}
+<span>
+<i class="bi bi-exclamation-circle"></i>
+{{ error }}
+</span>
+{% endfor %}
+</div>
+{% endif %}
+<small class="dc-field-help">
+{% comment %} Select the date on which candidacy is being initiated. {% endcomment %}
+</small>
+</div>
+<div class="dcs-status-field">
+<label class="dcs-status-label">Candidacy Status</label>
+<div class="dcs-status-box">
+<div class="dcs-status-main">
+<span class="dcs-status-indicator"></span>
+<span class="dcs-status-value">APPROVED</span>
+</div>
+<span class="dcs-status-auto">
+<i class="bi bi-lock-fill"></i>
+Automatically approved
+</span>
+</div>
+<small class="dcs-status-help">
+<i class="bi bi-info-circle"></i>
+New doctoral candidacies are automatically created with
+<strong>APPROVED</strong> status.
+</small>
+</div>
+</div>
+{% if form.non_field_errors %}
+<div class="dc-form-errors">
+<div class="dc-form-errors-title">
+<i class="bi bi-exclamation-triangle-fill"></i>
+Unable to create candidacy
+</div>
+{% for error in form.non_field_errors %}
+<div>{{ error }}</div>
+{% endfor %}
+</div>
+{% endif %}
+<div class="dc-submit-area">
+<div class="dc-submit-info">
+<div class="dc-submit-icon">
+<i class="bi bi-info-circle"></i>
+</div>
+<div>
+<strong>Before creating and approving candidacy</strong>
+<p>
+Academic eligibility must be verified successfully.
+The server will validate all requirements again before approval.
+</p>
+</div>
+</div>
+<div class="dc-submit-actions">
+<a href="{% url 'faculty_doctoral_candidacy_list' uuid=faculty.user.uuid %}" class="dc-btn dc-btn-secondary">
+<i class="bi bi-arrow-left"></i>
+Cancel
+</a>
+<button type="submit" id="createCandidacyBtn" class="dc-btn dc-btn-primary" disabled>
+<i class="bi bi-check2-circle"></i>
+Create &amp; Approve Doctoral Candidacy
+</button>
+</div>
+</div>
+</div>
+</form>
+</div>
+<aside class="dc-side-column">
+<div class="dc-panel dc-info-panel">
+<div class="dc-info-header">
+<div class="dc-info-icon">
+<i class="bi bi-info-circle-fill"></i>
+</div>
+<div>
+<span>Eligibility Rules</span>
+<strong>Before Candidacy</strong>
+</div>
+</div>
+<div class="dc-info-body">
+<p>
+A PhD scholar can enter doctoral candidacy only after
+completing all required academic milestones.
+</p>
+<div class="dc-rule-list">
+<div class="dc-rule">
+<span>01</span>
+<div>
+<strong>Advisor</strong>
+<small>Must be assigned</small>
+</div>
+</div>
+<div class="dc-rule">
+<span>02</span>
+<div>
+<strong>Committee</strong>
+<small>Must be approved</small>
+</div>
+</div>
+<div class="dc-rule">
+<span>03</span>
+<div>
+<strong>Coursework</strong>
+<small>Required credits completed</small>
+</div>
+</div>
+<div class="dc-rule">
+<span>04</span>
+<div>
+<strong>Qualifying Examination</strong>
+<small>Must be passed</small>
+</div>
+</div>
+<div class="dc-rule">
+<span>05</span>
+<div>
+<strong>Dissertation Proposal</strong>
+<small>Must be approved</small>
+</div>
+</div>
+</div>
+<div class="dc-info-note">
+<i class="bi bi-shield-lock-fill"></i>
+<p>
+The eligibility check shown on this page is informational.
+Server-side validation will always run before saving.
+</p>
+</div>
+</div>
+</div>
+<div class="dc-panel dc-workflow-panel">
+<div class="dc-side-panel-title">
+<span>Doctoral Journey</span>
+<strong>Current Stage</strong>
+</div>
+<div class="dc-mini-workflow">
+<div class="dc-mini-step completed">
+<span>
+<i class="bi bi-check-lg"></i>
+</span>
+<div>
+<strong>Advisor Assigned</strong>
+<small>Completed</small>
+</div>
+</div>
+<div class="dc-mini-line completed"></div>
+<div class="dc-mini-step completed">
+<span>
+<i class="bi bi-check-lg"></i>
+</span>
+<div>
+<strong>Committee Approved</strong>
+<small>Completed</small>
+</div>
+</div>
+<div class="dc-mini-line completed"></div>
+<div class="dc-mini-step completed">
+<span>
+<i class="bi bi-check-lg"></i>
+</span>
+<div>
+<strong>Coursework</strong>
+<small>Requirement</small>
+</div>
+</div>
+<div class="dc-mini-line completed"></div>
+<div class="dc-mini-step completed">
+<span>
+<i class="bi bi-check-lg"></i>
+</span>
+<div>
+<strong>Preliminary Exam</strong>
+<small>Requirement</small>
+</div>
+</div>
+<div class="dc-mini-line completed"></div>
+<div class="dc-mini-step completed">
+<span>
+<i class="bi bi-check-lg"></i>
+</span>
+<div>
+<strong>Proposal Approval</strong>
+<small>Requirement</small>
+</div>
+</div>
+<div class="dc-mini-line"></div>
+<div class="dc-mini-step active">
+<span>
+<i class="bi bi-mortarboard-fill"></i>
+</span>
+<div>
+<strong>Doctoral Candidacy</strong>
+<small>Current Stage</small>
+</div>
+</div>
+<div class="dc-mini-line"></div>
+<div class="dc-mini-step future">
+<span>
+<i class="bi bi-file-earmark-text"></i>
+</span>
+<div>
+<strong>Dissertation</strong>
+<small>Future Stage</small>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/scripts/choices.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/choices.js/11.2.4/choices.min.js';"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const candidacyDate =
+        document.getElementById("id_candidacy_date");
+
+    if (!candidacyDate) {
+        return;
+    }
+
+    if (typeof flatpickr === "undefined") {
+        console.error("Flatpickr failed to load.");
+        return;
+    }
+
+    if (typeof Choices === "undefined") {
+        console.error("Choices.js failed to load.");
+        return;
+    }
+
+    const inputWrapper =
+        candidacyDate.closest(".dc-input-wrapper");
+
+    if (!inputWrapper) {
+        console.error("Candidacy date wrapper not found.");
+        return;
+    }
+
+    candidacyDate.setAttribute(
+        "placeholder",
+        "Select Candidacy date"
+    );
+
+    candidacyDate.setAttribute(
+        "autocomplete",
+        "off"
+    );
+
+    candidacyDate.setAttribute(
+        "readonly",
+        "readonly"
+    );
+
+    const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ];
+
+    let monthChoices = null;
+    let monthSelect = null;
+    let monthWrapper = null;
+
+    function closeMonthDropdown() {
+
+        if (monthChoices) {
+            try {
+                monthChoices.hideDropdown();
+            } catch (error) {
+                console.warn(
+                    "Unable to close month dropdown.",
+                    error
+                );
+            }
+        }
+
+        if (!monthWrapper) {
+            return;
+        }
+
+        const choicesContainer =
+            monthWrapper.querySelector(
+                ".dc-month-choices"
+            );
+
+        const choicesDropdown =
+            monthWrapper.querySelector(
+                ".choices__list--dropdown"
+            );
+
+        if (choicesContainer) {
+            choicesContainer.classList.remove(
+                "is-open"
+            );
+        }
+
+        if (choicesDropdown) {
+            choicesDropdown.classList.remove(
+                "is-active"
+            );
+
+            choicesDropdown.style.display =
+                "none";
+        }
+    }
+
+    function buildMonthSelector(instance) {
+
+        const currentMonth =
+            instance.calendarContainer.querySelector(
+                ".flatpickr-current-month"
+            );
+
+        if (!currentMonth) {
+            return;
+        }
+
+        const originalMonthSelect =
+            currentMonth.querySelector(
+                ".flatpickr-monthDropdown-months"
+            );
+
+        if (!originalMonthSelect) {
+            return;
+        }
+
+        const existingChoices =
+            currentMonth.querySelector(
+                ".dc-month-choices"
+            );
+
+        if (existingChoices) {
+            existingChoices.remove();
+        }
+
+        if (monthWrapper) {
+            monthWrapper.remove();
+        }
+
+        monthChoices = null;
+        monthSelect = null;
+        monthWrapper = null;
+
+        originalMonthSelect.style.display =
+            "none";
+
+        originalMonthSelect.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        monthWrapper =
+            document.createElement("div");
+
+        monthWrapper.className =
+            "dc-month-choice-wrapper";
+
+        monthSelect =
+            document.createElement("select");
+
+        monthSelect.className =
+            "dc-flatpickr-month-select";
+
+        monthSelect.setAttribute(
+            "aria-label",
+            "Select month"
+        );
+
+        monthNames.forEach(
+            function (monthName, index) {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    String(index);
+
+                option.textContent =
+                    monthName;
+
+                monthSelect.appendChild(
+                    option
+                );
+            }
+        );
+
+        monthSelect.value =
+            String(instance.currentMonth);
+
+        monthWrapper.appendChild(
+            monthSelect
+        );
+
+        const yearInput =
+            currentMonth.querySelector(
+                ".numInputWrapper"
+            );
+
+        if (yearInput) {
+
+            currentMonth.insertBefore(
+                monthWrapper,
+                yearInput
+            );
+
+        } else {
+
+            currentMonth.appendChild(
+                monthWrapper
+            );
+        }
+
+        try {
+
+            monthChoices =
+                new Choices(
+                    monthSelect,
+                    {
+                        searchEnabled: false,
+                        searchChoices: false,
+                        shouldSort: false,
+                        itemSelectText: "",
+                        allowHTML: false,
+                        removeItemButton: false,
+                        duplicateItemsAllowed: false,
+                        position: "bottom",
+                        closeDropdownOnSelect: true,
+
+                        classNames: {
+    containerOuter: "dc-month-choices"
+}
+                    }
+                );
+
+        } catch (error) {
+
+            console.error(
+                "Choices initialization failed.",
+                error
+            );
+
+            monthChoices = null;
+
+            if (monthWrapper) {
+                monthWrapper.remove();
+            }
+
+            originalMonthSelect.style.display =
+                "";
+
+            originalMonthSelect.removeAttribute(
+                "aria-hidden"
+            );
+
+            return;
+        }
+
+        const choicesContainer =
+            monthWrapper.querySelector(
+                ".dc-month-choices"
+            );
+
+        const choicesInner =
+            monthWrapper.querySelector(
+                ".choices__inner"
+            );
+
+        const choicesDropdown =
+            monthWrapper.querySelector(
+                ".choices__list--dropdown"
+            );
+
+        if (
+            !choicesContainer ||
+            !choicesInner ||
+            !choicesDropdown
+        ) {
+            return;
+        }
+
+        choicesContainer.style.position =
+            "relative";
+
+        choicesContainer.style.zIndex =
+            "99999999";
+
+        choicesDropdown.style.position =
+            "absolute";
+
+        choicesDropdown.style.zIndex =
+            "999999999";
+
+        choicesDropdown.style.display =
+            "none";
+
+        choicesInner.addEventListener(
+            "mousedown",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        );
+
+        choicesInner.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const isOpen =
+                    choicesContainer.classList.contains(
+                        "is-open"
+                    );
+
+                if (isOpen) {
+
+                    closeMonthDropdown();
+
+                } else {
+
+                    try {
+                        monthChoices.showDropdown();
+                    } catch (error) {
+                        console.warn(
+                            "Unable to open month dropdown.",
+                            error
+                        );
+
+                        return;
+                    }
+
+                    choicesContainer.classList.add(
+                        "is-open"
+                    );
+
+                    choicesDropdown.classList.add(
+                        "is-active"
+                    );
+
+                    choicesDropdown.style.display =
+                        "block";
+                }
+            }
+        );
+
+        choicesDropdown.addEventListener(
+            "mousedown",
+            function (event) {
+                event.stopPropagation();
+            }
+        );
+
+        choicesDropdown.addEventListener(
+            "click",
+            function (event) {
+                event.stopPropagation();
+            }
+        );
+
+        monthSelect.addEventListener(
+            "change",
+            function () {
+
+                const selectedMonth =
+                    parseInt(
+                        monthSelect.value,
+                        10
+                    );
+
+                if (
+                    Number.isNaN(
+                        selectedMonth
+                    )
+                ) {
+                    return;
+                }
+
+                const current =
+                    instance.currentMonth;
+
+                let difference =
+                    selectedMonth - current;
+
+                if (difference > 6) {
+                    difference -= 12;
+                }
+
+                if (difference < -6) {
+                    difference += 12;
+                }
+
+                if (difference !== 0) {
+
+                    instance.changeMonth(
+                        difference
+                    );
+                }
+
+                setTimeout(
+                    closeMonthDropdown,
+                    50
+                );
+            }
+        );
+    }
+
+    function syncMonthSelector(instance) {
+
+        if (
+            !monthChoices ||
+            !monthSelect
+        ) {
+            return;
+        }
+
+        const monthValue =
+            String(
+                instance.currentMonth
+            );
+
+        const monthName =
+            monthNames[
+                instance.currentMonth
+            ];
+
+        try {
+
+            monthChoices.setChoiceByValue(
+                monthValue
+            );
+
+            const selectedItem =
+                monthChoices.containerInner.element.querySelector(
+                    ".choices__item--selectable"
+                );
+
+            if (selectedItem) {
+                selectedItem.textContent =
+                    monthName;
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Month selector sync failed.",
+                error
+            );
+        }
+    }
+
+    flatpickr(
+        candidacyDate,
+        {
+
+            dateFormat: "Y-m-d",
+
+            maxDate: "today",
+
+            allowInput: false,
+
+            clickOpens: true,
+
+            disableMobile: true,
+
+            static: true,
+
+            monthSelectorType: "dropdown",
+
+            yearSelectorType: "input",
+
+            appendTo: inputWrapper,
+
+            positionElement: candidacyDate,
+
+            onReady: function (
+                selectedDates,
+                dateStr,
+                instance
+            ) {
+
+                const calendar =
+                    instance.calendarContainer;
+
+                calendar.classList.add(
+                    "dc-candidacy-flatpickr"
+                );
+
+                calendar.setAttribute(
+                    "data-candidacy-calendar",
+                    "true"
+                );
+
+                buildMonthSelector(
+                    instance
+                );
+
+                setTimeout(
+                    function () {
+                        syncMonthSelector(
+                            instance
+                        );
+                    },
+                    0
+                );
+            },
+
+            onMonthChange: function (
+                selectedDates,
+                dateStr,
+                instance
+            ) {
+
+                setTimeout(
+                    function () {
+                        syncMonthSelector(
+                            instance
+                        );
+                    },
+                    0
+                );
+            },
+
+            onYearChange: function (
+                selectedDates,
+                dateStr,
+                instance
+            ) {
+
+                setTimeout(
+                    function () {
+                        syncMonthSelector(
+                            instance
+                        );
+                    },
+                    0
+                );
+            },
+
+            onOpen: function (
+                selectedDates,
+                dateStr,
+                instance
+            ) {
+
+                instance.calendarContainer.style.zIndex =
+                    "999999";
+
+                syncMonthSelector(
+                    instance
+                );
+            },
+
+            onClose: function () {
+
+                closeMonthDropdown();
+            },
+
+            onChange: function (
+                selectedDates,
+                dateStr
+            ) {
+
+                candidacyDate.value =
+                    dateStr;
+
+                candidacyDate.dispatchEvent(
+                    new Event(
+                        "change",
+                        {
+                            bubbles: true
+                        }
+                    )
+                );
+            }
+        }
+    );
+
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const studentSelect =
+        document.querySelector(
+            '[data-choices="doctoral-student"]'
+        ) || document.getElementById(
+            "{{ form.phd_student.id_for_label }}"
+        );
+
+    let studentChoices = null;
+
+    function initializeStudentChoices() {
+        if (!studentSelect) {
+            return false;
+        }
+
+        const ChoicesConstructor =
+            window.Choices;
+
+        if (typeof ChoicesConstructor !== "function") {
+            return false;
+        }
+
+        if (studentSelect.dataset.choicesInitialized === "true") {
+            return true;
+        }
+
+        if (studentSelect.closest(".choices")) {
+            studentSelect.dataset.choicesInitialized = "true";
+            return true;
+        }
+
+        try {
+            studentChoices =
+                new ChoicesConstructor(
+                    studentSelect,
+                    {
+                        searchEnabled: true,
+                        searchChoices: true,
+                        shouldSort: false,
+                        shouldSortItems: false,
+                        itemSelectText: "",
+                        noResultsText: "No eligible PhD scholar found",
+                        noChoicesText: "No eligible PhD scholars available",
+                        searchPlaceholderValue: "Search PhD scholar...",
+                        allowHTML: false,
+                        removeItemButton: false,
+                        placeholder: true,
+                        placeholderValue: "Select PhD Student",
+                        position: "bottom",
+                        searchResultLimit: 100,
+                        renderChoiceLimit: -1,
+                        classNames: {
+    containerOuter: "dc-student-choices"
+}
+                    }
+                );
+
+            studentSelect.dataset.choicesInitialized = "true";
+
+            return true;
+        } catch (error) {
+            console.error(
+                "Doctoral candidacy Choices.js initialization failed:",
+                error
+            );
+
+            studentChoices = null;
+
+            return false;
+        }
+    }
+
+    function loadChoicesFallback() {
+        if (typeof window.Choices === "function") {
+            return Promise.resolve(true);
+        }
+
+        return new Promise(function (resolve) {
+            const existingLoader =
+                document.querySelector(
+                    'script[data-doctoral-choices-loader="true"]'
+                );
+
+            if (existingLoader) {
+                existingLoader.addEventListener(
+                    "load",
+                    function () {
+                        resolve(typeof window.Choices === "function");
+                    },
+                    { once: true }
+                );
+
+                existingLoader.addEventListener(
+                    "error",
+                    function () {
+                        resolve(false);
+                    },
+                    { once: true }
+                );
+
+                return;
+            }
+
+            const script = document.createElement("script");
+            script.src =
+                "https://cdnjs.cloudflare.com/ajax/libs/choices.js/11.2.4/choices.min.js";
+            script.async = true;
+            script.dataset.doctoralChoicesLoader = "true";
+
+            script.onload = function () {
+                resolve(typeof window.Choices === "function");
+            };
+
+            script.onerror = function () {
+                resolve(false);
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
+    function startStudentChoices() {
+        if (initializeStudentChoices()) {
+            return;
+        }
+
+        loadChoicesFallback().then(function () {
+            if (initializeStudentChoices()) {
+                return;
+            }
+
+            let attempts = 0;
+
+            const choicesLoader =
+                setInterval(
+                    function () {
+                        attempts += 1;
+
+                        if (initializeStudentChoices()) {
+                            clearInterval(choicesLoader);
+                            return;
+                        }
+
+                        if (attempts >= 100) {
+                            clearInterval(choicesLoader);
+                            console.error(
+                                "Choices.js could not be initialized for the PhD student selector."
+                            );
+                        }
+                    },
+                    100
+                );
+        });
+    }
+
+    startStudentChoices();
+
+    const checkStatusBtn =
+        document.getElementById(
+            "checkStatusBtn"
+        );
+
+    const createCandidacyBtn =
+        document.getElementById(
+            "createCandidacyBtn"
+        );
+
+    const selectedStudentCard =
+        document.getElementById(
+            "selectedStudentCard"
+        );
+
+    const selectedStudentName =
+        document.getElementById(
+            "selectedStudentName"
+        );
+
+    const selectedStudentMeta =
+        document.getElementById(
+            "selectedStudentMeta"
+        );
+
+    const eligibilityPanel =
+        document.getElementById(
+            "eligibilityPanel"
+        );
+
+    const statusPlaceholder =
+        document.getElementById(
+            "statusPlaceholder"
+        );
+
+    const eligibilityContent =
+        document.getElementById(
+            "eligibilityContent"
+        );
+
+    const checkState =
+        document.getElementById(
+            "checkState"
+        );
+
+    const overallResult =
+        document.getElementById(
+            "overallResult"
+        );
+
+    const overallResultIcon =
+        document.getElementById(
+            "overallResultIcon"
+        );
+
+    const overallResultLabel =
+        document.getElementById(
+            "overallResultLabel"
+        );
+
+    const overallResultTitle =
+        document.getElementById(
+            "overallResultTitle"
+        );
+
+    const overallResultMessage =
+        document.getElementById(
+            "overallResultMessage"
+        );
+
+    const progressPercentage =
+        document.getElementById(
+            "progressPercentage"
+        );
+
+    const progressSummaryText =
+        document.getElementById(
+            "progressSummaryText"
+        );
+
+    const eligibilityProgressBar =
+        document.getElementById(
+            "eligibilityProgressBar"
+        );
+
+    const checklistCount =
+        document.getElementById(
+            "checklistCount"
+        );
+
+    const requiredCredits =
+        document.getElementById(
+            "requiredCredits"
+        );
+
+    const completedCredits =
+        document.getElementById(
+            "completedCredits"
+        );
+
+    const remainingCredits =
+        document.getElementById(
+            "remainingCredits"
+        );
+
+    const creditPercentage =
+        document.getElementById(
+            "creditPercentage"
+        );
+
+    const creditProgressBar =
+        document.getElementById(
+            "creditProgressBar"
+        );
+
+    const form =
+        document.getElementById(
+            "candidacyForm"
+        );
+
+    if (
+        !studentSelect ||
+        !checkStatusBtn ||
+        !createCandidacyBtn ||
+        !selectedStudentCard ||
+        !selectedStudentName ||
+        !selectedStudentMeta ||
+        !eligibilityPanel ||
+        !statusPlaceholder ||
+        !eligibilityContent ||
+        !checkState ||
+        !overallResult ||
+        !overallResultIcon ||
+        !overallResultLabel ||
+        !overallResultTitle ||
+        !overallResultMessage ||
+        !progressPercentage ||
+        !progressSummaryText ||
+        !eligibilityProgressBar ||
+        !checklistCount ||
+        !requiredCredits ||
+        !completedCredits ||
+        !remainingCredits ||
+        !creditPercentage ||
+        !creditProgressBar ||
+        !form
+    ) {
+        console.warn(
+            "Doctoral candidacy elements are missing."
+        );
+
+        return;
+    }
+
+    const checkDefault =
+        checkStatusBtn.querySelector(
+            ".check-default"
+        );
+
+    const checkLoading =
+        checkStatusBtn.querySelector(
+            ".check-loading"
+        );
+
+    if (
+        !checkDefault ||
+        !checkLoading
+    ) {
+        return;
+    }
+
+
+    const checkItems = [
+        {
+            id: "check-advisor",
+            key: "advisor_assigned"
+        },
+        {
+            id: "check-committee",
+            key: "committee_approved"
+        },
+        {
+            id: "check-coursework",
+            key: "coursework_completed"
+        },
+        {
+            id: "check-exam",
+            key: "preliminary_exam_passed"
+        },
+        {
+            id: "check-proposal",
+            key: "dissertation_proposal_approved"
+        }
+    ];
+
+
+    const milestoneItems = [
+        {
+            id: "check-candidacy",
+            key: "doctoral_candidacy_approved"
+        },
+        {
+            id: "check-dissertation",
+            key: "dissertation_completed"
+        }
+    ];
+
+
+    function getCheckValue(
+        data,
+        key
+    ) {
+
+        if (!data) {
+            return false;
+        }
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                data,
+                key
+            )
+        ) {
+            const directValue =
+                data[key];
+
+            if (
+                typeof directValue ===
+                "object" &&
+                directValue !== null
+            ) {
+                return Boolean(
+                    directValue.completed
+                );
+            }
+
+            return Boolean(
+                directValue
+            );
+        }
+
+        const checks =
+            data.checks ||
+            data.checklist ||
+            {};
+
+        const check =
+            checks[key];
+
+        if (
+            typeof check ===
+            "object" &&
+            check !== null
+        ) {
+            return Boolean(
+                check.completed
+            );
+        }
+
+        return Boolean(
+            check
+        );
+    }
+
+
+    function getCheckObject(
+        data,
+        key
+    ) {
+
+        if (!data) {
+            return {};
+        }
+
+        const checks =
+            data.checks ||
+            data.checklist ||
+            {};
+
+        if (
+            checks[key] &&
+            typeof checks[key] === "object"
+        ) {
+            return checks[key];
+        }
+
+        if (
+            data[key] &&
+            typeof data[key] === "object"
+        ) {
+            return data[key];
+        }
+
+        return {};
+    }
+
+
+    function resetEligibility() {
+
+        statusPlaceholder.hidden =
+            false;
+
+        eligibilityContent.hidden =
+            true;
+
+        createCandidacyBtn.disabled =
+            true;
+
+        checkState.className =
+            "dc-check-state";
+
+        checkState.innerHTML =
+            '<i class="bi bi-hourglass-split"></i> Awaiting Check';
+
+
+        [
+            ...checkItems,
+            ...milestoneItems
+        ].forEach(
+            function (item) {
+
+                const element =
+                    document.getElementById(
+                        item.id
+                    );
+
+                if (!element) {
+                    return;
+                }
+
+                element.classList.remove(
+                    "success",
+                    "failed",
+                    "milestone-complete"
+                );
+
+                const icon =
+                    element.querySelector(
+                        ".dc-check-icon"
+                    );
+
+                const status =
+                    element.querySelector(
+                        ".dc-check-status"
+                    );
+
+                if (icon) {
+                    icon.innerHTML =
+                        '<i class="bi bi-hourglass-split"></i>';
+                }
+
+                if (status) {
+
+                    if (
+                        milestoneItems.some(
+                            milestone =>
+                                milestone.id ===
+                                item.id
+                        )
+                    ) {
+
+                        status.innerHTML =
+                            '<span class="milestone-status">Pending</span>';
+
+                    } else {
+
+                        status.innerHTML =
+                            '<span class="pending-status">Pending</span>';
+                    }
+                }
+            }
+        );
+
+
+        requiredCredits.textContent =
+            "0";
+
+        completedCredits.textContent =
+            "0";
+
+        remainingCredits.textContent =
+            "0";
+
+        creditPercentage.textContent =
+            "0%";
+
+        creditProgressBar.style.width =
+            "0%";
+
+        creditProgressBar.classList.remove(
+            "complete"
+        );
+
+        progressPercentage.textContent =
+            "0%";
+
+        progressSummaryText.textContent =
+            "Requirements completed";
+
+        eligibilityProgressBar.style.width =
+            "0%";
+
+        checklistCount.textContent =
+            "0 / 5";
+    }
+
+
+    function updateSelectedStudent() {
+
+        const selectedOption =
+            studentSelect.options[
+                studentSelect.selectedIndex
+            ];
+
+        if (!studentSelect.value) {
+
+            selectedStudentCard.hidden =
+                true;
+
+            checkStatusBtn.disabled =
+                true;
+
+            eligibilityPanel.classList.add(
+                "waiting"
+            );
+
+            resetEligibility();
+
+            return;
+        }
+
+        selectedStudentCard.hidden =
+            false;
+
+        checkStatusBtn.disabled =
+            false;
+
+        selectedStudentName.textContent =
+            selectedOption
+                ? selectedOption.textContent.trim()
+                : "";
+
+        selectedStudentMeta.textContent =
+            "Ready to check academic progress.";
+
+        resetEligibility();
+
+        eligibilityPanel.classList.add(
+            "waiting"
+        );
+    }
+
+
+    function setLoading(
+        isLoading
+    ) {
+
+        checkStatusBtn.disabled =
+            isLoading;
+
+        checkDefault.hidden =
+            isLoading;
+
+        checkLoading.hidden =
+            !isLoading;
+
+        if (isLoading) {
+
+            checkState.className =
+                "dc-check-state checking";
+
+            checkState.innerHTML =
+                '<span class="dc-mini-spinner"></span> Checking';
+        }
+    }
+
+
+    function updateCoursework(
+        data
+    ) {
+
+        const coursework =
+            getCheckObject(
+                data,
+                "coursework_completed"
+            );
+
+        const required =
+            Number(
+                data.required_credits ??
+                coursework.required ??
+                data.requiredCredits ??
+                0
+            );
+
+        const completed =
+            Number(
+                data.completed_credits ??
+                coursework.completed_credits ??
+                data.completedCredits ??
+                0
+            );
+
+        const remaining =
+            Number(
+                data.remaining_credits ??
+                coursework.remaining ??
+                data.remainingCredits ??
+                Math.max(
+                    required - completed,
+                    0
+                )
+            );
+
+
+        requiredCredits.textContent =
+            required;
+
+        completedCredits.textContent =
+            completed;
+
+        remainingCredits.textContent =
+            remaining;
+
+
+        let percentage = 0;
+
+        if (required > 0) {
+
+            percentage =
+                Math.min(
+                    Math.round(
+                        (
+                            completed /
+                            required
+                        ) * 100
+                    ),
+                    100
+                );
+        }
+
+
+        creditPercentage.textContent =
+            percentage + "%";
+
+        creditProgressBar.style.width =
+            percentage + "%";
+
+
+        if (
+            remaining <= 0 &&
+            required > 0
+        ) {
+
+            creditProgressBar.classList.add(
+                "complete"
+            );
+
+        } else {
+
+            creditProgressBar.classList.remove(
+                "complete"
+            );
+        }
+    }
+
+
+    function updateOverallResult(
+        data
+    ) {
+
+        const eligible =
+            Boolean(
+                data.eligible_for_candidacy ??
+                data.eligible ??
+                false
+            );
+
+
+        overallResult.classList.remove(
+            "eligible",
+            "not-eligible"
+        );
+
+
+        if (eligible) {
+
+            overallResult.classList.add(
+                "eligible"
+            );
+
+            overallResultIcon.innerHTML =
+                '<i class="bi bi-check-circle-fill"></i>';
+
+            overallResultLabel.textContent =
+                "Eligibility Confirmed";
+
+            overallResultTitle.textContent =
+                "Eligible for Doctoral Candidacy";
+
+            overallResultMessage.textContent =
+                "All required academic milestones have been completed. The candidacy can now be created.";
+
+            checkState.className =
+                "dc-check-state success";
+
+            checkState.innerHTML =
+                '<i class="bi bi-check-circle-fill"></i> Eligible';
+
+            createCandidacyBtn.disabled =
+                false;
+
+        } else {
+
+            overallResult.classList.add(
+                "not-eligible"
+            );
+
+            overallResultIcon.innerHTML =
+                '<i class="bi bi-exclamation-circle-fill"></i>';
+
+            overallResultLabel.textContent =
+                "Eligibility Incomplete";
+
+            overallResultTitle.textContent =
+                "Not Eligible for Doctoral Candidacy";
+
+            overallResultMessage.textContent =
+                "One or more required academic milestones are incomplete. The candidacy cannot be created yet.";
+
+            checkState.className =
+                "dc-check-state failed";
+
+            checkState.innerHTML =
+                '<i class="bi bi-x-circle-fill"></i> Not Eligible';
+
+            createCandidacyBtn.disabled =
+                true;
+        }
+    }
+
+
+    function animateChecklist(
+        data
+    ) {
+
+        let completedCount = 0;
+
+
+        checkItems.forEach(
+            function (item, index) {
+
+                const element =
+                    document.getElementById(
+                        item.id
+                    );
+
+                if (!element) {
+                    return;
+                }
+
+                const value =
+                    getCheckValue(
+                        data,
+                        item.key
+                    );
+
+
+                if (value) {
+                    completedCount++;
+                }
+
+
+                setTimeout(
+                    function () {
+
+                        element.classList.remove(
+                            "success",
+                            "failed",
+                            "milestone-complete"
+                        );
+
+                        const icon =
+                            element.querySelector(
+                                ".dc-check-icon"
+                            );
+
+                        const status =
+                            element.querySelector(
+                                ".dc-check-status"
+                            );
+
+                        if (
+                            !icon ||
+                            !status
+                        ) {
+                            return;
+                        }
+
+
+                        if (value) {
+
+                            element.classList.add(
+                                "success"
+                            );
+
+                            icon.innerHTML =
+                                '<i class="bi bi-check-lg"></i>';
+
+                            status.innerHTML =
+                                '<span class="completed-status">Completed</span>';
+
+                        } else {
+
+                            element.classList.add(
+                                "failed"
+                            );
+
+                            icon.innerHTML =
+                                '<i class="bi bi-x-lg"></i>';
+
+                            status.innerHTML =
+                                '<span class="failed-status">Incomplete</span>';
+                        }
+
+                    },
+                    180 * index
+                );
+            }
+        );
+
+
+        milestoneItems.forEach(
+            function (item, index) {
+
+                const element =
+                    document.getElementById(
+                        item.id
+                    );
+
+                if (!element) {
+                    return;
+                }
+
+                const value =
+                    getCheckValue(
+                        data,
+                        item.key
+                    );
+
+
+                setTimeout(
+                    function () {
+
+                        element.classList.remove(
+                            "success",
+                            "failed",
+                            "milestone-complete"
+                        );
+
+                        const icon =
+                            element.querySelector(
+                                ".dc-check-icon"
+                            );
+
+                        const status =
+                            element.querySelector(
+                                ".dc-check-status"
+                            );
+
+                        if (
+                            !icon ||
+                            !status
+                        ) {
+                            return;
+                        }
+
+
+                        if (
+                            item.key ===
+                            "doctoral_candidacy_approved"
+                        ) {
+
+                            if (value) {
+
+                                element.classList.add(
+                                    "milestone-complete"
+                                );
+
+                                icon.innerHTML =
+                                    '<i class="bi bi-check-lg"></i>';
+
+                                status.innerHTML =
+                                    '<span class="completed-status">Approved</span>';
+
+                            } else {
+
+                                icon.innerHTML =
+                                    '<i class="bi bi-mortarboard"></i>';
+
+                                status.innerHTML =
+                                    '<span class="milestone-status">Current Milestone</span>';
+                            }
+
+                            return;
+                        }
+
+
+                        if (
+                            item.key ===
+                            "dissertation_completed"
+                        ) {
+
+                            if (value) {
+
+                                element.classList.add(
+                                    "milestone-complete"
+                                );
+
+                                icon.innerHTML =
+                                    '<i class="bi bi-check-lg"></i>';
+
+                                status.innerHTML =
+                                    '<span class="completed-status">Completed</span>';
+
+                            } else {
+
+                                icon.innerHTML =
+                                    '<i class="bi bi-arrow-right"></i>';
+
+                                status.innerHTML =
+                                    '<span class="milestone-status">Future</span>';
+                            }
+                        }
+
+                    },
+                    180 * (
+                        checkItems.length +
+                        index
+                    )
+                );
+            }
+        );
+
+
+        setTimeout(
+            function () {
+
+                const percentage =
+                    Math.round(
+                        (
+                            completedCount /
+                            checkItems.length
+                        ) * 100
+                    );
+
+                progressPercentage.textContent =
+                    percentage + "%";
+
+                eligibilityProgressBar.style.width =
+                    percentage + "%";
+
+                checklistCount.textContent =
+                    completedCount +
+                    " / " +
+                    checkItems.length;
+
+                progressSummaryText.textContent =
+                    completedCount +
+                    " of " +
+                    checkItems.length +
+                    " candidacy requirements completed";
+
+            },
+            1100
+        );
+    }
+
+
+    async function checkAcademicStatus() {
+
+        if (!studentSelect.value) {
+            return;
+        }
+
+        setLoading(true);
+
+        statusPlaceholder.hidden =
+            true;
+
+        eligibilityContent.hidden =
+            false;
+
+        eligibilityPanel.classList.remove(
+            "waiting"
+        );
+
+        resetEligibility();
+
+        statusPlaceholder.hidden =
+            true;
+
+        eligibilityContent.hidden =
+            false;
+
+
+        const checkUrl =
+            "{% url 'faculty_doctoral_candidacy_check_status' uuid=faculty.user.uuid %}"
+            +
+            "?student_id="
+            +
+            encodeURIComponent(
+                studentSelect.value
+            );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    checkUrl,
+                    {
+                        method: "GET",
+
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest",
+
+                            "Accept":
+                                "application/json"
+                        },
+
+                        credentials:
+                            "same-origin"
+                    }
+                );
+
+
+            let data;
+
+            try {
+
+                data =
+                    await response.json();
+
+            } catch (jsonError) {
+
+                throw new Error(
+                    "The server returned an invalid response."
+                );
+            }
+
+
+            if (
+                !response.ok ||
+                data.error ||
+                data.success === false
+            ) {
+
+                throw new Error(
+                    data.error ||
+                    data.message ||
+                    "Unable to check academic status."
+                );
+            }
+
+
+            updateCoursework(
+                data
+            );
+
+            updateOverallResult(
+                data
+            );
+
+            animateChecklist(
+                data
+            );
+
+
+            if (
+                data.student_active === false
+            ) {
+
+                selectedStudentMeta.textContent =
+                    "This scholar is not currently active.";
+
+            } else {
+
+                selectedStudentMeta.textContent =
+                    "Academic progress successfully checked.";
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "Academic status check failed:",
+                error
+            );
+
+
+            statusPlaceholder.hidden =
+                false;
+
+            eligibilityContent.hidden =
+                true;
+
+
+            checkState.className =
+                "dc-check-state failed";
+
+            checkState.innerHTML =
+                '<i class="bi bi-exclamation-circle-fill"></i> Check Failed';
+
+
+            createCandidacyBtn.disabled =
+                true;
+
+
+            const errorMessage =
+                error &&
+                error.message
+                    ? error.message
+                    : "Something went wrong while checking academic progress.";
+
+
+            statusPlaceholder.innerHTML = `
+                <div class="dc-placeholder-icon error">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+
+                <h3>Unable to Check Academic Status</h3>
+
+                <p>
+                    ${errorMessage}
+                </p>
+
+                <button type="button" class="dc-inline-retry" id="retryCheckBtn">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Try Again
+                </button>
+            `;
+
+
+            const retryButton =
+                document.getElementById(
+                    "retryCheckBtn"
+                );
+
+
+            if (retryButton) {
+
+                retryButton.addEventListener(
+                    "click",
+                    checkAcademicStatus
+                );
+            }
+
+
+        } finally {
+
+            setLoading(false);
+
+            if (studentSelect.value) {
+
+                checkStatusBtn.disabled =
+                    false;
+            }
+        }
+    }
+
+
+    studentSelect.addEventListener(
+        "change",
+        updateSelectedStudent
+    );
+
+
+    checkStatusBtn.addEventListener(
+        "click",
+        checkAcademicStatus
+    );
+
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+
+            if (
+                createCandidacyBtn.disabled
+            ) {
+
+                event.preventDefault();
+
+                return;
+            }
+
+
+            createCandidacyBtn.disabled =
+                true;
+
+            createCandidacyBtn.innerHTML =
+                '<span class="dc-submit-spinner"></span> Creating &amp; Approving...';
+        }
+    );
+
+
+    updateSelectedStudent();
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+ {% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Sports Reports{% endblock %}
+{% block page_title %}Sports Reports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sports_reports.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="sports-reports" id="sportsReports"
+     data-json-url="{% url 'sports_reports_data_json' %}"
+     data-export-excel-url="{% url 'sports_reports_export_excel' %}"
+     data-export-pdf-url="{% url 'sports_reports_export_pdf' %}">
+
+    <div class="sports-reports__header">
+        <div>
+            <h1 class="sports-reports__title">Sports Reports</h1>
+            <p class="sports-reports__subtitle">Overview and detailed records across SportHub — sports, teams, clubs, facilities, coaches, tournaments &amp; Olympics.</p>
+        </div>
+    </div>
+
+    <div class="sports-reports__stats" id="sportsReportsStats">
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="medal"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalSports">{{ total_sports }}</span>
+                <span class="sr-stat-card__label">Sports</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="users"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalTeams">{{ total_teams }}</span>
+                <span class="sr-stat-card__label">Teams</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="land-plot"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalClubs">{{ total_clubs }}</span>
+                <span class="sr-stat-card__label">Clubs</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="building-2"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalFacilities">{{ total_facilities }}</span>
+                <span class="sr-stat-card__label">Facilities</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="users-round"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalCoaches">{{ total_coaches }}</span>
+                <span class="sr-stat-card__label">Coaches</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="swords"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalTournaments">{{ total_tournaments }}</span>
+                <span class="sr-stat-card__label">Tournaments</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="award"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalAthletes">{{ total_athletes }}</span>
+                <span class="sr-stat-card__label">Olympic Athletes</span>
+            </div>
+        </div>
+        <div class="sr-stat-card">
+            <span class="sr-stat-card__icon"><i data-lucide="activity"></i></span>
+            <div class="sr-stat-card__body">
+                <span class="sr-stat-card__value" id="statTotalPerformances">{{ total_performances }}</span>
+                <span class="sr-stat-card__label">Performances</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sports-reports__charts">
+        <div class="sr-chart-card">
+            <h3 class="sr-chart-card__title">Sports by Type</h3>
+            <div class="sr-chart-card__canvas-wrap">
+                <canvas id="chartSportsByType"></canvas>
+            </div>
+        </div>
+        <div class="sr-chart-card">
+            <h3 class="sr-chart-card__title">Teams per Sport</h3>
+            <div class="sr-chart-card__canvas-wrap">
+                <canvas id="chartTeamsBySport"></canvas>
+            </div>
+        </div>
+        <div class="sr-chart-card">
+            <h3 class="sr-chart-card__title">Tournament Status</h3>
+            <div class="sr-chart-card__canvas-wrap">
+                <canvas id="chartTournamentStatus"></canvas>
+            </div>
+        </div>
+        <div class="sr-chart-card">
+            <h3 class="sr-chart-card__title">Medal Distribution</h3>
+            <div class="sr-chart-card__canvas-wrap">
+                <canvas id="chartMedalDistribution"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="sports-reports__filters">
+        <div class="sr-filter">
+            <label class="sr-filter__label" for="reportTypeSelect">Report Type</label>
+            <select class="sr-filter__select" id="reportTypeSelect">
+                <option value="sports">Sports</option>
+                <option value="teams">Teams</option>
+                <option value="clubs">Clubs</option>
+                <option value="facilities">Facilities</option>
+                <option value="coaches">Coaches</option>
+                <option value="tournaments">Tournaments</option>
+                <option value="athletes">Olympic Athletes</option>
+                <option value="performances">Performances</option>
+            </select>
+        </div>
+        <div class="sr-filter">
+            <label class="sr-filter__label" for="statusSelect">Status</label>
+            <select class="sr-filter__select" id="statusSelect">
+                <option value="ALL">All</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+            </select>
+        </div>
+        <div class="sr-filter__actions">
+            <button type="button" class="sr-btn sr-btn--primary" id="applyFilterBtn">
+                <i data-lucide="filter"></i> Filter
+            </button>
+            <button type="button" class="sr-btn sr-btn--ghost" id="resetFilterBtn">
+                <i data-lucide="rotate-ccw"></i> Reset
+            </button>
+        </div>
+    </div>
+
+    <div class="sports-reports__table-section">
+        <div class="sr-table-header">
+            <h3 class="sr-table-header__title" id="tableSectionTitle">Sports Records</h3>
+
+            <div class="sr-export" id="exportDropdown">
+                <button type="button" class="sr-btn sr-btn--outline sr-export__toggle" id="exportToggleBtn">
+                    <i data-lucide="download"></i> Export <i data-lucide="chevron-down"></i>
+                </button>
+                <ul class="sr-export__menu" id="exportMenu">
+                    <li><a href="#" class="sr-export__item" id="exportPdfBtn"><i data-lucide="file-text"></i> Export as PDF</a></li>
+                    <li><a href="#" class="sr-export__item" id="exportExcelBtn"><i data-lucide="file-spreadsheet"></i> Export as Excel</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="sr-table-wrap">
+            <table class="sr-table" id="sportsReportsTable">
+                <thead id="sportsReportsTableHead"></thead>
+                <tbody id="sportsReportsTableBody">
+                    <tr><td class="sr-table__empty">Loading records…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="sr-table-footer">
+            <span class="sr-table-footer__info" id="tableRecordsInfo"></span>
+            <div class="sr-pagination" id="sportsReportsPagination"></div>
+        </div>
+    </div>
+
+</div>
+
+<script id="sportsReportsChartData" type="application/json">{{ chart_data_json|safe }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/sports_reports.js' %}"></script>
+{% endblock %}

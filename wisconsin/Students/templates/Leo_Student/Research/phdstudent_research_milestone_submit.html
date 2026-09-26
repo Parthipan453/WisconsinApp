@@ -1,0 +1,1168 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}
+    Submit Research Work | Student Portal
+{% endblock %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_student_research_milestones %}active{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/Research/phdstudent_research_milestone_submit.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="srm-submit-page">
+        <div class="srm-submit-breadcrumb">
+            <a href="{% url 'Student:student_research_milestone_list' uuid=request.user.uuid %}">
+                <i class="ti ti-arrow-left"></i>
+                <span>Research Milestones</span>
+            </a>
+            <i class="ti ti-chevron-right"></i>
+            <a href="{% url 'Student:student_research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}">
+                <span>Milestone Detail</span>
+            </a>
+            <i class="ti ti-chevron-right"></i>
+            <span>Submit Research Work</span>
+        </div>
+        <section class="srm-submit-hero">
+            <div class="srm-submit-hero-content">
+                <div class="srm-submit-hero-icon">
+                    <i class="ti ti-send"></i>
+                </div>
+                <div>
+                    <span class="srm-submit-eyebrow">Research Milestone Submission</span>
+                    <h1>Submit Your Research Work</h1>
+                    <p>
+                        Submit your research document and supporting materials
+                        for academic review and milestone evaluation.
+                    </p>
+                </div>
+            </div>
+            <div class="srm-submit-hero-status">
+                <span>Milestone</span>
+                <strong>M{{ milestone.sequence_number|default:"1" }}</strong>
+            </div>
+        </section>
+        <div class="srm-submit-layout">
+            <main class="srm-submit-main">
+                <section class="srm-submit-milestone-card">
+                    <div class="srm-submit-card-header">
+                        <div>
+                            <span class="srm-submit-kicker">Current Research Stage</span>
+                            <h2>Milestone Information</h2>
+                        </div>
+                        <div class="srm-submit-header-icon">
+                            <i class="ti ti-flask"></i>
+                        </div>
+                    </div>
+                    <div class="srm-submit-milestone-main">
+                        <div class="srm-submit-milestone-number">M{{ milestone.sequence_number|default:"1" }}</div>
+                        <div class="srm-submit-milestone-content">
+                            <h3>{{ milestone.milestone_title|default:"Research Milestone" }}</h3>
+                            <p>{{ milestone.description|default:"No milestone description has been provided." }}</p>
+                        </div>
+                    </div>
+                    <div class="srm-submit-milestone-meta">
+                        <div>
+                            <span>
+                                <i class="ti ti-chart-line"></i>
+                                Progress
+                            </span>
+                            <strong>{{ milestone.current_progress_percentage|default:"0" }}%</strong>
+                        </div>
+                        <div>
+                            <span>
+                                <i class="ti ti-calendar-event"></i>
+                                Expected Completion
+                            </span>
+                            <strong>{{ milestone.expected_completion_date|date:"d M Y"|default:"Not Specified" }}</strong>
+                        </div>
+                        <div>
+                            <span>
+                                <i class="ti ti-user-star"></i>
+                                Advisor
+                            </span>
+                            <strong>{{ phd_student.advisor|default:"Not Assigned" }}</strong>
+                        </div>
+                        <div>
+                            <span>
+                                <i class="ti ti-award"></i>
+                                Chair Faculty
+                            </span>
+                            <strong>{{ milestone.chair_faculty|default:"Not Assigned" }}</strong>
+                        </div>
+                    </div>
+                </section>
+                <form method="post"
+                      enctype="multipart/form-data"
+                      id="researchSubmissionForm"
+                      novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="srm-form-error-summary">
+                            <div class="srm-form-error-icon">
+                                <i class="ti ti-alert-circle"></i>
+                            </div>
+                            <div>
+                                <strong>Submission could not be completed</strong>
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <section class="srm-upload-card">
+                        <div class="srm-submit-card-header">
+                            <div>
+                                <span class="srm-submit-kicker">Required Document</span>
+                                <h2>Research Document</h2>
+                            </div>
+                            <span class="srm-required-badge">Required</span>
+                        </div>
+                        <div class="srm-main-upload-zone" id="mainUploadZone">
+                            <div class="srm-upload-icon">
+                                <i class="ti ti-cloud-upload"></i>
+                            </div>
+                            <div class="srm-upload-content">
+                                <h3>Upload your research document</h3>
+                                <p>
+                                    Drag and drop your document here or
+                                    choose a file from your device.
+                                </p>
+                                <span>PDF, DOC or DOCX · Maximum 100 MB</span>
+                            </div>
+                            <button type="button" class="srm-upload-button" id="mainUploadButton">
+                                <i class="ti ti-upload"></i>
+                                <span>Choose Document</span>
+                            </button>
+                            {{ form.main_document }}
+                        </div>
+                        <div class="srm-file-preview" id="mainFilePreview">
+                            <div class="srm-file-preview-icon">
+                                <i class="ti ti-file-text"></i>
+                            </div>
+                            <div class="srm-file-preview-content">
+                                <strong id="mainFileName">Research Document</strong>
+                                <span id="mainFileSize">File selected</span>
+                            </div>
+                            <button type="button"
+                                    class="srm-remove-file"
+                                    id="removeMainFile"
+                                    aria-label="Remove research document">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                        {% if form.main_document.errors %}
+                            <div class="srm-field-errors">
+                                {% for error in form.main_document.errors %}
+                                    <span>
+                                        <i class="ti ti-alert-circle"></i>
+                                        {{ error }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </section>
+                    <section class="srm-additional-card">
+                        <div class="srm-submit-card-header">
+                            <div>
+                                <span class="srm-submit-kicker">Supporting Materials</span>
+                                <h2>Additional Documents</h2>
+                            </div>
+                            <span class="srm-optional-badge">Optional</span>
+                        </div>
+                        <p class="srm-additional-intro">
+                            Upload supporting research materials such as
+                            datasets, supplementary documents, figures,
+                            reports or related research evidence.
+                        </p>
+                        <div class="srm-additional-grid">
+                            <div class="srm-additional-upload">
+                                <div class="srm-additional-heading">
+                                    <div class="srm-additional-number">01</div>
+                                    <div>
+                                        <strong>Additional Document 1</strong>
+                                        <span>Optional supporting file</span>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        class="srm-additional-button"
+                                        data-input="researchAdditionalFile1Input">
+                                    <i class="ti ti-paperclip"></i>
+                                    <span>Choose File</span>
+                                </button>
+                                {{ form.additional_file_1 }}
+                                <div class="srm-additional-selected" id="additionalFile1Selected"></div>
+                                {% if form.additional_file_1.errors %}
+                                    <div class="srm-field-errors">
+                                        {% for error in form.additional_file_1.errors %}
+                                            <span>
+                                                <i class="ti ti-alert-circle"></i>
+                                                {{ error }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="srm-additional-upload">
+                                <div class="srm-additional-heading">
+                                    <div class="srm-additional-number">02</div>
+                                    <div>
+                                        <strong>Additional Document 2</strong>
+                                        <span>Optional supporting file</span>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        class="srm-additional-button"
+                                        data-input="researchAdditionalFile2Input">
+                                    <i class="ti ti-paperclip"></i>
+                                    <span>Choose File</span>
+                                </button>
+                                {{ form.additional_file_2 }}
+                                <div class="srm-additional-selected" id="additionalFile2Selected"></div>
+                                {% if form.additional_file_2.errors %}
+                                    <div class="srm-field-errors">
+                                        {% for error in form.additional_file_2.errors %}
+                                            <span>
+                                                <i class="ti ti-alert-circle"></i>
+                                                {{ error }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="srm-additional-upload">
+                                <div class="srm-additional-heading">
+                                    <div class="srm-additional-number">03</div>
+                                    <div>
+                                        <strong>Additional Document 3</strong>
+                                        <span>Optional supporting file</span>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        class="srm-additional-button"
+                                        data-input="researchAdditionalFile3Input">
+                                    <i class="ti ti-paperclip"></i>
+                                    <span>Choose File</span>
+                                </button>
+                                {{ form.additional_file_3 }}
+                                <div class="srm-additional-selected" id="additionalFile3Selected"></div>
+                                {% if form.additional_file_3.errors %}
+                                    <div class="srm-field-errors">
+                                        {% for error in form.additional_file_3.errors %}
+                                            <span>
+                                                <i class="ti ti-alert-circle"></i>
+                                                {{ error }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </section>
+                    <section class="srm-remarks-card">
+                        <div class="srm-submit-card-header">
+                            <div>
+                                <span class="srm-submit-kicker">Submission Notes</span>
+                                <h2>Student Remarks</h2>
+                            </div>
+                            <div class="srm-remarks-header-icon">
+                                <i class="ti ti-message"></i>
+                            </div>
+                        </div>
+                        <div class="srm-textarea-wrapper">
+                            <label for="{{ form.student_remarks.id_for_label }}">Remarks related to your submission</label>
+                            {{ form.student_remarks }}
+                            <div class="srm-textarea-footer">
+                                <span>Optional</span>
+                                <span id="remarksCounter">0 / 5000</span>
+                            </div>
+                        </div>
+                        {% if form.student_remarks.errors %}
+                            <div class="srm-field-errors">
+                                {% for error in form.student_remarks.errors %}
+                                    <span>
+                                        <i class="ti ti-alert-circle"></i>
+                                        {{ error }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </section>
+                    <section class="srm-guidelines-card">
+                        <div class="srm-guidelines-icon">
+                            <i class="ti ti-info-circle"></i>
+                        </div>
+                        <div class="srm-guidelines-content">
+                            <span>Submission Guidelines</span>
+                            <h3>Please review before submitting</h3>
+                            <div class="srm-guidelines-list">
+                                <div>
+                                    <i class="ti ti-check"></i>
+                                    <span>Upload the latest version of your research document.</span>
+                                </div>
+                                <div>
+                                    <i class="ti ti-check"></i>
+                                    <span>Only PDF, DOC and DOCX files are accepted.</span>
+                                </div>
+                                <div>
+                                    <i class="ti ti-check"></i>
+                                    <span>Each uploaded file must not exceed 100 MB.</span>
+                                </div>
+                                <div>
+                                    <i class="ti ti-check"></i>
+                                    <span>Make sure all required research evidence is included.</span>
+                                </div>
+                                <div>
+                                    <i class="ti ti-check"></i>
+                                    <span>Verify your submission before final submission.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <div class="srm-submit-actions">
+                        <a href="{% url 'Student:student_research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                           class="srm-cancel-button">
+                            <i class="ti ti-arrow-left"></i>
+                            <span>Back to Milestone</span>
+                        </a>
+                        <button type="submit" class="srm-final-submit" id="finalSubmitButton">
+                            <i class="ti ti-send"></i>
+                            <span>Submit Research Work</span>
+                        </button>
+                    </div>
+                </form>
+            </main>
+            <aside class="srm-submit-sidebar">
+                <section class="srm-sidebar-card srm-status-card">
+                    <div class="srm-sidebar-heading">
+                        <div>
+                            <span>Submission Status</span>
+                            <h3>Current Milestone</h3>
+                        </div>
+                        <div class="srm-sidebar-icon">
+                            <i class="ti ti-activity"></i>
+                        </div>
+                    </div>
+                    <div class="srm-current-milestone">
+                        <div class="srm-current-milestone-icon">
+                            <i class="ti ti-flask"></i>
+                        </div>
+                        <div>
+                            <span>M{{ milestone.sequence_number|default:"1" }}</span>
+                            <strong>{{ milestone.milestone_title|default:"Research Milestone" }}</strong>
+                        </div>
+                    </div>
+                    <div class="srm-sidebar-progress">
+                        <div>
+                            <span>Current Progress</span>
+                            <strong>{{ milestone.current_progress_percentage|default:"0" }}%</strong>
+                        </div>
+                        <div class="srm-sidebar-progress-track">
+                            <div style="width: {{ milestone.current_progress_percentage|default:'0' }}%"></div>
+                        </div>
+                    </div>
+                </section>
+                <section class="srm-sidebar-card">
+                    <div class="srm-sidebar-heading">
+                        <div>
+                            <span>Submission Process</span>
+                            <h3>What Happens Next?</h3>
+                        </div>
+                        <div class="srm-sidebar-icon">
+                            <i class="ti ti-route"></i>
+                        </div>
+                    </div>
+                    <div class="srm-process-list">
+                        <div class="srm-process-item active">
+                            <div class="srm-process-number">1</div>
+                            <div>
+                                <strong>Submit Research Work</strong>
+                                <span>Upload your research document.</span>
+                            </div>
+                        </div>
+                        <div class="srm-process-line"></div>
+                        <div class="srm-process-item">
+                            <div class="srm-process-number">2</div>
+                            <div>
+                                <strong>Faculty Review</strong>
+                                <span>Your submission will be evaluated.</span>
+                            </div>
+                        </div>
+                        <div class="srm-process-line"></div>
+                        <div class="srm-process-item">
+                            <div class="srm-process-number">3</div>
+                            <div>
+                                <strong>Feedback</strong>
+                                <span>Review academic feedback and advice.</span>
+                            </div>
+                        </div>
+                        <div class="srm-process-line"></div>
+                        <div class="srm-process-item">
+                            <div class="srm-process-number">4</div>
+                            <div>
+                                <strong>Completion or Revision</strong>
+                                <span>Continue or revise based on evaluation.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="srm-sidebar-card srm-tips-card">
+                    <div class="srm-sidebar-heading">
+                        <div>
+                            <span>Research Tip</span>
+                            <h3>Before You Submit</h3>
+                        </div>
+                        <div class="srm-sidebar-icon">
+                            <i class="ti ti-bulb"></i>
+                        </div>
+                    </div>
+                    <div class="srm-tip-content">
+                        <p id="researchTip">
+                            Make sure the document you upload is the final
+                            version intended for faculty review.
+                        </p>
+                        <button type="button" id="nextResearchTip" class="srm-tip-button">
+                            <span>Next Tip</span>
+                            <i class="ti ti-refresh"></i>
+                        </button>
+                    </div>
+                </section>
+                <section class="srm-sidebar-card srm-faq-card">
+                    <div class="srm-sidebar-heading">
+                        <div>
+                            <span>Help Center</span>
+                            <h3>Submission FAQ</h3>
+                        </div>
+                        <div class="srm-sidebar-icon">
+                            <i class="ti ti-help"></i>
+                        </div>
+                    </div>
+                    <div class="srm-faq-list">
+                        <div class="srm-faq-item">
+                            <button type="button" class="srm-faq-question">
+                                <span>Which files can I upload?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="srm-faq-answer">
+                                <p>
+                                    PDF, DOC and DOCX files are accepted.
+                                    Each file can be up to 100 MB.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="srm-faq-item">
+                            <button type="button" class="srm-faq-question">
+                                <span>Is the main document required?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="srm-faq-answer">
+                                <p>
+                                    Yes. The main research document is required
+                                    for every milestone submission.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="srm-faq-item">
+                            <button type="button" class="srm-faq-question">
+                                <span>Can I add supporting documents?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="srm-faq-answer">
+                                <p>
+                                    Yes. Up to three optional additional documents
+                                    can be included with the submission.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="srm-faq-item">
+                            <button type="button" class="srm-faq-question">
+                                <span>Can I edit after submitting?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="srm-faq-answer">
+                                <p>
+                                    Once submitted, the research work follows
+                                    the configured faculty review workflow.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form =
+        document.getElementById("researchSubmissionForm");
+
+    const mainInput =
+        document.getElementById("researchMainDocumentInput");
+
+    const mainZone =
+        document.getElementById("mainUploadZone");
+
+    const mainButton =
+        document.getElementById("mainUploadButton");
+
+    const mainPreview =
+        document.getElementById("mainFilePreview");
+
+    const mainFileName =
+        document.getElementById("mainFileName");
+
+    const mainFileSize =
+        document.getElementById("mainFileSize");
+
+    const removeMainFile =
+        document.getElementById("removeMainFile");
+
+    const remarks =
+        document.getElementById(
+            "{{ form.student_remarks.id_for_label }}"
+        );
+
+    const remarksCounter =
+        document.getElementById("remarksCounter");
+
+    const finalSubmitButton =
+        document.getElementById("finalSubmitButton");
+
+    const maxFileSize =
+        100 * 1024 * 1024;
+
+    const allowedExtensions =
+        [
+            "pdf",
+            "doc",
+            "docx"
+        ];
+
+    function formatFileSize(bytes) {
+
+        if (bytes < 1024) {
+
+            return bytes + " B";
+
+        }
+
+        if (bytes < 1024 * 1024) {
+
+            return (
+                bytes / 1024
+            ).toFixed(1) + " KB";
+
+        }
+
+        return (
+            bytes /
+            (
+                1024 * 1024
+            )
+        ).toFixed(2) + " MB";
+
+    }
+
+    function validateFile(file) {
+
+        if (!file) {
+
+            return false;
+
+        }
+
+        const parts =
+            file.name
+                .split(".");
+
+        const extension =
+            parts.length > 1
+                ? parts
+                    .pop()
+                    .toLowerCase()
+                : "";
+
+        if (
+            !allowedExtensions.includes(
+                extension
+            )
+        ) {
+
+            Swal.fire({
+                icon: "error",
+                title: "Invalid File",
+                text: "Only PDF, DOC and DOCX files are allowed.",
+                confirmButtonColor: "#C5050C"
+            });
+
+            return false;
+
+        }
+
+        if (
+            file.size >
+            maxFileSize
+        ) {
+
+            Swal.fire({
+                icon: "error",
+                title: "File Too Large",
+                text: "Each file cannot exceed 100 MB.",
+                confirmButtonColor: "#C5050C"
+            });
+
+            return false;
+
+        }
+
+        return true;
+
+    }
+
+    function showMainFile(file) {
+
+        if (!file) {
+
+            return;
+
+        }
+
+        mainFileName.textContent =
+            file.name;
+
+        mainFileSize.textContent =
+            formatFileSize(
+                file.size
+            );
+
+        mainPreview.classList.add(
+            "show"
+        );
+
+        mainZone.classList.add(
+            "has-file"
+        );
+
+    }
+
+    function clearMainFile() {
+
+        mainInput.value =
+            "";
+
+        mainPreview.classList.remove(
+            "show"
+        );
+
+        mainZone.classList.remove(
+            "has-file"
+        );
+
+        mainFileName.textContent =
+            "Research Document";
+
+        mainFileSize.textContent =
+            "File selected";
+
+    }
+
+    if (mainButton) {
+
+        mainButton.addEventListener(
+            "click",
+            function () {
+
+                mainInput.click();
+
+            }
+        );
+
+    }
+
+    if (mainZone) {
+
+        mainZone.addEventListener(
+            "dragover",
+            function (event) {
+
+                event.preventDefault();
+
+                mainZone.classList.add(
+                    "dragging"
+                );
+
+            }
+        );
+
+        mainZone.addEventListener(
+            "dragleave",
+            function () {
+
+                mainZone.classList.remove(
+                    "dragging"
+                );
+
+            }
+        );
+
+        mainZone.addEventListener(
+            "drop",
+            function (event) {
+
+                event.preventDefault();
+
+                mainZone.classList.remove(
+                    "dragging"
+                );
+
+                const files =
+                    event.dataTransfer.files;
+
+                if (
+                    files &&
+                    files.length
+                ) {
+
+                    const file =
+                        files[0];
+
+                    if (
+                        validateFile(
+                            file
+                        )
+                    ) {
+
+                        const transfer =
+                            new DataTransfer();
+
+                        transfer.items.add(
+                            file
+                        );
+
+                        mainInput.files =
+                            transfer.files;
+
+                        showMainFile(
+                            file
+                        );
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+    if (mainInput) {
+
+        mainInput.addEventListener(
+            "change",
+            function () {
+
+                const file =
+                    this.files[0];
+
+                if (!file) {
+
+                    return;
+
+                }
+
+                if (
+                    validateFile(
+                        file
+                    )
+                ) {
+
+                    showMainFile(
+                        file
+                    );
+
+                } else {
+
+                    clearMainFile();
+
+                }
+
+            }
+        );
+
+    }
+
+    if (removeMainFile) {
+
+        removeMainFile.addEventListener(
+            "click",
+            function () {
+
+                clearMainFile();
+
+            }
+        );
+
+    }
+
+    document
+        .querySelectorAll(
+            ".srm-additional-button"
+        )
+        .forEach(
+            function (button) {
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        const inputId =
+                            button.dataset.input;
+
+                        const input =
+                            document.getElementById(
+                                inputId
+                            );
+
+                        if (input) {
+
+                            input.click();
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+    document
+        .querySelectorAll(
+            ".srm-additional-upload input[type='file']"
+        )
+        .forEach(
+            function (input) {
+
+                input.addEventListener(
+                    "change",
+                    function () {
+
+                        const file =
+                            this.files[0];
+
+                        const selected =
+                            this
+                                .closest(
+                                    ".srm-additional-upload"
+                                )
+                                .querySelector(
+                                    ".srm-additional-selected"
+                                );
+
+                        if (!file) {
+
+                            selected.textContent =
+                                "";
+
+                            selected.classList.remove(
+                                "show"
+                            );
+
+                            return;
+
+                        }
+
+                        if (
+                            !validateFile(
+                                file
+                            )
+                        ) {
+
+                            this.value =
+                                "";
+
+                            selected.textContent =
+                                "";
+
+                            selected.classList.remove(
+                                "show"
+                            );
+
+                            return;
+
+                        }
+
+                        selected.innerHTML =
+                            "<i class='ti ti-file-text'></i>" +
+                            "<span>" +
+                            file.name +
+                            " · " +
+                            formatFileSize(
+                                file.size
+                            ) +
+                            "</span>";
+
+                        selected.classList.add(
+                            "show"
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+    function updateRemarksCounter() {
+
+        if (!remarks || !remarksCounter) {
+
+            return;
+
+        }
+
+        const length =
+            remarks.value.length;
+
+        remarksCounter.textContent =
+            length +
+            " / 5000";
+
+        if (
+            length > 4800
+        ) {
+
+            remarksCounter.classList.add(
+                "warning"
+            );
+
+        } else {
+
+            remarksCounter.classList.remove(
+                "warning"
+            );
+
+        }
+
+    }
+
+    if (remarks) {
+
+        remarks.addEventListener(
+            "input",
+            updateRemarksCounter
+        );
+
+        updateRemarksCounter();
+
+    }
+
+    document
+        .querySelectorAll(
+            ".srm-faq-question"
+        )
+        .forEach(
+            function (question) {
+
+                question.addEventListener(
+                    "click",
+                    function () {
+
+                        const item =
+                            question.closest(
+                                ".srm-faq-item"
+                            );
+
+                        const isOpen =
+                            item.classList.contains(
+                                "open"
+                            );
+
+                        document
+                            .querySelectorAll(
+                                ".srm-faq-item"
+                            )
+                            .forEach(
+                                function (faq) {
+
+                                    faq.classList.remove(
+                                        "open"
+                                    );
+
+                                }
+                            );
+
+                        if (!isOpen) {
+
+                            item.classList.add(
+                                "open"
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+    const tips = [
+
+        "Make sure the document you upload is the final version intended for faculty review.",
+
+        "Check that all required research evidence is included before submitting.",
+
+        "Use the remarks field to highlight important information about your submission.",
+
+        "Keep a copy of every submitted research document for your records."
+
+    ];
+
+    let tipIndex = 0;
+
+    const tipElement =
+        document.getElementById(
+            "researchTip"
+        );
+
+    const nextTip =
+        document.getElementById(
+            "nextResearchTip"
+        );
+
+    if (nextTip) {
+
+        nextTip.addEventListener(
+            "click",
+            function () {
+
+                tipIndex =
+                    (
+                        tipIndex + 1
+                    ) %
+                    tips.length;
+
+                tipElement.textContent =
+                    tips[tipIndex];
+
+            }
+        );
+
+    }
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+                if (
+                    !mainInput.files.length
+                ) {
+
+                    event.preventDefault();
+
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Research Document Required",
+                        text: "Please upload your main research document before submitting.",
+                        confirmButtonColor: "#C5050C"
+                    });
+
+                    return;
+
+                }
+
+                if (
+                    !validateFile(
+                        mainInput.files[0]
+                    )
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+
+                }
+
+                event.preventDefault();
+
+                Swal.fire({
+                    title: "Submit Research Work?",
+                    text: "Your research submission will be sent for academic review.",
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonColor: "#C5050C",
+                    cancelButtonColor: "#6B7280",
+                    confirmButtonText: "Yes, Submit",
+                    cancelButtonText: "Review Again",
+                    reverseButtons: true,
+                    allowOutsideClick: false
+                }).then(
+                    function (result) {
+
+                        if (
+                            result.isConfirmed
+                        ) {
+
+                            finalSubmitButton.disabled =
+                                true;
+
+                            finalSubmitButton.classList.add(
+                                "submitting"
+                            );
+
+                            finalSubmitButton.innerHTML =
+                                "<i class='ti ti-loader-2'></i>" +
+                                "<span>Submitting...</span>";
+
+                            form.submit();
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+    {% if messages %}
+
+    {% for message in messages %}
+
+    Swal.fire({
+
+        icon:
+            "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+
+        title:
+            "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Submission Error{% elif message.tags == 'warning' %}Attention{% else %}Information{% endif %}",
+
+        text:
+            "{{ message|escapejs }}",
+
+        confirmButtonColor:
+            "#C5050C",
+
+        confirmButtonText:
+            "Continue"
+
+    });
+
+    {% endfor %}
+
+    {% endif %}
+
+});
+
+    </script>
+{% endblock %}

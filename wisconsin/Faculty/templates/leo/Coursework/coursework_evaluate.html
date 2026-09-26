@@ -1,0 +1,682 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Evaluate Coursework{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-material-ui/material-ui.min.css">
+<link rel="stylesheet" href="{% static 'css/leo/Coursework/coursework_evaluate.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="coursework-evaluation-page">
+  {% comment %} <nav class="cw-breadcrumb" aria-label="breadcrumb">
+    <ol class="cw-breadcrumb-list">
+      <li class="cw-breadcrumb-item">
+        <a href="{% url 'faculty_dashboard' uuid=faculty.user.uuid %}">Faculty</a>
+      </li>
+      <li class="cw-breadcrumb-item">
+        <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}">PhD Management</a>
+      </li>
+      <li class="cw-breadcrumb-item">
+        <a href="{% url 'faculty_coursework_list' uuid=faculty.user.uuid %}">Coursework</a>
+      </li>
+      <li class="cw-breadcrumb-item active" aria-current="page">Evaluate</li>
+    </ol>
+  </nav> {% endcomment %}
+
+  <div class="cw-hero">
+    <div class="cw-hero-content">
+      <h1 class="cw-hero-title">Coursework Evaluation</h1>
+      <p class="cw-hero-sub">Review the submitted coursework and record the final faculty evaluation.</p>
+    </div>
+    <div class="cw-hero-action">
+      <a href="{% url 'faculty_coursework_list' uuid=faculty.user.uuid %}" class="btn cw-btn-outline">
+        <i class="ti ti-arrow-left"></i> Back to Coursework
+      </a>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div class="cw-messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if evaluation %}
+  <div class="cw-review-header">
+    <div class="cw-review-header-content">
+      <div class="cw-review-title-group">
+        <h2 class="cw-review-title">Existing Evaluation</h2>
+        <span class="cw-status-badge status-completed">Evaluated</span>
+      </div>
+      <p class="cw-review-sub">This coursework has already been evaluated. Review the details below.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="cw-eval-grid">
+    <div class="cw-eval-left">
+      <div class="cw-card cw-info-card">
+        <div class="cw-card-header">
+          <h3 class="cw-card-title"><i class="ti ti-user-circle"></i> Coursework Information</h3>
+        </div>
+        <div class="cw-card-body">
+          <div class="cw-info-row">
+            <span class="cw-info-label">PhD Student</span>
+            <span class="cw-info-value">{{ coursework.phd_student.student.user.get_full_name }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Student ID</span>
+            <span class="cw-info-value">{{ coursework.phd_student.student.student_number }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Department</span>
+            <span class="cw-info-value">{{ coursework.phd_student.phd_program.department|default:"—" }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">PhD Program</span>
+            <span class="cw-info-value">{{ coursework.program.program_name }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Coursework</span>
+            <span class="cw-info-value">{{ coursework.coursework.coursework_name }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Credits</span>
+            <span class="cw-info-value">{{ coursework.coursework.credits }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Start Date</span>
+            <span class="cw-info-value">{{ coursework.start_date|date:"M d, Y" }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Expected Completion</span>
+            <span class="cw-info-value">{{ coursework.expected_completion_date|date:"M d, Y" }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Academic Year</span>
+            <span class="cw-info-value">{{ coursework.academic_year|default:"—" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cw-card cw-submission-card">
+        <div class="cw-card-header">
+          <h3 class="cw-card-title"><i class="ti ti-file-description"></i> Submission Details</h3>
+        </div>
+        <div class="cw-card-body">
+          <div class="cw-info-row">
+            <span class="cw-info-label">Status</span>
+            <span class="cw-info-value">
+              <span class="cw-status-badge status-{{ submission.status|lower }}">
+                {{ submission.get_status_display }}
+              </span>
+            </span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Submitted On</span>
+            <span class="cw-info-value">{{ submission.submitted_at|date:"M d, Y · h:i A" }}</span>
+          </div>
+          {% if submission.remarks %}
+          <div class="cw-info-row">
+            <span class="cw-info-label">Student Remarks</span>
+            <span class="cw-info-value cw-remarks-text">{{ submission.remarks|linebreaks }}</span>
+          </div>
+          {% endif %}
+          <div class="cw-info-row cw-document-row">
+            <span class="cw-info-label">Submission File</span>
+            <span class="cw-info-value">
+              <a href="{{ submission.submission_file.url }}" target="_blank" class="cw-download-link">
+                <i class="ti ti-download"></i> View Submission
+              </a>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cw-eval-right">
+      {% if evaluation %}
+      <div class="cw-card cw-evaluation-display-card">
+        <div class="cw-card-header">
+          <h3 class="cw-card-title"><i class="ti ti-clipboard-check"></i> Evaluation Result</h3>
+        </div>
+        <div class="cw-card-body">
+          <div class="cw-grade-display-large">
+            <span class="cw-grade-label">GRADE</span>
+            <span class="cw-grade-value {% if evaluation.grade == 'A+' or evaluation.grade == 'A' %}grade-excellent{% elif evaluation.grade == 'B+' or evaluation.grade == 'B' %}grade-good{% elif evaluation.grade == 'C+' or evaluation.grade == 'C' %}grade-average{% else %}grade-fail{% endif %}">
+              {{ evaluation.grade }}
+            </span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Marks</span>
+            <span class="cw-info-value">{{ evaluation.marks }} / 100</span>
+          </div>
+          {% if evaluation.faculty_feedback %}
+          <div class="cw-info-row">
+            <span class="cw-info-label">Feedback</span>
+            <span class="cw-info-value cw-remarks-text">{{ evaluation.faculty_feedback|linebreaks }}</span>
+          </div>
+          {% endif %}
+          <div class="cw-info-row">
+            <span class="cw-info-label">Evaluated By</span>
+            <span class="cw-info-value">{{ evaluation.evaluated_by.user.get_full_name }}</span>
+          </div>
+          <div class="cw-info-row">
+            <span class="cw-info-label">Evaluated At</span>
+            <span class="cw-info-value">{{ evaluation.evaluated_at|date:"M d, Y · h:i A" }}</span>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="cw-card cw-evaluation-form-card">
+        <div class="cw-card-header">
+          <h3 class="cw-card-title"><i class="ti ti-edit"></i> Faculty Evaluation</h3>
+        </div>
+        <div class="cw-card-body">
+          {% if form.non_field_errors %}
+          <div class="cw-non-field-errors">
+            {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <form method="post" novalidate class="cw-eval-form" id="evalForm">
+            {% csrf_token %}
+
+            <div class="cw-field-group">
+              <label for="{{ form.marks.id_for_label }}" class="cw-field-label">
+                {{ form.marks.label }}
+                <span class="cw-required">*</span>
+              </label>
+              <div class="cw-marks-wrapper">
+                {{ form.marks }}
+                <span class="cw-marks-denominator">/ 100</span>
+              </div>
+              {% if form.marks.errors %}
+              <div class="cw-field-error">{{ form.marks.errors.0 }}</div>
+              {% endif %}
+              <div class="cw-field-help">Enter marks between 0 and 100.</div>
+            </div>
+
+            <div class="cw-grade-preview-card" id="gradePreviewCard">
+              <div class="cw-grade-preview-header">GRADE</div>
+              <div class="cw-grade-preview-value" id="gradePreviewValue">—</div>
+              <div class="cw-grade-preview-marks" id="gradePreviewMarks">Marks: <span id="gradePreviewMarksDisplay">0</span> / 100</div>
+            </div>
+
+            <div class="cw-outcome-preview" id="outcomePreview">
+              <span id="outcomeText">Enter marks to see the evaluation outcome preview.</span>
+            </div>
+
+            <div class="cw-field-group">
+              <label for="{{ form.faculty_feedback.id_for_label }}" class="cw-field-label">
+                {{ form.faculty_feedback.label }}
+              </label>
+              {{ form.faculty_feedback }}
+              {% if form.faculty_feedback.errors %}
+              <div class="cw-field-error">{{ form.faculty_feedback.errors.0 }}</div>
+              {% endif %}
+              <div class="cw-field-help">Provide detailed feedback and recommendations.</div>
+            </div>
+
+            <div class="cw-form-actions">
+              <button type="submit" class="btn cw-btn-primary" id="submitBtn">
+                <i class="ti ti-check"></i> Submit Evaluation
+              </button>
+              <a href="{% url 'faculty_coursework_list' uuid=faculty.user.uuid %}" class="btn cw-btn-outline">
+                <i class="ti ti-arrow-left"></i> Back to Coursework
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const marksInput = document.getElementById('id_marks');
+    const gradePreviewValue = document.getElementById('gradePreviewValue');
+    const gradePreviewMarksDisplay = document.getElementById('gradePreviewMarksDisplay');
+    const gradePreviewCard = document.getElementById('gradePreviewCard');
+    const outcomePreview = document.getElementById('outcomePreview');
+    const outcomeText = document.getElementById('outcomeText');
+    const form = document.getElementById('evalForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    console.log('=================================');
+    console.log('COURSEWORK EVALUATION JS STARTED');
+    console.log('Marks Input:', marksInput);
+    console.log('Grade Preview:', gradePreviewValue);
+    console.log('Marks Display:', gradePreviewMarksDisplay);
+    console.log('Outcome Preview:', outcomePreview);
+    console.log('Form:', form);
+    console.log('Submit Button:', submitBtn);
+    console.log('=================================');
+
+
+    /*
+    ============================================================
+    GRADE CALCULATION
+    ============================================================
+    */
+
+    function calculateGrade(marks) {
+
+        marks = Number(marks);
+
+        if (marks >= 90) {
+            return {
+                grade: 'A+',
+                className: 'grade-excellent'
+            };
+        }
+
+        if (marks >= 80) {
+            return {
+                grade: 'A',
+                className: 'grade-excellent'
+            };
+        }
+
+        if (marks >= 70) {
+            return {
+                grade: 'B+',
+                className: 'grade-good'
+            };
+        }
+
+        if (marks >= 60) {
+            return {
+                grade: 'B',
+                className: 'grade-good'
+            };
+        }
+
+        if (marks >= 50) {
+            return {
+                grade: 'C+',
+                className: 'grade-average'
+            };
+        }
+
+        if (marks >= 40) {
+            return {
+                grade: 'C',
+                className: 'grade-average'
+            };
+        }
+
+        return {
+            grade: 'F',
+            className: 'grade-fail'
+        };
+    }
+
+
+    /*
+    ============================================================
+    UPDATE GRADE PREVIEW
+    ============================================================
+    */
+
+    function updateGradePreview() {
+
+        if (!marksInput) {
+            console.error('Marks input #id_marks not found');
+            return;
+        }
+
+        const value = marksInput.value.trim();
+
+        console.log('Marks value:', value);
+
+
+        /*
+        Empty input
+        */
+
+        if (value === '') {
+
+            if (gradePreviewValue) {
+                gradePreviewValue.textContent = '—';
+                gradePreviewValue.className =
+                    'cw-grade-preview-value';
+            }
+
+            if (gradePreviewMarksDisplay) {
+                gradePreviewMarksDisplay.textContent = '0';
+            }
+
+            if (outcomeText) {
+                outcomeText.textContent =
+                    'Enter marks to see the evaluation outcome preview.';
+            }
+
+            if (outcomePreview) {
+                outcomePreview.className =
+                    'cw-outcome-preview';
+            }
+
+            return;
+        }
+
+
+        /*
+        Convert marks to number
+        */
+
+        let marks = Number(value);
+
+
+        /*
+        Invalid number
+        */
+
+        if (!Number.isFinite(marks)) {
+
+            console.warn('Invalid marks:', value);
+
+            if (gradePreviewValue) {
+                gradePreviewValue.textContent = '—';
+                gradePreviewValue.className =
+                    'cw-grade-preview-value';
+            }
+
+            if (gradePreviewMarksDisplay) {
+                gradePreviewMarksDisplay.textContent = '0';
+            }
+
+            return;
+        }
+
+
+        /*
+        Keep marks inside 0 - 100
+        */
+
+        if (marks < 0) {
+            marks = 0;
+        }
+
+        if (marks > 100) {
+            marks = 100;
+        }
+
+
+        /*
+        Calculate grade
+        */
+
+        const gradeResult = calculateGrade(marks);
+
+        console.log(
+            'Marks:',
+            marks,
+            'Grade:',
+            gradeResult.grade
+        );
+
+
+        /*
+        ========================================================
+        UPDATE GRADE
+        ========================================================
+        */
+
+        if (gradePreviewValue) {
+
+            gradePreviewValue.textContent =
+                gradeResult.grade;
+
+            gradePreviewValue.className =
+                'cw-grade-preview-value ' +
+                gradeResult.className;
+        }
+
+
+        /*
+        ========================================================
+        UPDATE MARKS DISPLAY
+        ========================================================
+        */
+
+        if (gradePreviewMarksDisplay) {
+
+            gradePreviewMarksDisplay.textContent =
+                marks;
+        }
+
+
+        /*
+        ========================================================
+        UPDATE OUTCOME
+        ========================================================
+        */
+
+        if (outcomePreview && outcomeText) {
+
+            if (marks >= 40) {
+
+                outcomeText.textContent =
+                    'Passing evaluation: coursework will be marked as Completed after submission.';
+
+                outcomePreview.className =
+                    'cw-outcome-preview pass';
+
+            } else {
+
+                outcomeText.textContent =
+                    'Failing evaluation: coursework will be marked as Failed after submission.';
+
+                outcomePreview.className =
+                    'cw-outcome-preview fail';
+            }
+        }
+    }
+
+
+    /*
+    ============================================================
+    MARKS INPUT EVENT
+    ============================================================
+    */
+
+    if (marksInput) {
+
+        marksInput.addEventListener(
+            'input',
+            updateGradePreview
+        );
+
+        marksInput.addEventListener(
+            'change',
+            updateGradePreview
+        );
+
+        marksInput.addEventListener(
+            'keyup',
+            updateGradePreview
+        );
+
+        marksInput.addEventListener(
+            'blur',
+            updateGradePreview
+        );
+
+
+        /*
+        Run immediately when page loads
+        */
+
+        updateGradePreview();
+
+    } else {
+
+        console.error(
+            'ERROR: Element with id "id_marks" was not found.'
+        );
+    }
+
+
+    /*
+    ============================================================
+    FORM SUBMISSION
+    ============================================================
+    */
+
+    if (form) {
+
+        form.addEventListener('submit', function (event) {
+
+            event.preventDefault();
+
+
+            /*
+            If marks input doesn't exist
+            */
+
+            if (!marksInput) {
+
+                form.submit();
+
+                return;
+            }
+
+
+            const rawMarks =
+                marksInput.value.trim();
+
+            const marks =
+                Number(rawMarks);
+
+
+            /*
+            ====================================================
+            VALIDATION
+            ====================================================
+            */
+
+            if (
+                rawMarks === '' ||
+                !Number.isFinite(marks) ||
+                marks < 0 ||
+                marks > 100
+            ) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Marks',
+                    text: 'Please enter valid marks between 0 and 100.',
+                    confirmButtonColor: '#c5050c'
+                });
+
+                marksInput.focus();
+
+                return;
+            }
+
+
+            /*
+            ====================================================
+            CALCULATE FINAL GRADE
+            ====================================================
+            */
+
+            const gradeResult =
+                calculateGrade(marks);
+
+
+            /*
+            ====================================================
+            CONFIRM SUBMISSION
+            ====================================================
+            */
+
+            Swal.fire({
+
+                title: 'Submit Evaluation?',
+
+                html:
+                    '<div style="font-size:15px; line-height:1.8;">' +
+                    '<strong>Marks:</strong> ' +
+                    marks +
+                    ' / 100<br>' +
+                    '<strong>Grade:</strong> ' +
+                    gradeResult.grade +
+                    '<br><br>' +
+                    'Are you sure you want to submit this coursework evaluation?' +
+                    '</div>',
+
+                icon: 'question',
+
+                showCancelButton: true,
+
+                confirmButtonText:
+                    'Submit Evaluation',
+
+                cancelButtonText:
+                    'Cancel',
+
+                confirmButtonColor:
+                    '#c5050c',
+
+                cancelButtonColor:
+                    '#6c757d',
+
+                reverseButtons:
+                    true
+
+            }).then(function (result) {
+
+                if (result.isConfirmed) {
+
+                    /*
+                    Disable submit button
+                    */
+
+                    if (submitBtn) {
+
+                        submitBtn.disabled = true;
+
+                        submitBtn.innerHTML =
+                            '<i class="ti ti-loader-2 ti-spin"></i> Submitting...';
+                    }
+
+
+                    /*
+                    Submit actual Django form
+                    */
+
+                    form.submit();
+                }
+            });
+        });
+
+    } else {
+
+        console.warn(
+            'Form #evalForm not found. Grade preview will still work.'
+        );
+    }
+
+});
+</script>
+
+{% endblock %}

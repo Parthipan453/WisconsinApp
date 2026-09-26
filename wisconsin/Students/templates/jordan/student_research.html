@@ -1,0 +1,353 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}Research Projects{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/jordan/student_research.css' %}">
+{% endblock %}
+
+{% block nav_campus_open %}open{% endblock %}
+{% block nav_campus_submenu %}open{% endblock %}
+{% block nav_research_projects %}active{% endblock %}
+
+{% block content %}
+<div class="research-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Research Projects</h1>
+            <p>Browse, apply, and collaborate with faculty on research projects</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url "Student:student_application_page" uuid=request.user.uuid %}">
+                <button class="research-btn primary-btn" >
+                    <i class="ti ti-send"></i> New Application
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="icon blue">
+                <i class="ti ti-folder"></i>
+            </div>
+            <div>
+                <h3 id="statTotalProjects">0</h3>
+                <span>Total Projects</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon green">
+                <i class="ti ti-check"></i>
+            </div>
+            <div>
+                <h3 id="statActiveProjects">0</h3>
+                <span>Active</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon orange">
+                <i class="ti ti-clock"></i>
+            </div>
+            <div>
+                <h3 id="statPendingProjects">0</h3>
+                <span>Pending Applications</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon purple">
+                <i class="ti ti-award"></i>
+            </div>
+            <div>
+                <h3 id="statApprovedProjects">0</h3>
+                <span>Approved</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon pink">
+                <i class="ti ti-users"></i>
+            </div>
+            <div>
+                <h3 id="statTeamMembers">0</h3>
+                <span>Team Members</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon teal">
+                <i class="ti ti-user-check"></i>
+            </div>
+            <div>
+                <h3 id="statMyApplications">0</h3>
+                <span>My Applications</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <button class="tab-btn active" data-tab="all-projects" onclick="switchTab('all-projects')">
+            <i class="ti ti-list"></i> All Projects
+        </button>
+        <button class="tab-btn" data-tab="my-applications" onclick="switchTab('my-applications')">
+            <i class="ti ti-file-text"></i> My Applications
+        </button>
+        <button class="tab-btn" data-tab="my-team" onclick="switchTab('my-team')">
+            <i class="ti ti-users"></i> My Team
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section card">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label><i class="ti ti-building"></i> Department</label>
+                <select id="departmentFilter" class="filter-input" onchange="updateFacultyList()">
+                    <option value="">All Departments</option>
+                    <option value="computer-science">Computer Science</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="physics">Physics</option>
+                    <option value="biology">Biology</option>
+                    <option value="chemistry">Chemistry</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="statusFilter" class="filter-input">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="completed">Completed</option>
+                    <option value="on-hold">On Hold</option>
+                </select>
+            </div>
+            
+            <div class="filter-group" style="flex: 2;">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="searchInput" placeholder="Search by project title, faculty, or department..." class="filter-input" style="flex: 1;">
+                    <button class="filter-search-btn" onclick="applySearch()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="filter-actions">
+                <button class="filter-btn reset-btn" onclick="resetFilters()">
+                    <i class="ti ti-refresh"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Projects Tab -->
+    <div class="tab-content active" id="tab-all-projects">
+        <div class="project-section">
+            <div class="section-header">
+                <h3><i class="ti ti-th-large"></i> Available Research Projects</h3>
+                <span class="record-count" id="projectCount">0 Projects</span>
+            </div>
+            <div class="project-grid" id="projectGrid">
+                <!-- Project cards will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- My Applications Tab -->
+    <div class="tab-content" id="tab-my-applications">
+        <div class="project-section">
+            <div class="section-header">
+                <h3><i class="ti ti-file-text"></i> My Applications</h3>
+                <span class="record-count" id="myApplicationsCount">0 Applications</span>
+            </div>
+            <div class="applications-grid" id="applicationsGrid">
+                <!-- Application cards will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- My Team Tab -->
+    <div class="tab-content" id="tab-my-team">
+        <div class="project-section">
+            <div class="section-header">
+                <h3><i class="ti ti-users"></i> My Team Members</h3>
+                <span class="record-count" id="teamCount">0 Members</span>
+            </div>
+            <div class="team-grid" id="teamGrid">
+                <!-- Team members will be dynamically generated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- New Application Modal -->
+    <div class="modal-overlay" id="newApplicationModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="ti ti-send"></i> Submit Research Application</h3>
+                <button class="modal-close" onclick="closeModal('newApplicationModal')">&times;</button>
+            </div>
+            <form id="newApplicationForm" onsubmit="submitNewApplication(event)">
+                <div class="modal-body">
+                    <!-- Step 1: Select Department -->
+                    <div class="form-step" id="step1">
+                        <h4 style="margin-bottom: 15px;">Step 1: Select Department</h4>
+                        <div class="form-group">
+                            <label>Department <span class="required">*</span></label>
+                            <select id="appDepartment" class="form-input" required onchange="updateFacultySelect()">
+                                <option value="">Select Department</option>
+                                <option value="computer-science">Computer Science</option>
+                                <option value="engineering">Engineering</option>
+                                <option value="mathematics">Mathematics</option>
+                                <option value="physics">Physics</option>
+                                <option value="biology">Biology</option>
+                                <option value="chemistry">Chemistry</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Select Faculty -->
+                    <div class="form-step" id="step2" style="display: none;">
+                        <h4 style="margin-bottom: 15px;">Step 2: Select Faculty Supervisor</h4>
+                        <div class="form-group">
+                            <label>Faculty Member <span class="required">*</span></label>
+                            <select id="appFaculty" class="form-input" required>
+                                <option value="">Select Faculty</option>
+                            </select>
+                        </div>
+                        <div id="facultyDetails" style="margin-top: 10px; display: none;">
+                            <div style="padding: 12px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid var(--primary-blue);">
+                                <p style="margin: 0; font-weight: 600;"><i class="ti ti-user"></i> <span id="facultyName"></span></p>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                                    <i class="ti ti-building"></i> <span id="facultyDept"></span>
+                                </p>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                                    <i class="ti ti-mail"></i> <span id="facultyEmail"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Project Details -->
+                    <div class="form-step" id="step3" style="display: none;">
+                        <h4 style="margin-bottom: 15px;">Step 3: Project Details</h4>
+                        <div class="form-group">
+                            <label>Project Title <span class="required">*</span></label>
+                            <input type="text" id="appProjectTitle" class="form-input" required placeholder="Enter project title">
+                        </div>
+                        <div class="form-group">
+                            <label>Project Description <span class="required">*</span></label>
+                            <textarea id="appProjectDescription" class="form-input" rows="3" required placeholder="Describe your research project..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Project Objectives</label>
+                            <textarea id="appProjectObjectives" class="form-input" rows="2" placeholder="List key objectives (one per line)..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Proposed Start Date</label>
+                                <input type="date" id="appStartDate" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Proposed Duration (months)</label>
+                                <input type="number" id="appDuration" class="form-input" placeholder="e.g., 6" min="1" max="24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Team Members -->
+                    <div class="form-step" id="step4" style="display: none;">
+                        <h4 style="margin-bottom: 15px;">Step 4: Add Team Members</h4>
+                        <div class="form-group">
+                            <label>Your Role <span class="required">*</span></label>
+                            <select id="appStudentRole" class="form-input" required>
+                                <option value="Lead Researcher">Lead Researcher</option>
+                                <option value="Co-Researcher">Co-Researcher</option>
+                                <option value="Research Assistant">Research Assistant</option>
+                                <option value="Data Analyst">Data Analyst</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Add Team Members</label>
+                            <div class="team-input-container">
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="appTeamMemberInput" class="form-input" placeholder="Enter team member name" style="flex: 1;">
+                                    <select id="appTeamMemberRole" class="form-input" style="width: 140px;">
+                                        <option value="Research Assistant">Research Assistant</option>
+                                        <option value="Co-Researcher">Co-Researcher</option>
+                                        <option value="Data Analyst">Data Analyst</option>
+                                        <option value="Technical Writer">Technical Writer</option>
+                                        <option value="Lab Assistant">Lab Assistant</option>
+                                    </select>
+                                    <button type="button" class="filter-btn primary-btn" onclick="addAppTeamMember()" style="height: 42px;">
+                                        <i class="ti ti-plus"></i> Add
+                                    </button>
+                                </div>
+                                <div class="team-tags" id="appTeamTags">
+                                    <span style="color: var(--text-light); font-size: 13px;">No team members added</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="appTeamMembers" value="[]">
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <button type="button" class="filter-btn reset-btn" id="prevStepBtn" style="display: none;" onclick="prevStep()">
+                            <i class="ti ti-arrow-left"></i> Previous
+                        </button>
+                        <div style="display: flex; gap: 10px; margin-left: auto;">
+                            <button type="button" class="filter-btn reset-btn" onclick="closeModal('newApplicationModal')">Cancel</button>
+                            <button type="button" class="filter-btn primary-btn" id="nextStepBtn" onclick="nextStep()">
+                                Next <i class="ti ti-arrow-right"></i>
+                            </button>
+                            <button type="submit" class="filter-btn primary-btn" id="submitBtn" style="display: none;">
+                                <i class="ti ti-send"></i> Submit Application
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Details Modal -->
+    <div class="modal-overlay" id="projectDetailModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="detailModalTitle">Project Details</h3>
+                <button class="modal-close" onclick="closeModal('projectDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="projectDetailBody">
+                <!-- Project details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Details Modal -->
+    <div class="modal-overlay" id="applicationDetailModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="ti ti-file-text"></i> Application Details</h3>
+                <button class="modal-close" onclick="closeModal('applicationDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="applicationDetailBody">
+                <!-- Application details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="{% static 'script/jordan/student_research.js' %}"></script>
+{% endblock %}

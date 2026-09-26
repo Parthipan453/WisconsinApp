@@ -1,0 +1,153 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Roles & Permissions{% endblock %}
+{% block page_title %}Roles & Permissions{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/permission_common.css' %}">
+    <link rel="stylesheet" href="{% static 'css/permission_role_list.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="permission-header" data-aos="fade-down">
+    <div class="permission-header__text">
+      <h1>Roles & Permissions</h1>
+      <p>Each role's access at a glance — modules are grouped as cards with C · R · U · D badges.</p>
+    </div>
+    <a href="{% url 'Permission:permission_dashboard' %}" class="permission-btn-back">
+      <i data-lucide="layout-dashboard"></i> Dashboard
+    </a>
+  </div>
+
+  {% if not can_edit %}
+    <div class="permission-readonly-banner" data-aos="fade-up">
+      <i data-lucide="eye"></i>
+      <span>You have view-only access. Only the Administrator can create roles or change permissions.</span>
+    </div>
+  {% endif %}
+
+  <div class="pm-tabs" data-aos="fade-up">
+    {% for tab in tabs %}
+      <button type="button" class="pm-tab{% if forloop.first %} is-active{% endif %}" data-role-tab="{{ tab.code }}">
+        {% if tab.code == "medical" %}
+          <i data-lucide="stethoscope"></i>
+        {% else %}
+          <i data-lucide="users"></i>
+        {% endif %}
+        {{ tab.label }}
+        <span class="pm-tab__count">{{ tab.matrix_rows|length }}</span>
+      </button>
+    {% endfor %}
+  </div>
+
+  {% for tab in tabs %}
+    <div class="pm-role-panel" data-role-panel="{{ tab.code }}"{% if not forloop.first %} hidden{% endif %}>
+      {% if tab.matrix_rows %}
+        <div class="rp-toolbar" data-aos="fade-up">
+          <div class="rp-search">
+            <i data-lucide="search"></i>
+            <input type="text" id="role-search-{{ tab.code }}" placeholder="Search {{ tab.label|lower }} roles…" autocomplete="off">
+          </div>
+          <div class="rp-toolbar__count" id="rp-result-count-{{ tab.code }}"></div>
+        </div>
+
+        <div class="rp-role-grid" id="rp-role-grid-{{ tab.code }}">
+          {% for row in tab.matrix_rows %}
+            <div class="rp-role-card" data-role-name="{{ row.display_name|lower }}" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:'40' }}">
+              <div class="rp-role-card__head">
+                <div class="permission-role-cell">
+                  <div class="permission-role-avatar permission-role-avatar--{{ row.color }}">
+                    {{ row.display_name|first|upper }}
+                  </div>
+                  <div>
+                    <div class="permission-role-name">{{ row.display_name }}</div>
+                    <div class="permission-role-sub">
+                      {% if tab.code == "medical" %}{{ row.role.get_category_display }} · {% endif %}
+                      {{ row.user_count }} user{{ row.user_count|pluralize }}
+                    </div>
+                  </div>
+                </div>
+                <a href="{% url 'Permission:permission_role_permissions' tab.code row.role.pk %}"
+                   class="permission-action-btn"
+                   data-bs-toggle="tooltip"
+                   title="{% if can_edit %}Edit Permissions{% else %}View Permissions{% endif %}">
+                  <i data-lucide="{% if can_edit %}pencil{% else %}eye{% endif %}"></i>
+                </a>
+              </div>
+
+              <div class="rp-role-card__count">
+                <i data-lucide="shield-check"></i>
+                <span>{{ row.granted_count }} / {{ row.total_slots }} permissions granted</span>
+              </div>
+
+              <div class="rp-role-card__modules">
+                {% for app, model in tab.module_keys %}
+                  {% get_item_tuple row.cells app model as cell %}
+                  <div class="rp-module-chip" data-tooltip="{{ tab.label }} › {{ app }} › {{ model|title }}">
+                    <div class="rp-module-chip__name">
+                      {% if tab.code == "medical" %}
+                        <i data-lucide="stethoscope"></i>
+                      {% elif model == "user" %}<i data-lucide="user"></i>
+                      {% elif model == "userrole" or model == "role" %}<i data-lucide="shield"></i>
+                      {% elif model == "student" %}<i data-lucide="graduation-cap"></i>
+                      {% elif model == "course" %}<i data-lucide="book-open"></i>
+                      {% elif model == "department" %}<i data-lucide="building-2"></i>
+                      {% elif model == "faculty" %}<i data-lucide="briefcase"></i>
+                      {% elif model == "attendance" %}<i data-lucide="calendar-check"></i>
+                      {% elif model == "fees" or model == "fee" %}<i data-lucide="credit-card"></i>
+                      {% elif model == "library" %}<i data-lucide="library"></i>
+                      {% elif model == "hostel" %}<i data-lucide="home"></i>
+                      {% else %}<i data-lucide="layers"></i>{% endif %}
+                      <span>{{ model|title }}</span>
+                    </div>
+                    <div class="rp-module-chip__badges">
+                      <span class="permission-badge {% if cell.create %}permission-badge--c{% else %}permission-badge--muted{% endif %}">C</span>
+                      <span class="permission-badge {% if cell.read %}permission-badge--r{% else %}permission-badge--muted{% endif %}">R</span>
+                      <span class="permission-badge {% if cell.update %}permission-badge--u{% else %}permission-badge--muted{% endif %}">U</span>
+                      <span class="permission-badge {% if cell.delete %}permission-badge--d{% else %}permission-badge--muted{% endif %}">D</span>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="rp-empty" id="rp-search-empty-{{ tab.code }}" style="display:none;">
+          <i data-lucide="search-x"></i>
+          <p>No roles match your search.</p>
+        </div>
+
+        <nav class="rp-pagination" id="rp-pagination-{{ tab.code }}" aria-label="{{ tab.label }} role pagination"></nav>
+      {% else %}
+        <div class="permission-empty">
+          {% if tab.code == "medical" %}
+            <i data-lucide="stethoscope"></i>
+            <p>No medical staff roles yet.</p>
+          {% else %}
+            <i data-lucide="shield-off"></i>
+            <p>No {{ tab.label|lower }} roles yet. {% if can_edit %}Create your first role to get started.{% endif %}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <div class="permission-legend">
+    <span class="permission-legend__title">Legend:</span>
+    <span class="permission-legend__item"><span class="permission-badge permission-badge--c">C</span> Create</span>
+    <span class="permission-legend__item"><span class="permission-badge permission-badge--r">R</span> Read</span>
+    <span class="permission-legend__item"><span class="permission-badge permission-badge--u">U</span> Update</span>
+    <span class="permission-legend__item"><span class="permission-badge permission-badge--d">D</span> Delete</span>
+    <span class="permission-legend__item"><span class="permission-badge permission-badge--muted">·</span> Not granted</span>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    window.PERMISSION_ROLE_TABS = [{% for tab in tabs %}"{{ tab.code }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+  </script>
+  <script src="{% static 'script/permission_role_list.js' %}"></script>
+{% endblock %}

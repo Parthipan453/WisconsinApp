@@ -1,0 +1,983 @@
+{% extends "library_admin/library_dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Collect Fine{% endblock %}
+{% block page_title %}Collect Fine{% endblock %}
+
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{% static 'css/library_admin/collect_fine.css' %}"
+>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="cf-page">
+
+
+    <!-- =====================================================
+         BREADCRUMB + TITLE
+    ====================================================== -->
+
+    <div class="cf-page-header">
+
+    <div>
+
+        <div class="cf-heading-row">
+
+    <span class="cf-heading-icon">
+        <i class="fa-solid fa-dollar-sign"></i>
+    </span>
+
+    <h1>Collect Fine</h1>
+
+</div>
+
+        <div class="cf-breadcrumb">
+
+            <a href="{% url 'library_dashboard' request.user.uuid %}">
+                Dashboard
+            </a>
+
+            <span>›</span>
+
+            <a href="{% url 'fine_management' %}">
+                Fine Management
+            </a>
+
+            <span>›</span>
+
+            <a href="{% url 'fine_details' fine.id %}">
+                Fine Details
+            </a>
+
+            <span>›</span>
+
+            <strong>Collect Fine</strong>
+
+        </div>
+
+    </div>
+
+
+    <a
+        href="{% url 'fine_details' fine.id %}"
+        class="cf-back-btn">
+
+        <i class="fa-solid fa-arrow-left"></i>
+
+        Back to Fine Details
+
+    </a>
+
+</div>
+
+
+
+    <!-- =====================================================
+         USER / BOOK / FINE INFORMATION
+    ====================================================== -->
+
+    <section class="cf-information-card">
+
+
+        <!-- STUDENT -->
+
+        <div class="cf-information-column">
+
+            <span class="cf-information-heading">
+                Student Information
+            </span>
+
+
+            <div class="cf-student-info">
+
+                <div class="cf-student-avatar">
+
+    {% if fine.transaction.library_user.user.profile_image %}
+
+        <img
+            src="{{ fine.transaction.library_user.user.profile_image.url }}"
+            alt="User">
+
+    {% else %}
+
+        {% if fine.transaction.library_user.user.first_name %}
+
+            {{ fine.transaction.library_user.user.first_name|slice:":1"|upper }}
+
+        {% else %}
+
+            {{ fine.transaction.library_user.user.username|slice:":1"|upper }}
+
+        {% endif %}
+
+    {% endif %}
+
+</div>
+
+
+                <div class="cf-student-details">
+
+                    <h3>
+
+                        {% if fine.transaction.library_user.user.first_name or fine.transaction.library_user.user.last_name %}
+
+                            {{ fine.transaction.library_user.user.get_full_name }}
+
+                        {% else %}
+
+                            {{ fine.transaction.library_user.user.username }}
+
+                        {% endif %}
+
+                    </h3>
+
+
+                    <p>
+
+                        <i class="fa-regular fa-user"></i>
+
+                        {{ fine.transaction.library_user.get_user_type_display }}
+
+                    </p>
+
+
+                    <!-- <p>
+
+                        {{ fine.transaction.library_user.user.username }}
+
+                    </p> -->
+
+
+                    <!-- <p>
+
+                        ID:
+
+                        {{ fine.transaction.library_user.user.id }}
+
+                    </p> -->
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="cf-column-divider"></div>
+
+
+
+        <!-- BOOK -->
+
+        <div class="cf-information-column">
+
+            <span class="cf-information-heading">
+                Book Information
+            </span>
+
+
+            <div class="cf-book-info">
+
+                <div class="cf-book-cover">
+
+                    {% if fine.transaction.copy.resource.cover_image %}
+
+                        <img
+                            src="{{ fine.transaction.copy.resource.cover_image.url }}"
+                            alt="{{ fine.transaction.copy.resource.title }}">
+
+                    {% else %}
+
+                        <div class="cf-book-fallback">
+
+                            <i class="fa-solid fa-book-open"></i>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="cf-book-details">
+
+                    <h3>
+                        {{ fine.transaction.copy.resource.title }}
+                    </h3>
+
+
+                    {% if fine.transaction.copy.resource.author %}
+
+                        <p>
+                            by
+                            {{ fine.transaction.copy.resource.author }}
+                        </p>
+
+                    {% endif %}
+
+
+                    <span>
+
+                        Copy ID:
+                        {{ fine.transaction.copy.id }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="cf-column-divider"></div>
+
+
+
+        <!-- FINE -->
+
+        <div class="cf-information-column cf-fine-column">
+
+            <span class="cf-information-heading">
+                Fine Information
+            </span>
+
+
+            <span class="cf-small-label">
+                Fine ID
+            </span>
+
+
+            <div class="cf-fine-id-line">
+
+                <strong>
+
+                    FIN-{{ fine.id|stringformat:"05d" }}
+
+                </strong>
+
+
+                <span class="cf-unpaid-badge">
+                    UNPAID
+                </span>
+
+            </div>
+
+
+            <span class="cf-created-text">
+
+                Created On:
+
+                {{ fine.created_at|date:"d M Y, h:i A" }}
+
+            </span>
+
+        </div>
+
+
+
+        <!-- AMOUNT -->
+
+        <div class="cf-amount-box">
+
+            <span>
+                Amount Due
+            </span>
+
+            <strong>
+                ${{ fine.fine_amount }}
+            </strong>
+
+
+            <small>
+
+                Overdue by
+                {{ fine.overdue_days }}
+                day{{ fine.overdue_days|pluralize }}
+
+            </small>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         LOWER CONTENT
+    ====================================================== -->
+
+    <div class="cf-lower-grid">
+
+
+        <!-- =================================================
+             LEFT — FINE SUMMARY
+        ================================================== -->
+
+        <section class="cf-card cf-summary-card">
+
+            <div class="cf-card-heading">
+
+                <span class="cf-card-heading-icon">
+
+                    <i class="fa-solid fa-receipt"></i>
+
+                </span>
+
+                <h2>
+                    Fine Summary
+                </h2>
+
+            </div>
+
+
+            <div class="cf-summary-items">
+
+
+                <!-- PER DAY -->
+
+                <div class="cf-summary-item cf-summary-red">
+
+                    <div class="cf-summary-icon">
+
+                        <i class="fa-solid fa-coins"></i>
+
+                    </div>
+
+                    <span>
+                        Fine Per Day
+                    </span>
+
+                    <strong>
+                        ${{ fine.fine_per_day }}
+                    </strong>
+
+                </div>
+
+
+
+                <!-- OVERDUE -->
+
+                <div class="cf-summary-item cf-summary-orange">
+
+                    <div class="cf-summary-icon">
+
+                        <i class="fa-regular fa-calendar-xmark"></i>
+
+                    </div>
+
+                    <span>
+                        Overdue Days
+                    </span>
+
+                    <strong>
+                        {{ fine.overdue_days }} Days
+                    </strong>
+
+                </div>
+
+
+
+                <!-- FINE -->
+
+                <div class="cf-summary-item cf-summary-blue">
+
+                    <div class="cf-summary-icon">
+
+                        <i class="fa-solid fa-dollar-sign"></i>
+
+                    </div>
+
+                    <span>
+                        Fine Amount
+                    </span>
+
+                    <strong>
+                        ${{ fine.fine_amount }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- PAYMENT INFORMATION MESSAGE -->
+
+            <div class="cf-payment-message">
+
+                <div class="cf-payment-illustration">
+
+                    <div class="cf-card-illustration">
+
+                        <i class="fa-regular fa-credit-card"></i>
+
+                    </div>
+
+                    <div class="cf-coin coin-one">
+                        $
+                    </div>
+
+                    <div class="cf-coin coin-two">
+                        $
+                    </div>
+
+                    <div class="cf-coin coin-three">
+                        $
+                    </div>
+
+                </div>
+
+
+                <div class="cf-payment-message-text">
+
+                    <h3>
+                        Ready to collect
+                    </h3>
+
+                    <p>
+
+                        Collecting this payment will mark
+                        the fine as
+
+                        <strong>
+                            PAID
+                        </strong>
+
+                        and update the student's account.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             RIGHT — PAYMENT
+        ================================================== -->
+
+        <form
+            method="POST"
+            action="{% url 'collect_fine' fine.id %}"
+            class="cf-card cf-payment-card">
+
+            {% csrf_token %}
+
+
+            <div class="cf-card-heading">
+
+                <span class="cf-card-heading-icon">
+
+                    <i class="fa-solid fa-cash-register"></i>
+
+                </span>
+
+                <h2>
+                    Collect Payment
+                </h2>
+
+            </div>
+
+
+            <div class="cf-payment-body">
+
+
+                <!-- PAYMENT METHOD -->
+
+                <label class="cf-form-label">
+
+                    Payment Method
+
+                    <span>*</span>
+
+                </label>
+
+
+                <!-- =====================================================
+     PAYMENT METHODS
+====================================================== -->
+
+<div class="cf-method-grid">
+
+    <!-- CASH -->
+    <label class="cf-method">
+
+        <input
+            type="radio"
+            name="payment_method"
+            value="CASH"
+            checked>
+
+        <span class="cf-method-box">
+
+            <span class="cf-method-check">
+                <i class="fa-solid fa-check"></i>
+            </span>
+
+            <span class="cf-method-icon cf-cash-icon">
+                <i class="fa-solid fa-money-bill-wave"></i>
+            </span>
+
+            <span class="cf-method-content">
+
+                <strong>Cash</strong>
+
+                <small>
+                    Pay at desk
+                </small>
+
+            </span>
+
+        </span>
+
+    </label>
+
+
+    <!-- CARD -->
+    <label class="cf-method">
+
+        <input
+            type="radio"
+            name="payment_method"
+            value="CARD">
+
+        <span class="cf-method-box">
+
+            <span class="cf-method-check">
+                <i class="fa-solid fa-check"></i>
+            </span>
+
+            <span class="cf-method-icon cf-card-icon">
+                <i class="fa-regular fa-credit-card"></i>
+            </span>
+
+            <span class="cf-method-content">
+
+                <strong>Card</strong>
+
+                <small>
+                    Debit / Credit
+                </small>
+
+            </span>
+
+        </span>
+
+    </label>
+
+
+    <!-- UPI -->
+    <label class="cf-method">
+
+        <input
+            type="radio"
+            name="payment_method"
+            value="UPI">
+
+        <span class="cf-method-box">
+
+            <span class="cf-method-check">
+                <i class="fa-solid fa-check"></i>
+            </span>
+
+            <span class="cf-method-icon cf-upi-icon">
+
+                <span class="upi-logo-text">
+                    UPI
+                </span>
+
+            </span>
+
+            <span class="cf-method-content">
+
+                <strong>UPI</strong>
+
+                <small>
+                    QR / UPI Pay
+                </small>
+
+            </span>
+
+        </span>
+
+    </label>
+
+
+    <!-- BANK TRANSFER -->
+    <label class="cf-method">
+
+        <input
+            type="radio"
+            name="payment_method"
+            value="BANK">
+
+        <span class="cf-method-box">
+
+            <span class="cf-method-check">
+                <i class="fa-solid fa-check"></i>
+            </span>
+
+            <span class="cf-method-icon cf-bank-icon">
+                <i class="fa-solid fa-building-columns"></i>
+            </span>
+
+            <span class="cf-method-content">
+
+                <strong>Bank Transfer</strong>
+
+                <small>
+                    Bank reference
+                </small>
+
+            </span>
+
+        </span>
+
+    </label>
+
+</div>
+
+
+
+                <!-- FORM GRID -->
+
+                <div class="cf-form-grid">
+
+
+                    <!-- AMOUNT -->
+
+                    <div class="cf-form-group">
+
+                        <label class="cf-form-label">
+
+                            Amount to Collect
+
+                            <span>*</span>
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            name="amount_received"
+                            class="cf-input"
+                            value="{{ fine.fine_amount }}"
+                            min="0.01"
+                            max="{{ fine.fine_amount }}"
+                            step="0.01"
+                            required>
+
+
+                        <small>
+                            Amount must not exceed the outstanding fine.
+                        </small>
+
+                    </div>
+
+
+
+                    <!-- TRANSACTION -->
+
+                    <div class="cf-form-group">
+
+                        <label class="cf-form-label">
+
+                            Transaction ID
+
+                            <em>
+                                (Optional for Cash)
+                            </em>
+
+                        </label>
+
+
+                        <input
+                            type="text"
+                            name="payment_transaction_id"
+                            id="transactionId"
+                            class="cf-input"
+                            placeholder="Enter transaction / reference number">
+
+
+                        <small>
+                            Required for UPI, Card or Bank Transfer.
+                        </small>
+
+                    </div>
+
+
+
+                    <!-- RECEIPT -->
+
+                    <div class="cf-form-group">
+
+                        <label class="cf-form-label">
+
+                            Receipt Number
+
+                            <span>*</span>
+
+                        </label>
+
+
+                        <input
+                            type="text"
+                            name="receipt_number"
+                            class="cf-input cf-readonly"
+                            value="{{ receipt_number }}"
+                            readonly>
+
+
+                        <small>
+                            Automatically generated receipt number.
+                        </small>
+
+                    </div>
+
+
+
+                    <!-- PAYMENT DATE -->
+
+                    <div class="cf-form-group">
+
+                        <label class="cf-form-label">
+
+                            Payment Date
+
+                            <span>*</span>
+
+                        </label>
+
+
+                        <input
+                            type="datetime-local"
+                            name="payment_date"
+                            id="paymentDate"
+                            class="cf-input cf-readonly"
+                            value="{{ payment_date }}"
+                            readonly
+                            required>
+
+
+                        <small>
+                            Automatically updated to the current date and time.
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- VERIFICATION -->
+
+                <div class="cf-verification">
+
+                    <i class="fa-solid fa-shield-halved"></i>
+
+                    <span>
+                        Please verify the payment details carefully
+                        before collecting the fine.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- PAYMENT FOOTER -->
+
+            <div class="cf-payment-footer">
+
+                <a
+                    href="{% url 'fine_details' fine.id %}"
+                    class="cf-cancel-btn">
+
+                    Cancel
+
+                </a>
+
+
+                <button
+                    type="submit"
+                    class="cf-collect-btn">
+
+                    <i class="fa-solid fa-check"></i>
+
+                    Collect ${{ fine.fine_amount }}
+
+                    <i class="fa-solid fa-lock"></i>
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        /* =================================================
+           PAYMENT METHOD
+        ================================================= */
+
+        const methods =
+            document.querySelectorAll(
+                'input[name="payment_method"]'
+            );
+
+        const transactionInput =
+            document.getElementById(
+                "transactionId"
+            );
+
+
+        function updateTransaction(){
+
+            const selected =
+                document.querySelector(
+                    'input[name="payment_method"]:checked'
+                );
+
+
+            if(!selected){
+                return;
+            }
+
+
+            if(selected.value === "CASH"){
+
+                transactionInput.required = false;
+
+                transactionInput.placeholder =
+                    "Not required for cash payment";
+
+            }else{
+
+                transactionInput.required = true;
+
+                transactionInput.placeholder =
+                    "Enter transaction / reference number";
+
+            }
+
+        }
+
+
+        methods.forEach(
+            function(method){
+
+                method.addEventListener(
+                    "change",
+                    updateTransaction
+                );
+
+            }
+        );
+
+
+        updateTransaction();
+
+
+
+        /* =================================================
+           LIVE CURRENT DATE + TIME
+        ================================================= */
+
+        const paymentDate =
+            document.getElementById(
+                "paymentDate"
+            );
+
+
+        function updatePaymentDate(){
+
+            if(!paymentDate){
+                return;
+            }
+
+
+            const now = new Date();
+
+
+            const year =
+                now.getFullYear();
+
+
+            const month =
+                String(
+                    now.getMonth() + 1
+                ).padStart(2, "0");
+
+
+            const day =
+                String(
+                    now.getDate()
+                ).padStart(2, "0");
+
+
+            const hours =
+                String(
+                    now.getHours()
+                ).padStart(2, "0");
+
+
+            const minutes =
+                String(
+                    now.getMinutes()
+                ).padStart(2, "0");
+
+
+            paymentDate.value =
+                `${year}-${month}-${day}T${hours}:${minutes}`;
+
+        }
+
+
+        updatePaymentDate();
+
+
+        /*
+         * Refresh the displayed current time
+         * every minute.
+         */
+
+        setInterval(
+            updatePaymentDate,
+            60000
+        );
+
+    }
+);
+
+</script>
+
+{% endblock %}

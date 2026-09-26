@@ -1,0 +1,1426 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}
+    {% if is_chair %}
+        Finalize Research Milestone
+    {% else %}
+        Evaluate Research Milestone
+    {% endif %}
+{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="{% static 'css/leo/ResearchMilestone/research_milestone_evaluate.css' %}">
+{% endblock %}
+{% block content %}
+    <div class="rme-page">
+        <header class="rme-hero {% if is_chair %}is-chair{% else %}is-member{% endif %}">
+            <div class="rme-hero-main">
+                <div class="rme-hero-icon">
+                    <i class="ti {% if is_chair %}ti-shield-check{% else %}ti-clipboard-check{% endif %}"></i>
+                </div>
+                <div class="rme-hero-copy">
+                    {% comment %} <div class="rme-breadcrumb">
+                        <span>Research</span>
+                        <i class="ti ti-chevron-right"></i>
+                        <span>Milestones</span>
+                        <i class="ti ti-chevron-right"></i>
+                        <strong>
+                            {% if is_chair %}
+                                Final Evaluation
+                            {% else %}
+                                Evaluation
+                            {% endif %}
+                        </strong>
+                    </div> {% endcomment %}
+                    <h1>
+                        {% if is_chair %}
+                            Finalize Research Milestone
+                        {% else %}
+                            Evaluate Research Milestone
+                        {% endif %}
+                    </h1>
+                    <p>
+                        {% if is_chair %}
+                            Review the committee assessment and finalize the milestone outcome.
+                        {% else %}
+                            Review the submitted research work and provide your independent evaluation.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+               class="rme-back">
+                <i class="ti ti-arrow-left"></i>
+                <span>Back</span>
+            </a>
+        </header>
+        {% if is_chair %}
+            <section class="rme-review-status">
+                <div class="rme-status-heading">
+                    <div>
+                        <span class="rme-eyebrow">COMMITTEE REVIEW</span>
+                        <h2>Evaluation Progress</h2>
+                    </div>
+                    <div class="rme-count">
+                        <strong>{{ submitted_committee_count }}/{{ required_committee_count }}</strong>
+                        <span>Completed</span>
+                    </div>
+                </div>
+                <div class="rme-review-progress">
+                    <div class="rme-progress-heading">
+                        <span>Committee completion</span>
+                        <strong>
+                            {% if required_committee_count %}
+                                {% widthratio submitted_committee_count required_committee_count 100 %}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </strong>
+                    </div>
+                    <div class="rme-progress-track">
+                        <div class="rme-progress-fill"
+                             data-progress="{% if required_committee_count %}{% widthratio submitted_committee_count required_committee_count 100 %}{% else %}0{% endif %}">
+                        </div>
+                    </div>
+                </div>
+                <div class="rme-status-message {% if all_committee_evaluations_submitted %}complete{% else %}pending{% endif %}">
+                    <div class="rme-status-message-icon">
+                        <i class="ti {% if all_committee_evaluations_submitted %}ti-circle-check{% else %}ti-hourglass{% endif %}"></i>
+                    </div>
+                    <div>
+                        {% if all_committee_evaluations_submitted %}
+                            <strong>All Committee Evaluations Completed</strong>
+                            <span>You can now submit the final Chair evaluation.</span>
+                        {% else %}
+                            <strong>
+                                {{ pending_committee_count }} Evaluation
+                                {% if pending_committee_count != 1 %}s{% endif %}
+                                Pending
+                            </strong>
+                            <span>Final evaluation becomes available after all committee members submit their evaluations.</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+        {% else %}
+            <section class="rme-member-banner">
+                <div class="rme-member-icon">
+                    <i class="ti ti-user-check"></i>
+                </div>
+                <div>
+                    <span class="rme-eyebrow">YOUR COMMITTEE EVALUATION</span>
+                    <strong>
+                        {% for member in committee_members %}
+                            {% if member.faculty_id == faculty.pk %}
+                                {{ member.get_role_display }}
+                            {% endif %}
+                        {% endfor %}
+                    </strong>
+                    <p>Submit your independent assessment of this research milestone.</p>
+                </div>
+            </section>
+        {% endif %}
+        <main class="rme-layout">
+            <section class="rme-main-column">
+                <article class="rme-card">
+                    <div class="rme-card-header">
+                        <div class="rme-card-icon">
+                            <i class="ti ti-target"></i>
+                        </div>
+                        <div class="rme-card-heading">
+                            <h2>Milestone Information</h2>
+                            <p>Research milestone details</p>
+                        </div>
+                    </div>
+                    <div class="rme-card-body">
+                        <div class="rme-info-grid">
+                            <div class="rme-info-item full">
+                                <span>Milestone Title</span>
+                                <strong>{{ milestone.milestone_title|default:"Not available" }}</strong>
+                            </div>
+                            <div class="rme-info-item">
+                                <span>Sequence</span>
+                                <strong>Milestone {{ milestone.sequence_number }}</strong>
+                            </div>
+                            <div class="rme-info-item">
+                                <span>Current Progress</span>
+                                <strong class="rme-progress-text">{{ milestone.current_progress_percentage|default:"0" }}%</strong>
+                            </div>
+                            <div class="rme-info-item">
+                                <span>Status</span>
+                                <strong class="rme-status-text">
+                                    <i class="ti ti-circle-filled"></i>
+                                    {{ milestone.get_status_display }}
+                                </strong>
+                            </div>
+                            <div class="rme-info-item">
+                                <span>Expected Completion</span>
+                                <strong>
+                                    {% if milestone.expected_completion_date %}
+                                        <i class="ti ti-calendar"></i>
+                                        {{ milestone.expected_completion_date|date:"d M Y" }}
+                                    {% else %}
+                                        <em>Not specified</em>
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            <div class="rme-info-item full">
+                                <span>Description</span>
+                                {% if milestone.description %}
+                                    <strong class="rme-description">{{ milestone.description }}</strong>
+                                {% else %}
+                                    <em>No milestone description provided.</em>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article class="rme-card">
+                    <div class="rme-card-header">
+                        <div class="rme-card-icon blue">
+                            <i class="ti ti-user"></i>
+                        </div>
+                        <div class="rme-card-heading">
+                            <h2>Student Information</h2>
+                            <p>PhD student details</p>
+                        </div>
+                    </div>
+                    <div class="rme-card-body">
+                        <div class="rme-student">
+                            <div class="rme-avatar">
+                                {% if milestone.phd_student.student.user.first_name %}
+                                    {{ milestone.phd_student.student.user.first_name|slice:":1"|upper }}
+                                {% else %}
+                                    <i class="ti ti-user"></i>
+                                {% endif %}
+                            </div>
+                            <div class="rme-student-info">
+                                <h3>
+                                    {% if milestone.phd_student.student.user.get_full_name %}
+                                        {{ milestone.phd_student.student.user.get_full_name }}
+                                    {% else %}
+                                        {{ milestone.phd_student }}
+                                    {% endif %}
+                                </h3>
+                                <span>PhD Student</span>
+                            </div>
+                        </div>
+                        <div class="rme-info-grid">
+                            <div class="rme-info-item">
+                                <span>Student ID</span>
+                                <strong>{{ milestone.phd_student.phd_student_id|default:"Not available" }}</strong>
+                            </div>
+                            <div class="rme-info-item">
+                                <span>Program</span>
+                                <strong>{{ milestone.phd_student.phd_program|default:"Not available" }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article class="rme-card">
+                    <div class="rme-card-header">
+                        <div class="rme-card-icon purple">
+                            <i class="ti ti-users"></i>
+                        </div>
+                        <div class="rme-card-heading">
+                            <h2>Doctoral Committee</h2>
+                            <p>Current committee members</p>
+                        </div>
+                        {% if is_chair %}
+                            <span class="rme-header-pill">
+                                {{ required_committee_count }} Member
+                                {% if required_committee_count != 1 %}s{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="rme-committee-list">
+                        <div class="rme-committee-member chair">
+                            <div class="rme-person-avatar">
+                                <i class="ti ti-shield-check"></i>
+                            </div>
+                            <div class="rme-person-info">
+                                <strong>{{ committee.chair_faculty.user.get_full_name }}</strong>
+                                <span>Chair Faculty</span>
+                            </div>
+                            <span class="rme-role chair">Chair</span>
+                        </div>
+                        {% if phd_student.advisor %}
+                            <div class="rme-committee-member advisor">
+                                <div class="rme-person-avatar">
+                                    <i class="ti ti-user-star"></i>
+                                </div>
+                                <div class="rme-person-info">
+                                    <strong>{{ phd_student.advisor.user.get_full_name }}</strong>
+                                    <span>Research Advisor</span>
+                                </div>
+                                <span class="rme-role advisor">Advisor</span>
+                            </div>
+                        {% endif %}
+                        {% for member in committee_members %}
+                            <div class="rme-committee-member">
+                                <div class="rme-person-avatar">
+                                    <i class="ti ti-user"></i>
+                                </div>
+                                <div class="rme-person-info">
+                                    <strong>{{ member.faculty.user.get_full_name }}</strong>
+                                    <span>
+                                        {% if member.role == "CO_CHAIR" %}
+                                            Co Chair Faculty
+                                        {% else %}
+                                            Committee Member
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <span class="rme-role">{{ member.get_role_display }}</span>
+                                {% if is_chair %}
+                                    {% for evaluation in committee_evaluations %}
+                                        {% if evaluation.evaluator_id == member.faculty_id %}
+                                            <span class="rme-evaluated">
+                                                <i class="ti ti-check"></i>
+                                                Evaluated
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <div class="rme-empty">
+                                <i class="ti ti-users-minus"></i>
+                                <span>No committee members assigned.</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </article>
+                <article class="rme-card">
+                    <div class="rme-card-header">
+                        <div class="rme-card-icon orange">
+                            <i class="ti ti-file-description"></i>
+                        </div>
+                        <div class="rme-card-heading">
+                            <h2>Submission Details</h2>
+                            <p>Latest research milestone submission</p>
+                        </div>
+                    </div>
+                    <div class="rme-card-body">
+                        {% if submission %}
+                            <div class="rme-submission-head">
+                                <div>
+                                    <span>Submission Number</span>
+                                    <strong>#{{ submission.submission_number }}</strong>
+                                </div>
+                                <div class="rme-submission-status">
+                                    <i class="ti ti-circle-filled"></i>
+                                    {{ submission.get_status_display }}
+                                </div>
+                            </div>
+                            <div class="rme-submission-meta">
+                                <div class="rme-meta">
+                                    <div class="rme-meta-icon">
+                                        <i class="ti ti-calendar-event"></i>
+                                    </div>
+                                    <div>
+                                        <span>Submitted On</span>
+                                        <strong>{{ submission.submitted_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                </div>
+                                <div class="rme-meta">
+                                    <div class="rme-meta-icon">
+                                        <i class="ti ti-refresh"></i>
+                                    </div>
+                                    <div>
+                                        <span>Last Updated</span>
+                                        <strong>{{ submission.updated_at|date:"d M Y, h:i A" }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rme-documents">
+                                {% if submission.main_document %}
+                                    <a href="{{ submission.main_document.url }}"
+                                       target="_blank"
+                                       class="rme-document">
+                                        <div class="rme-document-icon">
+                                            <i class="ti ti-file-text"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Main Research Document</strong>
+                                            <span>Open submitted document</span>
+                                        </div>
+                                        <i class="ti ti-external-link"></i>
+                                    </a>
+                                {% endif %}
+                                {% if submission.additional_file_1 %}
+                                    <a href="{{ submission.additional_file_1.url }}"
+                                       target="_blank"
+                                       class="rme-document">
+                                        <div class="rme-document-icon">
+                                            <i class="ti ti-paperclip"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Additional Document 1</strong>
+                                            <span>Open attachment</span>
+                                        </div>
+                                        <i class="ti ti-external-link"></i>
+                                    </a>
+                                {% endif %}
+                                {% if submission.additional_file_2 %}
+                                    <a href="{{ submission.additional_file_2.url }}"
+                                       target="_blank"
+                                       class="rme-document">
+                                        <div class="rme-document-icon">
+                                            <i class="ti ti-paperclip"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Additional Document 2</strong>
+                                            <span>Open attachment</span>
+                                        </div>
+                                        <i class="ti ti-external-link"></i>
+                                    </a>
+                                {% endif %}
+                                {% if submission.additional_file_3 %}
+                                    <a href="{{ submission.additional_file_3.url }}"
+                                       target="_blank"
+                                       class="rme-document">
+                                        <div class="rme-document-icon">
+                                            <i class="ti ti-paperclip"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Additional Document 3</strong>
+                                            <span>Open attachment</span>
+                                        </div>
+                                        <i class="ti ti-external-link"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                            {% if submission.student_remarks %}
+                                <div class="rme-remarks">
+                                    <div class="rme-remarks-title">
+                                        <i class="ti ti-message"></i>
+                                        Student Remarks
+                                    </div>
+                                    <p>{{ submission.student_remarks }}</p>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="rme-empty-state">
+                                <div class="rme-empty-icon">
+                                    <i class="ti ti-file-off"></i>
+                                </div>
+                                <strong>No Submission Found</strong>
+                                <span>There is no milestone submission available for evaluation.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </article>
+            </section>
+            <aside class="rme-side-column">
+                {% if is_chair %}
+                    <article class="rme-card rme-evaluation-card chair-card">
+                        <div class="rme-card-header">
+                            <div class="rme-card-icon red">
+                                <i class="ti ti-shield-check"></i>
+                            </div>
+                            <div class="rme-card-heading">
+                                <span class="rme-card-eyebrow">CHAIR FACULTY</span>
+                                <h2>Final Evaluation</h2>
+                                <p>Finalize the milestone result</p>
+                            </div>
+                            <span class="rme-mode-pill {% if all_committee_evaluations_submitted %}ready{% else %}locked{% endif %}">
+                                <i class="ti {% if all_committee_evaluations_submitted %}ti-lock-open{% else %}ti-lock{% endif %}"></i>
+                                {% if all_committee_evaluations_submitted %}
+                                    Ready
+                                {% else %}
+                                    Pending
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="rme-authority chair-authority">
+                            <div class="rme-authority-icon">
+                                <i class="ti ti-shield-check"></i>
+                            </div>
+                            <div>
+                                <span>FINAL DECISION AUTHORITY</span>
+                                <strong>Chair Faculty holds the final decision</strong>
+                                <p>Review the committee evaluations, submitted work and overall research progress before finalizing.</p>
+                            </div>
+                        </div>
+                        <div class="rme-committee-review">
+                            <div class="rme-review-header">
+                                <div>
+                                    <span class="rme-eyebrow">COMMITTEE REVIEW</span>
+                                    <h3>Member Evaluations</h3>
+                                </div>
+                                <div class="rme-review-count">{{ submitted_committee_count }}/{{ required_committee_count }}</div>
+                            </div>
+                            <div class="rme-evaluation-list">
+                                {% for member in committee_members %}
+                                    <div class="rme-evaluation-item">
+                                        <div class="rme-evaluator">
+                                            <div class="rme-evaluator-avatar">
+                                                {% if member.faculty.user.first_name %}
+                                                    {{ member.faculty.user.first_name|slice:":1"|upper }}
+                                                {% else %}
+                                                    <i class="ti ti-user"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <strong>{{ member.faculty.user.get_full_name }}</strong>
+                                                <span>
+                                                    {% if member.role == "CO_CHAIR" %}
+                                                        Co Chair Faculty
+                                                    {% elif member.role == "INTERNAL_MEMBER" %}
+                                                        Internal Committee Member
+                                                    {% elif member.role == "EXTERNAL_MEMBER" %}
+                                                        External Committee Member
+                                                    {% else %}
+                                                        Committee Member
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% for evaluation in committee_evaluations %}
+                                            {% if evaluation.evaluator_id == member.faculty_id %}
+                                                <div class="rme-evaluation-content">
+                                                    <div class="rme-evaluation-top">
+                                                        <span class="rme-evaluation-badge">
+                                                            <i class="ti ti-circle-check"></i>
+                                                            Evaluated
+                                                        </span>
+                                                        {% if evaluation.evaluated_at %}
+                                                            <span>{{ evaluation.evaluated_at|date:"d M Y, h:i A" }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="rme-evaluation-metrics">
+                                                        <div class="rme-metric">
+                                                            <span>Suggested Overall Progress</span>
+                                                            <strong>
+                                                                {% if evaluation.progress_percentage is not None %}
+                                                                    {{ evaluation.progress_percentage|floatformat:2 }}%
+                                                                {% else %}
+                                                                    —
+                                                                {% endif %}
+                                                            </strong>
+                                                            {% if evaluation.progress_percentage is not None %}
+                                                                <div class="rme-mini-progress">
+                                                                    <div style="width: {{ evaluation.progress_percentage|floatformat:0 }}%;"></div>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="rme-metric">
+                                                            <span>Decision</span>
+                                                            {% if evaluation.decision == "COMPLETED" %}
+                                                                <strong class="completed">
+                                                                    <i class="ti ti-circle-check"></i>
+                                                                    Completed
+                                                                </strong>
+                                                            {% elif evaluation.decision == "REVISION_REQUIRED" %}
+                                                                <strong class="revision">
+                                                                    <i class="ti ti-alert-circle"></i>
+                                                                    Revision Required
+                                                                </strong>
+                                                            {% else %}
+                                                                <strong>{{ evaluation.get_decision_display|default:"Not specified" }}</strong>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    {% if evaluation.feedback %}
+                                                        <div class="rme-evaluation-feedback">
+                                                            <span>
+                                                                <i class="ti ti-message"></i>
+                                                                Evaluation Feedback
+                                                            </span>
+                                                            <p>{{ evaluation.feedback }}</p>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% empty %}
+                                    <div class="rme-empty-state compact">
+                                        <i class="ti ti-users-minus"></i>
+                                        <strong>No committee members assigned</strong>
+                                        <span>No committee evaluations are available.</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="rme-form-section">
+                            {% if not all_committee_evaluations_submitted %}
+                                <div class="rme-lock-box">
+                                    <div>
+                                        <i class="ti ti-lock"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Final Evaluation Locked</strong>
+                                        <span>
+                                            {{ pending_committee_count }}
+                                            committee evaluation
+                                            {% if pending_committee_count != 1 %}s{% endif %}
+                                            still pending.
+                                        </span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="rme-ready-box">
+                                    <div>
+                                        <i class="ti ti-circle-check"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Committee Review Completed</strong>
+                                        <span>All current committee members have submitted their evaluations.</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if all_committee_evaluations_submitted %}
+                                {% if form.non_field_errors %}
+                                    <div class="rme-error global">
+                                        <i class="ti ti-alert-circle"></i>
+                                        <div>
+                                            {% for error in form.non_field_errors %}
+                                                <div>{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <form method="post"
+                                      id="milestoneEvaluationForm"
+                                      class="rme-form"
+                                      novalidate>
+                                    {% csrf_token %}
+                                    <div class="rme-guideline">
+                                        <div class="rme-guideline-icon">
+                                            <i class="ti ti-info-circle"></i>
+                                        </div>
+                                        <div>
+                                            <strong>Final Chair Decision</strong>
+                                            <span>Enter the final overall research progress after reviewing the committee assessments.</span>
+                                        </div>
+                                    </div>
+                                    <div class="rme-field rme-progress-field" id="progressField">
+                                        <label for="{{ form.progress_percentage.id_for_label }}">
+                                            Additional Research Progress
+                                            <b class="progress-required-marker">*</b>
+                                        </label>
+                                        <div class="rme-progress-input">
+                                            <input type="text"
+                                                   name="progress_percentage"
+                                                   id="id_progress_percentage"
+                                                   class="form-control"
+                                                   inputmode="decimal"
+                                                   autocomplete="off"
+                                                   value="{% if form.is_bound %}{{ form.progress_percentage.value|default:'' }}{% endif %}"
+                                                   data-role="chair"
+                                                   data-base-progress="{{ current_overall_progress|floatformat:2 }}"
+                                                   data-min-progress="1.00"
+                                                   data-max-progress="{{ remaining_overall_progress|floatformat:2 }}">
+                                            <span>%</span>
+                                        </div>
+                                        <div class="rme-progress-visual">
+                                            <div id="progressPreview"></div>
+                                        </div>
+                                        <div class="rme-progress-stats">
+                                            <div>
+                                                <span>Current Overall</span>
+                                                <strong>{{ current_overall_progress|floatformat:2 }}%</strong>
+                                            </div>
+                                            <div>
+                                                <span>Additional</span>
+                                                <strong id="additionalProgressValue">0.00%</strong>
+                                            </div>
+                                            <div class="highlight">
+                                                <span>Projected Overall</span>
+                                                <strong id="projectedProgressValue">{{ current_overall_progress|floatformat:2 }}%</strong>
+                                            </div>
+                                        </div>
+                                        <small class="rme-help progress-help">
+                                            Minimum add: 1.00%. Maximum you can add: {{ remaining_overall_progress|floatformat:2 }}%. Enter how much progress you want to add.
+                                        </small>
+                                        <div class="rme-revision-progress-note" id="revisionProgressNote">
+                                            <i class="ti ti-info-circle"></i>
+                                            <span>No progress entry is required when Revision Required is selected.</span>
+                                        </div>
+                                        {% if form.progress_percentage.errors %}
+                                            <div class="rme-error">
+                                                <i class="ti ti-alert-circle"></i>
+                                                <div>
+                                                    {% for error in form.progress_percentage.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="rme-field">
+                                        <label for="{{ form.feedback.id_for_label }}">
+                                            Chair Final Feedback
+                                            <b>*</b>
+                                        </label>
+                                        {{ form.feedback }}
+                                        <div class="rme-field-footer">
+                                            <span>Minimum 10 characters</span>
+                                            <strong id="feedbackCounter">0 / 5000</strong>
+                                        </div>
+                                        {% if form.feedback.errors %}
+                                            <div class="rme-error">
+                                                <i class="ti ti-alert-circle"></i>
+                                                <div>
+                                                    {% for error in form.feedback.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="rme-field">
+                                        <label for="{{ form.decision.id_for_label }}">
+                                            Final Milestone Decision
+                                            <b>*</b>
+                                        </label>
+                                        {{ form.decision }}
+                                        {% if form.decision.errors %}
+                                            <div class="rme-error">
+                                                <i class="ti ti-alert-circle"></i>
+                                                <div>
+                                                    {% for error in form.decision.errors %}
+                                                        <div>{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="rme-decision-preview" id="decisionPreview">
+                                        <div class="rme-decision-icon">
+                                            <i class="ti ti-clipboard"></i>
+                                        </div>
+                                        <div>
+                                            <strong id="decisionPreviewTitle">Final Decision</strong>
+                                            <span id="decisionPreviewText">Select the final milestone decision.</span>
+                                        </div>
+                                    </div>
+                                    <div class="rme-actions">
+                                        <a href="{% url 'research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                                           class="rme-btn secondary">
+                                            <i class="ti ti-arrow-left"></i>
+                                            <span>Cancel</span>
+                                        </a>
+                                        <button type="submit" class="rme-btn primary" id="submitEvaluationBtn">
+                                            <i class="ti ti-shield-check"></i>
+                                            <span>Finalize Evaluation</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% else %}
+                    <article class="rme-card rme-evaluation-card member-card">
+                        <div class="rme-card-header">
+                            <div class="rme-card-icon blue">
+                                <i class="ti ti-clipboard-check"></i>
+                            </div>
+                            <div class="rme-card-heading">
+                                <span class="rme-card-eyebrow">COMMITTEE MEMBER</span>
+                                <h2>Your Evaluation</h2>
+                                <p>Submit your independent assessment</p>
+                            </div>
+                            <span class="rme-mode-pill member">
+                                <i class="ti ti-pencil"></i>
+                                Evaluation
+                            </span>
+                        </div>
+                        <div class="rme-authority member-authority">
+                            <div class="rme-authority-icon">
+                                <i class="ti ti-info-circle"></i>
+                            </div>
+                            <div>
+                                <span>INDEPENDENT COMMITTEE REVIEW</span>
+                                <strong>Independent Committee Evaluation</strong>
+                                <p>Your assessment is recorded for the Chair Faculty's final milestone review.</p>
+                            </div>
+                        </div>
+                        <div class="rme-form-section">
+                            <div class="rme-guideline">
+                                <div class="rme-guideline-icon">
+                                    <i class="ti ti-chart-line"></i>
+                                </div>
+                                <div>
+                                    <strong>Additional Progress</strong>
+                                    <span>Enter only the progress you believe should be added to the current overall research progress.</span>
+                                </div>
+                            </div>
+                            {% if form.non_field_errors %}
+                                <div class="rme-error global">
+                                    <i class="ti ti-alert-circle"></i>
+                                    <div>
+                                        {% for error in form.non_field_errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <form method="post"
+                                  id="milestoneEvaluationForm"
+                                  class="rme-form"
+                                  novalidate>
+                                {% csrf_token %}
+                                <div class="rme-field rme-progress-field" id="progressField">
+                                    <label for="{{ form.progress_percentage.id_for_label }}">
+                                        Additional Research Progress
+                                        <b class="progress-required-marker">*</b>
+                                    </label>
+                                    <div class="rme-progress-input">
+                                        <input type="text"
+                                               name="progress_percentage"
+                                               id="id_progress_percentage"
+                                               class="form-control"
+                                               inputmode="decimal"
+                                               autocomplete="off"
+                                               value="{% if form.is_bound %}{{ form.progress_percentage.value|default:'' }}{% endif %}"
+                                               data-role="member"
+                                               data-base-progress="{{ current_overall_progress|floatformat:2 }}"
+                                               data-min-progress="1.00"
+                                               data-max-progress="{{ remaining_overall_progress|floatformat:2 }}">
+                                        <span>%</span>
+                                    </div>
+                                    <div class="rme-progress-visual">
+                                        <div id="progressPreview"></div>
+                                    </div>
+                                    <div class="rme-progress-stats">
+                                        <div>
+                                            <span>Current Overall</span>
+                                            <strong>{{ current_overall_progress|floatformat:2 }}%</strong>
+                                        </div>
+                                        <div>
+                                            <span>Additional</span>
+                                            <strong id="additionalProgressValue">0.00%</strong>
+                                        </div>
+                                        <div class="highlight">
+                                            <span>Projected Overall</span>
+                                            <strong id="projectedProgressValue">{{ current_overall_progress|floatformat:2 }}%</strong>
+                                        </div>
+                                    </div>
+                                    <small class="rme-help progress-help">
+                                        Minimum add: 1.00%. Maximum you can add: {{ remaining_overall_progress|floatformat:2 }}%. Enter how much progress you want to add.
+                                    </small>
+                                    <div class="rme-revision-progress-note" id="revisionProgressNote">
+                                        <i class="ti ti-info-circle"></i>
+                                        <span>No progress entry is required when Revision Required is selected.</span>
+                                    </div>
+                                    {% if form.progress_percentage.errors %}
+                                        <div class="rme-error">
+                                            <i class="ti ti-alert-circle"></i>
+                                            <div>
+                                                {% for error in form.progress_percentage.errors %}
+                                                    <div>{{ error }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="rme-field">
+                                    <label for="{{ form.feedback.id_for_label }}">
+                                        Your Evaluation Feedback
+                                        <b>*</b>
+                                    </label>
+                                    {{ form.feedback }}
+                                    <div class="rme-field-footer">
+                                        <span>Minimum 10 characters</span>
+                                        <strong id="feedbackCounter">0 / 5000</strong>
+                                    </div>
+                                    {% if form.feedback.errors %}
+                                        <div class="rme-error">
+                                            <i class="ti ti-alert-circle"></i>
+                                            <div>
+                                                {% for error in form.feedback.errors %}
+                                                    <div>{{ error }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="rme-field">
+                                    <label for="{{ form.decision.id_for_label }}">
+                                        Your Evaluation Decision
+                                        <b>*</b>
+                                    </label>
+                                    {{ form.decision }}
+                                    <small class="rme-help">Select whether the milestone requires revision or can be completed.</small>
+                                    {% if form.decision.errors %}
+                                        <div class="rme-error">
+                                            <i class="ti ti-alert-circle"></i>
+                                            <div>
+                                                {% for error in form.decision.errors %}
+                                                    <div>{{ error }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="rme-decision-preview" id="decisionPreview">
+                                    <div class="rme-decision-icon">
+                                        <i class="ti ti-clipboard"></i>
+                                    </div>
+                                    <div>
+                                        <strong id="decisionPreviewTitle">Evaluation Decision</strong>
+                                        <span id="decisionPreviewText">Select a decision to see its meaning.</span>
+                                    </div>
+                                </div>
+                                <div class="rme-actions">
+                                    <a href="{% url 'research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                                       class="rme-btn secondary">
+                                        <i class="ti ti-arrow-left"></i>
+                                        <span>Cancel</span>
+                                    </a>
+                                    <button type="submit" class="rme-btn primary" id="submitEvaluationBtn">
+                                        <i class="ti ti-send"></i>
+                                        <span>Submit Evaluation</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </article>
+                {% endif %}
+            </aside>
+        </main>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("milestoneEvaluationForm");
+    const progressInput = document.getElementById("id_progress_percentage");
+    const feedbackInput = document.getElementById("id_feedback");
+    const decisionInput = document.getElementById("id_decision");
+    const progressPreview = document.getElementById("progressPreview");
+    const projectedProgress = document.getElementById("projectedProgressValue");
+    const additionalProgress = document.getElementById("additionalProgressValue");
+    const feedbackCounter = document.getElementById("feedbackCounter");
+    const decisionPreview = document.getElementById("decisionPreview");
+    const decisionPreviewTitle = document.getElementById("decisionPreviewTitle");
+    const decisionPreviewText = document.getElementById("decisionPreviewText");
+    const submitButton = document.getElementById("submitEvaluationBtn");
+    const progressField = document.getElementById("progressField");
+    const progressRequiredMarker = document.querySelector(".progress-required-marker");
+    const revisionProgressNote = document.getElementById("revisionProgressNote");
+
+    let decisionChoices = null;
+
+    function numberValue(value, fallback) {
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function getBaseProgress() {
+        return numberValue(progressInput?.dataset.baseProgress, 0);
+    }
+
+    function getMinimumProgress() {
+        return numberValue(progressInput?.dataset.minProgress, 1);
+    }
+
+    function getMaximumProgress() {
+        return Math.min(
+            numberValue(progressInput?.dataset.maxProgress, 100),
+            Math.max(100 - getBaseProgress(), 0),
+            100
+        );
+    }
+
+    function clamp(value, minimum, maximum) {
+        return Math.min(Math.max(value, minimum), maximum);
+    }
+
+    function cleanProgressValue(value) {
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        let cleaned = String(value)
+            .replace(/[^0-9.]/g, "")
+            .replace(/\.(?=.*\.)/g, "");
+
+        const parts = cleaned.split(".");
+        if (parts.length === 2) {
+            cleaned = parts[0] + "." + parts[1].slice(0, 2);
+        }
+
+        return cleaned;
+    }
+
+    function getProgressValue() {
+        if (!progressInput || progressInput.value.trim() === "") {
+            return 0;
+        }
+
+        return numberValue(progressInput.value, 0);
+    }
+
+    function updateProgress() {
+        if (!progressInput) {
+            return;
+        }
+
+        const base = getBaseProgress();
+        const maximum = getMaximumProgress();
+        const value = clamp(getProgressValue(), 0, maximum);
+        const projected = clamp(base + value, 0, 100);
+
+        if (additionalProgress) {
+            additionalProgress.textContent = value.toFixed(2) + "%";
+        }
+
+        if (projectedProgress) {
+            projectedProgress.textContent = projected.toFixed(2) + "%";
+        }
+
+        if (progressPreview) {
+            const percentage = maximum > 0 ? (value / maximum) * 100 : 0;
+            progressPreview.style.width = clamp(percentage, 0, 100) + "%";
+        }
+
+        progressInput.setCustomValidity("");
+
+        if (value > maximum) {
+            progressInput.setCustomValidity(
+                "Additional progress cannot exceed " + maximum.toFixed(2) + "%."
+            );
+        }
+    }
+
+    function updateProgressState(decision) {
+        const isRevision = decision === "REVISION_REQUIRED";
+
+        if (progressField) {
+            progressField.classList.toggle("revision-mode", isRevision);
+        }
+
+        if (progressRequiredMarker) {
+            progressRequiredMarker.style.display = isRevision ? "none" : "";
+        }
+
+        if (revisionProgressNote) {
+            revisionProgressNote.classList.toggle("visible", isRevision);
+        }
+
+        if (progressInput) {
+            progressInput.disabled = isRevision;
+
+            if (isRevision) {
+                progressInput.value = "";
+                progressInput.removeAttribute("required");
+            } else {
+                progressInput.removeAttribute("disabled");
+            }
+        }
+
+        const visualElements = progressField
+            ? progressField.querySelectorAll(
+                ".rme-progress-visual, .rme-progress-stats, .progress-help"
+            )
+            : [];
+
+        visualElements.forEach(function (element) {
+            element.classList.toggle("revision-hidden", isRevision);
+        });
+
+        updateProgress();
+    }
+
+    if (progressInput) {
+        progressInput.type = "text";
+        progressInput.inputMode = "decimal";
+        progressInput.pattern = "[0-9]*[.]?[0-9]{0,2}";
+        progressInput.autocomplete = "off";
+        progressInput.removeAttribute("step");
+        progressInput.removeAttribute("min");
+        progressInput.removeAttribute("max");
+
+        progressInput.addEventListener("keydown", function (event) {
+            const allowedKeys = [
+                "Backspace",
+                "Delete",
+                "Tab",
+                "ArrowLeft",
+                "ArrowRight",
+                "Home",
+                "End"
+            ];
+
+            if (
+                allowedKeys.includes(event.key) ||
+                event.ctrlKey ||
+                event.metaKey
+            ) {
+                return;
+            }
+
+            if (!/^[0-9.]$/.test(event.key)) {
+                event.preventDefault();
+                return;
+            }
+
+            if (event.key === "." && progressInput.value.includes(".")) {
+                event.preventDefault();
+            }
+
+            const decimalIndex = progressInput.value.indexOf(".");
+            if (
+                decimalIndex !== -1 &&
+                progressInput.selectionStart > decimalIndex &&
+                progressInput.value.length - decimalIndex - 1 >= 2 &&
+                /^[0-9]$/.test(event.key)
+            ) {
+                event.preventDefault();
+            }
+        });
+
+        progressInput.addEventListener("input", function () {
+            const cleanedValue = cleanProgressValue(progressInput.value);
+
+            if (progressInput.value !== cleanedValue) {
+                progressInput.value = cleanedValue;
+            }
+
+            const numericValue = numberValue(progressInput.value, 0);
+            const maximum = getMaximumProgress();
+
+            if (numericValue > maximum) {
+                progressInput.value = maximum.toFixed(2);
+            }
+
+            updateProgress();
+        });
+
+        progressInput.addEventListener("paste", function (event) {
+            event.preventDefault();
+
+            const pastedText = event.clipboardData
+                ? event.clipboardData.getData("text")
+                : "";
+
+            const cleanedValue = cleanProgressValue(pastedText);
+
+            if (!cleanedValue) {
+                return;
+            }
+
+            const numericValue = numberValue(cleanedValue, 0);
+            const maximum = getMaximumProgress();
+
+            progressInput.value = clamp(
+                numericValue,
+                0,
+                maximum
+            ).toFixed(2);
+
+            updateProgress();
+        });
+
+        progressInput.addEventListener("blur", function () {
+            if (progressInput.value !== "") {
+                const numericValue = numberValue(progressInput.value, 0);
+                progressInput.value = clamp(
+                    numericValue,
+                    0,
+                    getMaximumProgress()
+                ).toFixed(2);
+            }
+
+            updateProgress();
+        });
+
+        progressInput.addEventListener("wheel", function (event) {
+            event.preventDefault();
+        }, { passive: false });
+
+        updateProgress();
+    }
+
+    function updateFeedbackCounter() {
+        if (!feedbackInput || !feedbackCounter) {
+            return;
+        }
+
+        const length = feedbackInput.value.length;
+
+        feedbackCounter.textContent = length + " / 5000";
+        feedbackCounter.classList.toggle("danger", length > 5000);
+    }
+
+    if (feedbackInput) {
+        feedbackInput.addEventListener("input", updateFeedbackCounter);
+        updateFeedbackCounter();
+    }
+
+    function updateDecisionPreview(value) {
+        if (
+            !decisionPreview ||
+            !decisionPreviewTitle ||
+            !decisionPreviewText
+        ) {
+            updateProgressState(value);
+            return;
+        }
+
+        decisionPreview.classList.remove("revision", "completed");
+
+        if (value === "REVISION_REQUIRED") {
+            decisionPreview.classList.add("revision");
+            decisionPreviewTitle.textContent = "Revision Required";
+            decisionPreviewText.textContent =
+                "The student needs to make corrections or improvements before this milestone can be completed.";
+            updateProgressState(value);
+            return;
+        }
+
+        if (value === "COMPLETED") {
+            decisionPreview.classList.add("completed");
+            decisionPreviewTitle.textContent = "Milestone Completed";
+            decisionPreviewText.textContent =
+                "The submitted milestone meets the evaluation requirements and can be marked as completed.";
+            updateProgressState(value);
+            return;
+        }
+
+        decisionPreviewTitle.textContent =
+            document.querySelector(".chair-card")
+                ? "Final Decision"
+                : "Evaluation Decision";
+
+        decisionPreviewText.textContent =
+            "Select a decision to see its meaning.";
+
+        updateProgressState(value);
+    }
+
+    if (decisionInput) {
+        decisionChoices = new Choices(
+            decisionInput,
+            {
+                searchEnabled: false,
+                allowSearch: false,
+                itemSelectText: "",
+                shouldSort: false,
+                allowHTML: false,
+                closeDropdownOnSelect: true,
+                placeholder: true,
+                placeholderValue: "Select evaluation decision",
+                searchChoices: false,
+                duplicateItemsAllowed: false,
+                removeItemButton: false,
+                position: "bottom"
+            }
+        );
+
+        decisionInput.addEventListener("change", function () {
+            updateDecisionPreview(this.value);
+        });
+
+        updateDecisionPreview(decisionInput.value);
+    }
+
+    const committeeProgressFill = document.querySelector(".rme-progress-fill");
+
+    if (committeeProgressFill) {
+        const progress = numberValue(
+            committeeProgressFill.dataset.progress,
+            0
+        );
+
+        committeeProgressFill.style.width =
+            clamp(progress, 0, 100) + "%";
+    }
+
+    if (form && submitButton) {
+        form.addEventListener("submit", function (event) {
+            updateFeedbackCounter();
+
+            const decisionValue = decisionInput
+                ? decisionInput.value
+                : "";
+
+            const isRevision = decisionValue === "REVISION_REQUIRED";
+            const progressValue = progressInput
+                ? numberValue(progressInput.value, NaN)
+                : NaN;
+
+            const minimum = getMinimumProgress();
+            const maximum = getMaximumProgress();
+
+            if (!isRevision) {
+                if (
+                    !Number.isFinite(progressValue) ||
+                    progressInput.value.trim() === ""
+                ) {
+                    event.preventDefault();
+
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Progress Required",
+                        text:
+                            "Please enter how much progress you want to add. Minimum is " +
+                            minimum.toFixed(2) +
+                            "% and maximum is " +
+                            maximum.toFixed(2) +
+                            "%.",
+                        confirmButtonColor: "#c5050c"
+                    });
+
+                    progressInput?.focus();
+                    return;
+                }
+
+                if (progressValue < minimum) {
+                    event.preventDefault();
+
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Progress Too Low",
+                        text:
+                            "You must add at least " +
+                            minimum.toFixed(2) +
+                            "% progress.",
+                        confirmButtonColor: "#c5050c"
+                    });
+
+                    progressInput?.focus();
+                    return;
+                }
+
+                if (progressValue > maximum) {
+                    event.preventDefault();
+
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Progress Too High",
+                        text:
+                            "You can add a maximum of " +
+                            maximum.toFixed(2) +
+                            "% progress.",
+                        confirmButtonColor: "#c5050c"
+                    });
+
+                    progressInput?.focus();
+                    return;
+                }
+            } else if (progressInput) {
+                progressInput.disabled = true;
+                progressInput.value = "";
+            }
+
+            const feedbackValue = feedbackInput
+                ? feedbackInput.value.trim()
+                : "";
+
+            if (feedbackValue.length < 10) {
+                event.preventDefault();
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Feedback Required",
+                    text:
+                        "Evaluation feedback must contain at least 10 characters.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                feedbackInput?.focus();
+                return;
+            }
+
+            if (feedbackValue.length > 5000) {
+                event.preventDefault();
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Feedback Too Long",
+                    text:
+                        "Evaluation feedback cannot exceed 5000 characters.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                feedbackInput?.focus();
+                return;
+            }
+
+            if (
+                decisionValue !== "REVISION_REQUIRED" &&
+                decisionValue !== "COMPLETED"
+            ) {
+                event.preventDefault();
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "Decision Required",
+                    text: "Please select an evaluation decision.",
+                    confirmButtonColor: "#c5050c"
+                });
+
+                return;
+            }
+
+            event.preventDefault();
+
+            const isChair =
+                progressInput?.dataset.role === "chair";
+
+            let title;
+            let text;
+            let confirmText;
+
+            if (isRevision) {
+                title = isChair
+                    ? "Request Final Revision?"
+                    : "Request Revision?";
+
+                text =
+                    "Revision Required will be submitted without entering a progress percentage.";
+
+                confirmText = isChair
+                    ? "Yes, Request Revision"
+                    : "Yes, Submit Revision";
+            } else if (isChair) {
+                title = "Finalize as Completed?";
+                text =
+                    "This will add your entered progress to the current overall research progress and finalize the milestone.";
+                confirmText = "Yes, Finalize";
+            } else {
+                title = "Recommend Completion?";
+                text =
+                    "Your committee evaluation will add the entered progress to the current overall research progress.";
+                confirmText = "Yes, Submit";
+            }
+
+            Swal.fire({
+                icon: isRevision ? "warning" : "question",
+                title: title,
+                text: text,
+                showCancelButton: true,
+                confirmButtonText: confirmText,
+                cancelButtonText: "Review Again",
+                confirmButtonColor: "#c5050c",
+                cancelButtonColor: "#64748b",
+                reverseButtons: true
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    if (isRevision && progressInput) {
+                        progressInput.disabled = false;
+                    }
+                    return;
+                }
+
+                submitButton.disabled = true;
+
+                submitButton.innerHTML =
+                    '<i class="ti ti-loader-2 rme-spin"></i><span>' +
+                    (isChair ? "Finalizing..." : "Submitting...") +
+                    "</span>";
+
+                form.submit();
+            });
+        });
+    }
+});
+    </script>
+{% endblock %}

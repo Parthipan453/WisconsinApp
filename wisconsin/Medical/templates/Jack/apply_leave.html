@@ -1,0 +1,258 @@
+{% extends "medical_base.html" %}
+{% load static %}
+
+{% block title %}Leave Management{% endblock %}
+{% block page_title %}Leave Management{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'css/Jack/apply_leave.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="leave-page">
+
+    <div class="leave-header">
+        <div class="leave-header__icon"><i class="ti ti-calendar-plus"></i></div>
+        <div class="leave-header__text">
+            <h1>Apply for leave</h1>
+            <p>Pick a leave type, set the dates or time window, then add a reason for your supervisor to review.</p>
+        </div>
+    </div>
+
+    <form class="leave-card" method="post" action="{% url 'Medical:apply_leave' %}" novalidate id="leaveForm">
+        {% csrf_token %}
+
+        <div class="leave-section">
+            <div class="section-label">
+                <span class="title">Leave type <span class="required">*</span></span>
+            </div>
+            <div class="form-group {% if form.leave_type.errors %}has-error{% endif %}">
+                <select name="leave_type" id="id_leave_type" required>
+                    <option value="">Select leave type</option>
+                    <option value="CASUAL" data-value="CASUAL" {% if form.leave_type.value == "CASUAL" %}selected{% endif %}>Casual Leave</option>
+                    <option value="SICK" data-value="SICK" {% if form.leave_type.value == "SICK" %}selected{% endif %}>Sick Leave</option>
+                    <option value="ANNUAL" data-value="ANNUAL" {% if form.leave_type.value == "ANNUAL" %}selected{% endif %}>Annual Leave</option>
+                    <option value="EMERGENCY" data-value="EMERGENCY" {% if form.leave_type.value == "EMERGENCY" %}selected{% endif %}>Emergency Leave</option>
+                    {% if request.user.gender == "FEMALE" %}
+                    <option value="MATERNITY" data-value="MATERNITY" {% if form.leave_type.value == "MATERNITY" %}selected{% endif %}>Maternity Leave</option>
+                    {% endif %}
+                    {% if request.user.gender == "MALE" %}
+                    <option value="PATERNITY" data-value="PATERNITY" {% if form.leave_type.value == "PATERNITY" %}selected{% endif %}>Paternity Leave</option>
+                    {% endif %}
+                    <option value="UNPAID" data-value="UNPAID" {% if form.leave_type.value == "UNPAID" %}selected{% endif %}>Unpaid Leave</option>
+                    <option value="PERMISSION" data-value="PERMISSION" {% if form.leave_type.value == "PERMISSION" %}selected{% endif %}>Permission</option>
+                </select>
+                {% if form.leave_type.errors %}
+                <div class="field-error">
+                    <i class="ti ti-alert-circle"></i>
+                    {{ form.leave_type.errors|join:", " }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="leave-section" id="duration_section">
+            <div class="section-label">
+                <span class="title">Duration <span class="required">*</span></span>
+                <span class="hint" id="duration_hint">for full-day leave</span>
+            </div>
+            <div class="form-grid">
+                <div class="form-group {% if form.start_date.errors %}has-error{% endif %}">
+                    <label for="id_start_date_display">Start date</label>
+                    <div class="dp-field" data-datepicker>
+                        <input class="form-control dp-input" type="text" id="id_start_date_display" 
+                               placeholder="Select date" readonly autocomplete="off"
+                               value="{{ form.start_date.value|date:'d M Y'|default:'' }}">
+                        <input type="hidden" name="start_date" id="id_start_date" 
+                               value="{{ form.start_date.value|date:'Y-m-d'|default:'' }}">
+                        <i class="ti ti-calendar dp-icon"></i>
+                        <div class="dp-panel" hidden></div>
+                    </div>
+                    {% if form.start_date.errors %}
+                    <div class="field-error">
+                        <i class="ti ti-alert-circle"></i>
+                        {{ form.start_date.errors|join:", " }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="form-group {% if form.end_date.errors %}has-error{% endif %}" id="end_date_group">
+                    <label for="id_end_date_display">End date</label>
+                    <div class="dp-field" data-datepicker>
+                        <input class="form-control dp-input" type="text" id="id_end_date_display" 
+                               placeholder="Select date" readonly autocomplete="off"
+                               value="{{ form.end_date.value|date:'d M Y'|default:'' }}">
+                        <input type="hidden" name="end_date" id="id_end_date" 
+                               value="{{ form.end_date.value|date:'Y-m-d'|default:'' }}">
+                        <i class="ti ti-calendar dp-icon"></i>
+                        <div class="dp-panel" hidden></div>
+                    </div>
+                    {% if form.end_date.errors %}
+                    <div class="field-error">
+                        <i class="ti ti-alert-circle"></i>
+                        {{ form.end_date.errors|join:", " }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="permission-block" id="permission_block" {% if form.leave_type.value != 'PERMISSION' %}hidden{% endif %}>
+                <div class="section-label">
+                    <span class="title"><i class="ti ti-clock"></i>&nbsp; Permission window</span>
+                    <span class="hint">Max 4 hours, same day only</span>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group {% if form.permission_start_time.errors %}has-error{% endif %}">
+                        <label for="id_permission_start_time_display">Start time</label>
+                        <div class="tp-field" data-timepicker data-time-type="start">
+                            <input class="form-control tp-input" type="text" id="id_permission_start_time_display" 
+                                   placeholder="Select time" readonly autocomplete="off"
+                                   value="{{ form.permission_start_time.value|time:'h:i A'|default:'' }}">
+                            <input type="hidden" name="permission_start_time" id="id_permission_start_time" 
+                                   value="{{ form.permission_start_time.value|time:'H:i'|default:'' }}">
+                            <i class="ti ti-clock tp-icon"></i>
+                            <div class="tp-panel" hidden>
+                                <div class="tp-header">
+                                    <div class="tp-time-display">9:00 <span class="tp-period-display">AM</span></div>
+                                </div>
+                                <div class="tp-body">
+                                    <div class="tp-selectors">
+                                        <div class="tp-selector-group">
+
+                                            <label>Hour</label>
+                                            <select class="tp-hour-select">
+                                                <option value="1">1</option><option value="2">2</option>
+                                                <option value="3">3</option><option value="4">4</option>
+                                                <option value="5">5</option><option value="6">6</option>
+                                                <option value="7">7</option><option value="8">8</option>
+                                                <option value="9" selected>9</option>
+                                                <option value="10">10</option><option value="11">11</option>
+                                                <option value="12">12</option>
+                                            </select>
+                                        </div>
+                                        <div class="tp-selector-group">
+                                            <label>Minute</label>
+                                            <select class="tp-minute-select">
+                                                <option value="0" selected>00</option>
+                                                <option value="5">05</option><option value="10">10</option>
+                                                <option value="15">15</option><option value="20">20</option>
+                                                <option value="25">25</option><option value="30">30</option>
+                                                <option value="35">35</option><option value="40">40</option>
+                                                <option value="45">45</option><option value="50">50</option>
+                                                <option value="55">55</option>
+                                            </select>
+                                        </div>
+                                        <div class="tp-selector-group tp-period-select">
+                                            <label>Period</label>
+                                            <select class="tp-period-select-dropdown">
+                                                <option value="AM" selected>AM</option>
+                                                <option value="PM">PM</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tp-footer">
+                                    <button type="button" class="tp-cancel">Cancel</button>
+                                    <button type="button" class="tp-done">Done</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-error" id="start_time_error" style="display:none;"></div>
+                    </div>
+                    <div class="form-group {% if form.permission_end_time.errors %}has-error{% endif %}">
+                        <label for="id_permission_end_time_display">End time</label>
+                        <div class="tp-field" data-timepicker data-time-type="end">
+                            <input class="form-control tp-input" type="text" id="id_permission_end_time_display" 
+                                   placeholder="Select time" readonly autocomplete="off"
+                                   value="{{ form.permission_end_time.value|time:'h:i A'|default:'' }}">
+                            <input type="hidden" name="permission_end_time" id="id_permission_end_time" 
+                                   value="{{ form.permission_end_time.value|time:'H:i'|default:'' }}">
+                            <i class="ti ti-clock tp-icon"></i>
+                            <div class="tp-panel" hidden>
+                                <div class="tp-header">
+                                    <div class="tp-time-display">10:00 <span class="tp-period-display">AM</span></div>
+                                </div>
+                                <div class="tp-body">
+                                    <div class="tp-selectors">
+                                        <div class="tp-selector-group">
+                                            <label>Hour</label>
+                                            <select class="tp-hour-select">
+                                                <option value="1">1</option><option value="2">2</option>
+                                                <option value="3">3</option><option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option><option value="7">7</option>
+                                                <option value="8">8</option><option value="9">9</option>
+                                                <option value="10" selected>10</option><option value="11">11</option>
+                                                <option value="12">12</option>
+                                            </select>
+                                        </div>
+                                        <div class="tp-selector-group">
+                                            <label>Minute</label>
+                                            <select class="tp-minute-select">
+                                                <option value="0" selected>00</option>
+                                                <option value="5">05</option><option value="10">10</option>
+                                                <option value="15">15</option><option value="20">20</option>
+                                                <option value="25">25</option><option value="30">30</option>
+                                                <option value="35">35</option><option value="40">40</option>
+                                                <option value="45">45</option><option value="50">50</option>
+                                                <option value="55">55</option>
+                                            </select>
+                                        </div>
+                                        <div class="tp-selector-group tp-period-select">
+                                            <label>Period</label>
+                                            <select class="tp-period-select-dropdown">
+                                                <option value="AM" selected>AM</option>
+                                                <option value="PM">PM</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tp-footer">
+                                    <button type="button" class="tp-cancel">Cancel</button>
+                                    <button type="button" class="tp-done">Done</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-error" id="end_time_error" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leave-section">
+            <div class="section-label">
+                <span class="title">Reason <span class="required">*</span></span>
+            </div>
+            <div class="form-group {% if form.reason.errors %}has-error{% endif %}">
+                <textarea class="form-control" name="reason" id="id_reason" maxlength="500"
+                    placeholder="Briefly explain why you're requesting this leave" required>{{ form.reason.value|default:'' }}</textarea>
+                {% if form.reason.errors %}
+                <div class="field-error">
+                    <i class="ti ti-alert-circle"></i>
+                    {{ form.reason.errors|join:", " }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url "Medical:leave" %}" class="btn btn-outline" id="cancelBtn">
+                <i class="ti ti-x"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-send"></i> Submit request
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+<script src="{% static 'js/Jack/apply_leave.js' %}"></script>
+{% endblock %}

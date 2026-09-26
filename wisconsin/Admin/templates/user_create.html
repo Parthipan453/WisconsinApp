@@ -1,0 +1,1464 @@
+
+
+<!-- /* ***************************************************** Arun code *************************************************** */  -->
+
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Add New User{% endblock %}
+{% block page_title %}Add New User{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/user_create.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="up-wrapper">
+
+  <div class="up-progress-bar-wrap" id="progressWrap">
+    <div class="up-progress-meta">
+      <span class="up-progress-label">Profile Completion</span>
+      <span class="up-progress-pct" id="progressPct">0%</span>
+    </div>
+    <div class="up-progress-track">
+      <div class="up-progress-fill" id="progressFill"></div>
+    </div>
+    <div class="up-section-pills">
+      <button type="button" class="up-pill up-pill--active" data-section="role">Role & Type</button>
+      <button type="button" class="up-pill" data-section="identity" disabled>Identity</button>
+      <button type="button" class="up-pill" data-section="typedetails" disabled>Type Details</button>
+      <button type="button" class="up-pill" data-section="review" disabled>Review</button>
+    </div>
+  </div>
+
+  <div class="up-layout">
+    <div class="up-form-col">
+      <form method="post" enctype="multipart/form-data" id="userForm" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="up-alert up-alert--error" style="margin-bottom:16px;">
+          {% for err in form.non_field_errors %}<p>{{ err }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ═══════════════════════════════════════
+             TAB 1 — ROLE & TYPE
+        ═══════════════════════════════════════ -->
+        <section class="up-section up-section--active" id="sec-role" data-section="role">
+          <div class="up-section-head">
+            <div class="up-section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <h2 class="up-section-title">Role & User Type</h2>
+              <p class="up-section-sub">Select the user type first — the form adapts to collect the right details</p>
+            </div>
+          </div>
+
+          <div class="up-type-grid">
+            <div class="up-type-card up-type-card--selected" data-type="student" tabindex="0" role="radio" aria-checked="true">
+              <div class="up-type-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3L2 8l10 5 10-5-10-5z"/><path d="M2 8v6c0 3.3 4.5 6 10 6s10-2.7 10-6V8"/></svg>
+              </div>
+              <span class="up-type-card__label">Student</span>
+            </div>
+            <div class="up-type-card" data-type="faculty" tabindex="0" role="radio" aria-checked="false">
+              <div class="up-type-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M16 4v16M3 12h18"/></svg>
+              </div>
+              <span class="up-type-card__label">Faculty</span>
+            </div>
+            <div class="up-type-card" data-type="staff" tabindex="0" role="radio" aria-checked="false">
+              <div class="up-type-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+              </div>
+              <span class="up-type-card__label">Staff</span>
+            </div>
+            <div class="up-type-card" data-type="admin" tabindex="0" role="radio" aria-checked="false">
+              <div class="up-type-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+              </div>
+              <span class="up-type-card__label">Admin</span>
+            </div>
+          </div>
+
+          <input type="hidden" name="user_type" id="id_user_type" value="student">
+          <input type="hidden" id="suggestedStudentNumber" value="{{ suggested_student_number|default:'' }}" data-prefix="{{ student_number_prefix|default:'STU' }}">
+          <input type="hidden" id="suggestedFacultyId" value="{{ suggested_faculty_employee_id|default:'' }}">
+          <input type="hidden" id="suggestedStaffId" value="{{ suggested_staff_employee_id|default:'' }}">
+          <input type="hidden" id="suggestedAdminId" value="{{ suggested_admin_employee_id|default:'' }}">
+
+          <div class="up-type-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="typeHintText">Student selected — academic and enrollment details collected in step 3.</span>
+          </div>
+
+          <div class="up-grid up-grid--2" style="margin-top:18px;">
+            <div class="up-field">
+              <label class="up-label">Role <span class="up-req">*</span></label>
+              <script id="allRolesData" type="application/json">
+                [{% for r in roles %}{"id":"{{ r.id }}","name":"{{ r.role_name|escapejs }}","type":"{{ r.user_type|default:'' }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+              </script>
+              <select name="role" id="id_role"><option value="">Select Role</option></select>
+            </div> 
+            <div class="up-field {% if form.account_status.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.account_status.id_for_label }}">Account Status <span class="up-req">*</span></label>
+              {{ form.account_status }}
+              <p class="up-hint">New users are typically Active or Pending</p>
+              {% if form.account_status.errors %}<p class="up-field-error" style="display:block;">{{ form.account_status.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="up-section-nav">
+            <span></span>
+            <button type="button" class="up-btn up-btn--primary" data-next="identity">
+              Next: Identity
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <!-- <----------Blaze code start(13.08.26)---------->
+
+          <div class="up-field up-field--full hostel-admin-wrapper" style="margin-top: 12px;">
+              <label class="up-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" 
+                        name="is_hostel_admin" 
+                        id="id_is_hostel_admin" 
+                        value="yes"
+                        {% if request.POST.is_hostel_admin == 'yes' %}checked{% endif %}>
+                  <span style="font-weight: 500;">🏠 Make this user a <strong>Hostel Admin</strong></span>
+              </label>
+              <p class="up-hint" style="margin-top: 4px;">
+                  Hostel Admins can manage rooms, allocate students, and view hostel reports.
+              </p>
+          </div>
+        </section>
+
+       <!-- <----------Blaze code End(13.08.26)---------->
+
+
+        <!-- ═══════════════════════════════════════
+             TAB 2 — IDENTITY (Personal + Contact)
+        ═══════════════════════════════════════ -->
+        <section class="up-section" id="sec-identity" data-section="identity">
+          <div class="up-section-head">
+            <div class="up-section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <div>
+              <h2 class="up-section-title">{% if edit_mode %}Edit — {{ edit_username }}{% else %}Identity{% endif %}</h2>
+              <p class="up-section-sub">Login credentials, personal info and contact</p>
+            </div>
+          </div>
+
+          <div class="up-avatar-row">
+            <div class="up-avatar-preview" id="avatarPreview">
+              <span class="up-avatar-initials" id="avatarInitials">?</span>
+              <img id="avatarImg" src="" alt="" style="display:none">
+            </div>
+            <div class="up-avatar-upload">
+              <label class="up-file-label" for="{{ form.profile_photo.id_for_label }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload Photo
+              </label>
+              {{ form.profile_photo }}
+              <p class="up-hint" style="margin-top:6px;">JPG, PNG, WebP · Max 5 MB</p>
+              {% if form.profile_photo.errors %}<p class="up-field-error" style="display:block;">{{ form.profile_photo.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="up-grid up-grid--2">
+            <div class="up-field {% if form.username.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.username.id_for_label }}">Username <span class="up-req">*</span></label>
+              {{ form.username }}
+              <p class="up-hint">Letters, numbers, underscores only</p>
+              <p class="up-field-error" data-error="{{ form.username.id_for_label }}">{% if form.username.errors %}{{ form.username.errors.0 }}{% endif %}</p>
+            </div>
+            <div class="up-field {% if form.email.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.email.id_for_label }}">Email Address <span class="up-req">*</span></label>
+              {{ form.email }}
+              <p class="up-field-error" data-error="{{ form.email.id_for_label }}">{% if form.email.errors %}{{ form.email.errors.0 }}{% endif %}</p>
+            </div>
+            <div class="up-field up-field--full {% if form.university_id.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.university_id.id_for_label }}">University ID</label>
+                <select
+                    id="id_university"
+                    name="university">
+
+                <option value="">Select University</option>
+
+                {% for university in universities %}
+
+                <option value="{{ university.university_id }}">
+
+                {{ university.university_name }}
+                ({{ university.university_code }})
+
+                </option>
+
+                {% endfor %}
+
+                </select>
+              <p class="up-hint">Leave blank if not yet assigned</p>
+              <p class="up-field-error" data-error="{{ form.university_id.id_for_label }}">{% if form.university_id.errors %}{{ form.university_id.errors.0 }}{% endif %}</p>
+            </div>
+          </div>
+
+          <div class="up-subsection-label">Personal information</div>
+          <div class="up-grid up-grid--3">
+            <div class="up-field {% if form.first_name.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.first_name.id_for_label }}">First Name <span class="up-req">*</span></label>
+              {{ form.first_name }}
+              <p class="up-field-error" data-error="{{ form.first_name.id_for_label }}">{% if form.first_name.errors %}{{ form.first_name.errors.0 }}{% endif %}</p>
+            </div>
+            <div class="up-field">
+              <label class="up-label" for="{{ form.middle_name.id_for_label }}">Middle Name</label>
+              {{ form.middle_name }}
+            </div>
+            <div class="up-field {% if form.last_name.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.last_name.id_for_label }}">Last Name <span class="up-req">*</span></label>
+              {{ form.last_name }}
+              <p class="up-field-error" data-error="{{ form.last_name.id_for_label }}">{% if form.last_name.errors %}{{ form.last_name.errors.0 }}{% endif %}</p>
+            </div>
+            <div class="up-field">
+              <label class="up-label" for="{{ form.date_of_birth.id_for_label }}">Date of Birth</label>
+              {{ form.date_of_birth }}
+              <p class="up-field-error" data-error="{{ form.date_of_birth.id_for_label }}">{% if form.date_of_birth.errors %}{{ form.date_of_birth.errors.0 }}{% endif %}</p>
+            </div>
+            <!-- Jack Code Start's -->
+            <div class="up-field {% if form.ssn_number.errors %}up-field--error{% endif %}">
+              <label class="up-label" for="{{ form.ssn_number.id_for_label }}">SSN Number <span class="up-req">*</span></label>
+              {{ form.ssn_number }}
+              <p class="up-field-error" data-error="{{ form.ssn_number.id_for_label }}">{% if form.ssn_number.errors %}{{ form.ssn_number.errors.0 }}{% endif %}</p>
+            </div>
+            <!-- Jack Code End's -->
+            <div class="up-field up-field--full-md">
+              <label class="up-label" for="{{ form.gender.id_for_label }}">Gender</label>
+              {{ form.gender }}
+            </div>
+          </div>
+
+          <div class="up-subsection-label">Contact details</div>
+            <div class="up-grid up-grid--2">
+              <div class="up-field {% if form.mobile_number.errors %}up-field--error{% endif %}">
+                <label class="up-label" for="{{ form.mobile_number.id_for_label }}">Mobile Number <span class="up-req">*</span></label>
+                {{ form.mobile_number }}
+                <p class="up-hint">e.g. 9876543210 (India) or +1 608-555-0123 (International)</p>
+                <p class="up-field-error" data-error="{{ form.mobile_number.id_for_label }}">{% if form.mobile_number.errors %}{{ form.mobile_number.errors.0 }}{% endif %}</p>
+              </div>
+              <div class="up-field {% if form.confirm_mobile.errors %}up-field--error{% endif %}">
+                <label class="up-label" for="{{ form.confirm_mobile.id_for_label }}">Confirm Mobile <span class="up-req">*</span></label>
+                {{ form.confirm_mobile }}
+                <p class="up-field-error" data-error="{{ form.confirm_mobile.id_for_label }}">{% if form.confirm_mobile.errors %}{{ form.confirm_mobile.errors.0 }}{% endif %}</p>
+              </div>
+            </div>
+
+
+            <div class="up-subsection-label">Firearm information</div>
+              <div class="up-field up-field--full">
+                <label class="up-label">Does the user have a firearm or gun? <span class="up-req">*</span></label>
+                <div class="up-yn-group" role="radiogroup" aria-label="Does the user have a firearm or gun?">
+                  <label class="up-yn-option" for="id_has_firearm_no">
+                    <input type="radio" name="has_firearm" id="id_has_firearm_no" value="no" {% if request.POST.has_firearm != 'yes' %}checked{% endif %}>
+                    <span>No</span>
+                  </label>
+                  <label class="up-yn-option" for="id_has_firearm_yes">
+                    <input type="radio" name="has_firearm" id="id_has_firearm_yes" value="yes" {% if request.POST.has_firearm == 'yes' %}checked{% endif %}>
+                    <span>Yes</span>
+                  </label>
+                </div>
+                <p class="up-hint">If yes, firearm details will appear below and become required.</p>
+              </div>
+
+              <div class="up-firearm-section" id="firearmDetailsSection">
+                <div class="up-subsection-label">Firearm details</div>
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_firearm_name">Firearm Name <span class="up-req">*</span></label>
+                    <input type="text" name="firearm_firearm_name" id="id_firearm_firearm_name" placeholder="e.g. Standard Issue Sidearm">
+                    <p class="up-field-error" data-error="id_firearm_firearm_name"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_firearm_type">Firearm Type <span class="up-req">*</span></label>
+                    <select name="firearm_firearm_type" id="id_firearm_firearm_type">
+                      <option value="">Select Type</option>
+                      <option value="HANDGUN">Handgun</option>
+                      <option value="RIFLE">Rifle</option>
+                      <option value="SHOTGUN">Shotgun</option>
+                      <option value="TRAINING">Training Firearm</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                    <p class="up-field-error" data-error="id_firearm_firearm_type"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_manufacturer">Manufacturer</label>
+                    <input type="text" name="firearm_manufacturer" id="id_firearm_manufacturer" placeholder="e.g. Glock">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_model_name">Model</label>
+                    <input type="text" name="firearm_model_name" id="id_firearm_model_name" placeholder="e.g. G19">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_serial_number">Serial Number <span class="up-req">*</span></label>
+                    <input type="text" name="firearm_serial_number" id="id_firearm_serial_number" placeholder="Unique serial number">
+                    <p class="up-field-error" data-error="id_firearm_serial_number"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_caliber">Caliber</label>
+                    <input type="text" name="firearm_caliber" id="id_firearm_caliber" placeholder="e.g. 9mm">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_purchase_date">Purchase Date</label>
+                    <input type="date" name="firearm_purchase_date" id="id_firearm_purchase_date">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_acquisition_method">Acquisition Method</label>
+                    <select name="firearm_acquisition_method" id="id_firearm_acquisition_method">
+                      <option value="PURCHASE">Purchase</option>
+                      <option value="DONATION">Donation</option>
+                      <option value="TRANSFER">Transfer</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_current_status">Current Status</label>
+                    <select name="firearm_current_status" id="id_firearm_current_status">
+                      <option value="ACTIVE">Active</option>
+                      <option value="STORED">Stored</option>
+                      <option value="RETIRED">Retired</option>
+                      <option value="DISPOSED">Disposed</option>
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_location_name">Location Name</label>
+                    <input type="text" name="firearm_location_name" id="id_firearm_location_name" placeholder="e.g. Main Armory">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_building_name">Building Name</label>
+                    <input type="text" name="firearm_building_name" id="id_firearm_building_name" placeholder="e.g. Security HQ">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_room_number">Room Number</label>
+                    <input type="text" name="firearm_room_number" id="id_firearm_room_number" placeholder="e.g. 101">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label" for="id_firearm_security_level">Security Level</label>
+                    <input type="text" name="firearm_security_level" id="id_firearm_security_level" placeholder="e.g. Restricted">
+                  </div>
+                  <div class="up-field up-field--full">
+                    <label class="up-label" for="id_firearm_notes">Notes</label>
+                    <textarea name="firearm_notes" id="id_firearm_notes" rows="3" placeholder="Any additional notes"></textarea>
+                  </div>
+                </div>
+              </div>
+
+            <div class="up-section-nav">
+              <button type="button" class="up-btn up-btn--ghost" data-prev="role">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back
+              </button>
+              <button type="button" class="up-btn up-btn--primary" data-next="typedetails">
+                Next: <span id="nextTypeLabel">Student Details</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+        </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- ═══════════════════════════════════════
+             TAB 3 — TYPE DETAILS (accordion per type)
+        ═══════════════════════════════════════ -->
+        <section class="up-section" id="sec-typedetails" data-section="typedetails">
+          <div class="up-section-head">
+            <div class="up-section-icon" id="typeDetailIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3L2 8l10 5 10-5-10-5z"/><path d="M2 8v6c0 3.3 4.5 6 10 6s10-2.7 10-6V8"/></svg>
+            </div>
+            <div>
+              <h2 class="up-section-title" id="typeDetailTitle">Student Details</h2>
+              <p class="up-section-sub" id="typeDetailSub">Fill each section — click a header to expand</p>
+            </div>
+          </div>
+
+          <div id="fields-student" class="up-type-fields">
+
+
+
+              <div class="up-accordion up-accordion--open">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Academic Profile</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" >
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Admission Date</label>
+                    <input type="date" name="admission_date" id="id_admission_date">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Expected Graduation</label>
+                    <input type="date" name="expected_graduation_date" id="id_expected_graduation_date">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">College ID <span class="up-req">*</span></label>
+                    <select id="id_school" name="school">
+                      <option value="">Select College</option>
+                    </select>
+                    <p class="up-field-error" data-error="id_school"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Department ID <span class="up-req">*</span></label>
+                    <select id="id_department" name="department">
+                      <option value="">Select Department</option>
+                    </select>
+                    <p class="up-field-error" data-error="id_department"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Degree <span class="up-req">*</span></label>
+                    <select id="id_degree" name="degree">
+                      <option value="">Select Degree</option>
+                    </select>
+                    <p class="up-field-error" data-error="id_degree"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Program <span class="up-req">*</span></label>
+                    <select id="id_program" name="program">
+                      <option value="">Select Program</option>
+                    </select>
+                    <p class="up-field-error" data-error="id_program"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Catalog Year</label>
+                    <input type="number" name="catalog_year" id="id_catalog_year" placeholder="e.g. 2024" min="2000" max="2099">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+
+
+            <div class="up-accordion ">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> Profile</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none;">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Student Number <span class="up-req">*</span></label>
+                    <input type="text" name="student_number" id="id_student_number" placeholder="Auto-generated, e.g. CSE2026001" readonly>
+                    <p class="up-hint" id="studentNumberHint">Auto-filled based on admission year — not editable</p>
+                    <p class="up-field-error" data-error="id_student_number"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Preferred Name</label>
+                    <input type="text" name="student_preferred_name" id="id_student_preferred_name" placeholder="Name they go by">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">University Email <span class="up-req">*</span></label>
+                    <input type="email" name="university_email" id="id_university_email" placeholder="jsmith@wisc.edu">
+                    <p class="up-field-error" data-error="id_university_email"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Personal Email</label>
+                    <input type="email" name="student_personal_email" id="id_student_personal_email" placeholder="personal@gmail.com">
+                  </div>
+                  <div class="up-field">
+                      <label class="up-label">Citizenship Status</label>
+
+                      <select
+                          name="citizenship_status"
+                          id="id_citizenship_status">
+
+                          <option value="">Select</option>
+                          <option value="CITIZEN">Citizen</option>
+                          <option value="PERMANENT_RESIDENT">Permanent Resident</option>
+                          <option value="INTERNATIONAL">International</option>
+                          <option value="OTHER">Other</option>
+
+                      </select>
+                  </div>
+                  <div class="up-field" id="countryField" style="display:none;">
+                      <label class="up-label">
+                          Country of Citizenship
+                          <span class="up-req">*</span>
+                      </label>
+
+                      <select
+                          name="country_of_citizenship"
+                          id="id_country_of_citizenship"
+                          class="up-select">
+
+                          <option value="">Select Country</option>
+
+                          {% load countries %}
+
+                          {% get_countries as countries %}
+
+                          {% for country in countries %}
+                              <option value="{{ country.code }}">
+                                  {{ country.name }}
+                              </option>
+                          {% endfor %}
+
+                      </select>
+
+                      <p class="up-hint">
+                          Required only for International and Permanent Resident students.
+                      </p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Marital Status</label>
+                    <select name="marital_status" id="id_marital_status">
+                      <option value="">Select</option>
+                      <option value="SINGLE">Single</option>
+                      <option value="MARRIED">Married</option>
+                      <option value="DIVORCED">Divorced</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Academic Level</label>
+                    <select name="academic_level" id="id_academic_level">
+                      <option value="">Select</option>
+                      <option value="UNDERGRADUATE">Undergraduate</option>
+                      <option value="GRADUATE">Graduate</option>
+                      <option value="PHD">PhD</option>
+                    </select>
+                  </div>
+                  <div class="up-field up-field--full">
+                    <label class="up-label">Current Status</label>
+                    <select name="student_current_status" id="id_student_current_status">
+                      <option value="ACTIVE">Active</option>
+                      <option value="LEAVE">Leave</option>
+                      <option value="GRADUATED">Graduated</option>
+                      <option value="WITHDRAWN">Withdrawn</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Address
+                </span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none;">
+                <div id="studentAddressContainer">
+                  <div class="student-address-item">
+                    <div class="up-grid up-grid--2">
+                      <div class="up-field">
+                        <label class="up-label">Address Type <span class="up-req">*</span></label>
+                        <select name="student_address_type[]">
+                          <option value="">Select</option>
+                          <option value="PERMANENT">Permanent</option>
+                          <option value="CURRENT">Current</option>
+                          <option value="CAMPUS_HOUSING">Campus Housing</option>
+                          <option value="TEMPORARY">Temporary</option>
+                        </select>
+                      </div>
+                      <div class="up-field up-field--full">
+                        <label class="up-label">Address Line 1 <span class="up-req">*</span></label>
+                        <input type="text"
+                              name="student_address_line_1[]"
+                              placeholder="Street Address">
+                      </div>
+                      <!-- <div class="up-field up-field--full">
+                        <label class="up-label">Address Line 2</label>
+                        <input type="text"
+                              name="student_address_line_2[]"
+                              placeholder="Apartment / Suite (Optional)">
+                      </div> -->
+
+                      <div class="up-field">
+                        <label class="up-label">City <span class="up-req">*</span></label>
+                        <input type="text"
+                              name="student_city[]"
+                              placeholder="City">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">State / Province <span class="up-req">*</span></label>
+                        <input type="text"
+                              name="student_state[]"
+                              placeholder="State">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">Postal Code <span class="up-req">*</span></label>
+                        <input type="text"
+                              name="student_postal_code[]"
+                              placeholder="Postal Code">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">Country <span class="up-req">*</span></label>
+                        <input type="text"
+                              name="student_country[]"
+                              placeholder="Country">
+                      </div>
+                      <div class="up-field up-field--full" style="text-align:right;">
+                        <button
+                            type="button"
+                            class="up-btn up-btn--danger remove-address"
+                            style="display:none;">
+                            Remove Address
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:20px;">
+                  <button
+                      type="button"
+                      id="addStudentAddress"
+                      class="up-btn up-btn--secondary">
+
+                      + Add Another Address
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.6 19.79 19.79 0 0 1 1.61 5a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 17z"/></svg> Emergency Contact</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Contact Name <span class="up-req">*</span></label>
+                    <input type="text" name="student_emergency_name" id="id_student_emergency_name" placeholder="Full name">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Relationship <span class="up-req">*</span></label>
+                    <input type="text" name="student_emergency_relationship" id="id_student_emergency_relationship" placeholder="e.g. Parent, Sibling">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Phone Number <span class="up-req">*</span></label>
+                    <input type="text" name="student_emergency_phone" id="id_student_emergency_phone" placeholder="+1 608-000-0000">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Email</label>
+                    <input type="email" name="student_emergency_email" id="id_student_emergency_email" placeholder="contact@email.com">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Priority</label>
+                    <input type="number" name="student_emergency_priority" id="id_student_emergency_priority" value="1" min="1" max="10">
+                    <p class="up-hint">1 = highest priority</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Documents & Proofs</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div id="student-doc-list"></div>
+                <div class="up-doc-entry" id="studentDocumentContainer">
+                    <div class="up-grid up-grid--2">
+                        <div class="up-field">
+                            <label class="up-label">
+                                Document Type <span class="up-req">*</span>
+                            </label>
+                            <select name="student_doc_type[]">
+                                <option value="">Select type</option>
+                                <option value="PASSPORT">Passport</option>
+                                <option value="AADHAAR">Aadhaar</option>
+                                <option value="VISA">Visa</option>
+                                <option value="TRANSCRIPT">Transcript</option>
+                                <option value="PHOTO">Photo</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        <div class="up-field">
+                            <label class="up-label">
+                                Upload File <span class="up-req">*</span>
+                            </label>
+                            <input type="file" name="student_doc_file[]">
+                        </div>
+                    </div>
+                    <div class="up-doc-actions">
+                        <!-- <button type="button"
+                                id="addStudentDocument"
+                                class="up-add-row-btn">
+                            + Add another document
+                        </button>
+                        <button type="button"
+                                class="remove-document up-remove-row-btn">
+                            Remove
+                        </button> -->
+                    </div>
+                </div>
+                <!-- <button type="button" class="up-add-row-btn" onclick="addDocRow('student')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add another document
+                </button> -->
+              </div>
+            </div>
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div id="fields-faculty" class="up-type-fields" style="display:none">
+
+            <div class="up-accordion up-accordion--open">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> Faculty Profile</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Employee ID <span class="up-req">*</span></label>
+                    <input type="text" name="faculty_employee_id" id="id_faculty_employee_id" placeholder="e.g. FAC-0042">
+                    <p class="up-field-error" data-error="id_faculty_employee_id"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Preferred Name</label>
+                    <input type="text" name="faculty_preferred_name" id="id_faculty_preferred_name" placeholder="Name they go by">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Work Email <span class="up-req">*</span></label>
+                    <input type="email" name="faculty_email" id="id_faculty_email" placeholder="prof@wisc.edu">
+                    <p class="up-field-error" data-error="id_faculty_email"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Office Phone</label>
+                    <input type="text" name="faculty_phone" id="id_faculty_phone" placeholder="+1 608-000-0000">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Faculty Rank</label>
+                    <select name="faculty_rank" id="id_faculty_rank">
+                      <option value="">Select rank</option>
+                      {% for rank in faculty_ranks %}
+                        <option value="{{ rank.id }}">{{ rank.rank_name }}</option>
+                      {% empty %}
+                        <option value="assistant_professor">Assistant Professor</option>
+                        <option value="associate_professor">Associate Professor</option>
+                        <option value="professor">Professor</option>
+                        <option value="lecturer">Lecturer</option>
+                        <option value="adjunct">Adjunct</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">College</label>
+                    <select id="id_faculty_school" name="faculty_school">
+                      <option value="">Select College</option>
+                    </select>
+                    <p class="up-hint">Select a University in the Identity step first to load Colleges</p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Department</label>
+                    <select id="id_faculty_department_id" name="faculty_department_id">
+                      <option value="">Select Department</option>
+                    </select>
+                    <p class="up-hint">Choose a College first to load its departments</p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Hire Date</label>
+                    <input type="date" name="faculty_hire_date" id="id_faculty_hire_date">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Employment Status</label>
+                    <select name="faculty_employment_status" id="id_faculty_employment_status">
+                      <option value="ACTIVE">Active</option>
+                      <option value="LEAVE">Leave</option>
+                      <option value="RETIRED">Retired</option>
+                    </select>
+                  </div>
+                  <div class="up-field up-field--full">
+                    <label class="up-label">Office Location</label>
+                    <input type="text" name="faculty_office_location" id="id_faculty_office_location" placeholder="e.g. Van Vleck Hall, Room 204">
+                  </div>
+                  <div class="up-field up-field--full">
+                    <label class="up-label">Biography</label>
+                    <textarea name="faculty_biography" id="id_faculty_biography" rows="3" placeholder="Brief professional biography…"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Education</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Degree <span class="up-req">*</span></label>
+                    <input type="text" name="faculty_degree" id="id_faculty_degree" placeholder="e.g. PhD, MS, BS">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Field of Study</label>
+                    <input type="text" name="faculty_field_of_study" id="id_faculty_field_of_study" placeholder="e.g. Computer Science">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Institution Name <span class="up-req">*</span></label>
+                    <input type="text" name="faculty_institution_name" id="id_faculty_institution_name" placeholder="e.g. MIT">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Graduation Year</label>
+                    <input type="number" name="faculty_graduation_year" id="id_faculty_graduation_year" placeholder="e.g. 2010" min="1950" max="2099">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Documents & Proofs</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div id="faculty-doc-list"></div>
+                <div class="up-doc-entry" id="faculty-doc-0">
+                  <div class="up-grid up-grid--2">
+                    <div class="up-field up-field--full">
+                      <label class="up-label">Document Type</label>
+                      <input type="text" name="faculty_doc_type[]" placeholder="e.g. Degree Certificate, CV">
+                    </div>
+                    <div class="up-field up-field--full">
+                      <label class="up-label">Upload File</label>
+                      <input type="file" name="faculty_doc_file[]" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                      <p class="up-hint">PDF, JPG, PNG, DOC · Max 10 MB per file</p>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="up-add-row-btn" onclick="addDocRow('faculty')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add another document
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="fields-staff" class="up-type-fields" style="display:none">
+
+            <div class="up-accordion up-accordion--open">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> Staff Profile</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Employee ID <span class="up-req">*</span></label>
+                    <input type="text" name="staff_employee_id" id="id_staff_employee_id" placeholder="e.g. STF-0021">
+                    <p class="up-field-error" data-error="id_staff_employee_id"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Preferred Name</label>
+                    <input type="text" name="staff_preferred_name" id="id_staff_preferred_name" placeholder="Name they go by">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Work Email <span class="up-req">*</span></label>
+                    <input type="email" name="staff_work_email" id="id_staff_work_email" placeholder="staff@wisc.edu">
+                    <p class="up-field-error" data-error="id_staff_work_email"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Personal Email</label>
+                    <input type="email" name="staff_personal_email" id="id_staff_personal_email" placeholder="personal@gmail.com">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Office Phone</label>
+                    <input type="text" name="staff_office_phone" id="id_staff_office_phone" placeholder="+1 608-000-0000">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Employment Type</label>
+                    <select name="staff_employment_type" id="id_staff_employment_type">
+                      <option value="">Select</option>
+                      <option value="FULL_TIME">Full-Time</option>
+                      <option value="PART_TIME">Part-Time</option>
+                      <option value="TEMPORARY">Temporary</option>
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Employment Status</label>
+                    <select name="staff_employment_status" id="id_staff_employment_status">
+                      <option value="ACTIVE">Active</option>
+                      <option value="LEAVE">Leave</option>
+                      <option value="RETIRED">Retired</option>
+                      <option value="TERMINATED">Terminated</option>
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Hire Date</label>
+                    <input type="date" name="staff_hire_date" id="id_staff_hire_date">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg> Position</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <p class="up-hint" style="margin-bottom:12px;">
+                  Choose a College &amp; Department for academic-side staff, or a Unit for administrative/office roles. Neither is required.
+                </p>
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Job Title <span class="up-req">*</span></label>
+                    <input type="text" name="staff_job_title" id="id_staff_job_title" placeholder="e.g. Administrative Coordinator">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">College</label>
+                    <select id="id_staff_school" name="staff_school">
+                      <option value="">Select College (if applicable)</option>
+                    </select>
+                    <p class="up-hint">Select a University in the Identity step first to load Colleges</p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Department</label>
+                    <select id="id_staff_department_id" name="staff_department_id">
+                      <option value="">Select Department (if applicable)</option>
+                    </select>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Unit ID</label>
+                    <input type="number" name="staff_unit_id" id="id_staff_unit_id" placeholder="e.g. 5 (for admin/office roles)">
+                    <p class="up-hint">Use this instead of Department for administrative or office-based staff</p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Position Start Date <span class="up-req">*</span></label>
+                    <input type="date" name="staff_position_start_date" id="id_staff_position_start_date">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Position Status</label>
+                    <select name="staff_position_status" id="id_staff_position_status">
+                      <option value="ACTIVE">Active</option>
+                      <option value="INACTIVE">Inactive</option>
+                      <option value="PENDING">Pending</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Address</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div id="staffAddressContainer">
+                  <div class="staff-address-item">
+                    <div class="up-grid up-grid--2">
+                      <div class="up-field">
+                        <label class="up-label">Address Type <span class="up-req">*</span></label>
+                        <select name="staff_address_type[]">
+                          <option value="">Select</option>
+                          <option value="PERMANENT">Permanent</option>
+                          <option value="MAILING">Mailing</option>
+                          <option value="CAMPUS_HOUSING">Campus Housing</option>
+                        </select>
+                      </div>
+                      <div class="up-field up-field--full">
+                        <label class="up-label">Address Line 1 <span class="up-req">*</span></label>
+                        <input type="text" name="staff_address_line_1[]" placeholder="Street address">
+                      </div>
+                      <div class="up-field up-field--full">
+                        <label class="up-label">Address Line 2</label>
+                        <input type="text" name="staff_address_line_2[]" placeholder="Apt, suite (optional)">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">City <span class="up-req">*</span></label>
+                        <input type="text" name="staff_city[]" placeholder="Madison">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">State <span class="up-req">*</span></label>
+                        <input type="text" name="staff_state[]" placeholder="Wisconsin">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">Postal Code <span class="up-req">*</span></label>
+                        <input type="text" name="staff_postal_code[]" placeholder="53706">
+                      </div>
+                      <div class="up-field">
+                        <label class="up-label">Country <span class="up-req">*</span></label>
+                        <input type="text" name="staff_country[]" placeholder="United States">
+                      </div>
+                      <div class="up-field up-field--full" style="text-align:right;">
+                        <button type="button" class="up-btn up-btn--danger remove-staff-address" style="display:none;">
+                          Remove Address
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:20px;">
+                  <button type="button" id="addStaffAddress" class="up-btn up-btn--secondary">
+                    + Add Another Address
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.6 19.79 19.79 0 0 1 1.61 5a2 2 0 0 1 1.99-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 17z"/></svg> Emergency Contact</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Contact Name <span class="up-req">*</span></label>
+                    <input type="text" name="staff_emergency_name" id="id_staff_emergency_name" placeholder="Full name">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Relationship <span class="up-req">*</span></label>
+                    <input type="text" name="staff_emergency_relationship" id="id_staff_emergency_relationship" placeholder="e.g. Spouse, Parent">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Phone Number <span class="up-req">*</span></label>
+                    <input type="text" name="staff_emergency_phone" id="id_staff_emergency_phone" placeholder="+1 608-000-0000">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Email</label>
+                    <input type="email" name="staff_emergency_email" id="id_staff_emergency_email" placeholder="contact@email.com">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Priority</label>
+                    <input type="number" name="staff_emergency_priority" id="id_staff_emergency_priority" value="1" min="1" max="10">
+                    <p class="up-hint">1 = highest priority</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Education</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Degree <span class="up-req">*</span></label>
+                    <input type="text" name="staff_degree" id="id_staff_degree" placeholder="e.g. BS, MBA">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Institution Name <span class="up-req">*</span></label>
+                    <input type="text" name="staff_institution_name" id="id_staff_institution_name" placeholder="e.g. UW-Madison">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Field of Study</label>
+                    <input type="text" name="staff_field_of_study" id="id_staff_field_of_study" placeholder="e.g. Business Administration">
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Graduation Year</label>
+                    <input type="number" name="staff_graduation_year"  value="{{ education.graduation_year|default_if_none:'' }}" id="id_staff_graduation_year" placeholder="e.g. 2015" min="1950" max="2099">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Certifications <span style="font-weight:400;color:var(--up-muted,#888);font-size:12px;">(optional)</span></span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <p class="up-hint" style="margin-bottom:12px;">Only add these if the staff member already holds a certification — leave blank otherwise.</p>
+                <div id="staff-cert-list"></div>
+                <div class="up-cert-entry" id="staff-cert-0">
+                  <div class="up-grid up-grid--2">
+                    <div class="up-field">
+                      <label class="up-label">Certification Name</label>
+                      <input type="text" name="staff_cert_name[]" placeholder="e.g. PMP, CPA">
+                    </div>
+                    <div class="up-field">
+                      <label class="up-label">Issuing Organization</label>
+                      <input type="text" name="staff_cert_org[]" placeholder="e.g. PMI">
+                    </div>
+                    <div class="up-field">
+                      <label class="up-label">Issue Date</label>
+                      <input type="date" name="staff_cert_issue_date[]">
+                    </div>
+                    <div class="up-field">
+                      <label class="up-label">Expiration Date</label>
+                      <input type="date" name="staff_cert_expiry_date[]">
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="up-add-row-btn" onclick="addCertRow()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add another certification
+                </button>
+              </div>
+            </div>
+
+            <div class="up-accordion">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Documents & Proofs</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd" style="display:none">
+                <div id="staff-doc-list"></div>
+                <div class="up-doc-entry" id="staff-doc-0">
+                  <div class="up-grid up-grid--2">
+                    <div class="up-field up-field--full">
+                      <label class="up-label">Document Type</label>
+                      <input type="text" name="staff_doc_type[]" placeholder="e.g. Employment Contract, ID Proof">
+                    </div>
+                    <div class="up-field up-field--full">
+                      <label class="up-label">Upload File</label>
+                      <input type="file" name="staff_doc_file[]" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                      <p class="up-hint">PDF, JPG, PNG, DOC · Max 10 MB per file</p>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="up-add-row-btn" onclick="addDocRow('staff')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add another document
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="fields-admin" class="up-type-fields" style="display:none">
+            <div class="up-accordion up-accordion--open">
+              <button type="button" class="up-accordion__hd">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg> Admin Details</span>
+                <svg class="up-accordion__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="up-accordion__bd">
+                <div class="up-grid up-grid--2">
+                  <div class="up-field">
+                    <label class="up-label">Employee ID <span class="up-req">*</span></label>
+                    <input type="text" name="admin_employee_id" id="id_admin_employee_id" placeholder="e.g. ADM-0001">
+                    <p class="up-field-error" data-error="id_admin_employee_id"></p>
+                  </div>
+                  <div class="up-field">
+                    <label class="up-label">Work Email <span class="up-req">*</span></label>
+                    <input type="email" name="admin_work_email" id="id_admin_work_email" placeholder="admin@wisc.edu">
+                    <p class="up-field-error" data-error="id_admin_work_email"></p>
+                  </div>
+                  <div class="up-field up-field--full">
+                    <label class="up-label">Admin Scope / Department</label>
+                    <select name="admin_scope" id="id_admin_scope">
+                      <option value="">Select scope</option>
+                      <option value="university_wide">University-wide</option>
+                      <option value="registrar">Registrar</option>
+                      <option value="admissions">Admissions</option>
+                      <option value="finance">Finance</option>
+                      <option value="hr">HR</option>
+                      <option value="it">IT</option>
+                    </select>
+                  </div>
+                  <div class="up-field up-field--full">
+                    <label class="up-label">Reason / Notes</label>
+                    <textarea name="admin_notes" id="id_admin_notes" rows="3" placeholder="Why is this admin account being created?"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="up-section-nav">
+            <button type="button" class="up-btn up-btn--ghost" data-prev="identity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back
+            </button>
+            <button type="button" class="up-btn up-btn--primary" data-next="review">
+              Review & Confirm
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════
+             TAB 4 — REVIEW
+        ═══════════════════════════════════════ -->
+        <section class="up-section" id="sec-review" data-section="review">
+          <div class="up-section-head">
+            <div class="up-section-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div>
+              <h2 class="up-section-title">Review &amp; Confirm</h2>
+              <p class="up-section-sub">Check everything before creating — go back to edit any section</p>
+            </div>
+          </div>
+
+          <div class="up-review-group">
+            <div class="up-review-group-header">
+              <span>Role &amp; Type</span>
+              <button type="button" class="up-review-edit-btn" data-goto="role">Edit</button>
+            </div>
+            <div class="up-review-row"><span class="up-review-label">User type</span><span class="up-review-val" id="rv-usertype">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">Role</span><span class="up-review-val" id="rv-role">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">Account status</span><span class="up-review-val" id="rv-status">—</span></div>
+          </div>
+
+          <div class="up-review-group">
+            <div class="up-review-group-header">
+              <span>Identity</span>
+              <button type="button" class="up-review-edit-btn" data-goto="identity">Edit</button>
+            </div>
+            <div class="up-review-row"><span class="up-review-label">Full name</span><span class="up-review-val" id="rv-fullname">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">Username</span><span class="up-review-val" id="rv-username">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">SSN Number</span><span class="up-review-val" id="rv-ssn-number">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">Email</span><span class="up-review-val" id="rv-email">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">University ID</span><span class="up-review-val" id="rv-univid">Not assigned</span></div>
+            <div class="up-review-row"><span class="up-review-label">Mobile</span><span class="up-review-val" id="rv-mobile">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">Date of birth</span><span class="up-review-val" id="rv-dob">—</span></div>
+            <div class="up-review-row"><span class="up-review-label">Gender</span><span class="up-review-val" id="rv-gender">—</span></div>
+             <div class="up-review-row"><span class="up-review-label">Has firearm</span><span class="up-review-val" id="rv-firearm">—</span></div>
+            <div id="rv-firearm-details-row" style="display:none;">
+              <div class="up-review-row"><span class="up-review-label">Firearm name</span><span class="up-review-val" id="rv-firearm-name">—</span></div>
+              <div class="up-review-row"><span class="up-review-label">Firearm type</span><span class="up-review-val" id="rv-firearm-type">—</span></div>
+              <div class="up-review-row"><span class="up-review-label">Serial number</span><span class="up-review-val" id="rv-firearm-serial">—</span></div>
+            </div>
+          </div>
+
+          <div class="up-review-group" id="rv-typegroup">
+            <div class="up-review-group-header">
+              <span id="rv-typegroup-label">Type Details</span>
+              <button type="button" class="up-review-edit-btn" data-goto="typedetails">Edit</button>
+            </div>
+            <div id="rv-typefields"></div>
+          </div>
+
+          <div class="up-section-nav">
+            <button type="button" class="up-btn up-btn--ghost" data-prev="typedetails">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back
+            </button>
+            {% if edit_mode %}
+              <button type="button" class="up-btn up-btn--success" id="updateBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Update User
+              </button>
+            {% else %}
+              <button type="submit" class="up-btn up-btn--success" id="submitBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Create User
+              </button>
+            {% endif %}
+          </div>
+
+
+        </section>
+
+      </form>
+    </div>
+
+    <div class="up-summary-col">
+      <div class="up-summary-card">
+        <p class="up-summary-title">User Preview</p>
+        <div class="up-summary-avatar">
+          <div class="up-summary-avatar-ring" id="summaryAvatarRing">
+            <img id="summaryAvatarImg" src="" alt="">
+            <span class="up-summary-initials" id="summaryInitials">?</span>
+          </div>
+          <p class="up-summary-name" id="summaryName">—</p>
+          <p class="up-summary-email" id="summaryEmail">—</p>
+        </div>
+        <div class="up-summary-rows">
+          <div class="up-summary-row"><span class="up-summary-row-label">Username</span><span class="up-summary-row-val" id="summaryUsername">—</span></div>
+          <div class="up-summary-row"><span class="up-summary-row-label">Univ. ID</span><span class="up-summary-row-val" id="summaryUnivId">—</span></div>
+          <div class="up-summary-row"><span class="up-summary-row-label">Mobile</span><span class="up-summary-row-val" id="summaryMobile">—</span></div>
+          <div class="up-summary-row"><span class="up-summary-row-label">User Type</span><span class="up-summary-row-val" id="summaryUserType">Student</span></div>
+          <div class="up-summary-row"><span class="up-summary-row-label">Status</span><span class="up-summary-row-val" id="summaryStatus">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% csrf_token %}
+{% if edit_mode %}
+  <input type="hidden" id="editUserId" value="{{ edit_user_id }}">
+  <input type="hidden" id="editMode" value="true">
+{% endif %}
+{% endblock %}
+
+{% block global_modal %}
+{% if success %}
+  <div class="up-modal-overlay" id="successModal" data-redirect-url="{% url 'user_page' %}">
+    <div class="up-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button type="button" class="up-modal-close-btn" id="modalCloseBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="up-modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+    </div>
+    <h2 class="up-modal-title" id="modalTitle">User Created!</h2>
+    <p class="up-modal-sub">Share these credentials with the user securely.</p>
+    <div class="up-modal-cred">
+      <div class="up-cred-row">
+        <span class="up-cred-label">Username</span>
+        <span class="up-cred-val">{{ new_username }}</span>
+        <button type="button" class="up-copy-btn" data-copy="{{ new_username }}" title="Copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+      </div>
+      <div class="up-cred-row">
+        <span class="up-cred-label">Password</span>
+        <span class="up-cred-val up-cred-val--pass">
+          <span class="up-pass-mask">••••••••</span>
+          <span class="up-pass-text" style="display:none">{{ new_password }}</span>
+        </span>
+        <button type="button" class="up-copy-btn" data-copy="{{ new_password }}" title="Copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button type="button" class="up-show-btn" id="togglePass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <p class="up-cred-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Password format: <strong>firstname + last 4 digits of mobile</strong>
+      </p>
+    </div>
+    <a href="{% url 'user_page' %}" class="up-btn up-btn--primary up-modal-btn">Add Another User</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{% static 'script/user_create.js' %}"></script>
+{% endblock %}
+
+
+
+
+<!-- /* ***************************************************** Arun code *************************************************** */  -->

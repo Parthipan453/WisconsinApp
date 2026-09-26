@@ -1,0 +1,308 @@
+
+<!-- ************************************************ Arun code ********************************************************* -->
+
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}My Support Tickets — University of Wisconsin{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tickets/tickets.css' %}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+{% endblock %}
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_support_tickets %}active{% endblock %}
+
+{% block content %}
+<div class="ticket-toast-container" id="ticketToastContainer"></div>
+
+<div class="ticket-page-header">
+  <div>
+    <h1>My Support Tickets</h1>
+    <p>Track the status of issues you've reported.</p>
+  </div>
+  <a href="{% url 'Student:submit_support_ticket' uuid=request.user.uuid %}" class="ticket-btn ticket-btn-primary">
+    <i class="ti ti-plus"></i><span>New Ticket</span>
+  </a>
+</div>
+
+<div class="ticket-table-wrap">
+  <table class="ticket-table">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Course</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr class="ticket-row" data-ticket-id="{{ t.id }}">
+        <td>
+          <div class="ticket-title">{{ t.subject }}</div>
+        </td>
+        <td>{% if t.course_section %}{{ t.course_section.course.course_code }}{% else %}General{% endif %}</td>
+        <td><span class="ticket-badge ticket-{{ t.priority|lower }}">{{ t.get_priority_display }}</span></td>
+        <td><span class="ticket-badge ticket-status-{{ t.status|lower }}">{{ t.get_status_display }}</span></td>
+        <td>{{ t.created_at|date:"M d, Y" }}</td>
+        <td>
+          <div class="ticket-actions">
+            <button class="ticket-action-btn view" title="View" data-mode="view">
+              <i class="ti ti-eye"></i>
+            </button>
+            {% if t.status == "OPEN" %}
+            <button class="ticket-action-btn edit" title="Edit" data-mode="edit">
+              <i class="ti ti-pencil"></i>
+            </button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;padding:24px;color:#888;">You haven't submitted any tickets yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if tickets.has_other_pages %}
+<div class="ticket-pagination">
+  {% if tickets.has_previous %}<a href="?page={{ tickets.previous_page_number }}">Prev</a>{% endif %}
+  <span>Page {{ tickets.number }} of {{ tickets.paginator.num_pages }}</span>
+  {% if tickets.has_next %}<a href="?page={{ tickets.next_page_number }}">Next</a>{% endif %}
+</div>
+{% endif %}
+
+<template id="priorityOptionsTemplate">
+  {% for value, label in priority_choices %}
+    <option value="{{ value }}">{{ label }}</option>
+  {% endfor %}
+</template>
+
+<!-- Ticket modal (used for both View and Edit) -->
+<div class="ticket-modal-overlay" id="ticketModalOverlay">
+  <div class="ticket-modal" role="dialog" aria-modal="true" aria-labelledby="ticketModalTitle">
+    <div class="ticket-modal-header">
+      <h3 id="ticketModalTitle">Ticket Details</h3>
+      <button class="ticket-modal-close" id="ticketModalClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="ticket-modal-body" id="ticketModalBody"></div>
+    <div class="ticket-modal-footer" id="ticketModalFooter"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+const DETAIL_URL_TEMPLATE = "{% url 'Student:ticket_detail' uuid=request.user.uuid ticket_id=0 %}";
+const UPDATE_URL_TEMPLATE = "{% url 'Student:update_ticket' uuid=request.user.uuid ticket_id=0 %}";
+
+function detailUrl(id) {
+  return DETAIL_URL_TEMPLATE.replace('/0/detail/', `/${id}/detail/`);
+}
+function updateUrl(id) {
+  return UPDATE_URL_TEMPLATE.replace('/0/update/', `/${id}/update/`);
+}
+
+const ticketOverlay = document.getElementById('ticketModalOverlay');
+const ticketModalTitle = document.getElementById('ticketModalTitle');
+const ticketModalBody = document.getElementById('ticketModalBody');
+const ticketModalFooter = document.getElementById('ticketModalFooter');
+let activeTicketChoices = null;
+
+function openTicketModal() {
+  ticketOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeTicketModal() {
+  ticketOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+  if (activeTicketChoices) {
+    activeTicketChoices.destroy();
+    activeTicketChoices = null;
+  }
+  ticketModalBody.innerHTML = '';
+  ticketModalFooter.innerHTML = '';
+}
+
+function ticketRemoveToast(toast) {
+  toast.style.animation = 'ticketToastOut 0.3s ease forwards';
+  setTimeout(() => toast.remove(), 300);
+}
+
+function ticketShowToast(title, msg, type = 'error') {
+  const iconMap = {
+    success: '<i class="ti ti-circle-check"></i>',
+    info: '<i class="ti ti-info-circle"></i>',
+    warning: '<i class="ti ti-alert-triangle"></i>',
+    error: '<i class="ti ti-circle-x"></i>',
+  };
+  const container = document.getElementById('ticketToastContainer');
+  const toast = document.createElement('div');
+  toast.className = `ticket-toast ${type}`;
+  toast.innerHTML = `
+    <div class="ticket-toast-icon">${iconMap[type] || iconMap.error}</div>
+    <div class="ticket-toast-txt">
+      <b>${title}</b>
+      <small>${msg}</small>
+    </div>
+    <span class="ticket-toast-close"><i class="ti ti-x"></i></span>
+  `;
+  toast.querySelector('.ticket-toast-close').addEventListener('click', () => ticketRemoveToast(toast));
+  container.appendChild(toast);
+  setTimeout(() => ticketRemoveToast(toast), 4000);
+}
+
+{% if messages %}
+document.addEventListener('DOMContentLoaded', function () {
+  {% for message in messages %}
+    ticketShowToast(
+      "{% if 'success' in message.tags %}Success{% elif 'info' in message.tags %}Info{% elif 'warning' in message.tags %}Warning{% else %}Error{% endif %}",
+      "{{ message|escapejs }}",
+      "{% if 'success' in message.tags %}success{% elif 'info' in message.tags %}info{% elif 'warning' in message.tags %}warning{% else %}error{% endif %}"
+    );
+  {% endfor %}
+});
+{% endif %}
+
+document.getElementById('ticketModalClose').addEventListener('click', closeTicketModal);
+ticketOverlay.addEventListener('click', (e) => {
+  if (e.target === ticketOverlay) closeTicketModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && ticketOverlay.classList.contains('active')) closeTicketModal();
+});
+
+document.querySelectorAll('.ticket-action-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const row = e.currentTarget.closest('tr');
+    const id = row.dataset.ticketId;
+    const mode = e.currentTarget.dataset.mode;
+
+    fetch(detailUrl(id))
+      .then(r => r.json())
+      .then(res => {
+        if (!res.success) return;
+
+        if (mode === 'view') {
+          ticketModalTitle.textContent = 'Ticket Details';
+          ticketModalBody.innerHTML = viewHtml(res.data);
+          ticketModalFooter.innerHTML = `
+            <button class="ticket-btn ticket-btn-ghost" id="ticketModalCloseBtn" type="button">Close</button>
+          `;
+          document.getElementById('ticketModalCloseBtn').addEventListener('click', closeTicketModal);
+        } else {
+          ticketModalTitle.textContent = 'Edit Ticket';
+          ticketModalBody.innerHTML = editHtml(res.data);
+          ticketModalFooter.innerHTML = `
+            <button class="ticket-btn ticket-btn-ghost" id="ticketModalCancelBtn" type="button">Cancel</button>
+            <button class="ticket-btn ticket-btn-primary" id="ticketModalSaveBtn" type="button">Save</button>
+          `;
+
+          const select = ticketModalBody.querySelector('.ticket-inline-priority');
+          const tpl = document.getElementById('priorityOptionsTemplate').content.cloneNode(true);
+          select.appendChild(tpl);
+          select.value = res.data.priority;
+
+          activeTicketChoices = new Choices(select, {
+            searchEnabled: false,
+            itemSelectText: '',
+            shouldSort: false,
+          });
+
+          document.getElementById('ticketModalSaveBtn').addEventListener('click', function () {
+              console.log("Save button clicked");
+              submitInlineEdit(id);
+          });
+          document.getElementById('ticketModalCancelBtn').addEventListener('click', closeTicketModal);
+        }
+
+        openTicketModal();
+      });
+  });
+});
+
+function viewHtml(data) {
+  return `
+    <div class="ticket-expand-grid">
+      <div><label>Subject</label><span>${escapeHtml(data.subject)}</span></div>
+      <div><label>Course</label><span>${escapeHtml(data.course || 'General')}</span></div>
+      <div><label>Priority</label><span>${escapeHtml(data.priority_display)}</span></div>
+      <div><label>Status</label><span>${escapeHtml(data.status_display)}</span></div>
+      <div class="ticket-expand-full"><label>Description</label><p>${escapeHtml(data.description || '—')}</p></div>
+    </div>
+  `;
+}
+
+function editHtml(data) {
+  return `
+    <div class="ticket-expand-grid">
+      <div><label>Subject</label><input type="text" class="ticket-inline-subject" value="${escapeHtml(data.subject)}" maxlength="255" /></div>
+      <div><label>Priority</label><select class="ticket-inline-priority"></select></div>
+      <div class="ticket-expand-full"><label>Description</label><textarea class="ticket-inline-description" rows="4">${escapeHtml(data.description || '')}</textarea></div>
+    </div>
+  `;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(
+                    cookie.substring(name.length + 1)
+                );
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+function submitInlineEdit(id) {
+
+  console.log("submitInlineEdit()");
+  console.log(id);
+  
+  const payload = {
+    subject: ticketModalBody.querySelector('.ticket-inline-subject').value,
+    priority: ticketModalBody.querySelector('.ticket-inline-priority').value,
+    description: ticketModalBody.querySelector('.ticket-inline-description').value,
+  };
+
+  console.log(payload);
+
+  fetch(updateUrl(id), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify(payload),
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) { location.reload(); }
+      else { ticketShowToast('Error', res.error || 'Update failed', 'error'); }
+    });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+</script>
+{% endblock %}
+
+
+<!-- ************************************************ Arun code ********************************************************* -->

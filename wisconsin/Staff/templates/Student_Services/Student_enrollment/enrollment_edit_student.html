@@ -1,0 +1,1147 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Edit Enrollment — {{ student_user.get_full_name }} | University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'colleges/css/add_program_course.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<style>
+/* ============================================================
+   PAGE LAYOUT — 3 column grid
+   ============================================================ */
+.ee-page { display: flex; flex-direction: column; gap: 16px; padding: 18px 20px; max-width: 1400px; margin: 0 auto; }
+
+.ee-header-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ee-header-left h2 { font-size: 22px; font-weight: 800; color: #1b1f3b; margin: 0 0 4px; }
+.ee-breadcrumb { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #8c8f9c; flex-wrap: wrap; }
+.ee-breadcrumb .sep { color: #c5c8d3; }
+.ee-breadcrumb a { color: #8c8f9c; text-decoration: none; }
+.ee-breadcrumb a:hover { color: #dc3545; }
+.ee-breadcrumb .active { color: #dc3545; font-weight: 600; }
+
+.btn-back-list {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff; color: #374151;
+  font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: .18s;
+  white-space: nowrap;
+}
+.btn-back-list:hover { background: #f9fafb; border-color: #d1d5db; color: #111; }
+
+/* ============================================================
+   Student Banner
+   ============================================================ */
+.ee-student-banner {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  flex-wrap: wrap;
+}
+.ee-avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: #dc3545; color: #fff;
+  font-size: 17px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ee-student-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ee-student-name {
+  font-size: 15px; font-weight: 800; color: #1b1f3b;
+  margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.ee-student-sub { font-size: 12px; color: #8c8f9c; margin: 0; }
+.ee-banner-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.ee-banner-badge.id   { background: #eff6ff; color: #1d4ed8; }
+.ee-banner-badge.prog { background: #eff6ff; color: #0891b2; }
+.ee-banner-badge.dept { background: #f0fdf4; color: #166534; }
+
+/* ============================================================
+   3-Column Body
+   ============================================================ */
+.ee-body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ============================================================
+   LEFT PANEL — All Enrollments
+   ============================================================ */
+.ee-left-panel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+.ee-left-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1.5px solid #f3f4f6;
+}
+.ee-left-header-left { display: flex; align-items: center; gap: 8px; }
+.ee-left-header-left svg { color: #dc3545; }
+.ee-left-title { font-size: 13.5px; font-weight: 700; color: #1b1f3b; }
+.ee-total-badge {
+  font-size: 11.5px; font-weight: 700; color: #6b7280;
+  background: #f3f4f6; padding: 2px 9px; border-radius: 20px;
+}
+
+.ee-semester-group { border-bottom: 1.5px solid #f3f4f6; }
+.ee-semester-group:last-child { border-bottom: none; }
+
+.ee-sem-toggle {
+  width: 100%; background: none; border: none;
+  padding: 11px 16px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  text-align: left; transition: background .15s;
+}
+.ee-sem-toggle:hover { background: #fafafa; }
+.ee-sem-chevron { color: #adb5bd; transition: transform .2s; flex-shrink: 0; }
+.ee-sem-toggle.open .ee-sem-chevron { transform: rotate(90deg); }
+.ee-sem-name { font-size: 13px; font-weight: 700; color: #374151; flex: 1; }
+.ee-sem-count-badge {
+  font-size: 11px; font-weight: 700; color: #1d4ed8;
+  background: #eff6ff; padding: 2px 8px; border-radius: 20px;
+  white-space: nowrap;
+}
+
+.ee-sem-courses { display: none; }
+.ee-sem-courses.open { display: block; }
+
+.ee-course-row {
+  display: flex; flex-direction: column;
+  padding: 10px 16px 10px 26px;
+  cursor: pointer; transition: background .15s;
+  border-top: 1px solid #f3f4f6;
+}
+.ee-course-row:hover { background: #fff5f5; }
+.ee-course-row.selected { background: #fff0f0; }
+.ee-course-row-top { display: flex; align-items: center; gap: 8px; }
+.ee-course-row-name { font-size: 12.5px; font-weight: 600; color: #1b1f3b; flex: 1; min-width: 0; line-height: 1.3; }
+.ee-course-row-bottom { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.ee-course-row-sem { font-size: 10.5px; color: #9ca3af; white-space: nowrap; }
+.ee-course-row-credits { font-size: 10.5px; color: #6366f1; font-weight: 600; white-space: nowrap; }
+.ee-course-row-section { font-size: 10.5px; color: #6b7280; white-space: nowrap; }
+.ee-course-row-year-badge {
+  font-size: 10px; font-weight: 700; color: #6366f1; background: #eef2ff;
+  padding: 1px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
+}
+.ee-subgroup-header {
+  font-size: 11px; font-weight: 700; color: #6b7280;
+  padding: 8px 16px 4px 26px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.ee-subgroup { border-top: 1px solid #f3f4f6; }
+.ee-subgroup:first-child { border-top: none; }
+.ee-course-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.ee-course-status-dot.active   { background: #22c55e; }
+.ee-course-status-dot.inactive { background: #9ca3af; }
+
+.ee-course-status-dot.withdrawn{ background: #ef4444; }
+.ee-course-status-label { font-size: 11px; font-weight: 600; white-space: nowrap; }
+.ee-course-status-label.active   { color: #16a34a; }
+.ee-course-status-label.inactive { color: #9ca3af; }
+
+.ee-course-status-label.withdrawn{ color: #dc2626; }
+.ee-row-arrow { color: #d1d5db; flex-shrink: 0; }
+.ee-course-row.selected .ee-row-arrow { color: #dc3545; }
+
+.ee-left-hint {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-top: 1.5px solid #f3f4f6;
+  font-size: 11.5px; color: #9ca3af; line-height: 1.5;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.ee-left-hint svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ============================================================
+   CENTER PANEL
+   ============================================================ */
+.ee-center-panel { display: flex; flex-direction: column; gap: 14px; }
+
+.ee-card {
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+.ee-card-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid #f3f4f6;
+}
+.ee-card-icon { color: #dc3545; }
+.ee-card-title { font-size: 14px; font-weight: 700; color: #1b1f3b; flex: 1; }
+.ee-status-badge-active {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  background: #f0fdf4; color: #16a34a;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.ee-status-badge-inactive {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  background: #f3f4f6; color: #6b7280;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.ee-status-chevron { font-size: 10px; }
+
+.ee-card-meta {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 18px;
+  border-bottom: 1.5px solid #f3f4f6;
+}
+.ee-meta-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11.5px; font-weight: 700;
+}
+.ee-meta-badge.sem  { background: #eff6ff; color: #1d4ed8; }
+.ee-meta-badge.grey { background: #f3f4f6; color: #4b5563; }
+
+.ee-card-body { padding: 16px 18px; }
+
+.ee-field-row   { display: grid; gap: 14px; margin-bottom: 14px; }
+.ee-field-row-2 { grid-template-columns: 1fr 1fr; }
+.ee-field-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.ee-field { display: flex; flex-direction: column; gap: 6px; }
+.ee-label { font-size: 12.5px; font-weight: 700; color: #374151; }
+.ee-label .req { color: #dc3545; }
+
+.ee-select-wrap select,
+.ee-input-wrap input {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid #e5e7eb; border-radius: 10px;
+  font-size: 13.5px; color: #1b1f3b;
+  background: #fff; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+  -webkit-appearance: none; appearance: none;
+}
+.ee-select-wrap { position: relative; }
+.ee-select-wrap::after {
+  content: '\25BE'; position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%); pointer-events: none;
+  color: #9ca3af; font-size: 12px;
+}
+.ee-select-wrap select:focus,
+.ee-input-wrap input:focus { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.08); }
+
+.ee-input-wrap input.ro {
+  background: #f9fafb; color: #6b7280;
+  cursor: not-allowed; border-color: #e5e7eb;
+}
+.ee-input-wrap input.ro:focus { border-color: #e5e7eb; box-shadow: none; }
+.ee-select-wrap select:disabled {
+  background: #f9fafb; color: #6b7280;
+  cursor: not-allowed; border-color: #e5e7eb;
+}
+.ee-select-wrap select:disabled:focus { border-color: #e5e7eb; box-shadow: none; }
+
+/* Enrollment Status toggle */
+.ee-status-section { margin-bottom: 0; }
+.ee-status-label-title { font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 2px; }
+.ee-status-desc { font-size: 12px; color: #9ca3af; line-height: 1.5; margin-bottom: 10px; }
+.ee-status-toggle { display: flex; align-items: center; gap: 10px; }
+.ee-status-radio {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 20px;
+  border: 1.5px solid #e5e7eb;
+  cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: .15s; user-select: none;
+}
+.ee-status-radio input[type=radio] { display: none; }
+.ee-status-radio.is-active   { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+.ee-status-radio.is-inactive { background: #f9fafb; border-color: #e5e7eb; color: #6b7280; }
+
+.ee-status-radio.is-withdrawn{ background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+.ee-radio-circle {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ee-radio-circle-inner {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; display: none;
+}
+.ee-status-radio.is-active   .ee-radio-circle-inner { display: block; }
+.ee-status-radio.is-selected .ee-radio-circle-inner { display: block; }
+
+/* Choices.js tweaks */
+.ee-select-wrap .choices__inner {
+  border-radius: 10px; border: 1.5px solid #e5e7eb;
+  padding: 4px 34px 4px 14px; min-height: 44px;
+  font-size: 13.5px; background: #fff;
+}
+.ee-select-wrap .choices.is-focused .choices__inner {
+  border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.08);
+}
+
+.ee-readonly-badge {
+  margin-left: auto; padding: 3px 10px; border-radius: 20px;
+  background: #f3f4f6; color: #6b7280;
+  font-size: 11.5px; font-weight: 700;
+}
+.ee-hint { font-size: 11.5px; color: #9ca3af; margin-top: 10px; }
+
+/* Locked-semester notice under the course select */
+.ee-lock-note {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ee-lock-note svg { flex-shrink: 0; }
+
+.ee-alert {
+  display: none; align-items: center; gap: 8px;
+  background: #fff0f0; color: #dc3545;
+  border: 1.5px solid #fecaca; border-radius: 10px;
+  padding: 11px 14px; font-size: 13px; font-weight: 600;
+}
+
+/* Even vertical rhythm inside the form — same 14px gap as the panels */
+.ee-center-panel form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.course-empty-state {
+  text-align: center;
+  padding: 28px 12px;
+  font-size: 13.5px;
+  color: #9ca3af;
+}
+
+/* ============================================================
+   RIGHT PANEL
+   ============================================================ */
+.ee-right-panel { display: flex; flex-direction: column; gap: 14px; }
+
+/* Summary + Live Preview side by side */
+.ee-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.ee-summary-card {
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  padding: 16px;
+}
+.ee-summary-title {
+  font-size: 13.5px; font-weight: 700; color: #1b1f3b;
+  margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+}
+.ee-summary-title svg { color: #dc3545; }
+
+.ee-donut-wrap { display: flex; align-items: center; gap: 16px; }
+.ee-donut-svg-wrap { flex-shrink: 0; position: relative; width: 90px; height: 90px; }
+.ee-donut-label {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); text-align: center;
+}
+.ee-donut-num { font-size: 22px; font-weight: 800; color: #1b1f3b; line-height: 1; }
+.ee-donut-sub { font-size: 9.5px; color: #9ca3af; font-weight: 600; }
+
+.ee-summary-legend { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.ee-legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.ee-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.ee-legend-dot.green { background: #22c55e; }
+.ee-legend-dot.grey  { background: #d1d5db; }
+.ee-legend-dot.blue  { background: #3b82f6; }
+.ee-legend-name { color: #6b7280; flex: 1; }
+.ee-legend-num  { font-weight: 700; color: #1b1f3b; }
+
+.ee-preview-card {
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+.ee-preview-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1.5px solid #f3f4f6;
+  font-size: 13px; font-weight: 700; color: #1b1f3b;
+}
+.ee-preview-header svg { color: #ef4444; }
+.ee-preview-header-sub { font-size: 11px; color: #9ca3af; font-weight: 500; margin-left: 2px; }
+.ee-preview-body { padding: 14px 16px; }
+.ee-preview-inner { display: flex; align-items: flex-start; gap: 10px; }
+.ee-prev-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #dc3545; color: #fff;
+  font-size: 14px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ee-prev-info { min-width: 0; }
+.ee-prev-name { font-size: 13.5px; font-weight: 700; color: #1b1f3b; margin: 0 0 2px; line-height: 1.3; }
+.ee-prev-sub  { font-size: 11.5px; color: #9ca3af; margin: 0 0 8px; }
+.ee-prev-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ee-prev-badge {
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.ee-prev-badge.sem      { background: #eff6ff; color: #1d4ed8; }
+.ee-prev-badge.active   { background: #f0fdf4; color: #16a34a; }
+.ee-prev-badge.inactive { background: #f3f4f6; color: #6b7280; }
+
+.ee-prev-badge.withdrawn{ background: #fef2f2; color: #dc2626; }
+
+.ee-tips-card {
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  padding: 16px 18px;
+  display: flex; flex-direction: column;
+}
+.ee-tips-title {
+  font-size: 13.5px; font-weight: 700; color: #1b1f3b;
+  margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+}
+.ee-tips-title svg { color: #f59e0b; flex-shrink: 0; }
+.ee-tips-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.ee-tips-list li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 12.5px; color: #4b5563; line-height: 1.6;
+  word-wrap: break-word; overflow-wrap: break-word;
+}
+.ee-tips-list li strong { color: #1b1f3b; font-weight: 700; }
+.ee-tip-dot {
+  position: absolute; left: 0; top: 6px;
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.ee-tip-dot.blue   { background: #3b82f6; }
+.ee-tip-dot.green  { background: #22c55e; }
+.ee-tip-dot.purple { background: #a855f7; }
+.ee-tip-dot.red    { background: #ef4444; }
+
+@media (max-width: 1100px) {
+  .ee-body { grid-template-columns: 240px 1fr; }
+}
+@media (max-width: 768px) {
+  .ee-body { grid-template-columns: 1fr; }
+  .ee-field-row-2, .ee-field-row-3 { grid-template-columns: 1fr; }
+  .ee-info-row { grid-template-columns: 1fr; }
+  .ee-page { padding: 12px; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_enrollment %}active{% endblock %}
+
+{% block content %}
+
+<div class="ee-page">
+
+  <!-- Header -->
+  <div class="ee-header-card">
+    <div class="ee-header-left">
+      <h2>Edit Student Enrollment</h2>
+      <nav class="ee-breadcrumb">
+        <span>Dashboard</span>
+        <span class="sep">&#x203A;</span>
+        <span>Student Services</span>
+        <span class="sep">&#x203A;</span>
+        <a href="{% url 'staff_enrollment' request.user.uuid %}">Enrollment Support</a>
+        <span class="sep">&#x203A;</span>
+        <a href="{% url 'staff_view_students' request.user.uuid %}">Enrolled Students</a>
+        <span class="sep">&#x203A;</span>
+        <span class="active">Edit</span>
+      </nav>
+    </div>
+    <a href="{% url 'staff_view_students' request.user.uuid %}" class="btn-back-list">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+      </svg>
+      Back to List
+    </a>
+  </div>
+
+  <!-- Student Banner -->
+  <div class="ee-student-banner">
+    <div class="ee-avatar">
+      {{ student_user.first_name|slice:":1"|upper }}{{ student_user.last_name|slice:":1"|upper }}
+    </div>
+    <div class="ee-student-info">
+      <h3 class="ee-student-name">
+        {{ student_user.get_full_name }}
+        <span class="ee-banner-badge id">{{ student.student_number|default_if_none:'N/A' }}</span>
+        <span class="ee-banner-badge prog">{{ program.program_name|default_if_none:'&mdash;' }}</span>
+        <span class="ee-banner-badge dept">{{ department.department_name|default_if_none:'&mdash;' }}</span>
+      </h3>
+      <p class="ee-student-sub">Editing enrollment for this student</p>
+    </div>
+  </div>
+
+  <!-- 3-Column Body -->
+  <div class="ee-body">
+
+    <!-- ===== LEFT PANEL ===== -->
+    <div class="ee-left-panel">
+      <div class="ee-left-header">
+        <div class="ee-left-header-left">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+          <span class="ee-left-title">All Enrollments</span>
+        </div>
+        <span class="ee-total-badge" id="totalCourseBadge">{{ enrolled_courses|length }} courses</span>
+      </div>
+
+      <div id="semesterGroupsContainer"></div>
+
+      <div class="ee-left-hint">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Click any course to view its details and update the enrollment status.
+      </div>
+    </div>
+
+    <!-- ===== CENTER PANEL ===== -->
+    <div class="ee-center-panel">
+      <form method="POST" id="enrollmentEditForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="currentEnrollmentId" value="{{ enrollment.id }}">
+
+        {% if enrolled_courses %}
+
+        <div class="ee-alert" id="formAlert">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="formAlertText"></span>
+        </div>
+
+        <!-- Edit Card -->
+        <div class="ee-card">
+          <div class="ee-card-header">
+            <svg class="ee-card-icon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <h3 class="ee-card-title" id="editCardTitle">Edit: &mdash;</h3>
+            <div id="editStatusBadge" class="ee-status-badge-active">Active <span class="ee-status-chevron">&#x25BE;</span></div>
+          </div>
+
+          <div class="ee-card-meta">
+            <span class="ee-meta-badge sem" id="metaSemester">Semester: &mdash;</span>
+            <span class="ee-meta-badge grey" id="metaCredits">Credits: &mdash;</span>
+            <span class="ee-meta-badge grey" id="metaEnrollId">Enrollment ID: &mdash;</span>
+          </div>
+
+          <div class="ee-card-body">
+
+            <div class="ee-field-row ee-field-row-2">
+              <div class="ee-field" id="fieldCourse">
+                <label class="ee-label">Course</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roCourse" readonly></div>
+              </div>
+              <div class="ee-field" id="fieldSection">
+                <label class="ee-label">Section</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roSection" readonly></div>
+              </div>
+            </div>
+
+            <div class="ee-field-row ee-field-row-3">
+              <div class="ee-field">
+                <label class="ee-label">Faculty</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roFaculty" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Section Type</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roSectionType" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Seats Filled</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roSeats" readonly></div>
+              </div>
+            </div>
+
+            <div class="ee-status-section">
+              <div class="ee-status-label-title">Enrollment Status</div>
+              <div class="ee-status-desc">
+                Select the enrollment status. All other details on this page are read-only.
+              </div>
+              <div class="ee-status-toggle">
+                <label class="ee-status-radio is-active" id="radioLabelActive" for="radioActive">
+                  <input type="radio" name="enrollmentStatus" value="ACTIVE" id="radioActive">
+                  <span class="ee-radio-circle"><span class="ee-radio-circle-inner"></span></span>
+                  Active
+                </label>
+                <label class="ee-status-radio is-inactive" id="radioLabelInactive" for="radioInactive">
+                  <input type="radio" name="enrollmentStatus" value="INACTIVE" id="radioInactive">
+                  <span class="ee-radio-circle"><span class="ee-radio-circle-inner"></span></span>
+                  Inactive
+                </label>
+                <label class="ee-status-radio is-withdrawn" id="radioLabelWithdrawn" for="radioWithdrawn">
+                  <input type="radio" name="enrollmentStatus" value="WITHDRAWN" id="radioWithdrawn">
+                  <span class="ee-radio-circle"><span class="ee-radio-circle-inner"></span></span>
+                  Withdrawn
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Student & Enrollment Details (Read-only) -->
+        <div class="ee-card">
+          <div class="ee-card-header">
+            <svg class="ee-card-icon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <h3 class="ee-card-title">Student &amp; Enrollment Details</h3>
+            <span class="ee-readonly-badge">Read-only</span>
+          </div>
+          <div class="ee-card-body">
+
+            <div class="ee-field-row ee-field-row-3">
+              <div class="ee-field">
+                <label class="ee-label">Student Name</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" value="{{ student_user.get_full_name }}" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Student ID</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" value="{{ student.student_number|default_if_none:'&mdash;' }}" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Email</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" value="{{ student_user.email|default_if_none:'&mdash;' }}" readonly></div>
+              </div>
+            </div>
+
+            <div class="ee-field-row ee-field-row-3">
+              <div class="ee-field">
+                <label class="ee-label">Program</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" value="{{ program.program_name|default_if_none:'&mdash;' }}" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Department</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" value="{{ department.department_name|default_if_none:'&mdash;' }}" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Degree</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" value="{{ degree.degree_name|default_if_none:'&mdash;' }}" readonly></div>
+              </div>
+            </div>
+
+            <div class="ee-field-row ee-field-row-3">
+              <div class="ee-field">
+                <label class="ee-label">Semester</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roSemester" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Enrollment ID</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roEnrollmentId" readonly></div>
+              </div>
+              <div class="ee-field">
+                <label class="ee-label">Credits</label>
+                <div class="ee-input-wrap"><input type="text" class="ro" id="roCredits" readonly></div>
+              </div>
+            </div>
+
+            <p class="ee-hint">These details are locked for this page. Only the enrollment status can be changed.</p>
+
+          </div>
+        </div>
+
+        <!-- ===== Enrollment Summary / Live Preview / Helpful Tips ===== -->
+        <div class="ee-right-panel">
+
+          <div class="ee-info-row">
+
+          <!-- Enrollment Summary -->
+          <div class="ee-summary-card">
+        <p class="ee-summary-title">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+          Enrollment Summary
+        </p>
+        <div class="ee-donut-wrap">
+          <div class="ee-donut-svg-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="35" fill="none" stroke="#f3f4f6" stroke-width="10"/>
+              <circle cx="45" cy="45" r="35" fill="none" stroke="#22c55e" stroke-width="10"
+                stroke-dasharray="0 220" stroke-linecap="round"
+                transform="rotate(-90 45 45)" id="donutActive"/>
+              <circle cx="45" cy="45" r="35" fill="none" stroke="#d1d5db" stroke-width="10"
+                stroke-dasharray="0 220" stroke-linecap="round"
+                transform="rotate(-90 45 45)" id="donutInactive"/>
+            </svg>
+            <div class="ee-donut-label">
+              <div class="ee-donut-num" id="donutTotal">{{ enrolled_courses|length }}</div>
+              <div class="ee-donut-sub">Total Courses</div>
+            </div>
+          </div>
+          <div class="ee-summary-legend">
+            <div class="ee-legend-row">
+              <div class="ee-legend-dot green"></div>
+              <span class="ee-legend-name">Active</span>
+              <span class="ee-legend-num" id="legendActive">&mdash;</span>
+            </div>
+            <div class="ee-legend-row">
+              <div class="ee-legend-dot grey"></div>
+              <span class="ee-legend-name">Inactive</span>
+              <span class="ee-legend-num" id="legendInactive">&mdash;</span>
+            </div>
+            <div class="ee-legend-row">
+              <div class="ee-legend-dot blue"></div>
+              <span class="ee-legend-name">Total Credits</span>
+              <span class="ee-legend-num" id="legendCredits">&mdash;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+          <!-- Quick Tips -->
+          <div class="ee-tips-card">
+            <h4 class="ee-tips-title">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"/>
+              </svg>
+              Quick Tips
+            </h4>
+            <ul class="ee-tips-list">
+              <li><span class="ee-tip-dot blue"></span>Editing is only available for the <strong>enrollment status</strong> of each course.</li>
+              <li><span class="ee-tip-dot green"></span>All other fields (course, section, faculty, etc.) are read-only.</li>
+              <li><span class="ee-tip-dot purple"></span>Changes to multiple enrollments can be saved together in one update.</li>
+              <li><span class="ee-tip-dot red"></span>A course with a <strong>Withdrawn</strong> status cannot be reactivated.</li>
+            </ul>
+          </div>
+
+          </div><!-- /ee-info-row -->
+
+        </div><!-- /info stack -->
+
+        <div class="df-actions">
+          <a href="{% url 'staff_view_students' request.user.uuid %}" class="btn-cancel">Cancel</a>
+          <button type="submit" class="btn-save" id="submitBtn">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Update Enrollment
+          </button>
+        </div>
+
+        {% else %}
+        <div class="ee-card">
+          <div class="ee-card-body">
+            <div class="course-empty-state">This student has no enrollments to edit.</div>
+            <div class="df-actions">
+              <a href="{% url 'staff_view_students' request.user.uuid %}" class="btn-cancel">Back to List</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </form>
+    </div><!-- /ee-center-panel -->
+
+  </div><!-- /ee-body -->
+
+</div><!-- /ee-page -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ENROLLED_COURSES = {{ enrolled_courses_json|safe }};
+const SECTIONS_URL     = '/staff/api/get-course-sections/';
+const UPDATE_URL       = '/staff/api/update-enrollment/';
+const BACK_URL         = "{% url 'staff_view_students' request.user.uuid %}";
+const CSRF_TOKEN       = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+const statusState = {};
+let currentRecord   = null;
+let currentSections = [];
+
+function el(id) { return document.getElementById(id); }
+
+function showAlert(msg) {
+  const a = el('formAlert');
+  el('formAlertText').textContent = msg;
+  a.style.display = 'flex';
+  a.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function hideAlert() { const a = el('formAlert'); if (a) a.style.display = 'none'; }
+
+function showError(selectId, msg) {
+  const field = el(selectId === 'id_course' ? 'fieldCourse' : 'fieldSection');
+  if (!field) return;
+  field.classList.add('has-error');
+  let errEl = field.querySelector('.df-error');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.className = 'df-error';
+    field.querySelector('.ee-select-wrap')?.after(errEl);
+  }
+  errEl.textContent = msg;
+}
+function clearErrors() {
+  ['fieldCourse','fieldSection'].forEach(id => {
+    const f = el(id);
+    f?.classList.remove('has-error');
+    f?.querySelector('.df-error')?.remove();
+  });
+}
+
+async function loadSections(courseId, semesterId, selectSectionId) {
+  currentSections = [];
+  if (!courseId) { el('roSection').value = 'No course selected'; return; }
+  if (!semesterId) { el('roSection').value = 'No semester for this enrollment'; return; }
+  let sections = [];
+  try {
+    let resp = await fetch(`${SECTIONS_URL}?course_id=${courseId}&semester_id=${semesterId}`);
+    let data = await resp.json();
+    if (data.success) sections = data.sections;
+  } catch (err) { console.error(err); showAlert('Unable to load sections for this course.'); }
+  currentSections = sections;
+  const section = sections.find(s => String(s.id) === String(selectSectionId));
+  if (section) {
+    el('roSection').value = `${section.section_number} (${section.section_type || 'Lecture'})`;
+  } else if (sections.length) {
+    el('roSection').value = sections[0].section_number + ' (' + (sections[0].section_type || 'Lecture') + ')';
+  } else {
+    el('roSection').value = 'No sections available';
+  }
+}
+
+function populateCourseDisplay(record) {
+  if (!record) return;
+  el('roCourse').value = `${record.course_code} \u2014 ${record.course_name}`;
+}
+
+const STATUS_LABELS = { ACTIVE: 'Active', INACTIVE: 'Inactive', WITHDRAWN: 'Withdrawn' };
+
+function uiStatusOfDb(db) {
+  if (db === 'INACTIVE')  return 'INACTIVE';
+  if (db === 'WITHDRAWN') return 'WITHDRAWN';
+  return 'ACTIVE';
+}
+function statusLabel(key) { return STATUS_LABELS[key] || 'Active'; }
+
+function originalStateOf(rec) { return uiStatusOfDb(rec.status); }
+
+function initStatusState() {
+  ENROLLED_COURSES.forEach(rec => { statusState[rec.enrollment_id] = originalStateOf(rec); });
+}
+
+function statusPayload(rec) {
+  const cur = statusState[rec.enrollment_id];
+  if (!cur || cur === originalStateOf(rec)) return {};
+  if (cur === 'ACTIVE') return { status: rec.status === 'PART_TIME' ? 'PART_TIME' : 'FULL_TIME' };
+  return { status: cur };
+}
+
+function updateDonut() {
+  const total    = ENROLLED_COURSES.length;
+  const active   = ENROLLED_COURSES.filter(r => statusState[r.enrollment_id] === 'ACTIVE').length;
+  const inactive = total - active;
+  const credits  = ENROLLED_COURSES.reduce((s, r) => s + (Number(r.credits) || 0), 0);
+
+  if (el('legendActive'))   el('legendActive').textContent   = active;
+  if (el('legendInactive')) el('legendInactive').textContent = inactive;
+  if (el('legendCredits'))  el('legendCredits').textContent  = credits;
+
+  const C = 2 * Math.PI * 35;
+  const activeArc   = total > 0 ? (active / total) * C : 0;
+  const inactiveArc = C - activeArc;
+
+  const da = el('donutActive');
+  const di = el('donutInactive');
+  if (da) da.setAttribute('stroke-dasharray', `${activeArc} ${C - activeArc}`);
+  if (di) {
+    if (inactive > 0) {
+      di.setAttribute('stroke-dasharray', `${inactiveArc} ${C - inactiveArc}`);
+      di.setAttribute('stroke-dashoffset', `-${activeArc}`);
+    } else {
+      di.setAttribute('stroke-dasharray', '0 220');
+    }
+  }
+}
+
+function setStatusRadio(uiKey) {
+  document.querySelectorAll('input[name="enrollmentStatus"]').forEach(radio => {
+    const label = radio.closest('.ee-status-radio');
+    if (!label) return;
+    radio.checked = radio.value === uiKey;
+    label.className = `ee-status-radio is-${radio.value.toLowerCase()}${radio.checked ? ' is-selected' : ''}`;
+  });
+}
+
+document.querySelectorAll('input[name="enrollmentStatus"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (!currentRecord || !radio.checked) return;
+    statusState[currentRecord.enrollment_id] = radio.value;
+    setStatusRadio(radio.value);
+    updateLeftPanelRow(currentRecord.enrollment_id);
+    updateEditBadge();
+    updatePreview();
+    updateDonut();
+  });
+});
+
+function buildLeftPanel() {
+  const container = el('semesterGroupsContainer');
+  if (!container) return;
+
+  const yearMap = {};
+  const yearOrder = [];
+  ENROLLED_COURSES.forEach(rec => {
+    const sy = rec.study_year ? 'Year ' + rec.study_year : 'Other';
+    if (!yearMap[sy]) { yearMap[sy] = {}; yearOrder.push(sy); }
+    const ay = rec.academic_year ? 'Academic Year ' + rec.academic_year : 'Other';
+    if (!yearMap[sy][ay]) yearMap[sy][ay] = [];
+    yearMap[sy][ay].push(rec);
+  });
+
+  /* Numeric order: Year 1, Year 2 ... with 'Other' last */
+  yearOrder.sort((a, b) => {
+    const na = a.startsWith('Year ') ? parseInt(a.slice(5), 10) : Infinity;
+    const nb = b.startsWith('Year ') ? parseInt(b.slice(5), 10) : Infinity;
+    return na - nb;
+  });
+
+  container.innerHTML = '';
+
+  yearOrder.forEach((sy, syIdx) => {
+    const semesters = yearMap[sy];
+    const allCourses = Object.values(semesters).flat();
+    const isOpen = syIdx === 0;
+    const group = document.createElement('div');
+    group.className = 'ee-semester-group';
+
+    let bodyHtml = '';
+    Object.keys(semesters).forEach((ay, ayIdx) => {
+      const courses = semesters[ay];
+      bodyHtml += `
+        <div class="ee-subgroup">
+          <div class="ee-subgroup-header">${ay}</div>
+          ${courses.map(c => `
+            <div class="ee-course-row" data-enrollment-id="${c.enrollment_id}">
+              <div class="ee-course-row-top">
+                <div class="ee-course-row-name">${c.course_code} \u2014 ${c.course_name}</div>
+                <span class="ee-course-row-year-badge">${c.study_year ? 'Yr ' + c.study_year : ''}</span>
+                <span class="ee-course-status-dot ${originalStateOf(c).toLowerCase()}" data-dot="${c.enrollment_id}"></span>
+                <span class="ee-course-status-label ${originalStateOf(c).toLowerCase()}" data-dot-label="${c.enrollment_id}">${statusLabel(originalStateOf(c))}</span>
+                <svg class="ee-row-arrow" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+              <div class="ee-course-row-bottom">
+                <span class="ee-course-row-sem">${c.semester || ''}</span>
+                <span class="ee-course-row-credits">${c.credits ? c.credits + ' credits' : ''}</span>
+                ${c.section_number ? '<span class="ee-course-row-section">Sec ' + c.section_number + '</span>' : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    });
+
+    group.innerHTML = `
+      <button type="button" class="ee-sem-toggle ${isOpen ? 'open' : ''}">
+        <svg class="ee-sem-chevron" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="ee-sem-name">${sy}</span>
+        <span class="ee-sem-count-badge">${allCourses.length} course${allCourses.length !== 1 ? 's' : ''}</span>
+      </button>
+      <div class="ee-sem-courses ${isOpen ? 'open' : ''}">
+        ${bodyHtml}
+      </div>`;
+
+    container.appendChild(group);
+
+    group.querySelector('.ee-sem-toggle').addEventListener('click', () => {
+      const btn  = group.querySelector('.ee-sem-toggle');
+      const body = group.querySelector('.ee-sem-courses');
+      btn.classList.toggle('open');
+      body.classList.toggle('open');
+    });
+
+    group.querySelectorAll('.ee-course-row').forEach(row => {
+      row.addEventListener('click', async () => {
+        await selectEnrollment(row.dataset.enrollmentId);
+      });
+    });
+  });
+}
+
+function updateLeftPanelRow(enrollmentId) {
+  const key = statusState[enrollmentId] || 'ACTIVE';
+  const dot = document.querySelector(`[data-dot="${enrollmentId}"]`);
+  const lbl = document.querySelector(`[data-dot-label="${enrollmentId}"]`);
+  if (dot) dot.className = `ee-course-status-dot ${key.toLowerCase()}`;
+  if (lbl) { lbl.className = `ee-course-status-label ${key.toLowerCase()}`; lbl.textContent = statusLabel(key); }
+}
+
+function setSelectedLeftRow(enrollmentId) {
+  document.querySelectorAll('.ee-course-row').forEach(r => r.classList.remove('selected'));
+  const row = document.querySelector(`.ee-course-row[data-enrollment-id="${enrollmentId}"]`);
+  if (row) row.classList.add('selected');
+}
+
+async function selectEnrollment(enrollmentId) {
+  const record = ENROLLED_COURSES.find(c => String(c.enrollment_id) === String(enrollmentId));
+  if (!record) return;
+  currentRecord = record;
+  el('currentEnrollmentId').value = record.enrollment_id;
+  hideAlert(); clearErrors();
+  setSelectedLeftRow(enrollmentId);
+
+  populateCourseDisplay(record);
+  await loadSections(record.course_id, record.semester_id, record.section_id);
+  updateEditCardHeader();
+  setStatusRadio(statusState[record.enrollment_id]);
+  updatePreview();
+}
+
+function updateEditCardHeader() {
+  if (!currentRecord) return;
+  el('editCardTitle').textContent = `Edit: ${currentRecord.course_code} \u2014 ${currentRecord.course_name}`;
+  el('metaSemester').textContent  = `Semester: ${currentRecord.semester}`;
+  el('metaCredits').textContent   = `Credits: ${currentRecord.credits ?? '\u2014'}`;
+  el('metaEnrollId').textContent  = `Enrollment ID: ${currentRecord.enrollment_id}`;
+  updateEditBadge();
+}
+
+function updateEditBadge() {
+  const badge = el('editStatusBadge');
+  if (!badge || !currentRecord) return;
+  const key = statusState[currentRecord.enrollment_id] || 'ACTIVE';
+  badge.className = key === 'ACTIVE' ? 'ee-status-badge-active' : 'ee-status-badge-inactive';
+  badge.innerHTML = statusLabel(key) + ' <span class="ee-status-chevron">&#x25BE;</span>';
+}
+
+function updatePreview() {
+  if (!currentRecord) return;
+  const sectionId = currentRecord.section_id;
+  const section   = currentSections.find(s => String(s.id) === String(sectionId));
+
+  el('roFaculty').value      = section?.faculty_name || currentRecord.faculty_name || '\u2014';
+  el('roSeats').value        = section ? `${section.enrolled_count} of ${section.capacity}` : '\u2014';
+  el('roSemester').value     = currentRecord.semester;
+  el('roEnrollmentId').value = currentRecord.enrollment_id;
+  el('roCredits').value      = currentRecord.credits ?? '\u2014';
+  el('roSectionType').value  = section?.section_type || currentRecord.section_type || '\u2014';
+}
+
+el('enrollmentEditForm')?.addEventListener('submit', async e => {
+  e.preventDefault(); hideAlert(); clearErrors();
+  const courseId  = currentRecord.course_id;
+  const sectionId = currentRecord.section_id;
+  if (!sectionId) { showAlert('No section available for this enrollment.'); return; }
+
+  const btn = el('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Updating\u2026';
+
+  try {
+    const selectedId = String(currentRecord.enrollment_id);
+    const updates = [{ enrollment_id: currentRecord.enrollment_id, course_id: courseId, section_id: sectionId, ...statusPayload(currentRecord) }];
+    ENROLLED_COURSES.forEach(rec => {
+      if (String(rec.enrollment_id) === selectedId) return;
+      if (statusState[rec.enrollment_id] !== originalStateOf(rec)) {
+        updates.push({ enrollment_id: rec.enrollment_id, course_id: rec.course_id, section_id: rec.section_id, ...statusPayload(rec) });
+      }
+    });
+
+    let lastError = null;
+    for (const payload of updates) {
+      const resp = await fetch(UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        lastError = data.error || 'Unable to update the enrollment.';
+        if (String(payload.enrollment_id) === selectedId) {
+          if (data.field === 'section') showError('id_section', data.error);
+          if (data.field === 'student') showError('id_course',  data.error);
+        }
+        break;
+      }
+    }
+
+    if (lastError) { showAlert(lastError); return; }
+
+    btn.innerHTML = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Saved!';
+    setTimeout(() => { window.location.href = BACK_URL; }, 900);
+    return;
+  } catch (err) {
+    showAlert('Something went wrong while updating. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Update Enrollment';
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!ENROLLED_COURSES.length) return;
+
+  initStatusState();
+  buildLeftPanel();
+
+  const initialId = el('currentEnrollmentId').value;
+  currentRecord =
+    ENROLLED_COURSES.find(c => String(c.enrollment_id) === String(initialId)) ||
+    ENROLLED_COURSES[0];
+
+  populateCourseDisplay(currentRecord);
+  updateDonut();
+
+  setSelectedLeftRow(currentRecord.enrollment_id);
+  await loadSections(currentRecord.course_id, currentRecord.semester_id, currentRecord.section_id);
+  setStatusRadio(statusState[currentRecord.enrollment_id]);
+  updateEditCardHeader();
+  updatePreview();
+});
+</script>
+{% endblock %}

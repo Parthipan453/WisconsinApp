@@ -1,0 +1,269 @@
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}Research Publications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/jordan/student_research_publication.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block nav_research_open %}open{% endblock %}
+{% block nav_research_submenu %}open{% endblock %}
+{% block nav_student_research_publication %}active{% endblock %}
+
+{% block content %}
+<input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+<input type="hidden" id="userEmail" value="{{ user.email }}">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <div class="header-content">
+                <h1>Research Publications</h1>
+                <p>View publications from your research projects</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-refresh" onclick="refreshData()">
+                <i class="ti ti-refresh"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="ti ti-file-text"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number" id="totalPublications">0</span>
+                <span class="stat-label">Total Publications</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="ti ti-circle-check"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number" id="publishedCount">0</span>
+                <span class="stat-label">Published</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon yellow">
+                <i class="ti ti-hourglass"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number" id="pendingCount">0</span>
+                <span class="stat-label">Under Review</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="ti ti-user-check"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number" id="authorCount">0</span>
+                <span class="stat-label">As Author</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="filter-bar">
+            <!-- Status Filter -->
+            <div class="filter-item">
+                <label class="filter-label">
+                    <i class="ti ti-filter"></i>
+                    <span>Status</span>
+                </label>
+                <select id="statusFilter" class="filter-select" onchange="filterPublications()">
+                    <option value="all">All Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="under_review">Under Review</option>
+                    <option value="committee_review">Committee Review</option>
+                    <option value="ready">Ready</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="revision">Revision</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="published">Published</option>
+                </select>
+            </div>
+
+            <!-- Author Filter -->
+            <div class="filter-item">
+                <label class="filter-label">
+                    <i class="ti ti-user"></i>
+                    <span>Author</span>
+                </label>
+                <select id="authorFilter" class="filter-select" onchange="filterPublications()">
+                    <option value="all">All Publications</option>
+                    <option value="author">As Author</option>
+                </select>
+            </div>
+
+            <!-- Search Filter -->
+            <div class="filter-item search-item">
+                <label class="filter-label">
+                    <i class="ti ti-search"></i>
+                    <span>Search</span>
+                </label>
+                <input type="text" id="searchInput" class="filter-search" placeholder="Search publications..." oninput="filterPublications()">
+            </div>
+
+            <!-- Clear Filters -->
+            <div class="filter-item clear-item">
+                <button class="btn-clear-filters" onclick="clearFilters()">
+                    <i class="ti ti-x"></i> Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Filters -->
+        <div class="active-filters" id="activeFilters">
+            <!-- Active filter tags will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading-state">
+        <div class="spinner"></div>
+        <h3>Loading publications...</h3>
+        <p>Please wait while we load your publications</p>
+    </div>
+
+    <!-- Publications Grid -->
+    <div class="publications-grid" id="publicationsGrid" style="display: none;">
+        <!-- Publications will be rendered by JavaScript -->
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" id="paginationContainer" style="display: none;">
+        <div class="pagination-info">
+            <span id="paginationInfo">Showing 0-0 of 0 publications</span>
+        </div>
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prevPage" onclick="changePage('prev')">
+                <i class="ti ti-chevron-left"></i> Previous
+            </button>
+            <div class="pagination-numbers" id="paginationNumbers">
+                <!-- Page numbers will be rendered here -->
+            </div>
+            <button class="pagination-btn" id="nextPage" onclick="changePage('next')">
+                Next <i class="ti ti-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Publication Details Modal -->
+    <div class="modal-overlay" id="publicationDetailModal" style="display: none;">
+        <div class="modal-container detail-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="ti ti-file-text"></i>
+                    Publication Details
+                </h3>
+                <button class="modal-close-btn" onclick="closeModal('publicationDetailModal')">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                    <!-- Publication Title and Status -->
+                    <div class="detail-section">
+                        <div class="detail-header">
+                            <h4 id="detailTitle">Publication Title</h4>
+                            <span class="status-badge" id="detailStatus">Draft</span>
+                        </div>
+                        <div class="research-info">
+                            <span><i class="ti ti-flask"></i> Project: <strong id="detailResearchTitle">-</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Publication Type -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-book"></i> Publication Type</h5>
+                        <p id="detailType">-</p>
+                    </div>
+
+                    <!-- Abstract -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-file-description"></i> Abstract</h5>
+                        <p id="detailAbstract">-</p>
+                    </div>
+
+                    <!-- Keywords -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-tags"></i> Keywords</h5>
+                        <div id="detailKeywords" class="keywords-container"></div>
+                    </div>
+
+                    <!-- Authors -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-users"></i> Authors</h5>
+                        <div id="detailAuthors" class="authors-list"></div>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="detail-section">
+                        <h5><i class="ti ti-info-circle"></i> Metadata</h5>
+                        <div class="metadata-grid">
+                            <span><strong>Created</strong> <span id="detailCreated">-</span></span>
+                            <span><strong>Updated</strong> <span id="detailUpdated">-</span></span>
+                            <span><strong>Created By</strong> <span id="detailCreatedBy">-</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Author Status -->
+                    <div class="detail-section author-status-section">
+                        <div id="detailAuthorStatus" class="author-status-badge">
+                            <i class="ti ti-user-check"></i>
+                            <span>You are an author of this publication</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close-detail" onclick="closeModal('publicationDetailModal')">
+                    <i class="ti ti-x"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="notification" id="successNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-check-circle notification-icon success"></i>
+            <span id="notificationMessage">Success!</span>
+            <button class="notification-close-btn" onclick="closeNotification()"><i class="ti ti-x"></i></button>
+        </div>
+    </div>
+
+    <div class="notification error" id="errorNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-exclamation-circle notification-icon error"></i>
+            <span id="errorMessage">Error!</span>
+            <button class="notification-close-btn" onclick="closeErrorNotification()"><i class="ti ti-x"></i></button>
+        </div>
+    </div>
+
+    <div class="notification warning" id="warningNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-alert-circle notification-icon warning"></i>
+            <span id="warningMessage">Warning!</span>
+            <button class="notification-close-btn" onclick="closeWarningNotification()"><i class="ti ti-x"></i></button>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/jordan/student_research_publication.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+{% endblock %}

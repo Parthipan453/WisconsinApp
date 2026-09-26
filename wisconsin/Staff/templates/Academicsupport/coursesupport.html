@@ -1,0 +1,379 @@
+
+<!-- ******************************************** Arun Code ************************************************************ -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Course Support — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/coursesupport.css' %}" />
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_course %}active{% endblock %}
+
+{% block content %}
+
+<div class="cs-page-header">
+  <div>
+    <h1>Course Support</h1>
+    <p>Manage course materials, instructor assignments, and academic support requests.</p>
+  </div>
+  <div class="cs-header-actions">
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-download"></i><span>Export</span></button>
+    <button class="fd-btn fd-btn-ghost"><i class="ti ti-filter"></i><span>Filter</span></button>
+    <!-- <button class="fd-btn fd-btn-primary"><i class="ti ti-plus"></i><span>New Course</span></button> -->
+  </div>
+</div>
+
+<div class="cs-kpi-strip">
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon red"><i class="ti ti-books"></i></div>
+      <span class="fd-kpi-label">Total Courses</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ total_courses|default:'186' }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">↑ 9</span> this semester</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon blue"><i class="ti ti-user-check"></i></div>
+      <span class="fd-kpi-label">Assigned</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ assigned_courses|default:'162' }}">0</div>
+    <div class="fd-kpi-sub"><span class="up">87%</span> of total</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon orange"><i class="ti ti-alert-triangle"></i></div>
+      <span class="fd-kpi-label">Unassigned</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ unassigned_courses|default:'24' }}">0</div>
+    <div class="fd-kpi-sub"><span class="down">↑ 3</span> need attention</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon green"><i class="ti ti-clipboard-check"></i></div>
+      <span class="fd-kpi-label">Support Tickets</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="{{ support_tickets_open|default:'41' }}">0</div>
+    <div class="fd-kpi-sub"><span class="neutral">14</span> open today</div>
+  </div>
+  <div class="fd-kpi-card">
+    <div class="fd-kpi-top">
+      <div class="fd-kpi-icon purple"><i class="ti ti-users"></i></div>
+      <span class="fd-kpi-label">Enrolled Students</span>
+    </div>
+    <div class="fd-kpi-value counter" data-target="4200">0</div>
+    <div class="fd-kpi-sub"><span class="up">↑ 8%</span> vs last year</div>
+  </div>
+</div>
+
+<div class="cs-quick-grid">
+  <a href="{% url 'course_materials_list' uuid=request.user.uuid %}" class="fd-quick-card">
+    <div class="fd-quick-icon blue"><i class="ti ti-file-upload"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Upload Materials</div>
+      <div class="fd-quick-count">Syllabi, slides &amp; handouts</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </a>
+
+  <a href="{% url 'staff_course_section' request.user.uuid %}" class="fd-quick-card">
+    <div class="fd-quick-icon purple"><i class="ti ti-user-plus"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Assign Instructor</div>
+      <div class="fd-quick-count">{{ unassigned_courses }} unassigned courses</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </a>
+
+  <a href="{% url 'support_tickets_list' uuid=request.user.uuid %}" class="fd-quick-card">
+    <div class="fd-quick-icon green"><i class="ti ti-ticket"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Support Tickets</div>
+      <div class="fd-quick-count">{{ support_tickets_open }} open · {{ support_tickets_urgent }} urgent</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </a>
+
+  <a href="{% url 'staff_scheduling' request.user.uuid %}" class="fd-quick-card">
+    <div class="fd-quick-icon orange"><i class="ti ti-calendar-stats"></i></div>
+    <div class="fd-quick-info">
+      <div class="fd-quick-title">Semester Schedule</div>
+      <div class="fd-quick-count">Fall 2025 planning</div>
+    </div>
+    <i class="ti ti-chevron-right fd-quick-arrow"></i>
+  </a>
+</div>
+
+<div class="fd-toolbar">
+  <div class="fd-tabs">
+    <a href="?{{ querystring }}" class="fd-tab {% if status_filter == 'all' %}active{% endif %}">
+      All Courses <span class="fd-tab-badge">{{ total_courses }}</span>
+    </a>
+    <a href="?{{ querystring }}&status=active" class="fd-tab {% if status_filter == 'active' %}active{% endif %}">
+      Active <span class="fd-tab-badge green">{{ assigned_courses }}</span>
+    </a>
+    <a href="?{{ querystring }}&status=unassigned" class="fd-tab {% if status_filter == 'unassigned' %}active{% endif %}">
+      Unassigned <span class="fd-tab-badge orange">{{ unassigned_courses }}</span>
+    </a>
+    <a href="?{{ querystring }}&status=pending" class="fd-tab {% if status_filter == 'pending' %}active{% endif %}">
+      Pending <span class="fd-tab-badge blue">11</span>
+    </a>
+    <a href="?{{ querystring }}&status=inactive" class="fd-tab {% if status_filter == 'inactive' %}active{% endif %}">
+      Inactive <span class="fd-tab-badge">9</span>
+    </a>
+  </div>
+  <div class="fd-search">
+    <i class="ti ti-search"></i>
+    <input type="text" placeholder="Search course name, code, instructor…" value="{{ search_query }}" oninput="csLiveSearch(this.value)" />
+  </div>
+</div>
+
+<div class="fd-table-wrap">
+  <table class="fd-table" id="csTable">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Code</th>
+        <th>Department</th>
+        <th>Enrolled</th>
+        <th>Schedule</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="csTableBody">
+  {% for course in courses %}
+  <tr class="cs-row" data-name="{{ course.name|lower }}" data-status="{{ course.status }}">
+    <td>
+      <div class="fd-form-title">{{ course.name }}</div>
+      <div class="fd-form-id">{{ course.credits }} Credits</div>
+    </td>
+    <td><span class="fd-version">{{ course.code }}</span></td>
+    <td><span class="fd-dept">{{ course.department }}</span></td>
+    <td>
+      <div class="cs-enroll-bar">
+        <span class="cs-enroll-count">{{ course.enrolled }}/{{ course.capacity }}</span>
+        <div class="cs-enroll-track">
+          <div class="cs-enroll-fill" style="width:{{ course.fill_pct }}%;"></div>
+        </div>
+      </div>
+    </td>
+    <td><span class="fd-date">{{ course.schedule }}</span></td>
+    <td>
+      <span class="fd-status {% if course.status == 'active' %}active{% elif course.status == 'unassigned' %}pending{% else %}archived{% endif %}">
+        {{ course.status_display }}
+      </span>
+    </td>
+    <td>
+      <div class="fd-actions"> 
+ <button
+    class="fd-action-btn view"
+    onclick="window.location.href='{% url 'staff_course_view' request.user.uuid course.course_uuid %}'">
+    <i class="ti ti-eye"></i>
+</button>
+        <button class="fd-action-btn edit" title="Edit"><i class="ti ti-pencil"></i></button>
+        <button class="fd-action-btn delete" title="Delete" onclick="return confirm('Delete this course record?');"><i class="ti ti-trash"></i></button>
+        <button class="fd-action-btn download" title="Materials"><i class="ti ti-file-download"></i></button>
+      </div>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="7" style="text-align:center;padding:24px;">No courses found.</td></tr>
+  {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="fd-pagination">
+  <span class="fd-page-info">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} courses</span>
+  <div class="fd-page-controls">
+    {% if page_obj.has_previous %}
+      <a class="fd-page-btn" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}"><i class="ti ti-chevron-left"></i></a>
+    {% else %}
+      <button class="fd-page-btn" disabled><i class="ti ti-chevron-left"></i></button>
+    {% endif %}
+
+    {% for p in smart_pages %}
+      {% if p == None %}
+        <span class="fd-page-ellipsis">…</span>
+      {% elif p == page_obj.number %}
+        <span class="fd-page-btn active">{{ p }}</span>
+      {% else %}
+        <a class="fd-page-btn" href="?{{ querystring }}&page={{ p }}">{{ p }}</a>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <a class="fd-page-btn" href="?{{ querystring }}&page={{ page_obj.next_page_number }}"><i class="ti ti-chevron-right"></i></a>
+    {% else %}
+      <button class="fd-page-btn" disabled><i class="ti ti-chevron-right"></i></button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="fd-bottom-grid">
+
+  <!-- ================= Enrollment by Department ================= -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title">
+        <i class="ti ti-chart-bar"></i>
+        Enrollment by Department
+      </div>
+      <a href="#" class="fd-widget-link">Full report</a>
+    </div>
+
+    <div class="fd-type-list fd-type-list-scroll">
+      {% for d in enrollment_by_dept %}
+      <div class="fd-type-row">
+        <span class="fd-type-label">{{ d.name }}</span>
+        <div class="fd-type-track">
+          <div class="fd-type-fill" style="width:{{ d.pct }}%"></div>
+        </div>
+        <span class="fd-type-pct">{{ d.pct }}%</span>
+      </div>
+      {% empty %}
+      <p class="fd-empty">No enrollment data yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ================= Recent Uploads ================= -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title">
+        <i class="ti ti-file-text"></i>
+        Recent Uploads
+      </div>
+      <a href="{% url 'course_materials_list' uuid=request.user.uuid %}" class="fd-widget-link">View all</a>
+    </div>
+
+    <div class="fd-recent-list">
+      {% for u in recent_uploads %}
+      <div class="fd-recent-item">
+        <div class="fd-recent-icon blue">
+          <i class="ti ti-file-text"></i>
+        </div>
+
+        <div class="fd-recent-body">
+          <div class="fd-recent-title">{{ u.title }}</div>
+          <div class="fd-recent-meta">
+            Uploaded by {{ u.uploader }} · {{ u.date|date:"M d" }}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <p class="fd-empty">No materials uploaded yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ================= Open Support Tickets ================= -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title">
+        <i class="ti ti-ticket"></i>
+        Open Support Tickets
+      </div>
+      <a href="{% url 'support_tickets_list' uuid=request.user.uuid %}" class="fd-widget-link">View all</a>
+    </div>
+
+    <div class="fd-pending-list">
+      {% for t in open_tickets %}
+      <div class="fd-pending-item">
+
+        <div class="fd-pending-dot
+          {% if t.priority == 'URGENT' %}
+            red
+          {% elif t.priority == 'MEDIUM' %}
+            orange
+          {% else %}
+            blue
+          {% endif %}">
+        </div>
+
+        <div class="fd-pending-body">
+          <div class="fd-pending-title">{{ t.title }}</div>
+          <div class="fd-pending-meta">
+            {{ t.submitted_by }} · {{ t.date|date:"M d" }}
+          </div>
+        </div>
+
+        <button class="fd-sign-btn"
+                onclick="location.href='{% url 'resolve_ticket' uuid=request.user.uuid ticket_id=t.id %}'">
+          Resolve
+        </button>
+
+      </div>
+      {% empty %}
+      <p class="fd-empty">No open tickets.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  function csFilterTab(el, filter) {
+    document.querySelectorAll('.fd-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const rows = document.querySelectorAll('#csTableBody .cs-row');
+    rows.forEach(row => {
+      const status = row.dataset.status;
+      let show = true;
+      if (filter === 'active')      show = status === 'active';
+      else if (filter === 'unassigned') show = status === 'unassigned';
+      else if (filter === 'pending')    show = status === 'pending';
+      else if (filter === 'inactive')   show = status === 'inactive';
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  function csLiveSearch(val) {
+    const q = val.toLowerCase();
+    document.querySelectorAll('#csTableBody .cs-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+  }
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const counters = document.querySelectorAll(".counter");
+
+    counters.forEach(counter => {
+        const target = parseInt(counter.dataset.target);
+
+        let current = 0;
+        const increment = target / 80;
+
+        const updateCounter = () => {
+            current += increment;
+
+            if (current < target) {
+                counter.textContent = Math.floor(current).toLocaleString();
+                requestAnimationFrame(updateCounter);
+            } else {
+                counter.textContent = target >= 1000
+                    ? (target / 1000).toFixed(1) + 'K'
+                    : target;
+            }
+        };
+
+        updateCounter();
+    });
+});
+
+
+</script>
+{% endblock %}
+
+
+<!-- ******************************************** Arun Code ************************************************************ -->

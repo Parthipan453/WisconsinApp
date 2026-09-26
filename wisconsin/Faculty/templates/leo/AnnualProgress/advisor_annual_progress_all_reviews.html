@@ -1,0 +1,855 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Annual Progress Reviews{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{% static 'css/leo/AnnualProgress/advisor_annual_progress_all_reviews.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="aar-page">
+
+    {% comment %} <div class="aar-breadcrumb">
+        <a href="{% url 'faculty_phd_management' faculty.user.uuid %}">
+            <i class="bi bi-grid-1x2-fill"></i>
+            Advisor Workspace
+        </a>
+        <i class="bi bi-chevron-right"></i>
+         <a href="{% url 'faculty_advisor_workspace' uuid=faculty.user.uuid phd_student_id=phd_student.phd_student_id %}">
+            <i class="bi bi-mortarboard-fill"></i>
+            Student Workspace
+        </a>
+        <i class="bi bi-chevron-right"></i>
+        <a href="#">
+            <i class="bi bi-award-fill"></i>
+            <span>Annual Progress Reviews</span>
+        </a>
+        
+    </div> {% endcomment %}
+
+    <section class="aar-hero">
+
+        <div class="aar-hero-left">
+
+            <div class="aar-hero-icon">
+                <i class="bi bi-clipboard2-check-fill"></i>
+            </div>
+
+            <div>
+                <span class="aar-eyebrow">
+                    ADVISOR REVIEW HISTORY
+                </span>
+
+                <h1>
+                    Annual Progress Reviews
+                </h1>
+
+                <p>
+                    Complete annual doctoral progress review history for this advisee.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="aar-review-count">
+            <i class="bi bi-file-earmark-text-fill"></i>
+            <strong>{{ total_reviews }}</strong>
+            <span>
+                {% if total_reviews == 1 %}
+                    Review
+                {% else %}
+                    Reviews
+                {% endif %}
+            </span>
+        </div>
+
+    </section>
+
+
+    <section class="aar-student-card">
+
+        <div class="aar-student-avatar">
+            {% if phd_student.student.user.first_name %}
+                {{ phd_student.student.user.first_name|first|upper }}
+            {% else %}
+                {{ phd_student.student.user.username|first|upper }}
+            {% endif %}
+        </div>
+
+        <div class="aar-student-info">
+
+            <div class="aar-student-name-row">
+
+                <div>
+                    <h2>
+                        {{ phd_student.student.user.get_full_name|default:phd_student.student.user.username }}
+                    </h2>
+
+                    <span class="aar-student-type">
+                        <i class="bi bi-mortarboard-fill"></i>
+                        PhD Student
+                    </span>
+                </div>
+
+                <span class="aar-student-id">
+                    <i class="bi bi-person-badge-fill"></i>
+                    {{ phd_student.student.student_id }}
+                </span>
+
+            </div>
+
+            <div class="aar-program">
+
+                <div class="aar-program-icon">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+
+                <div>
+                    <span>DOCTORAL PROGRAM</span>
+                    <strong>
+                        {{ phd_student.phd_program.program_name }}
+                    </strong>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="aar-filter-card">
+
+        <div class="aar-filter-header">
+
+            <div>
+                <span class="aar-section-eyebrow">
+                    REVIEW FILTERS
+                </span>
+
+                <h2>
+                    Find Annual Reviews
+                </h2>
+
+                <p>
+                    Search and filter the advisee's annual progress review history.
+                </p>
+            </div>
+
+            <div class="aar-filter-icon">
+                <i class="bi bi-funnel-fill"></i>
+            </div>
+
+        </div>
+
+
+        <div class="aar-filter-grid">
+
+            <div class="aar-filter-field aar-search-field">
+
+                <label for="aarSearch">
+                    <i class="bi bi-search"></i>
+                    Search
+                </label>
+
+                <div class="aar-input-wrap">
+                    <i class="bi bi-search"></i>
+
+                    <input
+                        type="text"
+                        id="aarSearch"
+                        placeholder="Search review year, status or comments..."
+                        autocomplete="off"
+                    >
+
+                    <button
+                        type="button"
+                        id="aarClearSearch"
+                        class="aar-clear-search"
+                        aria-label="Clear search"
+                    >
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                </div>
+
+            </div>
+
+
+            <div class="aar-filter-field">
+
+                <label for="aarYear">
+                    <i class="bi bi-calendar3"></i>
+                    Review Year
+                </label>
+
+                <select id="aarYear">
+
+                    <option value="ALL">
+                        All Years
+                    </option>
+
+                    {% for year in review_years %}
+                        <option value="{{ year }}">
+                            {{ year }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="aar-filter-field">
+
+                <label for="aarStatus">
+                    <i class="bi bi-bar-chart-fill"></i>
+                    Status
+                </label>
+
+                <select id="aarStatus">
+
+                    <option value="ALL">
+                        All Statuses
+                    </option>
+
+                    <option value="SATISFACTORY">
+                        Satisfactory
+                    </option>
+
+                    <option value="NEEDS_IMPROVEMENT">
+                        Needs Improvement
+                    </option>
+
+                    <option value="UNSATISFACTORY">
+                        Unsatisfactory
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div class="aar-filter-actions">
+
+            <div class="aar-result-summary">
+                <i class="bi bi-check2-circle"></i>
+                <span>
+                    Showing
+                    <strong id="aarVisibleCount">{{ total_reviews }}</strong>
+                    of
+                    <strong>{{ total_reviews }}</strong>
+                    reviews
+                </span>
+            </div>
+
+            <button
+                type="button"
+                class="aar-reset-btn"
+                id="aarResetFilters"
+            >
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Reset Filters
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <section class="aar-history-section">
+
+        <div class="aar-history-heading">
+
+            <div>
+                <span class="aar-section-eyebrow">
+                    ANNUAL ASSESSMENT RECORDS
+                </span>
+
+                <h2>
+                    Review History
+                </h2>
+            </div>
+
+            <span class="aar-total-badge">
+                <i class="bi bi-files"></i>
+                <strong id="aarTotalBadge">{{ total_reviews }}</strong>
+                Total
+            </span>
+
+        </div>
+
+
+        <div class="aar-review-list" id="aarReviewList">
+
+            {% for review in reviews %}
+
+            <article
+                class="aar-review-card"
+                data-year="{{ review.review_year }}"
+                data-status="{{ review.status }}"
+                data-search="{{ review.review_year }} {{ review.status }} {{ review.get_status_display }} {{ review.committee_comments|default:''|lower }}"
+            >
+
+                <div class="aar-review-top">
+
+                    <div class="aar-year-block">
+
+                        <span>
+                            REVIEW YEAR
+                        </span>
+
+                        <strong>
+                            {{ review.review_year }}
+                        </strong>
+
+                    </div>
+
+
+                    {% if review.status == "SATISFACTORY" %}
+
+                        <span class="aar-status-badge aar-status-satisfactory">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Satisfactory
+                        </span>
+
+                    {% elif review.status == "NEEDS_IMPROVEMENT" %}
+
+                        <span class="aar-status-badge aar-status-improvement">
+                            <i class="bi bi-exclamation-circle-fill"></i>
+                            Needs Improvement
+                        </span>
+
+                    {% else %}
+
+                        <span class="aar-status-badge aar-status-unsatisfactory">
+                            <i class="bi bi-x-circle-fill"></i>
+                            Unsatisfactory
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="aar-score-section">
+
+                    <div class="aar-score-heading">
+
+                        <span>
+                            <i class="bi bi-speedometer2"></i>
+                            PROGRESS SCORE
+                        </span>
+
+                        <strong>
+                            {{ review.progress_score|floatformat:2 }}
+                            <small>/100</small>
+                        </strong>
+
+                    </div>
+
+                    <div class="aar-progress-track">
+
+                        <div
+                            class="aar-progress-fill"
+                            data-score="{{ review.progress_score }}"
+                        ></div>
+
+                    </div>
+
+                    <div class="aar-progress-footer">
+                        <span>Overall Academic Progress</span>
+                        <strong>
+                            {{ review.progress_score|floatformat:2 }}%
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <div class="aar-review-meta">
+
+                    <div class="aar-meta-item">
+
+                        <i class="bi bi-calendar-event"></i>
+
+                        <div>
+                            <span>Review Year</span>
+                            <strong>{{ review.review_year }}</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="aar-meta-item">
+
+                        <i class="bi bi-person-check-fill"></i>
+
+                        <div>
+                            <span>Reviewed By</span>
+                            <strong>
+                                Chair Committee
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="aar-meta-item">
+
+                        <i class="bi bi-clock-history"></i>
+
+                        <div>
+                            <span>Assessment</span>
+                            <strong>
+                                Annual Review
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="aar-comments">
+
+                    <div class="aar-comments-icon">
+                        <i class="bi bi-chat-left-text-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <span>
+                            COMMITTEE COMMENTS
+                        </span>
+
+                        <p>
+                            {{ review.committee_comments|default:"No committee comments were provided." }}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="aar-review-footer">
+
+                    <div class="aar-record-label">
+                        <i class="bi bi-shield-check"></i>
+                        Annual Progress Assessment
+                    </div>
+
+                   <a
+                        href="{% url 'faculty_annual_progress_detail' uuid=faculty.user.uuid phd_student_id=phd_student.phd_student_id %}"
+                        class="aar-view-btn"
+                    >
+                        <i class="bi bi-eye-fill"></i>
+                        View Details
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+
+                </div>
+
+            </article>
+
+            {% empty %}
+
+            <div class="aar-empty-state" id="aarEmptyState">
+
+                <div class="aar-empty-icon">
+                    <i class="bi bi-clipboard-x-fill"></i>
+                </div>
+
+                <span>
+                    NO REVIEW RECORDS
+                </span>
+
+                <h3>
+                    No Annual Progress Reviews Available
+                </h3>
+
+                <p>
+                    No annual progress reviews have been recorded for this advisee yet.
+                </p>
+
+            </div>
+
+            {% endfor %}
+
+
+            <div
+                class="aar-empty-state aar-filter-empty"
+                id="aarFilterEmpty"
+                hidden
+            >
+
+                <div class="aar-empty-icon">
+                    <i class="bi bi-search"></i>
+                </div>
+
+                <span>
+                    NO MATCHING REVIEWS
+                </span>
+
+                <h3>
+                    No Reviews Match Your Filters
+                </h3>
+
+                <p>
+                    Try changing the search text, review year, or status filter.
+                </p>
+
+                <button
+                    type="button"
+                    id="aarEmptyReset"
+                    class="aar-empty-reset"
+                >
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    Clear Filters
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <div class="aar-bottom-back">
+
+        <a
+            href="{% url 'faculty_advisor_workspace' uuid=faculty.user.uuid phd_student_id=phd_student.phd_student_id %}"
+            class="aar-back-btn"
+        >
+            <i class="bi bi-arrow-left"></i>
+            <span>Back to Advisor Workspace</span>
+        </a>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput = document.getElementById("aarSearch");
+    const yearSelect = document.getElementById("aarYear");
+    const statusSelect = document.getElementById("aarStatus");
+    const resetButton = document.getElementById("aarResetFilters");
+    const emptyResetButton = document.getElementById("aarEmptyReset");
+    const clearSearch = document.getElementById("aarClearSearch");
+    const reviewCards = Array.from(
+        document.querySelectorAll(".aar-review-card")
+    );
+    const filterEmpty = document.getElementById("aarFilterEmpty");
+    const visibleCount = document.getElementById("aarVisibleCount");
+    const totalBadge = document.getElementById("aarTotalBadge");
+
+
+    function animateProgress(card) {
+
+        const bar = card.querySelector(".aar-progress-fill");
+
+        if (!bar) {
+            return;
+        }
+
+        const score = parseFloat(bar.dataset.score) || 0;
+
+        const safeScore = Math.min(
+            Math.max(score, 0),
+            100
+        );
+
+        bar.style.setProperty(
+            "width",
+            "0%",
+            "important"
+        );
+
+        requestAnimationFrame(function () {
+
+            requestAnimationFrame(function () {
+
+                bar.style.setProperty(
+                    "width",
+                    safeScore + "%",
+                    "important"
+                );
+
+            });
+
+        });
+    }
+
+
+    function showCard(card, animate = true) {
+
+        card.hidden = false;
+
+        card.classList.remove(
+            "aar-card-hidden"
+        );
+
+        card.classList.add(
+            "aar-card-visible"
+        );
+
+        if (animate) {
+
+            requestAnimationFrame(function () {
+
+                animateProgress(card);
+
+            });
+
+        } else {
+
+            const bar = card.querySelector(
+                ".aar-progress-fill"
+            );
+
+            if (bar) {
+
+                const score =
+                    parseFloat(bar.dataset.score) || 0;
+
+                const safeScore = Math.min(
+                    Math.max(score, 0),
+                    100
+                );
+
+                bar.style.setProperty(
+                    "width",
+                    safeScore + "%",
+                    "important"
+                );
+            }
+        }
+    }
+
+
+    function hideCard(card) {
+
+        card.classList.remove(
+            "aar-card-visible"
+        );
+
+        card.classList.add(
+            "aar-card-hidden"
+        );
+
+        setTimeout(function () {
+
+            if (
+                card.classList.contains(
+                    "aar-card-hidden"
+                )
+            ) {
+                card.hidden = true;
+            }
+
+        }, 180);
+    }
+
+
+    function applyFilters() {
+
+        const searchValue =
+            searchInput.value.trim().toLowerCase();
+
+        const yearValue =
+            yearSelect.value;
+
+        const statusValue =
+            statusSelect.value;
+
+        let visible = 0;
+
+        reviewCards.forEach(function (card) {
+
+            const cardYear =
+                card.dataset.year;
+
+            const cardStatus =
+                card.dataset.status;
+
+            const cardSearch =
+                card.dataset.search.toLowerCase();
+
+            const matchesSearch =
+                !searchValue ||
+                cardSearch.includes(
+                    searchValue
+                );
+
+            const matchesYear =
+                yearValue === "ALL" ||
+                cardYear === yearValue;
+
+            const matchesStatus =
+                statusValue === "ALL" ||
+                cardStatus === statusValue;
+
+            const shouldShow =
+                matchesSearch &&
+                matchesYear &&
+                matchesStatus;
+
+
+            if (shouldShow) {
+
+                showCard(card, true);
+
+                visible++;
+
+            } else {
+
+                hideCard(card);
+
+            }
+
+        });
+
+
+        visibleCount.textContent =
+            visible;
+
+        totalBadge.textContent =
+            visible;
+
+
+        if (
+            visible === 0 &&
+            reviewCards.length > 0
+        ) {
+
+            filterEmpty.hidden = false;
+
+        } else {
+
+            filterEmpty.hidden = true;
+
+        }
+
+
+        clearSearch.style.display =
+            searchInput.value.trim()
+                ? "flex"
+                : "none";
+    }
+
+
+    function resetFilters() {
+
+        searchInput.value = "";
+
+        yearSelect.value = "ALL";
+
+        statusSelect.value = "ALL";
+
+
+        reviewCards.forEach(function (card) {
+
+            card.hidden = false;
+
+            card.classList.remove(
+                "aar-card-hidden"
+            );
+
+            card.classList.add(
+                "aar-card-visible"
+            );
+
+            animateProgress(card);
+
+        });
+
+
+        filterEmpty.hidden = true;
+
+        visibleCount.textContent =
+            reviewCards.length;
+
+        totalBadge.textContent =
+            reviewCards.length;
+
+        clearSearch.style.display =
+            "none";
+    }
+
+
+    searchInput.addEventListener(
+        "input",
+        applyFilters
+    );
+
+    yearSelect.addEventListener(
+        "change",
+        applyFilters
+    );
+
+    statusSelect.addEventListener(
+        "change",
+        applyFilters
+    );
+
+
+    resetButton.addEventListener(
+        "click",
+        resetFilters
+    );
+
+
+    emptyResetButton.addEventListener(
+        "click",
+        resetFilters
+    );
+
+
+    clearSearch.addEventListener(
+        "click",
+        function () {
+
+            searchInput.value = "";
+
+            searchInput.focus();
+
+            applyFilters();
+
+        }
+    );
+
+
+    reviewCards.forEach(function (card, index) {
+
+        card.style.setProperty(
+            "--aar-delay",
+            (index * 70) + "ms"
+        );
+
+        card.hidden = false;
+
+        card.classList.add(
+            "aar-card-visible"
+        );
+
+        const delay =
+            (index * 70) + 300;
+
+        setTimeout(function () {
+
+            animateProgress(card);
+
+        }, delay);
+
+    });
+
+});
+</script>
+
+{% endblock content %}

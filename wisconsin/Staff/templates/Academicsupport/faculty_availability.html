@@ -1,0 +1,1249 @@
+
+<!-- *********************  Rixie code **************************-->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}Faculty Availability — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/scheduling.css' %}" />
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+<style>
+  .cs-main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .fd-widget { width: 100%; }
+  .fd-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fd-table { width: 100%; border-collapse: collapse; }
+
+  /* Search and Filter Styles - Responsive */
+  .search-filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  
+  .search-box {
+    flex: 1 1 200px;
+    min-width: 120px;
+    position: relative;
+  }
+  
+  .search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    border: 1px solid var(--border-color, #d0d0d0);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+  }
+  
+  .search-box input:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+  
+  .search-box .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 14px;
+  }
+  
+  .filter-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 0 1 auto;
+  }
+  
+  .filter-controls select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #d0d0d0);
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    min-width: 120px;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  
+  .filter-controls select:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+  }
+  
+  .clear-filters-btn {
+    padding: 8px 14px;
+    background: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    color: #555;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+  
+  .clear-filters-btn:hover {
+    background: #e0e0e0;
+  }
+  
+  .clear-filters-btn i {
+    font-size: 14px;
+  }
+
+  /* Pagination Styles - HORIZONTAL & RESPONSIVE */
+  .pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    margin-top: 12px;
+    width: 100%;
+  }
+  
+  .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+  }
+  
+  .pagination-info {
+    color: #666;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .entries-per-page {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #666;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .entries-per-page select {
+    padding: 4px 6px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+    cursor: pointer;
+  }
+  
+  .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .pagination-controls {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .pagination-controls button,
+  .pagination-controls .page-link {
+    padding: 4px 10px;
+    border: 1px solid #d0d0d0;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    min-width: 32px;
+    text-align: center;
+    color: #333;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    height: 30px;
+    box-sizing: border-box;
+  }
+  
+  .pagination-controls button:hover:not(:disabled),
+  .pagination-controls .page-link:hover:not(.active) {
+    background: #f0f0f0;
+    border-color: #b0b0b0;
+  }
+  
+  .pagination-controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .pagination-controls .page-link.active {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+    font-weight: 600;
+  }
+  
+  .pagination-controls .page-link.active:hover {
+    background: #0052a3;
+  }
+  
+  .pagination-ellipsis {
+    padding: 0 2px;
+    color: #666;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Workload Distribution */
+  .fd-type-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  
+  .fd-type-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+  }
+  
+  .fd-type-label {
+    min-width: 120px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .fd-type-track {
+    flex: 1;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 60px;
+  }
+  
+  .fd-type-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    min-width: 2px;
+  }
+  
+  .fd-type-fill.hr {
+    background: #dc3545;
+  }
+  
+  .fd-type-fill.academic {
+    background: #28a745;
+  }
+  
+  .fd-type-fill.it {
+    background: #6c757d;
+  }
+  
+  .fd-type-pct {
+    min-width: 80px;
+    font-size: 13px;
+    color: #666;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Empty state for no results */
+  .no-results {
+    text-align: center;
+    padding: 30px 16px;
+    color: #888;
+  }
+  
+  .no-results i {
+    font-size: 36px;
+    color: #ccc;
+    margin-bottom: 12px;
+    display: block;
+  }
+  
+  .no-results p {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* Status badges */
+  .fd-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  
+  .fd-status.active {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .fd-status.expiring {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .fd-status.archived {
+    background: #e2e3e5;
+    color: #383d41;
+  }
+
+  /* ============================================ */
+  /* RESPONSIVE BREAKPOINTS FOR ALL DEVICES */
+  /* ============================================ */
+
+  /* 1. LAPTOP (1200px and above) */
+  @media screen and (min-width: 1200px) {
+    .search-filter-container {
+      gap: 16px;
+      padding: 16px 0;
+    }
+    .search-box {
+      flex: 1 1 300px;
+    }
+    .filter-controls select {
+      min-width: 150px;
+    }
+    .pagination-container {
+      gap: 16px;
+    }
+    .fd-type-label {
+      min-width: 180px;
+    }
+  }
+
+  /* 2. SMALL LAPTOP (992px - 1199px) */
+  @media screen and (min-width: 992px) and (max-width: 1199px) {
+    .search-filter-container {
+      gap: 14px;
+    }
+    .search-box {
+      flex: 1 1 250px;
+    }
+    .filter-controls select {
+      min-width: 130px;
+    }
+    .fd-type-label {
+      min-width: 150px;
+    }
+  }
+
+  /* 3. TABLETS (768px - 991px) */
+  @media screen and (min-width: 768px) and (max-width: 991px) {
+    .search-filter-container {
+      gap: 12px;
+      padding: 14px 0;
+    }
+    .search-box {
+      flex: 1 1 200px;
+      min-width: 160px;
+    }
+    .filter-controls {
+      flex: 1 1 100%;
+    }
+    .filter-controls select {
+      min-width: 120px;
+      flex: 1 1 auto;
+    }
+    .pagination-container {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .pagination-left {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+    .pagination-right {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+    .fd-type-label {
+      min-width: 130px;
+    }
+  }
+
+  /* 4. ANDROID & iPHONES (480px - 767px) */
+  @media screen and (min-width: 481px) and (max-width: 767px) {
+    .sc-page-header { 
+      flex-direction: column; 
+      align-items: flex-start; 
+      gap: 10px; 
+    }
+    .sc-header-actions { 
+      width: 100%; 
+    }
+    .sc-header-actions .fd-btn { 
+      width: 100%; 
+      justify-content: center; 
+    }
+    .fd-table { 
+      min-width: 400px; 
+    }
+    
+    .search-filter-container {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      padding: 12px 0;
+    }
+    .search-box {
+      flex: 1 1 auto;
+      min-width: 100%;
+    }
+    .filter-controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .filter-controls select {
+      width: 100%;
+      min-width: unset;
+    }
+    .clear-filters-btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .pagination-container {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .pagination-left {
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .pagination-right {
+      justify-content: center;
+    }
+    .pagination-controls {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pagination-info {
+      white-space: normal;
+      text-align: center;
+    }
+    .entries-per-page {
+      white-space: normal;
+    }
+    
+    .fd-type-row {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .fd-type-label {
+      min-width: 100px;
+      font-size: 13px;
+    }
+    .fd-type-track {
+      flex: 1 1 100%;
+      order: 3;
+    }
+    .fd-type-pct {
+      min-width: 60px;
+      font-size: 12px;
+    }
+  }
+
+  /* 5. SMALL PHONES (321px - 480px) */
+  @media screen and (min-width: 321px) and (max-width: 480px) {
+    .sc-page-header h1 {
+      font-size: 20px;
+    }
+    .sc-page-header p {
+      font-size: 13px;
+    }
+    
+    .search-filter-container {
+      gap: 8px;
+      padding: 10px 0;
+    }
+    .search-box input {
+      font-size: 13px;
+      padding: 6px 10px 6px 28px;
+    }
+    .search-box .search-icon {
+      font-size: 12px;
+      left: 8px;
+    }
+    .filter-controls select {
+      font-size: 13px;
+      padding: 6px 10px;
+    }
+    .clear-filters-btn {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    
+    .pagination-container {
+      gap: 8px;
+      padding: 10px 0;
+    }
+    .pagination-info {
+      font-size: 12px;
+    }
+    .entries-per-page {
+      font-size: 12px;
+    }
+    .entries-per-page select {
+      font-size: 12px;
+      padding: 3px 5px;
+    }
+    .pagination-controls button,
+    .pagination-controls .page-link {
+      font-size: 12px;
+      padding: 3px 8px;
+      min-width: 28px;
+      height: 26px;
+    }
+    .pagination-ellipsis {
+      font-size: 12px;
+    }
+    .fd-widget-title {
+      font-size: 16px;
+    }
+    
+    .fd-type-label {
+      min-width: 80px;
+      font-size: 12px;
+    }
+    .fd-type-pct {
+      min-width: 50px;
+      font-size: 11px;
+    }
+    .fd-type-track {
+      height: 6px;
+    }
+    .fd-status {
+      font-size: 11px;
+      padding: 3px 10px;
+    }
+  }
+
+  /* 6. EXTREMELY SMALL SCREENS (170px - 320px) */
+  @media screen and (max-width: 320px) {
+    .sc-page-header h1 {
+      font-size: 17px;
+      margin: 0;
+    }
+    .sc-page-header p {
+      font-size: 11px;
+      margin: 4px 0;
+    }
+    .sc-header-actions .fd-btn {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+    .sc-header-actions .fd-btn i {
+      font-size: 14px;
+    }
+    
+    .fd-widget-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    .fd-widget-title {
+      font-size: 14px;
+    }
+    .fd-widget-link {
+      font-size: 12px;
+    }
+    
+    .search-filter-container {
+      gap: 6px;
+      padding: 8px 0;
+      margin-bottom: 8px;
+    }
+    .search-box {
+      min-width: 100%;
+    }
+    .search-box input {
+      font-size: 11px;
+      padding: 5px 8px 5px 24px;
+      border-radius: 4px;
+    }
+    .search-box .search-icon {
+      font-size: 11px;
+      left: 6px;
+    }
+    .filter-controls {
+      gap: 5px;
+    }
+    .filter-controls select {
+      font-size: 11px;
+      padding: 5px 8px;
+      min-width: 100%;
+      border-radius: 4px;
+    }
+    .clear-filters-btn {
+      font-size: 11px;
+      padding: 5px 10px;
+      width: 100%;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    .clear-filters-btn i {
+      font-size: 12px;
+    }
+    
+    .fd-table {
+      font-size: 11px;
+      min-width: 350px;
+    }
+    .fd-table th,
+    .fd-table td {
+      padding: 4px 6px;
+    }
+    .fd-form-title {
+      font-size: 11px;
+    }
+    .fd-status {
+      font-size: 10px;
+      padding: 2px 8px;
+    }
+    .fd-dept {
+      font-size: 11px;
+    }
+    
+    .pagination-container {
+      gap: 6px;
+      padding: 8px 0;
+      margin-top: 8px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .pagination-left {
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .pagination-info {
+      font-size: 10px;
+      text-align: center;
+      white-space: normal;
+    }
+    .entries-per-page {
+      font-size: 10px;
+      white-space: normal;
+    }
+    .entries-per-page select {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+    .pagination-right {
+      justify-content: center;
+    }
+    .pagination-controls {
+      gap: 2px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .pagination-controls button,
+    .pagination-controls .page-link {
+      font-size: 10px;
+      padding: 2px 6px;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 3px;
+    }
+    .pagination-ellipsis {
+      font-size: 10px;
+      padding: 0 1px;
+    }
+    .pagination-controls button i {
+      font-size: 10px;
+    }
+    
+    .no-results {
+      padding: 20px 10px;
+    }
+    .no-results i {
+      font-size: 28px;
+    }
+    .no-results p {
+      font-size: 12px;
+    }
+    
+    .fd-type-list {
+      gap: 6px;
+    }
+    .fd-type-row {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .fd-type-label {
+      min-width: 60px;
+      font-size: 11px;
+    }
+    .fd-type-track {
+      flex: 1 1 100%;
+      height: 5px;
+      order: 3;
+    }
+    .fd-type-pct {
+      min-width: 40px;
+      font-size: 10px;
+    }
+  }
+
+  /* 7. EXACTLY 170px - Special handling */
+  @media screen and (max-width: 170px) {
+    .sc-page-header p {
+      display: none;
+    }
+    .fd-widget-link {
+      display: none;
+    }
+    .pagination-info .entry-text {
+      display: none;
+    }
+    
+    .sc-page-header h1 {
+      font-size: 14px;
+    }
+    .fd-widget-title {
+      font-size: 12px;
+    }
+    .fd-widget-title i {
+      font-size: 12px;
+    }
+    
+    .search-box input {
+      font-size: 10px;
+      padding: 4px 6px 4px 20px;
+    }
+    .search-box .search-icon {
+      font-size: 10px;
+      left: 4px;
+    }
+    .filter-controls select {
+      font-size: 10px;
+      padding: 4px 6px;
+      min-width: 100%;
+    }
+    .clear-filters-btn {
+      font-size: 10px;
+      padding: 4px 8px;
+    }
+    .clear-filters-btn i {
+      font-size: 10px;
+    }
+    
+    .fd-table {
+      font-size: 9px;
+      min-width: 280px;
+    }
+    .fd-table th,
+    .fd-table td {
+      padding: 3px 4px;
+    }
+    .fd-form-title {
+      font-size: 9px;
+    }
+    .fd-status {
+      font-size: 8px;
+      padding: 1px 5px;
+    }
+    .fd-dept {
+      font-size: 9px;
+    }
+    
+    .pagination-info {
+      font-size: 9px;
+    }
+    .entries-per-page {
+      font-size: 9px;
+    }
+    .entries-per-page select {
+      font-size: 9px;
+      padding: 1px 3px;
+    }
+    .pagination-controls button,
+    .pagination-controls .page-link {
+      font-size: 9px;
+      padding: 1px 4px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 2px;
+    }
+    .pagination-ellipsis {
+      font-size: 9px;
+    }
+    .pagination-controls button i {
+      font-size: 8px;
+    }
+    
+    .no-results i {
+      font-size: 20px;
+    }
+    .no-results p {
+      font-size: 10px;
+    }
+    
+    .fd-type-label {
+      font-size: 9px;
+      min-width: 40px;
+    }
+    .fd-type-pct {
+      font-size: 8px;
+      min-width: 30px;
+    }
+    .fd-type-track {
+      height: 4px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_scheduling %}active{% endblock %}
+
+{% block content %}
+
+<div class="sc-page-header">
+  <div>
+    <h1>Faculty Availability</h1>
+    <p>View instructor workload, assigned classes, and availability status.</p>
+  </div>
+  <div class="sc-header-actions">
+    <a href="{% url 'staff_scheduling' uuid=user.uuid %}" class="fd-btn fd-btn-ghost" style="text-decoration: none;">
+      <i class="ti ti-arrow-left"></i><span>Back to Scheduling</span>
+    </a>
+  </div>
+</div>
+
+<div class="cs-main-container">
+
+  <!-- Faculty Workload Table -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-users"></i> Faculty Workload</div>
+      <span class="fd-widget-link" id="totalCount">{{ faculty_data|length }} faculty</span>
+    </div>
+
+    <!-- Search and Filter Controls -->
+    <div class="search-filter-container">
+      <div class="search-box">
+        <i class="ti ti-search search-icon"></i>
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Search faculty..." 
+          onkeyup="filterTable()"
+        >
+      </div>
+      
+      <div class="filter-controls">
+        <select id="statusFilter" onchange="filterTable()">
+          <option value="">All Statuses</option>
+          <option value="Busy">Busy (5+ classes)</option>
+          <option value="Available">Available (1-4 classes)</option>
+          <option value="Free">Free (0 classes)</option>
+        </select>
+        
+        <button class="clear-filters-btn" onclick="clearFilters()">
+          <i class="ti ti-x"></i> Clear
+        </button>
+      </div>
+    </div>
+
+    <div class="fd-table-wrap">
+      <table class="fd-table" id="facultyTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)" style="cursor:pointer;">
+              Faculty <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(1)" style="cursor:pointer;">
+              Assigned Classes <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+            <th onclick="sortTable(2)" style="cursor:pointer;">
+              Availability Status <i class="ti ti-arrows-sort" style="font-size:12px;"></i>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          {% for faculty in faculty_data %}
+          <tr data-status="{% if faculty.total_classes >= 5 %}Busy{% elif faculty.total_classes > 0 %}Available{% else %}Free{% endif %}" data-classes="{{ faculty.total_classes }}">
+            <td>
+              <div class="fd-form-title faculty-name">{{ faculty.faculty_name|default:"Not Assigned" }}</div>
+            </td>
+            <td><span class="fd-dept class-count">{{ faculty.total_classes }}</span></td>
+            <td>
+              {% if faculty.total_classes >= 5 %}
+                <span class="fd-status expiring">Busy</span>
+              {% elif faculty.total_classes > 0 %}
+                <span class="fd-status active">Available</span>
+              {% else %}
+                <span class="fd-status archived">Free</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" style="text-align:center;padding:24px;color:#888;">No faculty assignment found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-container">
+      <div class="pagination-left">
+        <div class="pagination-info">
+          <span class="entry-text">Showing </span><span id="startEntry">1</span> - <span id="endEntry">10</span> <span class="entry-text">of </span><span id="totalEntries">{{ faculty_data|length }}</span> <span class="entry-text">faculty</span>
+        </div>
+        
+        <div class="entries-per-page">
+          <label for="entriesPerPage">Show:</label>
+          <select id="entriesPerPage" onchange="changeEntriesPerPage()">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="pagination-right">
+        <div class="pagination-controls" id="paginationControls">
+          <button onclick="goToPage('prev')" id="prevPage" disabled>
+            <i class="ti ti-chevron-left"></i>
+          </button>
+          <div id="pageNumbers" style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;"></div>
+          <button onclick="goToPage('next')" id="nextPage">
+            <i class="ti ti-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Availability Breakdown -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-chart-bar"></i> Workload Distribution</div>
+      <span class="fd-widget-link" id="workloadCount">{{ faculty_data|length }} faculty</span>
+    </div>
+    <div class="fd-type-list" id="workloadList">
+      {% for faculty in faculty_data %}
+      <div class="fd-type-row workload-item" data-status="{% if faculty.total_classes >= 5 %}Busy{% elif faculty.total_classes > 0 %}Available{% else %}Free{% endif %}">
+        <span class="fd-type-label workload-name">{{ faculty.faculty_name|default:"Not Assigned" }}</span>
+        <div class="fd-type-track">
+          <div class="fd-type-fill
+            {% if faculty.total_classes >= 5 %}hr
+            {% elif faculty.total_classes > 0 %}academic
+            {% else %}it{% endif %}"
+            style="width:{% widthratio faculty.total_classes 10 100 %}%"></div>
+        </div>
+        <span class="fd-type-pct workload-classes">{{ faculty.total_classes }} classes</span>
+      </div>
+      {% empty %}
+      <div class="fd-type-row">
+        <span class="fd-type-label">No faculty data available</span>
+        <div class="fd-type-track">
+          <div class="fd-type-fill it" style="width:0%"></div>
+        </div>
+        <span class="fd-type-pct">0</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Global variables for pagination
+  let currentPage = 1;
+  let entriesPerPage = 10;
+  let filteredData = [];
+  let allData = [];
+  let allWorkloadData = [];
+
+  // Initialize data
+  document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('#tableBody tr');
+    allData = Array.from(rows);
+    filteredData = [...allData];
+    
+    const workloadItems = document.querySelectorAll('.workload-item');
+    allWorkloadData = Array.from(workloadItems);
+    
+    updatePagination();
+    updateTotalCount();
+  });
+
+  // Filter function
+  function filterTable() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    filteredData = Array.from(rows).filter(row => {
+      if (row.querySelector('td[colspan]')) return false;
+      
+      const facultyName = row.querySelector('.faculty-name')?.textContent.toLowerCase() || '';
+      const status = row.dataset.status || '';
+      
+      const searchMatch = facultyName.includes(searchInput);
+      const statusMatch = statusFilter === '' || status === statusFilter;
+      
+      return searchMatch && statusMatch;
+    });
+    
+    // Filter workload distribution
+    const workloadItems = document.querySelectorAll('.workload-item');
+    workloadItems.forEach(item => {
+      const name = item.querySelector('.workload-name')?.textContent.toLowerCase() || '';
+      const status = item.dataset.status || '';
+      const searchMatch = name.includes(searchInput);
+      const statusMatch = statusFilter === '' || status === statusFilter;
+      
+      if (searchMatch && statusMatch) {
+        item.style.display = 'flex';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    
+    currentPage = 1;
+    updatePagination();
+    updateTotalCount();
+    updateWorkloadCount();
+    
+    const tbody = document.getElementById('tableBody');
+    let noResultsRow = tbody.querySelector('.no-results-row');
+    
+    if (filteredData.length === 0 && tbody.querySelectorAll('tr').length > 0) {
+      if (!noResultsRow) {
+        noResultsRow = document.createElement('tr');
+        noResultsRow.className = 'no-results-row';
+        noResultsRow.innerHTML = `
+          <td colspan="3">
+            <div class="no-results">
+              <i class="ti ti-search"></i>
+              <p>No faculty found matching your search</p>
+              <button onclick="clearFilters()" style="margin-top:8px;padding:6px 16px;background:#0066cc;color:white;border:none;border-radius:4px;cursor:pointer;font-size:13px;">
+                Clear Filters
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(noResultsRow);
+      }
+    } else if (noResultsRow) {
+      noResultsRow.remove();
+    }
+  }
+
+  // Sorting function
+  let sortDirection = {};
+  
+  function sortTable(columnIndex) {
+    const tbody = document.getElementById('tableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr:not(.no-results-row)'));
+    
+    if (!sortDirection[columnIndex]) {
+      sortDirection[columnIndex] = 'asc';
+    } else if (sortDirection[columnIndex] === 'asc') {
+      sortDirection[columnIndex] = 'desc';
+    } else {
+      sortDirection[columnIndex] = 'asc';
+    }
+    
+    const direction = sortDirection[columnIndex];
+    
+    rows.sort((a, b) => {
+      let aVal = a.querySelectorAll('td')[columnIndex]?.textContent.trim() || '';
+      let bVal = b.querySelectorAll('td')[columnIndex]?.textContent.trim() || '';
+      
+      if (columnIndex === 1) {
+        aVal = parseInt(aVal) || 0;
+        bVal = parseInt(bVal) || 0;
+        return direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    
+    rows.forEach(row => tbody.appendChild(row));
+    
+    const noResultsRow = tbody.querySelector('.no-results-row');
+    if (noResultsRow) {
+      tbody.appendChild(noResultsRow);
+    }
+    
+    filteredData = rows;
+    currentPage = 1;
+    updatePagination();
+  }
+
+  // Pagination functions
+  function updatePagination() {
+    const totalEntries = filteredData.length;
+    const totalPages = Math.ceil(totalEntries / entriesPerPage) || 1;
+    
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    
+    const start = (currentPage - 1) * entriesPerPage;
+    const end = Math.min(start + entriesPerPage, totalEntries);
+    
+    const allRows = document.querySelectorAll('#tableBody tr');
+    allRows.forEach(row => {
+      if (row.classList.contains('no-results-row')) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    
+    filteredData.forEach((row, index) => {
+      if (index >= start && index < end) {
+        row.style.display = '';
+      }
+    });
+    
+    document.getElementById('startEntry').textContent = totalEntries > 0 ? start + 1 : 0;
+    document.getElementById('endEntry').textContent = end;
+    document.getElementById('totalEntries').textContent = totalEntries;
+    
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+    
+    const pageNumbersContainer = document.getElementById('pageNumbers');
+    pageNumbersContainer.innerHTML = '';
+    
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (endPage - startPage < 4) {
+      if (startPage === 1) {
+        endPage = Math.min(totalPages, startPage + 4);
+      } else if (endPage === totalPages) {
+        startPage = Math.max(1, endPage - 4);
+      }
+    }
+    
+    if (startPage > 1) {
+      const firstBtn = document.createElement('button');
+      firstBtn.textContent = '1';
+      firstBtn.className = 'page-link';
+      firstBtn.onclick = () => goToPage(1);
+      pageNumbersContainer.appendChild(firstBtn);
+      
+      if (startPage > 2) {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '…';
+        ellipsis.className = 'pagination-ellipsis';
+        pageNumbersContainer.appendChild(ellipsis);
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = 'page-link' + (i === currentPage ? ' active' : '');
+      btn.onclick = () => goToPage(i);
+      pageNumbersContainer.appendChild(btn);
+    }
+    
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '…';
+        ellipsis.className = 'pagination-ellipsis';
+        pageNumbersContainer.appendChild(ellipsis);
+      }
+      
+      const lastBtn = document.createElement('button');
+      lastBtn.textContent = totalPages;
+      lastBtn.className = 'page-link';
+      lastBtn.onclick = () => goToPage(totalPages);
+      pageNumbersContainer.appendChild(lastBtn);
+    }
+  }
+
+  function goToPage(page) {
+    if (page === 'prev') {
+      currentPage = Math.max(1, currentPage - 1);
+    } else if (page === 'next') {
+      const totalPages = Math.ceil(filteredData.length / entriesPerPage);
+      currentPage = Math.min(totalPages, currentPage + 1);
+    } else {
+      currentPage = page;
+    }
+    updatePagination();
+  }
+
+  function changeEntriesPerPage() {
+    entriesPerPage = parseInt(document.getElementById('entriesPerPage').value);
+    currentPage = 1;
+    updatePagination();
+  }
+
+  function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    filterTable();
+  }
+
+  function updateTotalCount() {
+    const visibleRows = filteredData.length;
+    document.getElementById('totalCount').textContent = visibleRows + ' faculty';
+  }
+
+  function updateWorkloadCount() {
+    const visibleItems = document.querySelectorAll('.workload-item[style*="display: flex"]');
+    document.getElementById('workloadCount').textContent = visibleItems.length + ' faculty';
+  }
+</script>
+
+{% endblock %}
+
+
+##################### Rixie code #########################

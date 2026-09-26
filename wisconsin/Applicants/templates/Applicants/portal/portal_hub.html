@@ -1,0 +1,212 @@
+{% load static %}
+<div class="fade-in-up dashboard-container">
+  <div class="dashboard-header">
+    <h1>MY ACCOUNT</h1>
+    <p class="dashboard-subtitle">Manage all your University of Wisconsin applications.</p>
+  </div>
+
+  {% if not is_enrolled %}
+  <a href="./?state=builder&step=university" class="start-app-btn">
+    <i data-lucide="plus" style="width:20px;height:20px"></i>
+    Start Application
+  </a>
+  {% else %}
+  <div class="info-banner" style="background:#fde8e9;border:1px solid #f5c6c7;border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:10px;color:#c5050c;font-size:14px;font-weight:500">
+    <i data-lucide="info" style="width:20px;height:20px;flex-shrink:0"></i>
+    You are already enrolled or have accepted an offer. New applications are not available.
+  </div>
+  {% endif %}
+
+  <div id="tab-traditional" class="tab-content">
+    {% if in_progress %}
+    <div class="mb-24">
+      <div class="section-header">
+        <h2 class="section-title">In Progress Applications</h2>
+        <span class="count-badge">{{ in_progress|length }}</span>
+      </div>
+      <div class="table-header">
+        <span>Campus</span>
+        <span>App Type</span>
+        <span>Term</span>
+        <span>Updated Date</span>
+        <span style="text-align:right">Actions</span>
+      </div>
+      <div class="table-rows">
+        {% for app in in_progress %}
+        <div class="table-row">
+          <div class="campus-cell">
+            <span class="campus-name">{{ app.university.university_name|truncatechars:30 }}</span>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width:{{ app.progress_pct|default:0 }}%"></div>
+              </div>
+              <span class="progress-pct">{{ app.progress_pct|default:0 }}%</span>
+            </div>
+          </div>
+          <div class="app-type">{{ app.get_applicant_type_display|default:"First-Year" }}</div>
+          <div class="term-cell">
+            {{ app.admission_cycle.term|default:"Fall" }} {{ app.admission_cycle.academic_year|default:"2026" }}
+            <span class="term-sub">{{ app.degree_level.degree_name|default:"" }}</span>
+          </div>
+          <div class="date-cell">
+            {{ app.updated_date|date:"F j, Y"|default:"—" }}
+            <span class="date-sub">{{ app.updated_date|date:"g:i A"|default:"" }}</span>
+          </div>
+          <div class="actions-cell">
+            <button class="action-btn action-btn-edit" data-tooltip="Edit" onclick="window.location.href='{{ app.first_step_url|default:'./?state=dashboard&app_id=' }}{% if not app.first_step_url %}{{ app.application_id }}&uuid={{ applicant.uuid }}{% endif %}'">
+              <i data-lucide="pencil" style="width:16px;height:16px"></i>
+            </button>
+            <button class="action-btn action-btn-delete" data-tooltip="Delete" onclick="event.stopPropagation();openDeleteModal('{{ app.application_id }}','{{ app.Reference_id|escapejs }}')">
+              <i data-lucide="trash-2" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if offline_apps %}
+    <div class="mb-24">
+      <div class="section-header">
+        <h2 class="section-title">Offline Applications</h2>
+        <span class="count-badge">{{ offline_apps|length }}</span>
+      </div>
+      <div class="table-header table-header-offline">
+        <span>Campus</span>
+        <span>App Type</span>
+        <span>Term</span>
+        <span>Updated Date</span>
+        <span style="text-align:right">Actions</span>
+      </div>
+      <div class="table-rows">
+        {% for app in offline_apps %}
+        <div class="table-row table-row-offline">
+          <div class="campus-cell">
+            <span class="campus-name">{{ app.university.university_name|truncatechars:30 }}</span>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width:{{ app.progress_pct|default:0 }}%"></div>
+              </div>
+              <span class="progress-pct">{{ app.progress_pct|default:0 }}%</span>
+            </div>
+          </div>
+          <div class="app-type">{{ app.get_applicant_type_display|default:"First-Year" }}</div>
+          <div class="term-cell">
+            {{ app.admission_cycle.term|default:"Fall" }} {{ app.admission_cycle.academic_year|default:"2026" }}
+            <span class="term-sub">{{ app.degree_level.degree_name|default:"" }}</span>
+          </div>
+          <div class="date-cell">
+            {{ app.updated_date|date:"F j, Y"|default:"—" }}
+            <span class="date-sub">{{ app.updated_date|date:"g:i A"|default:"" }}</span>
+          </div>
+          <div class="actions-cell">
+            <!-- <a href="{% url 'applicants_offline_application_pdf' app.application_id %}" class="submitted-action-btn" title="Download the printable offline application form">
+              <i data-lucide="download" style="width:15px;height:15px"></i> PDF
+            </a> -->
+            <a href="./?state=submit&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}" class="submitted-action-btn" title="Review and submit this application">
+              <i data-lucide="send" style="width:15px;height:15px"></i> Submit
+            </a>
+            <button class="action-btn action-btn-delete" data-tooltip="Delete" onclick="event.stopPropagation();openDeleteModal('{{ app.application_id }}','{{ app.Reference_id|escapejs }}')">
+              <i data-lucide="trash-2" style="width:16px;height:16px"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if submitted %}
+    <div class="mb-24">
+      <div class="section-header">
+        <h2 class="section-title">Submitted Applications</h2>
+        <span class="count-badge">{{ submitted|length }}</span>
+      </div>
+      <div class="table-header">
+        <span>Campus</span>
+        <span>App Type</span>
+        <span>Term</span>
+        <span>Pay Fee?</span>
+        <span style="text-align:right">Actions</span>
+      </div>
+      <div class="table-rows">
+        {% for app in submitted %}
+        <div class="table-row">
+          <div class="campus-cell">
+            <span class="campus-name">{{ app.university.university_name|truncatechars:30 }}</span>
+            <span class="uw-badge uw-badge-{{ app.status }}">{{ app.get_status_display }}</span>
+          </div>
+          <div class="app-type">{{ app.get_applicant_type_display|default:"First-Year" }}</div>
+          <div class="term-cell">
+            {{ app.admission_cycle.term|default:"Fall" }} {{ app.admission_cycle.academic_year|default:"2026" }}
+            <span class="term-sub">{{ app.degree_level.degree_name|default:"" }}</span>
+          </div>
+          <div class="fee-cell">
+            {% if app.fee_info.free %}
+            <span class="fee-status fee-free">No fee</span>
+            {% elif app.fee_info.paid %}
+            <span class="fee-status fee-paid"><i class="fas fa-check"></i> Paid</span>
+            {% elif app.fee_info.pending %}
+            <span class="fee-status fee-pending">Pending</span>
+            {% else %}
+            <a href="./?state=payment&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}" class="fee-status fee-due">Pay Now &rarr;</a>
+            {% endif %}
+          </div>
+          <div class="submitted-actions-cell">
+            <a href="{% url 'applicants_next_steps_pdf' app.application_id %}" class="submitted-action-btn" title="Download next steps PDF">
+              <i data-lucide="map" style="width:15px;height:15px"></i> Next Steps
+            </a>
+            <a href="{% url 'applicants_application_pdf' app.application_id %}" class="submitted-action-btn" title="Download submitted application PDF">
+              <i data-lucide="download" style="width:15px;height:15px"></i> Application
+            </a>
+            <a href="./?state=status&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}" class="submitted-action-btn" title="View status and upload required materials">
+              <i data-lucide="eye" style="width:15px;height:15px"></i> Status
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not in_progress and not offline_apps and not submitted %}
+    <div class="empty-state">
+      <div class="empty-state-icon">
+        <i data-lucide="clipboard-list" style="width:64px;height:64px;stroke-width:1.5"></i>
+      </div>
+      {% if not is_enrolled %}
+      <h3 class="empty-state-title">No submitted applications yet.</h3>
+      <p class="empty-state-text">Start your journey by creating a new application to one of the Universities of Wisconsin.</p>
+      <a href="./?state=builder&step=university" class="empty-state-btn">
+        <i data-lucide="plus" style="width:18px;height:18px"></i>
+        Start New Application
+      </a>
+      {% else %}
+      <h3 class="empty-state-title">You are already enrolled.</h3>
+      <p class="empty-state-text">You cannot submit another application at this time.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div id="tab-direct-admit" class="tab-content" style="display:none">
+    <div class="empty-state">
+      <div class="empty-state-icon">
+        <i data-lucide="clipboard-list" style="width:64px;height:64px;stroke-width:1.5"></i>
+      </div>
+      {% if not is_enrolled %}
+      <h3 class="empty-state-title">No submitted applications yet.</h3>
+      <p class="empty-state-text">Direct Admit applications will appear here once started.</p>
+      <a href="./?state=builder&step=university" class="empty-state-btn">
+        <i data-lucide="plus" style="width:18px;height:18px"></i>
+        Start New Application
+      </a>
+      {% else %}
+      <h3 class="empty-state-title">You are already enrolled.</h3>
+      <p class="empty-state-text">You cannot submit another application at this time.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+

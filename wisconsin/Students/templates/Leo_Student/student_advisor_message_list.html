@@ -1,0 +1,1180 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}Advisor Messages{% endblock title %}
+{% block nav_phd_workflow_open %}active{% endblock nav_phd_workflow_open %}
+{% block nav_phd_workflow_submenu %}open{% endblock nav_phd_workflow_submenu %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static "css/Leo_Student/student_advisor_message_list.css" %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="sam-page" id="samRoot"> 
+        <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}"
+           class="sam-back">
+            <i class="ti ti-arrow-left"></i>
+            Back to PhD Dashboard
+        </a>
+        <section class="sam-hero">
+            <div class="sam-hero-accent"></div>
+            <div class="sam-hero-content">
+                <div class="sam-hero-icon">
+                    <i class="ti ti-message-circle"></i>
+                </div>
+                <div class="sam-hero-text">
+                    <span class="sam-eyebrow">Doctoral Communication</span>
+                    <h1>Advisor Messages</h1>
+                    <p>
+                        Communicate directly with your PhD advisor and keep your academic discussion
+                        and supporting documents together in one conversation.
+                    </p>
+                    <div class="sam-hero-meta">
+                        <span>
+                            <i class="ti ti-message-2"></i>
+                            Direct Conversation
+                        </span>
+                        <span>
+                            <i class="ti ti-paperclip"></i>
+                            File Sharing
+                        </span>
+                        <span>
+                            <i class="ti ti-bolt"></i>
+                            Live Messaging
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="sam-layout">
+            <main class="sam-main-card">
+                <div class="sam-card-header">
+                    <div class="sam-section-title">
+                        <div class="sam-section-icon">
+                            <i class="ti ti-users"></i>
+                        </div>
+                        <div>
+                            <span>ACADEMIC COMMUNICATION</span>
+                            <h2>My Advisor</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="sam-toolbar">
+                    {% comment %} <div class="sam-search">
+                        <i class="ti ti-search"></i>
+                        <input type="text"
+                               id="messageSearch"
+                               autocomplete="off"
+                               placeholder="Search messages...">
+                    </div> {% endcomment %}
+                    <div class="sam-filter-wrap">
+                        <i class="ti ti-filter"></i>
+                        <select id="messageTypeFilter">
+                            <option value="ALL">All Messages</option>
+                            <option value="TEXT">Text Messages</option>
+                            <option value="FILE">File Messages</option>
+                        </select>
+                    </div>
+                    {% comment %} <div class="sam-search">
+                        <i class="ti ti-calendar-event"></i>
+                        <input type="text" id="messageDateFilter" class="sam-date-input" placeholder="Filter by date" autocomplete="off">
+                    </div> {% endcomment %}
+                    <button type="button" class="sam-clear-btn" id="clearMessageFilters">
+                        <i class="ti ti-refresh"></i>
+                        Clear
+                    </button>
+                </div>
+                <div class="sam-live-bar">
+                    <span>
+                        <i class="ti ti-bolt"></i>
+                        Live conversation
+                    </span>
+                    <span class="sam-unread-live">
+                        <strong id="visibleMessageCount">{{ messages|length }}</strong>
+                        messages
+                        <span class="sam-unread-live-badge{% if not unread_count %} sam-hidden{% endif %}"
+                              id="liveUnreadBadge">{{ unread_count }}</span>
+                    </span>
+                </div>
+                {% if advisor %}
+                    <div class="sam-advisor-card"
+                         id="advisorCard"
+                         data-advisor-name="{{ advisor.user.get_full_name|default:advisor.user.username|escape }}">
+                        <div class="sam-advisor-avatar">
+                            {% if advisor.user.first_name %}
+                                {{ advisor.user.first_name|first|upper }}{{ advisor.user.last_name|first|upper }}
+                            {% else %}
+                                {{ advisor.user.username|first|upper }}
+                            {% endif %}
+                        </div>
+                        <div class="sam-advisor-info">
+                            <span class="sam-advisor-label">Assigned PhD Advisor</span>
+                            <span class="sam-advisor-name">{{ advisor.user.get_full_name|default:advisor.user.username }}</span>
+                            <span class="sam-advisor-dept">
+                                <i class="ti ti-building"></i>
+                                {{ advisor.department|default:"Department not specified" }}
+                            </span>
+                            {% with last_message=messages.first %}
+                                {% if last_message %}
+                                    <div class="sam-last-message">
+                                        {% if last_message.sender_role == "STUDENT" %}
+                                            You:
+                                        {% else %}
+                                            Advisor:
+                                        {% endif %}
+                                        {% if last_message.message %}
+                                            {{ last_message.message|truncatechars:75 }}
+                                        {% elif last_message.attachments.all %}
+                                            <i class="ti ti-paperclip"></i>
+                                            Attachment
+                                        {% else %}
+                                            Message
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="sam-last-message">Start a conversation with your advisor.</div>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="sam-advisor-right">
+                            {% with last_message=messages.first %}
+                                {% if last_message %}
+                                    <span class="sam-message-time">{{ last_message.created_at|date:"d M, h:i A" }}</span>
+                                {% endif %}
+                            {% endwith %}
+                            <span class="sam-open-chat">
+                                <i class="ti ti-message"></i>
+                                <span class="sam-unread-badge{% if not unread_count %} sam-hidden{% endif %}"
+                                      id="advisorUnreadBadge"
+                                      aria-label="{{ unread_count }} unread messages">{{ unread_count }}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="sam-empty" id="advisorEmpty">
+                        <div class="sam-empty-icon">
+                            <i class="ti ti-search-off"></i>
+                        </div>
+                        <h3>No messages found</h3>
+                        <p>No conversation messages match the selected search or n.</p>
+                    </div>
+                {% else %}
+                    <div class="sam-empty show">
+                        <div class="sam-empty-icon">
+                            <i class="ti ti-user-off"></i>
+                        </div>
+                        <h3>No Advisor Assigned</h3>
+                        <p>An advisor has not been assigned to your PhD profile yet.</p>
+                    </div>
+                {% endif %}
+            </main>
+            {% if advisor %}
+                <aside class="sam-info-card">
+                    <div class="sam-info-head">
+                        <div class="sam-info-head-icon">
+                            <i class="ti ti-info-circle"></i>
+                        </div>
+                        <div>
+                            <span>CONVERSATION DETAILS</span>
+                            <h3>Advisor Information</h3>
+                        </div>
+                    </div>
+                    <div class="sam-info-body">
+                        <div class="sam-info-row">
+                            <i class="ti ti-user"></i>
+                            <div>
+                                <span>Advisor</span>
+                                <strong>{{ advisor.user.get_full_name|default:advisor.user.username }}</strong>
+                            </div>
+                        </div>
+                        <div class="sam-info-row">
+                            <i class="ti ti-building"></i>
+                            <div>
+                                <span>Department</span>
+                                <strong>{{ advisor.department|default:"Not specified" }}</strong>
+                            </div>
+                        </div>
+                        {% if advisor.faculty_rank %}
+                            <div class="sam-info-row">
+                                <i class="ti ti-award"></i>
+                                <div>
+                                    <span>Faculty Rank</span>
+                                    <strong>{{ advisor.faculty_rank }}</strong>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="sam-info-row">
+                            <i class="ti ti-message-circle"></i>
+                            <div>
+                                <span>Total Messages</span>
+                                <strong id="totalMessageCount">{{ messages|length }}</strong>
+                            </div>
+                        </div>
+                        <div class="sam-info-row">
+                            <i class="ti ti-bolt"></i>
+                            <div>
+                                <span>Communication</span>
+                                <strong>Student↔Advisor</strong>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            {% endif %}
+        </div>
+    </div>
+    {% if advisor %}
+        <div class="sam-chat-modal" id="advisorChatModal" aria-hidden="true">
+            <div class="sam-chat-window" role="dialog" aria-modal="true">
+                <div class="sam-chat-header">
+                    <div class="sam-chat-person">
+                        <div class="sam-chat-avatar">
+                            {% if advisor.user.first_name %}
+                                {{ advisor.user.first_name|first|upper }}{{ advisor.user.last_name|first|upper }}
+                            {% else %}
+                                {{ advisor.user.username|first|upper }}
+                            {% endif %}
+                        </div>
+                        <div class="sam-chat-person-info">
+                            <strong>{{ advisor.user.get_full_name|default:advisor.user.username }}</strong>
+                            <span>Live Advisor Chat</span>
+                        </div>
+                    </div>
+                    <button type="button" class="sam-chat-close" id="closeChatModal">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div class="sam-chat-body">
+                    <div class="sam-chat-history" id="chatHistory">
+                        {% if messages %}
+                            <div class="sam-date-divider">
+                                <span>Conversation History</span>
+                            </div>
+                            {% for chat_message in messages reversed %}
+                                <div class="sam-message-row {% if chat_message.sender_role == 'STUDENT' %}sent{% else %}received{% endif %}"
+                                     data-message-id="{{ chat_message.message_id }}"
+                                     data-message-text="{{ chat_message.message|default:''|lower|escape }}"
+                                     data-message-type="{% if chat_message.attachments.count %}FILE{% else %}TEXT{% endif %}"
+                                     data-message-date="{{ chat_message.created_at|date:'Y-m-d' }}">
+                                    <div class="sam-message-bubble">
+                                        {% if chat_message.sender_role == "ADVISOR" %}
+                                            <div class="sam-message-sender">Advisor</div>
+                                        {% elif chat_message.sender_role == "STUDENT" %}
+                                            <div class="sam-message-sender">You</div>
+                                        {% endif %}
+                                        {% for attachment in chat_message.attachments.all %}
+                                            <a href="{{ attachment.attachment.url }}"
+                                               target="_blank"
+                                               rel="noopener noreferrer"
+                                               class="sam-attachment">
+                                                <div class="sam-attachment-icon">
+                                                    <i class="ti ti-file"></i>
+                                                </div>
+                                                <div class="sam-attachment-info">
+                                                    <strong>{{ attachment.original_name }}</strong>
+                                                    <span>{{ attachment.file_size|filesizeformat }} · Open attachment</span>
+                                                </div>
+                                            </a>
+                                        {% endfor %}
+                                        {% if chat_message.message %}
+                                            <div class="sam-message-text">{{ chat_message.message }}</div>
+                                        {% endif %}
+                                        <div class="sam-message-meta">
+                                            {{ chat_message.created_at|date:"h:i A" }}
+                                            {% if chat_message.sender_role == "STUDENT" %}
+                                                <i class="ti ti-checks sam-message-check"></i>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="sam-no-history">
+                                <div class="sam-no-history-icon">
+                                    <i class="ti ti-message-plus"></i>
+                                </div>
+                                <h3>Start a Conversation</h3>
+                                <p>
+                                    Send your first message to your PhD advisor. You can also attach
+                                    research documents or supporting files.
+                                </p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="sam-chat-footer">
+                    <div class="sam-file-preview" id="filePreview">
+                        <div class="sam-file-preview-header">
+                            <div class="sam-file-preview-title">
+                                <i class="ti ti-paperclip"></i>
+                                <span>Selected Files</span>
+                            </div>
+                            <span class="sam-file-count" id="filePreviewCount">0 files</span>
+                        </div>
+                        <div class="sam-file-list" id="filePreviewList"></div>
+                    </div>
+                    <form method="post"
+                          enctype="multipart/form-data"
+                          id="messageForm"
+                          action="{% url 'Student:student_advisor_message_list' uuid=request.user.uuid %}">
+                        {% csrf_token %}
+                        <input type="file"
+                               name="attachments"
+                               id="chatAttachment"
+                               class="sam-file-input"
+                               multiple
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.zip">
+                        <div class="sam-chat-compose">
+                            <label for="chatAttachment" class="sam-attach-btn" title="Attach file">
+                                <i class="ti ti-paperclip"></i>
+                            </label>
+                            <div class="sam-message-input-wrap">
+                                <textarea name="message"
+                                          id="chatMessageInput"
+                                          class="sam-message-input"
+                                          rows="1"
+                                          maxlength="5000"
+                                          placeholder="Type a message..."></textarea>
+                            </div>
+                            <button type="submit"
+                                    class="sam-send-btn"
+                                    id="sendMessageBtn"
+                                    title="Send message">
+                                <i class="ti ti-send"></i>
+                            </button>
+                        </div>
+                        <div class="sam-chat-hint">Press Enter to send · Shift + Enter for a new line</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <div class="sam-toast" id="samToast">
+        <i class="ti ti-circle-check"></i>
+        <span id="samToastText"></span>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const modal = document.getElementById("advisorChatModal");
+    const advisorCard = document.getElementById("advisorCard");
+    const closeChatModal = document.getElementById("closeChatModal");
+    const chatHistory = document.getElementById("chatHistory");
+    const messageInput = document.getElementById("chatMessageInput");
+    const messageForm = document.getElementById("messageForm");
+    const sendButton = document.getElementById("sendMessageBtn");
+    const attachmentInput = document.getElementById("chatAttachment");
+    const filePreview = document.getElementById("filePreview");
+    const filePreviewCount = document.getElementById("filePreviewCount");
+    const filePreviewList = document.getElementById("filePreviewList");
+    const messageSearch = document.getElementById("messageSearch");
+    const messageTypeFilter = document.getElementById("messageTypeFilter");
+    const messageDateFilter = document.getElementById("messageDateFilter");
+    const clearMessageFilters = document.getElementById("clearMessageFilters");
+    const visibleMessageCount = document.getElementById("visibleMessageCount");
+    const totalMessageCount = document.getElementById("totalMessageCount");
+    const advisorEmpty = document.getElementById("advisorEmpty");
+    const advisorUnreadBadge = document.getElementById("advisorUnreadBadge");
+    const liveUnreadBadge = document.getElementById("liveUnreadBadge");
+    const toast = document.getElementById("samToast");
+    const toastText = document.getElementById("samToastText");
+
+    let selectedFiles = [];
+    let lastKnownMessageId = 0;
+    let pollTimer = null;
+    let pollRunning = false;
+
+    const existingRows = chatHistory
+        ? chatHistory.querySelectorAll(".sam-message-row")
+        : [];
+
+    existingRows.forEach(function (row) {
+        const id = parseInt(row.dataset.messageId || "0", 10);
+
+        if (id > lastKnownMessageId) {
+            lastKnownMessageId = id;
+        }
+    });
+
+    const typeChoices = messageTypeFilter
+        ? new Choices(messageTypeFilter, {
+            searchEnabled: false,
+            itemSelectText: "",
+            shouldSort: false,
+            allowHTML: false
+        })
+        : null;
+
+    const datePicker = messageDateFilter
+        ? flatpickr(messageDateFilter, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d M Y",
+            allowInput: false,
+            disableMobile: true,
+            onChange: filterMessages
+        })
+        : null;
+
+    function showToast(message) {
+        if (!toast || !toastText) {
+            return;
+        }
+
+        toastText.textContent = message;
+        toast.classList.add("show");
+
+        clearTimeout(window.samToastTimer);
+
+        window.samToastTimer = setTimeout(function () {
+            toast.classList.remove("show");
+        }, 2600);
+    }
+
+    function updateUnreadBadge(count, animate = false) {
+        const unread = Math.max(parseInt(count || "0", 10), 0);
+
+        [advisorUnreadBadge, liveUnreadBadge].forEach(function (badge) {
+            if (!badge) {
+                return;
+            }
+
+            if (unread > 0) {
+                badge.textContent = unread > 99 ? "99+" : unread;
+                badge.classList.remove("sam-hidden");
+
+                if (animate) {
+                    badge.classList.remove("pulse");
+                    void badge.offsetWidth;
+                    badge.classList.add("pulse");
+                }
+
+                badge.setAttribute(
+                    "aria-label",
+                    unread + " unread messages"
+                );
+            } else {
+                badge.textContent = "";
+                badge.classList.add("sam-hidden");
+                badge.setAttribute(
+                    "aria-label",
+                    "No unread messages"
+                );
+            }
+        });
+    }
+
+    function openChat() {
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add("show");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+
+        updateUnreadBadge(0);
+
+        setTimeout(function () {
+            if (chatHistory) {
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            if (messageInput) {
+                messageInput.focus();
+            }
+
+            pollMessages(true);
+        }, 120);
+    }
+
+    function closeChat() {
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+    }
+
+    if (advisorCard) {
+        advisorCard.addEventListener("click", function (event) {
+            if (event.target.closest("a")) {
+                return;
+            }
+
+            openChat();
+        });
+    }
+
+    if (closeChatModal) {
+        closeChatModal.addEventListener("click", closeChat);
+    }
+
+    if (modal) {
+        modal.addEventListener("click", function (event) {
+            if (event.target === modal) {
+                closeChat();
+            }
+        });
+    }
+
+    document.addEventListener("keydown", function (event) {
+        if (
+            event.key === "Escape" &&
+            modal &&
+            modal.classList.contains("show")
+        ) {
+            closeChat();
+        }
+    });
+
+    function formatFileSize(bytes) {
+        if (!bytes) {
+            return "0 Bytes";
+        }
+
+        const units = ["Bytes", "KB", "MB", "GB"];
+        const index = Math.min(
+            Math.floor(Math.log(bytes) / Math.log(1024)),
+            units.length - 1
+        );
+
+        const size = bytes / Math.pow(1024, index);
+
+        return size.toFixed(index === 0 ? 0 : 1) + " " + units[index];
+    }
+
+    function clearFiles() {
+        selectedFiles = [];
+
+        if (attachmentInput) {
+            attachmentInput.value = "";
+        }
+
+        if (filePreviewList) {
+            filePreviewList.innerHTML = "";
+        }
+
+        if (filePreviewCount) {
+            filePreviewCount.textContent = "0 files";
+        }
+
+        if (filePreview) {
+            filePreview.classList.remove("show");
+        }
+    }
+
+    function syncFileInput() {
+        if (!attachmentInput) {
+            return;
+        }
+
+        const dataTransfer = new DataTransfer();
+
+        selectedFiles.forEach(function (file) {
+            dataTransfer.items.add(file);
+        });
+
+        attachmentInput.files = dataTransfer.files;
+    }
+
+    function renderSelectedFiles() {
+        if (!filePreviewList || !filePreviewCount || !filePreview) {
+            return;
+        }
+
+        filePreviewList.innerHTML = "";
+
+        if (!selectedFiles.length) {
+            filePreviewCount.textContent = "0 files";
+            filePreview.classList.remove("show");
+            return;
+        }
+
+        filePreviewCount.textContent =
+            selectedFiles.length +
+            (selectedFiles.length === 1 ? " file" : " files");
+
+        selectedFiles.forEach(function (file, index) {
+            const item = document.createElement("div");
+            item.className = "sam-selected-file";
+
+            const icon = document.createElement("div");
+            icon.className = "sam-selected-file-icon";
+            icon.innerHTML = '<i class="ti ti-file"></i>';
+
+            const info = document.createElement("div");
+            info.className = "sam-selected-file-info";
+
+            const name = document.createElement("strong");
+            name.textContent = file.name;
+
+            const size = document.createElement("span");
+            size.textContent = formatFileSize(file.size);
+
+            info.appendChild(name);
+            info.appendChild(size);
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.className = "sam-remove-selected-file";
+            removeButton.innerHTML = '<i class="ti ti-x"></i>';
+            removeButton.title = "Remove file";
+
+            removeButton.addEventListener("click", function () {
+                selectedFiles.splice(index, 1);
+                syncFileInput();
+                renderSelectedFiles();
+            });
+
+            item.appendChild(icon);
+            item.appendChild(info);
+            item.appendChild(removeButton);
+            filePreviewList.appendChild(item);
+        });
+
+        filePreview.classList.add("show");
+    }
+
+    if (attachmentInput) {
+        attachmentInput.addEventListener("change", function () {
+            selectedFiles = Array.from(this.files || []);
+            renderSelectedFiles();
+        });
+    }
+
+    function autoResizeTextarea() {
+        if (!messageInput) {
+            return;
+        }
+
+        messageInput.style.height = "auto";
+        messageInput.style.height =
+            Math.min(messageInput.scrollHeight, 130) + "px";
+    }
+
+    if (messageInput) {
+        messageInput.addEventListener("input", autoResizeTextarea);
+
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+
+                if (messageForm) {
+                    messageForm.requestSubmit();
+                }
+            }
+        });
+    }
+
+
+   function updateAdvisorPreview(data) {
+    const lastMessage =
+        document.querySelector(".sam-last-message");
+
+    const messageTime =
+        document.querySelector(".sam-message-time");
+
+    if (lastMessage) {
+        const prefix =
+            data.sender_role === "STUDENT"
+                ? "You: "
+                : "Advisor: ";
+
+        const attachmentCount =
+            Array.isArray(data.attachments)
+                ? data.attachments.length
+                : 0;
+
+        let previewText = "";
+
+        if (data.message) {
+            previewText =
+                data.message.length > 75
+                    ? data.message.substring(0, 75) + "..."
+                    : data.message;
+        } else if (attachmentCount > 0) {
+            previewText =
+                attachmentCount === 1
+                    ? "Attachment"
+                    : attachmentCount + " Attachments";
+        } else {
+            previewText = "Message";
+        }
+
+        lastMessage.textContent =
+            prefix + previewText;
+    }
+
+    if (messageTime) {
+        if (data.created_date && data.created_at) {
+            messageTime.textContent =
+                data.created_date +
+                ", " +
+                data.created_at;
+        } else if (data.created_at) {
+            messageTime.textContent =
+                data.created_at;
+        }
+    }
+}
+
+    function appendMessage(data, shouldScroll = true) {
+        if (!chatHistory) {
+            return;
+        }
+
+        const messageId = parseInt(data.message_id || "0", 10);
+
+        if (
+            messageId &&
+            chatHistory.querySelector(
+                '[data-message-id="' + messageId + '"]'
+            )
+        ) {
+            return;
+        }
+
+        const emptyState = chatHistory.querySelector(".sam-no-history");
+
+        if (emptyState) {
+            emptyState.remove();
+        }
+
+        const row = document.createElement("div");
+
+        row.className =
+            "sam-message-row " +
+            (data.sender_role === "ADVISOR" ? "received" : "sent");
+
+        row.dataset.messageId = data.message_id || "";
+        row.dataset.messageText =
+            (data.message || "").toLowerCase();
+        row.dataset.messageType =
+            Array.isArray(data.attachments) && data.attachments.length
+                ? "FILE"
+                : "TEXT";
+        row.dataset.messageDate =
+            data.created_date || "";
+
+        const bubble = document.createElement("div");
+        bubble.className = "sam-message-bubble";
+
+        if (data.sender_role === "ADVISOR") {
+            const sender = document.createElement("div");
+
+            sender.className = "sam-message-sender";
+            sender.textContent = "Advisor";
+
+            bubble.appendChild(sender);
+        }
+
+        if (Array.isArray(data.attachments)) {
+            data.attachments.forEach(function (file) {
+                const attachment = document.createElement("a");
+                attachment.href = file.attachment_url;
+                attachment.target = "_blank";
+                attachment.rel = "noopener noreferrer";
+                attachment.className = "sam-attachment";
+
+                const icon = document.createElement("div");
+                icon.className = "sam-attachment-icon";
+                icon.innerHTML = '<i class="ti ti-file"></i>';
+
+                const info = document.createElement("div");
+                info.className = "sam-attachment-info";
+
+                const name = document.createElement("strong");
+                name.textContent = file.attachment_name || "Attachment";
+
+                const hint = document.createElement("span");
+                hint.textContent =
+                    formatFileSize(file.file_size || 0) + " · Open attachment";
+
+                info.appendChild(name);
+                info.appendChild(hint);
+                attachment.appendChild(icon);
+                attachment.appendChild(info);
+                bubble.appendChild(attachment);
+            });
+        }
+
+        if (data.message) {
+            const messageText = document.createElement("div");
+
+            messageText.className = "sam-message-text";
+            messageText.textContent = data.message;
+
+            bubble.appendChild(messageText);
+        }
+
+        const meta = document.createElement("div");
+
+        meta.className = "sam-message-meta";
+        meta.appendChild(
+            document.createTextNode(data.created_at || "")
+        );
+
+        if (data.sender_role === "STUDENT") {
+            const check = document.createElement("i");
+
+            check.className =
+                "ti ti-checks sam-message-check";
+
+            meta.appendChild(check);
+        }
+
+        bubble.appendChild(meta);
+        row.appendChild(bubble);
+        chatHistory.appendChild(row);
+
+        updateAdvisorPreview(data);
+
+        if (shouldScroll) {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        filterMessages();
+
+        if (totalMessageCount) {
+            const count =
+                chatHistory.querySelectorAll(".sam-message-row").length;
+
+            totalMessageCount.textContent = count;
+        }
+    }
+
+    if (messageForm) {
+        messageForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const text = messageInput
+                ? messageInput.value.trim()
+                : "";
+
+            if (!text && !selectedFiles.length) {
+                showToast("Type a message or attach a file.");
+                return;
+            }
+
+            if (sendButton) {
+                sendButton.disabled = true;
+            }
+
+            const formData = new FormData(messageForm);
+
+            try {
+                const response = await fetch(
+                    messageForm.action,
+                    {
+                        method: "POST",
+                        body: formData,
+                        credentials: "same-origin",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                const contentType =
+                    response.headers.get("content-type") || "";
+
+                const responseText =
+                    await response.text();
+
+                if (!contentType.includes("application/json")) {
+                    console.error(
+                        "Server response:",
+                        response.status,
+                        responseText
+                    );
+
+                    throw new Error(
+                        "Unable to send message. Server returned an invalid response."
+                    );
+                }
+
+                const data = JSON.parse(responseText);
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.error || "Unable to send message."
+                    );
+                }
+
+                appendMessage(data, true);
+                updateUnreadBadge(0);
+
+                if (data.message_id) {
+                    lastKnownMessageId = Math.max(
+                        lastKnownMessageId,
+                        parseInt(data.message_id, 10)
+                    );
+                }
+
+                if (messageInput) {
+                    messageInput.value = "";
+                    messageInput.style.height = "auto";
+                }
+
+                clearFiles();
+
+                showToast("Message sent successfully.");
+
+            } catch (error) {
+                console.error(error);
+
+                showToast(
+                    error.message ||
+                    "Unable to send message."
+                );
+
+            } finally {
+                if (sendButton) {
+                    sendButton.disabled = false;
+                }
+
+                if (messageInput) {
+                    messageInput.focus();
+                }
+            }
+        });
+    }
+
+    async function pollMessages(markRead = false) {
+        if (
+            pollRunning ||
+            !messageForm
+        ) {
+            return;
+        }
+
+        pollRunning = true;
+
+        try {
+            const url =
+                messageForm.action +
+                "?chat_poll=1&after_id=" +
+                encodeURIComponent(lastKnownMessageId) +
+                "&mark_read=" +
+                (markRead ? "1" : "0");
+
+            const response = await fetch(
+                url,
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!data.success) {
+                return;
+            }
+
+            if (typeof data.unread_count !== "undefined") {
+                updateUnreadBadge(
+                    data.unread_count,
+                    !markRead && data.unread_count > 0
+                );
+            }
+
+            if (!Array.isArray(data.messages)) {
+                return;
+            }
+
+            let added = false;
+
+            data.messages.forEach(function (message) {
+                const messageId =
+                    parseInt(message.message_id || "0", 10);
+
+                if (
+                    !messageId ||
+                    messageId <= lastKnownMessageId
+                ) {
+                    return;
+                }
+
+                appendMessage(
+                    message,
+                    modal && modal.classList.contains("show")
+                );
+
+                lastKnownMessageId = Math.max(
+                    lastKnownMessageId,
+                    messageId
+                );
+
+                added = true;
+            });
+
+            if (
+                added &&
+                chatHistory &&
+                modal &&
+                modal.classList.contains("show")
+            ) {
+                chatHistory.scrollTop =
+                    chatHistory.scrollHeight;
+            }
+
+        } catch (error) {
+            console.error(
+                "Live message polling error:",
+                error
+            );
+        } finally {
+            pollRunning = false;
+        }
+    }
+
+    pollMessages(false);
+
+    pollTimer = setInterval(
+        function () {
+            pollMessages(
+                modal &&
+                modal.classList.contains("show")
+            );
+        },
+        1500
+    );
+
+    function filterMessages() {
+
+        if (!chatHistory) {
+            return;
+        }
+
+        const rows = Array.from(
+            chatHistory.querySelectorAll(".sam-message-row")
+        );
+
+        const searchValue = messageSearch
+            ? messageSearch.value.trim().toLowerCase()
+            : "";
+
+        const typeValue = typeChoices
+            ? typeChoices.getValue(true)
+            : "ALL";
+
+        const dateValue = messageDateFilter
+            ? messageDateFilter.value
+            : "";
+
+        let visible = 0;
+
+        rows.forEach(function (row) {
+
+            const text =
+                row.dataset.messageText || "";
+
+            const type =
+                row.dataset.messageType || "TEXT";
+
+            const date =
+                row.dataset.messageDate || "";
+
+            const searchMatch =
+                !searchValue ||
+                text.includes(searchValue);
+
+            const typeMatch =
+                typeValue === "ALL" ||
+                type === typeValue;
+
+            const dateMatch =
+                !dateValue ||
+                date === dateValue;
+
+            const shouldShow =
+                searchMatch &&
+                typeMatch &&
+                dateMatch;
+
+            row.classList.toggle(
+                "sam-hidden",
+                !shouldShow
+            );
+
+            if (shouldShow) {
+                visible++;
+            }
+        });
+
+        if (visibleMessageCount) {
+            visibleMessageCount.textContent = visible;
+        }
+
+        if (advisorEmpty) {
+            advisorEmpty.classList.toggle(
+                "show",
+                rows.length > 0 &&
+                visible === 0
+            );
+        }
+    }
+
+    if (messageSearch) {
+        messageSearch.addEventListener(
+            "input",
+            filterMessages
+        );
+    }
+
+    if (messageTypeFilter) {
+        messageTypeFilter.addEventListener(
+            "change",
+            filterMessages
+        );
+    }
+
+    if (clearMessageFilters) {
+        clearMessageFilters.addEventListener(
+            "click",
+            function () {
+
+                if (messageSearch) {
+                    messageSearch.value = "";
+                }
+
+                if (typeChoices) {
+                    typeChoices.setChoiceByValue("ALL");
+                }
+
+                if (datePicker) {
+                    datePicker.clear();
+                }
+
+                filterMessages();
+            }
+        );
+    }
+
+    if (chatHistory) {
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+    }
+
+    filterMessages();
+});
+    </script>
+{% endblock extra_js %}

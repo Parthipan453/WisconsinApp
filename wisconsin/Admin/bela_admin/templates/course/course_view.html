@@ -1,0 +1,580 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}{{ course.course_name }}{% endblock %}
+{% block page_title %}Course Detail{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/course/course_view.css' %}">
+{% endblock %}
+
+
+{% block content %}
+<div class="form-page">
+
+    <!-- Page Header -->
+    <div class="view-course-header-card">
+
+        <div class="view-course-header-left">
+
+            <div class="view-course-header-content">
+              
+
+                <h2 class="form-heading">
+                    {{ course.course_name|truncatechars:20 }}
+                </h2>
+
+
+                <p class="form-sub">
+                    {{ course.department.department_name }}
+                    ·
+                    {{ course.department.school.university.university_name }}
+                </p>
+
+                <nav class="dept-breadcrumb" aria-label="breadcrumb">
+
+                    <i data-lucide="home"></i>
+
+                    <a href="{% url 'admin_dashboard' request.user.uuid %}">
+                        Dashboard
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <a href="{% url 'course_dashboard' %}">
+                        Courses
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <span class="cur">
+                        {{ course.course_name|truncatechars:20 }}
+                    </span>
+
+                </nav>
+
+
+            </div>
+
+        </div>
+
+
+        <div class="view-course-header-right">
+
+            <div class="topbar-actions">
+
+                <a href="{% url 'course_dashboard' %}"
+                   class="btn-outline">
+
+                    <i data-lucide="arrow-left"></i>
+
+                    Back
+
+                </a>
+
+
+                <a href="{% url 'course_edit' course.course_uuid %}"
+                   class="btn-outline">
+
+                    <i data-lucide="pencil"></i>
+
+                    Edit
+
+                </a>
+
+
+                {% if course.status == 'ACTIVE' %}
+
+                <button class="btn-red"
+                        onclick="showInactiveModal()">
+
+                    <i data-lucide="ban"></i>
+
+                    Mark Inactive
+
+                </button>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+  {# ── Hero banner ── #}
+  <div class="dept-hero">
+    <div class="dept-hero__icon">
+      <i data-lucide="book-open"></i>
+    </div>
+    <div class="dept-hero__info">
+      <div class="dept-hero__name">{{ course.course_name|truncatechars:30 }}</div>
+      <div class="dept-hero__meta">
+        <span><i data-lucide="building-2"></i>{{ course.department.department_name }}</span>
+        <span><i data-lucide="graduation-cap"></i>{{ course.credits }} Credit{{ course.credits|pluralize }}</span>
+        {% if course.office_location %}
+        <span><i data-lucide="map-pin"></i>{{ course.office_location }}</span>
+        {% endif %}
+      </div>
+      <div class="dept-hero__badges">
+        <span class="badge-code">{{ course.course_code }}</span>
+        {% if course.status == 'ACTIVE' %}
+          <span class="badge-active">Active</span>
+        {% else %}
+          <span class="badge-inactive">Inactive</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Mini stat cards ── #}
+  <div class="mini-stats">
+    <div class="mini-card">
+      <div class="mini-card__icon blue"><i data-lucide="book-open"></i></div>
+      <div>
+        <div class="mini-card__val">{{ course.credits }}</div>
+        <div class="mini-card__label">Credits</div>
+      </div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-card__icon amber"><i data-lucide="building-2"></i></div>
+      <div>
+        <div class="mini-card__val">{{ course.department.department_name|truncatechars:15 }}</div>
+        <div class="mini-card__label">Department</div>
+      </div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-card__icon red"><i data-lucide="activity"></i></div>
+      <div>
+        <div class="mini-card__val">
+          {% if course.status == 'ACTIVE' %}Active{% else %}Inactive{% endif %}
+        </div>
+        <div class="mini-card__label">Status</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Main grid (same layout as edit_course) ── #}
+  <div class="form-grid">
+
+    {# ─── Left column ─── #}
+    <div class="form-left">
+
+      {# Course Details #}
+      <div class="f-card">
+        <div class="f-card__hd">
+          <div class="f-card__icon red"><i data-lucide="book-open"></i></div>
+          <span class="f-card__title">Course Details</span>
+        </div>
+        <div class="f-card__body">
+          <div class="field-grid">
+
+            <div class="field-item">
+              <div class="field-label">Course Name</div>
+              <div class="field-value">{{ course.course_name }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Course Code</div>
+              <div class="field-value">
+                <span class="course-code">{{ course.course_code }}</span>
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Credits</div>
+              <div class="field-value">{{ course.credits }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Department</div>
+              <div class="field-value">{{ course.department.department_name}}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">School</div>
+              <div class="field-value">{{ course.department.school.school_name }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">University</div>
+              <div class="field-value">{{ course.department.school.university.university_name }}</div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Status</div>
+              <div class="field-value">
+                {% if course.status == 'ACTIVE' %}
+                  <span class="badge-active">Active</span>
+                {% else %}
+                  <span class="badge-inactive">Inactive</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Academic Program</div>
+              <div class="field-value {% if not course.academic_program %}empty{% endif %}">
+                {{ course.academic_program.program_name|default:"Not set" }}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Degree</div>
+              <div class="field-value {% if not course.degree %}empty{% endif %}">
+                {{ course.degree.degree_name|default:"Not set" }}
+              </div>
+            </div>
+
+          </div>
+
+          {% if course.description %}
+          <hr style="border-color:#f0f0f0;margin:1.25rem 0;">
+          <div class="field-label" style="margin-bottom:8px;">Description</div>
+          <div class="desc-block">{{ course.description|linebreaksbr }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Contact Information #}
+      <div class="f-card">
+        <div class="f-card__hd">
+          <div class="f-card__icon blue"><i data-lucide="phone"></i></div>
+          <span class="f-card__title">Contact Information</span>
+        </div>
+        <div class="f-card__body">
+          <div class="field-grid">
+
+            <div class="field-item">
+              <div class="field-label">Email</div>
+              <div class="field-value {% if not course.email %}empty{% endif %}">
+                {% if course.email %}
+                  <a href="mailto:{{ course.email }}">{{ course.email }}</a>
+                {% else %}
+                  Not set
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Phone</div>
+              <div class="field-value {% if not course.phone_number %}empty{% endif %}">
+                {% if course.phone_number %}
+                  <a href="tel:{{ course.phone_number }}">{{ course.phone_number }}</a>
+                {% else %}
+                  Not set
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Website</div>
+              <div class="field-value {% if not course.website %}empty{% endif %}">
+                {% if course.website %}
+                  <a href="{{ course.website }}" target="_blank" rel="noopener">
+                    {{ course.website }}
+                  </a>
+                {% else %}
+                  Not set
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="field-item">
+              <div class="field-label">Office Location</div>
+              <div class="field-value {% if not course.office_location %}empty{% endif %}">
+                {{ course.office_location|default:"Not set" }}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-cards-grid">
+
+        <div class="f-card">
+          <div class="f-card__hd">
+            <div class="f-card__icon amber"><i data-lucide="git-branch"></i></div>
+            <span class="f-card__title">Course Requirements</span>
+          </div>
+          <div class="f-card__body">
+            {% if requirements %}
+              {% for req in requirements %}
+              <div class="field-grid" style="{% if not forloop.last %}margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #f0f0f0;{% endif %}">
+                <div class="field-item">
+                  <div class="field-label">Requirement Type</div>
+                  <div class="field-value">{{ req.requirement_type.name }}</div>
+                </div>
+                <div class="field-item">
+                  <div class="field-label">Related Course</div>
+                  <div class="field-value {% if not req.related_course %}empty{% endif %}">
+                    {% if req.related_course %}
+                      <span class="sub-course-code">{{ req.related_course.course_code }}</span>
+                      {{ req.related_course.course_name|truncatechars:30 }}
+                    {% else %}
+                      Not set
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="sub-empty">
+                <i data-lucide="git-branch"></i>
+                No requirements added yet.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="f-card">
+          <div class="f-card__hd">
+            <div class="f-card__icon" style="background:#f0edff;color:#6d28d9;"><i data-lucide="tag"></i></div>
+            <span class="f-card__title">Course Designations</span>
+          </div>
+          <div class="f-card__body">
+            {% if designations %}
+              {% for desg in designations %}
+              <div class="field-grid" style="{% if not forloop.last %}margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #f0f0f0;{% endif %}">
+                <div class="field-item">
+                  <div class="field-label">Designation Type</div>
+                  <div class="field-value">{{ desg.designation_type.designation_name }}</div>
+                </div>
+                <div class="field-item">
+                  <div class="field-label">Value</div>
+                  <div class="field-value {% if not desg.designation_value %}empty{% endif %}">
+                    {{ desg.designation_value|default:"Not set" }}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="sub-empty">
+                <i data-lucide="tag"></i>
+                No designations added yet.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="f-card">
+          <div class="f-card__hd">
+            <div class="f-card__icon" style="background:#fff0f0;color:#c5050c;"><i data-lucide="calendar"></i></div>
+            <span class="f-card__title">Last Taught</span>
+          </div>
+          <div class="f-card__body">
+            {% if offerings %}
+              {% for offering in offerings %}
+              <div class="field-grid" style="{% if not forloop.last %}margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #f0f0f0;{% endif %}">
+                <div class="field-item">
+                  <div class="field-label">Term</div>
+                  <div class="field-value">{{ offering.term }}</div>
+                </div>
+                <div class="field-item">
+                  <div class="field-label">Year</div>
+                  <div class="field-value">{{ offering.year }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="sub-empty">
+                <i data-lucide="calendar"></i>
+                No records found.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="f-card">
+          <div class="f-card__hd">
+            <div class="f-card__icon" style="background:#eff6ff;color:#2563eb;"><i data-lucide="graduation-cap"></i></div>
+            <span class="f-card__title">Learning Outcomes</span>
+          </div>
+          <div class="f-card__body">
+            {% if learning_outcomes %}
+              {% for outcome in learning_outcomes %}
+              <div style="{% if not forloop.last %}margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #f0f0f0;{% endif %}">
+                <div class="field-label">Outcome {{ forloop.counter }}</div>
+                <div class="field-value">{{ outcome.outcome|linebreaksbr }}</div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="sub-empty">
+                <i data-lucide="graduation-cap"></i>
+                No Learning Outcomes Added
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+
+    </div>{# /form-left #}
+
+    {# ─── Right column ─── #}
+    <div class="form-right">
+
+      {# School Info #}
+      <div class="f-card">
+        <div class="f-card__hd">
+          <div class="f-card__icon green"><i data-lucide="building"></i></div>
+          <span class="f-card__title">School Info</span>
+        </div>
+        <div class="f-card__body" style="display:flex;flex-direction:column;gap:.85rem;">
+          <div>
+            <div class="field-label">School</div>
+            <div class="field-value">{{ course.department.school.school_name }}</div>
+          </div>
+          <div>
+            <div class="field-label">Dean</div>
+            <div class="field-value {% if not course.department.school.dean_name %}empty{% endif %}">
+              {{ course.department.school.dean_name|default:"Not set" }}
+            </div>
+          </div>
+          <div>
+            <div class="field-label">University</div>
+            <div class="field-value">{{ course.department.school.university.university_name }}</div>
+          </div>
+        </div>
+      </div>
+
+      {# Department Info #}
+      <div class="f-card">
+        <div class="f-card__hd">
+          <div class="f-card__icon amber"><i data-lucide="building-2"></i></div>
+          <span class="f-card__title">Department Info</span>
+        </div>
+        <div class="f-card__body" style="display:flex;flex-direction:column;gap:.85rem;">
+          <div>
+            <div class="field-label">Department</div>
+            <div class="field-value">{{ course.department.department_name }}</div>
+          </div>
+          <div>
+            <div class="field-label">Code</div>
+            <div class="field-value">
+              <span class="course-code">{{ course.department.department_code }}</span>
+            </div>
+          </div>
+          {% if course.department.short_name %}
+          <div>
+            <div class="field-label">Short Name</div>
+            <div class="field-value">{{ course.department.short_name }}</div>
+          </div>
+          {% endif %}
+          <div>
+            <div class="field-label">Established</div>
+            <div class="field-value {% if not course.department.established_year %}empty{% endif %}">
+              {{ course.department.established_year|default:"Not set" }}
+            </div>
+          </div>
+          <div>
+            <div class="field-label">Status</div>
+            <div class="field-value">
+              {% if course.department.status == 'ACTIVE' %}
+                <span class="badge-active">Active</span>
+              {% else %}
+                <span class="badge-inactive">Inactive</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Timestamps #}
+      <div class="f-card">
+        <div class="f-card__hd">
+          <div class="f-card__icon amber"><i data-lucide="clock"></i></div>
+          <span class="f-card__title">Record Info</span>
+        </div>
+        <div class="ts-row">
+          <div class="ts-item">
+            <span class="ts-label"><i data-lucide="hash"></i>Course ID</span>
+            <span class="ts-val" style="font-family:monospace;font-size:12px;">
+              {{ course.course_id }}
+            </span>
+          </div>
+          <div class="ts-item">
+            <span class="ts-label"><i data-lucide="calendar-plus"></i>Created</span>
+            <span class="ts-val">{{ course.created_at|date:"M d, Y" }}</span>
+          </div>
+          <div class="ts-item">
+            <span class="ts-label"><i data-lucide="calendar-check"></i>Last Updated</span>
+            <span class="ts-val">{{ course.updated_at|date:"M d, Y" }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>{# /form-right #}
+
+  </div>{# /form-grid #}
+
+</div>
+{% endblock %}
+
+
+{# ── Mark Inactive modal ── #}
+{% block global_modal %}
+{% if course.status == 'ACTIVE' %}
+<div class="modal fade" id="inactiveModal" tabindex="-1"
+     aria-labelledby="inactiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content shadow" style="border-radius:14px;border:none;">
+      <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:38px;height:38px;background:#fff0f0;border-radius:9px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="shield-alert" style="width:18px;height:18px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0" id="inactiveModalLabel">
+            Mark as Inactive?
+          </h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="font-size:13px;color:#495057;padding-top:.85rem;">
+        <p style="margin-bottom:.5rem;">
+          You are about to mark
+          <strong>{{ course.course_name }}</strong>
+          as <strong style="color:#c5050c;">Inactive</strong>.
+        </p>
+        <ul style="margin:0;padding-left:1.1rem;font-size:12.5px;color:#6c757d;line-height:1.8;">
+          <li>The course will be hidden from active listings.</li>
+          <li>Students cannot enroll in this course.</li>
+        </ul>
+      </div>
+      <div class="modal-footer" style="border-top:none;padding-top:0;gap:.5rem;">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-dismiss="modal"
+                style="font-size:13px;border-radius:8px;padding:6px 16px;">
+          Cancel
+        </button>
+        <form method="POST"
+              action="{% url 'course_inactivate' course.course_uuid %}"
+              style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;
+                         background:#c5050c;color:#fff;border:none;font-weight:600;">
+            <i data-lucide="ban" style="width:13px;height:13px;"></i>
+            Yes, Mark Inactive
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+  function showInactiveModal() {
+    new bootstrap.Modal(document.getElementById('inactiveModal')).show();
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,400 @@
+ {% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Create Tournament{% endblock %}
+{% block page_title %}Create Tournament{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="{% static 'css/create_tournament.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ct-page">
+
+    <div class="ct-header ct-fade-in">
+        <div class="ct-header__text">
+            <h1 class="ct-header__title">Create Tournament</h1>
+            <p class="ct-header__subtitle">Configure tournament details, registration settings and invitations.</p>
+        </div>
+        <a href="{% url 'tournament_dashboard_page' %}" class="ct-btn-back">
+            <i data-lucide="arrow-left"></i>
+            <span>Back to Tournaments</span>
+        </a>
+    </div>
+
+    <form class="ct-form" id="createTournamentForm" novalidate data-submit-url="{% url 'tournament_create_json' %}">
+        {% csrf_token %}
+
+        <section class="ct-section ct-fade-in" data-section="identity">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="badge-info"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Tournament Identity</h2>
+                    <p class="ct-section__desc">Name and describe the tournament.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--2">
+                <div class="ct-field">
+                    <label class="ct-label" for="id_tournament_name">Tournament Name <span class="ct-required">*</span></label>
+                    <input type="text" id="id_tournament_name" name="tournament_name" class="ct-input" maxlength="200" placeholder="e.g. Inter-College Basketball Championship" required>
+                    <span class="ct-error" data-error-for="tournament_name"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_tournament_code">Tournament Code <span class="ct-required">*</span></label>
+                    <input type="text" id="id_tournament_code" name="tournament_code" class="ct-input" maxlength="30" placeholder="e.g. BBALL-2026-01" required>
+                    <span class="ct-hint">Must be unique. Used as the tournament's short reference code.</span>
+                    <span class="ct-error" data-error-for="tournament_code"></span>
+                </div>
+                <div class="ct-field ct-field--full">
+                    <label class="ct-label" for="id_description">Description</label>
+                    <textarea id="id_description" name="description" class="ct-textarea" rows="4" placeholder="Brief overview of the tournament, format, and highlights..."></textarea>
+                    <span class="ct-error" data-error-for="description"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="sport-org">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="volleyball"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Sport &amp; Organization</h2>
+                    <p class="ct-section__desc">Choose the sport, hosting club and venue.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--3">
+                <div class="ct-field">
+                    <label class="ct-label" for="id_sport">Sport <span class="ct-required">*</span></label>
+                    <select id="id_sport" name="sport" class="ct-select" required>
+                        <option value="">Select sport</option>
+                        {% for sport in sports %}
+                        <option value="{{ sport.id }}">{{ sport.sport_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="ct-error" data-error-for="sport"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_club">Hosting Club</label>
+                    <select id="id_club" name="club" class="ct-select">
+                        <option value="">Select club (optional)</option>
+                    </select>
+                    <span class="ct-hint">Filtered by the selected sport.</span>
+                    <span class="ct-error" data-error-for="club"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_venue">Venue</label>
+                    <select id="id_venue" name="venue" class="ct-select">
+                        <option value="">Select venue (optional)</option>
+                    </select>
+                    <span class="ct-hint">Facilities linked to the selected sport appear first.</span>
+                    <span class="ct-error" data-error-for="venue"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="schedule">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="calendar-range"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Tournament Schedule</h2>
+                    <p class="ct-section__desc">Registration deadline must fall on or before the start date, which must fall on or before the end date.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--3">
+                <div class="ct-field">
+                    <label class="ct-label" for="id_registration_deadline">Registration Deadline <span class="ct-required">*</span></label>
+                    <div class="ct-date-wrap">
+                        <input type="text" id="id_registration_deadline" name="registration_deadline" class="ct-input ct-date" placeholder="Select date" autocomplete="off" required>
+                        <i data-lucide="calendar-clock" class="ct-date-icon"></i>
+                    </div>
+                    <span class="ct-error" data-error-for="registration_deadline"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_start_date">Start Date <span class="ct-required">*</span></label>
+                    <div class="ct-date-wrap">
+                        <input type="text" id="id_start_date" name="start_date" class="ct-input ct-date" placeholder="Select date" autocomplete="off" required>
+                        <i data-lucide="calendar-days" class="ct-date-icon"></i>
+                    </div>
+                    <span class="ct-error" data-error-for="start_date"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_end_date">End Date <span class="ct-required">*</span></label>
+                    <div class="ct-date-wrap">
+                        <input type="text" id="id_end_date" name="end_date" class="ct-input ct-date" placeholder="Select date" autocomplete="off" required>
+                        <i data-lucide="calendar-check-2" class="ct-date-icon"></i>
+                    </div>
+                    <span class="ct-error" data-error-for="end_date"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="participation">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="users-round"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Participation &amp; Registration</h2>
+                    <p class="ct-section__desc">Define how teams or individuals take part.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--3">
+                <div class="ct-field">
+                    <label class="ct-label" for="id_participation_type">Participation Type <span class="ct-required">*</span></label>
+                    <select id="id_participation_type" name="participation_type" class="ct-select" required>
+                        <option value="">Select type</option>
+                        {% for value, label in participation_type_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="ct-error" data-error-for="participation_type"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_minimum_participants">Minimum Participants <span class="ct-required">*</span></label>
+                    <input type="number" id="id_minimum_participants" name="minimum_participants" class="ct-input" min="1" value="2" required>
+                    <span class="ct-error" data-error-for="minimum_participants"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_maximum_participants">Maximum Participants <span class="ct-required">*</span></label>
+                    <input type="number" id="id_maximum_participants" name="maximum_participants" class="ct-input" min="1" placeholder="e.g. 32" required>
+                    <span class="ct-error" data-error-for="maximum_participants"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="media">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="image-plus"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Media &amp; Documents</h2>
+                    <p class="ct-section__desc">Optional banner, logo and rules document.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--3">
+                <div class="ct-field">
+                    <label class="ct-label">Banner Image</label>
+                    <div class="ct-upload" data-upload="banner">
+                        <input type="file" id="id_banner" name="banner" class="ct-upload__input" accept="image/png,image/jpeg,image/webp">
+                        <div class="ct-upload__dropzone">
+                            <img class="ct-upload__preview" alt="Banner preview" hidden>
+                            <div class="ct-upload__empty">
+                                <i data-lucide="image"></i>
+                                <span>Click or drag a banner image</span>
+                                <small>PNG, JPG or WEBP, up to 5 MB</small>
+                            </div>
+                        </div>
+                        <button type="button" class="ct-upload__remove" hidden><i data-lucide="x"></i> Remove</button>
+                    </div>
+                    <span class="ct-error" data-error-for="banner"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label">Logo</label>
+                    <div class="ct-upload ct-upload--logo" data-upload="logo">
+                        <input type="file" id="id_logo" name="logo" class="ct-upload__input" accept="image/png,image/jpeg,image/webp">
+                        <div class="ct-upload__dropzone">
+                            <img class="ct-upload__preview" alt="Logo preview" hidden>
+                            <div class="ct-upload__empty">
+                                <i data-lucide="shield"></i>
+                                <span>Click or drag a logo</span>
+                                <small>PNG, JPG or WEBP, up to 5 MB</small>
+                            </div>
+                        </div>
+                        <button type="button" class="ct-upload__remove" hidden><i data-lucide="x"></i> Remove</button>
+                    </div>
+                    <span class="ct-error" data-error-for="logo"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label">Rules PDF</label>
+                    <div class="ct-upload ct-upload--file" data-upload="rules_pdf">
+                        <input type="file" id="id_rules_pdf" name="rules_pdf" class="ct-upload__input" accept="application/pdf">
+                        <div class="ct-upload__dropzone">
+                            <div class="ct-upload__empty">
+                                <i data-lucide="file-text"></i>
+                                <span>Click or drag the rules PDF</span>
+                                <small>PDF only, up to 10 MB</small>
+                            </div>
+                            <div class="ct-upload__file-info" hidden>
+                                <i data-lucide="file-check-2"></i>
+                                <span class="ct-upload__file-name"></span>
+                                <span class="ct-upload__file-size"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="ct-upload__remove" hidden><i data-lucide="x"></i> Remove</button>
+                    </div>
+                    <span class="ct-error" data-error-for="rules_pdf"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="configuration">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="sliders-horizontal"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Tournament Configuration</h2>
+                    <p class="ct-section__desc">Format, entry fee and initial status.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--3">
+                <div class="ct-field">
+                    <label class="ct-label" for="id_tournament_type">Tournament Type <span class="ct-required">*</span></label>
+                    <select id="id_tournament_type" name="tournament_type" class="ct-select" required>
+                        <option value="">Select type</option>
+                        {% for value, label in tournament_type_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="ct-error" data-error-for="tournament_type"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_entry_fee">Entry Fee</label>
+                    <input type="number" id="id_entry_fee" name="entry_fee" class="ct-input" min="0" step="0.01" value="0">
+                    <span class="ct-error" data-error-for="entry_fee"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_status">Initial Status <span class="ct-required">*</span></label>
+                    <select id="id_status" name="status" class="ct-select" required>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if value == "CREATED" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="ct-error" data-error-for="status"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="invitation">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="send"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Invitation Details</h2>
+                    <p class="ct-section__desc">Applied to every invitation created for this tournament.</p>
+                </div>
+            </div>
+            <div class="ct-grid ct-grid--3">
+                <div class="ct-field">
+                    <label class="ct-label" for="id_invitation_type">Invitation Type <span class="ct-required">*</span></label>
+                    <select id="id_invitation_type" name="invitation_type" class="ct-select" required>
+                        {% for value, label in invitation_type_choices %}
+                        <option value="{{ value }}" {% if value == "EMAIL" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="ct-error" data-error-for="invitation_type"></span>
+                </div>
+                 <div class="ct-field" id="collegeNameField">
+                    <label class="ct-label" for="id_college_name">College Name</label>
+                    <input type="text" id="id_college_name" name="college_name" class="ct-input" maxlength="200" placeholder="e.g. UW-Madison">
+                    <span class="ct-error" data-error-for="college_name"></span>
+                </div>
+                <div class="ct-field" id="departmentNameField">
+                    <label class="ct-label" for="id_department_name">Department Name</label>
+                    <input type="text" id="id_department_name" name="department_name" class="ct-input" maxlength="150" placeholder="e.g. Athletics Department">
+                    <span class="ct-error" data-error-for="department_name"></span>
+                </div>
+                <div class="ct-field" id="collegeSelectField" hidden>
+                    <label class="ct-label" for="id_college">College</label>
+                    <select id="id_college" name="college_id" class="ct-select" disabled>
+                        <option value="">Select college…</option>
+                    </select>
+                    <span class="ct-error" data-error-for="college_id"></span>
+                </div>
+                <div class="ct-field" id="departmentSelectField" hidden>
+                    <label class="ct-label" for="id_department">Department</label>
+                    <select id="id_department" name="department_id" class="ct-select" disabled>
+                        <option value="">Select department…</option>
+                    </select>
+                    <span class="ct-error" data-error-for="department_id"></span>
+                </div>
+                <div class="ct-field" id="receiverSelectField" hidden>
+                    <label class="ct-label" for="id_receiver_faculty">Receiver</label>
+                    <select id="id_receiver_faculty" class="ct-select" multiple disabled></select>
+                    <span class="ct-error" data-error-for="receiver_faculty_ids"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_contact_person">Contact Person</label>
+                    <input type="text" id="id_contact_person" name="contact_person" class="ct-input" maxlength="150" placeholder="e.g. Jordan Lee">
+                    <span class="ct-error" data-error-for="contact_person"></span>
+                </div>
+                <div class="ct-field">
+                    <label class="ct-label" for="id_mobile_number">Mobile Number</label>
+                    <!-- <input type="text" id="id_mobile_number" name="mobile_number" class="ct-input" maxlength="20" placeholder="e.g. "> -->
+                     <input type="text" id="id_mobile_number" name="mobile_number" class="ct-input" maxlength="15" inputmode="numeric" placeholder="e.g. +1 608 555 0100">
+                    <span class="ct-error" data-error-for="mobile_number"></span>
+                </div>
+                <div class="ct-field ct-field--full">
+                    <label class="ct-label" for="id_remarks">Remarks</label>
+                    <textarea id="id_remarks" name="remarks" class="ct-textarea" rows="3" placeholder="Any additional notes for the invitees..."></textarea>
+                    <span class="ct-error" data-error-for="remarks"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ct-section ct-fade-in" data-section="recipients">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="mail-plus"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Email Recipients</h2>
+                    <p class="ct-section__desc">Add every college or department email that should receive this invitation.</p>
+                </div>
+            </div>
+            <div class="ct-field">
+                <label class="ct-label" for="id_email_input">Recipient Emails <span class="ct-required">*</span></label>
+                <div class="ct-email-tags" id="emailTags">
+                    <input type="text" id="id_email_input" class="ct-email-tags__input" placeholder="Type an email and press Enter or comma...">
+                </div>
+                <span class="ct-hint">Press Enter or comma to add. Paste a comma-separated list to add several at once.</span>
+                <span class="ct-error" data-error-for="emails"></span>
+            </div>
+        </section>
+
+        <section class="ct-section ct-section--review ct-fade-in" data-section="review">
+            <div class="ct-section__header">
+                <span class="ct-section__icon"><i data-lucide="clipboard-check"></i></span>
+                <div>
+                    <h2 class="ct-section__title">Review &amp; Create</h2>
+                    <p class="ct-section__desc">Double-check the details, then create the tournament and send invitations.</p>
+                </div>
+            </div>
+            <div class="ct-review-summary" id="reviewSummary">
+                <div class="ct-review-summary__empty">Fill in the form above — a quick summary will appear here.</div>
+            </div>
+            <div class="ct-form-actions">
+                <a href="{% url 'tournament_dashboard_page' %}" class="ct-btn-secondary">Cancel</a>
+                <button type="submit" class="ct-btn-primary" id="submitTournamentBtn">
+                    <i data-lucide="trophy"></i>
+                    <span>Create Tournament</span>
+                </button>
+            </div>
+        </section>
+
+    </form>
+
+</div>
+
+
+
+{{ clubs_data|json_script:"clubs-data" }}
+{{ venues_data|json_script:"venues-data" }}
+{% endblock %}
+
+{% block page_toasts %}
+
+
+<div class="ct-toast-container" id="ctToastContainer" aria-live="polite"></div>
+
+
+{% endblock %}
+
+ {% block global_modal %}
+<div class="ct-loader" id="ctLoader" hidden aria-live="polite">
+    <div class="ct-loader__panel">
+        <div class="ct-loader__spinner"></div>
+        <p class="ct-loader__text" id="ctLoaderText">Creating tournament...</p>
+    </div>
+</div>
+
+ {% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{% static 'script/create_tournament.js' %}"></script>
+{% endblock %} 

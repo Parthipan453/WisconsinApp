@@ -1,0 +1,1161 @@
+<!-- ********************************************** Arun code **************************************************** -->
+
+{% extends 'staff_base.html' %}
+{% load static %}
+{% block title %}Manage Organizations{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Resources/org_catalog.css' %}">
+<style>
+  .required-mark { color: #d92d20; margin-left: 2px; }
+  .field-error {
+    display: none;
+    color: #d92d20;
+    font-size: 12.5px;
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+  .field-error.show { display: block; }
+  .input-error {
+    border-color: #d92d20 !important;
+    box-shadow: 0 0 0 1px rgba(217,45,32,0.25);
+  }
+  .file-upload-btn.input-error { border-color: #d92d20 !important; }
+  #createOrgSubmitBtn[disabled] { opacity: .6; cursor: not-allowed; }
+</style>
+{% endblock %}
+
+{% block nav_resources_open %}open{% endblock %}
+{% block nav_resources_submenu %}open{% endblock %}
+{% block nav_org_catalog %}active{% endblock %}
+
+{% block content %}
+<div class="org-admin-wrap">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title"><i class="ti ti-users"></i> Organizations</div>
+      <div class="page-sub">{{ total_orgs }} organization{{ total_orgs|pluralize }} • {{ total_pending }} pending request{{ total_pending|pluralize }}</div>
+    </div>
+    <button class="btn-primary" onclick="openCreateModal()">
+      <i class="ti ti-plus"></i> Create Organization
+    </button>
+  </div>
+
+  <div class="org-stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="ti ti-building-community"></i></div>
+      <div>
+        <div class="stat-value">{{ total_orgs }}</div>
+        <div class="stat-label">Total Organizations</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon warning"><i class="ti ti-user-plus"></i></div>
+      <div>
+        <div class="stat-value">{{ total_pending }}</div>
+        <div class="stat-label">Pending Requests</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon success"><i class="ti ti-users-group"></i></div>
+      <div>
+        <div class="stat-value">{{ total_active_members }}</div>
+        <div class="stat-label">Active Members</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="org-tabs">
+    <button class="org-tab active" data-tab="catalog" onclick="switchTab('catalog')">
+      <i class="ti ti-list"></i> Catalog
+      <span class="tab-count">{{ total_orgs }}</span>
+    </button>
+    <button class="org-tab" data-tab="requests" onclick="switchTab('requests')">
+      <i class="ti ti-user-plus"></i> Join Requests
+      {% if total_pending %}<span class="tab-count pending">{{ total_pending }}</span>{% endif %}
+    </button>
+  </div>
+
+<div class="org-tab-panel" id="tab-catalog">
+  <div class="org-catalog-list">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>School</th>
+          <th>Advisor</th>
+          <th>Active Members</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="catalogTableBody">
+        {% for org in orgs %}
+          <tr id="org-row-{{ org.id }}" class="paginated-row">
+            <td>
+              <span class="org-name-text org-name-link" title="{{ org.organization_name }}" onclick="openViewOrgModal({{ org.id }})">{{ org.organization_name }}</span>
+              {% if org.motto %}<div class="org-motto" title="{{ org.motto }}">"{{ org.motto }}"</div>{% endif %}
+            </td>
+            <td>{{ org.school.school_name|default:"—" }}</td>
+            <td>{{ org.advisor.user.get_full_name|default:"TBA" }}</td>
+            <td>
+              <span class="active-members-link" onclick="openMembersModal({{ org.id }}, '{{ org.organization_name|escapejs }}')">
+                {{ org.active_member_count }}{% if org.max_members %} / {{ org.max_members }}{% endif %}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button title="Manage Members" onclick="openMembersModal({{ org.id }}, '{{ org.organization_name|escapejs }}')"><i class="ti ti-users"></i></button>
+              <button title="Edit" onclick="openEditModal({{ org.id }})"><i class="ti ti-edit"></i></button>
+              <button title="Delete" onclick="deleteOrg({{ org.id }}, '{{ org.organization_name|escapejs }}')"><i class="ti ti-trash"></i></button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="table-empty-row">
+            <td colspan="5">No organizations created yet. Click "Create Organization" to add your first one.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="table-pager" id="catalogPager" style="display:none;">
+      <button onclick="changePage(-1)" id="pagerPrev"><i class="ti ti-chevron-left"></i> Prev</button>
+      <span id="pagerLabel">Page 1</span>
+      <button onclick="changePage(1)" id="pagerNext">Next <i class="ti ti-chevron-right"></i></button>
+    </div>
+  </div>
+
+  <div class="org-carousel-section">
+    <div class="carousel-heading"><i class="ti ti-layout-grid"></i> Browse Organizations</div>
+    <div class="org-carousel" id="orgCarousel">
+      {% for org in orgs %}
+        <div class="carousel-card" style="{% if org.cover_image %}background-image: url('{{ org.cover_image.url }}');{% endif %}">
+          <div class="carousel-card-overlay">
+            <div class="carousel-card-name">{{ org.organization_name }}</div>
+            {% if org.motto %}<div class="carousel-card-motto">"{{ org.motto }}"</div>{% endif %}
+            <div class="carousel-card-members"><i class="ti ti-users"></i> {{ org.active_member_count }}{% if org.max_members %} / {{ org.max_members }}{% endif %} members</div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="carousel-empty">No organizations to display yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+  <div class="org-tab-panel" id="tab-requests" style="display:none;">
+    <div class="requests-grid" id="requestsTableBody">
+      {% for r in pending_requests %}
+        <div class="request-card" id="req-row-{{ r.membership_id }}">
+          <div class="request-card-top">
+            <div class="request-avatar">
+              {{ r.student.user.first_name|slice:":1" }}{{ r.student.user.last_name|slice:":1" }}
+            </div>
+            <div class="request-info">
+              <div class="request-student-name">{{ r.student.user.get_full_name }}</div>
+              <div class="request-org-name"><i class="ti ti-building-community"></i> {{ r.organization.organization_name }}</div>
+            </div>
+            <span class="request-badge">Pending</span>
+          </div>
+
+          <div class="request-meta">
+            <span><i class="ti ti-calendar"></i> Requested {{ r.start_date }}</span>
+          </div>
+
+          <div class="request-actions">
+            <button class="btn-approve" onclick="approveRequest({{ r.membership_id }})">
+              <i class="ti ti-check"></i> Approve
+            </button>
+            <button class="btn-reject" onclick="rejectRequest({{ r.membership_id }})">
+              <i class="ti ti-x"></i> Reject
+            </button>
+          </div>
+        </div>
+      {% empty %}
+        <div class="requests-empty">
+          <i class="ti ti-user-check"></i>
+          <div class="requests-empty-title">All caught up</div>
+          <div class="requests-empty-sub">There are no pending join requests right now.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<div class="org-modal-overlay" id="createModalOverlay" style="display:none;" onclick="closeCreateModal(event)">
+  <div class="org-modal" onclick="event.stopPropagation()">
+    <div class="org-modal-header">
+      <h3><i class="ti ti-plus"></i> Create Organization</h3>
+      <button onclick="closeCreateModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="org-form-grid" id="createOrgForm" novalidate>
+      {% csrf_token %}
+
+      <div class="field-full">
+        <label>Organization Name<span class="required-mark">*</span></label>
+        <input type="text" name="organization_name" id="orgNameInput" required minlength="3" maxlength="100">
+        <div class="field-error" id="err-orgName">Organization name is required (min 3 characters).</div>
+      </div>
+
+      <div class="field-full">
+        <label>Motto / Tagline<span class="required-mark">*</span></label>
+        <input type="text" name="motto" id="mottoInput" placeholder="e.g. Building tomorrow's engineers, today.">
+        <div class="field-error" id="err-motto">Motto / tagline is required.</div>
+      </div>
+
+      <div class="field-full">
+        <label>Description<span class="required-mark">*</span></label>
+        <textarea name="description" id="descriptionInput" rows="3"></textarea>
+        <div class="field-error" id="err-description">Description is required.</div>
+      </div>
+
+      <div class="field-full">
+        <label>Cover Image<span class="required-mark">*</span></label>
+        <div class="file-upload-wrap">
+          <input type="file" name="cover_image" id="coverImageInput" accept="image/*" onchange="previewCoverImage(this)" hidden>
+          <label for="coverImageInput" class="file-upload-btn" id="coverUploadBtn">
+            <i class="ti ti-upload"></i> Choose File
+          </label>
+          <span id="coverFileName" class="file-upload-name">No file chosen</span>
+        </div>
+        <div class="field-error" id="err-coverImage">Cover image is required.</div>
+        <div id="coverPreviewWrap" style="display:none;">
+          <img id="coverPreviewImg" alt="Preview">
+        </div>
+      </div>
+
+      <div class="field-half">
+        <label>School / College<span class="required-mark">*</span></label>
+        <select name="school" id="createSchoolSelect" onchange="filterDeptsBySchool(this.value, 'createDeptSelect')">
+          <option value="">— None —</option>
+          {% for s in schools %}
+            <option value="{{ s.school_id }}">{{ s.school_name }}</option>
+          {% endfor %}
+        </select>
+        <div class="field-error" id="err-school">Please select a school / college.</div>
+      </div>
+
+      <div class="field-half">
+        <label>Department<span class="required-mark">*</span></label>
+        <select name="department" id="createDeptSelect" onchange="filterAdvisorsByDept(this.value, 'createAdvisorSelect')" disabled>
+          <option value="">— Select school first —</option>
+        </select>
+        <div class="field-error" id="err-department">Please select a department.</div>
+      </div>
+
+      <div class="field-half">
+        <label>Advisor<span class="required-mark">*</span></label>
+        <select name="advisor" id="createAdvisorSelect" disabled>
+          <option value="">— Select department first —</option>
+        </select>
+        <div class="field-error" id="err-advisor">Please select an advisor.</div>
+      </div>
+
+      <div class="field-half">
+        <label>Max Members<span class="required-mark">*</span></label>
+        <input type="number" name="max_members" id="maxMembersInput" min="1" max="1000" placeholder="Leave blank = unlimited">
+        <div class="field-error" id="err-maxMembers">Max members must be a positive number.</div>
+      </div>
+
+      <div class="field-half">
+        <label>Founded Date<span class="required-mark">*</span></label>
+        <input type="date" name="founded_date" id="foundedDateInput">
+        <div class="field-error" id="err-foundedDate">Founded date is required and cannot be in the future.</div>
+      </div>
+
+    <div class="field-full">
+      <button type="submit" id="createOrgSubmitBtn"><i class="ti ti-plus"></i> Create Organization</button>
+    </div>
+
+    </form>
+  </div>
+</div>
+
+<div class="org-modal-overlay" id="editModalOverlay" style="display:none;" onclick="closeEditModal(event)">
+  <div class="org-modal" onclick="event.stopPropagation()">
+    <div class="org-modal-header">
+      <h3><i class="ti ti-edit"></i> Edit Organization</h3>
+      <button onclick="closeEditModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="editOrgForm" class="org-form-grid" enctype="multipart/form-data" novalidate>
+      <input type="hidden" id="editOrgId">
+
+      <div class="field-full">
+        <label>Organization Name *</label>
+        <input type="text" id="editOrgName" required minlength="3" maxlength="100">
+      </div>
+
+      <div class="field-full">
+        <label>Motto / Tagline</label>
+        <input type="text" id="editOrgMotto" placeholder="e.g. Building tomorrow's engineers, today.">
+      </div>
+
+      <div class="field-full">
+        <label>Description</label>
+        <textarea id="editOrgDesc" rows="3"></textarea>
+      </div>
+
+      <div class="field-full">
+        <label>Cover Image</label>
+        <div class="file-upload-wrap">
+          <input type="file" id="editOrgCoverImage" accept="image/*" onchange="previewEditCoverImage(this)" hidden>
+          <label for="editOrgCoverImage" class="file-upload-btn">
+            <i class="ti ti-upload"></i> Choose File
+          </label>
+          <span id="editCoverFileName" class="file-upload-name">No file chosen</span>
+        </div>
+        <div id="editCoverPreviewWrap" style="display:none;">
+          <img id="editCoverPreviewImg" alt="Preview">
+        </div>
+      </div>
+
+      <div class="field-half">
+        <label>School / College</label>
+        <select id="editOrgSchool" onchange="filterDeptsBySchool(this.value, 'editDeptSelect')">
+          <option value="">— None —</option>
+          {% for s in schools %}
+            <option value="{{ s.school_id }}">{{ s.school_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field-half">
+        <label>Department</label>
+        <select id="editDeptSelect" onchange="filterAdvisorsByDept(this.value, 'editOrgAdvisor')">
+          <option value="">— None —</option>
+        </select>
+      </div>
+
+      <div class="field-half">
+        <label>Advisor</label>
+        <select id="editOrgAdvisor">
+          <option value="">— None —</option>
+        </select>
+      </div>
+
+      <div class="field-half">
+        <label>Max Members</label>
+        <input type="number" id="editOrgMaxMembers" min="1" max="1000" placeholder="Leave blank = unlimited">
+      </div>
+
+      <div class="field-half">
+        <label>Founded Date</label>
+        <input type="date" id="editOrgFoundedDate">
+      </div>
+
+      <div class="field-full">
+        <button type="submit"><i class="ti ti-device-floppy"></i> Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="org-modal-overlay" id="viewOrgModalOverlay" style="display:none;" onclick="closeViewOrgModal(event)">
+  <div class="org-modal view-org-modal" onclick="event.stopPropagation()">
+    <div class="org-modal-header">
+      <h3><i class="ti ti-building-community"></i> Organization Details</h3>
+      <button onclick="closeViewOrgModal()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div id="viewOrgCoverWrap" class="view-org-cover" style="display:none;">
+      <img id="viewOrgCoverImg" alt="Cover">
+    </div>
+
+    <div class="view-org-body">
+      <div class="view-org-title-row">
+        <h2 id="viewOrgName"></h2>
+        <span id="viewOrgMotto" class="view-org-motto"></span>
+      </div>
+
+      <p id="viewOrgDesc" class="view-org-desc"></p>
+
+      <div class="view-org-grid">
+        <div class="view-org-field">
+          <span class="view-org-label"><i class="ti ti-school"></i> School</span>
+          <span id="viewOrgSchool" class="view-org-value">—</span>
+        </div>
+        <div class="view-org-field">
+          <span class="view-org-label"><i class="ti ti-building"></i> Department</span>
+          <span id="viewOrgDept" class="view-org-value">—</span>
+        </div>
+        <div class="view-org-field">
+          <span class="view-org-label"><i class="ti ti-user-check"></i> Advisor</span>
+          <span id="viewOrgAdvisor" class="view-org-value">—</span>
+        </div>
+        <div class="view-org-field">
+          <span class="view-org-label"><i class="ti ti-calendar"></i> Founded</span>
+          <span id="viewOrgFounded" class="view-org-value">—</span>
+        </div>
+        <div class="view-org-field">
+          <span class="view-org-label"><i class="ti ti-users-group"></i> Members</span>
+          <span id="viewOrgMembers" class="view-org-value">—</span>
+        </div>
+      </div>
+
+      <button class="view-org-manage-btn" id="viewOrgManageBtn" onclick="closeViewOrgModal(); openMembersModal(currentViewOrgId, currentViewOrgName);">
+        <i class="ti ti-users"></i> Manage Members
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="org-modal-overlay" id="membersModalOverlay" style="display:none;" onclick="closeMembersModal(event)">
+  <div class="org-modal members-modal" onclick="event.stopPropagation()">
+    <div class="org-modal-header">
+      <h3><i class="ti ti-users"></i> Members — <span id="membersOrgName"></span></h3>
+      <button onclick="closeMembersModal()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="members-search-block">
+      <label>Add a Student</label>
+      <div class="search-input-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" id="memberSearchInput" placeholder="Search by name, email, or student ID..." oninput="searchStudents()">
+      </div>
+      <div id="studentSearchResults" class="search-results-list"></div>
+    </div>
+
+    <div class="members-current-block">
+      <label>Current Members <span id="currentMembersCount" class="count-badge"></span></label>
+      <div id="currentMembersList" class="current-members-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="org-modal-overlay confirm-overlay" id="confirmModalOverlay" style="display:none;">
+  <div class="confirm-modal">
+    <div class="confirm-icon"><i class="ti ti-trash"></i></div>
+    <div class="confirm-title" id="confirmModalTitle">Delete item?</div>
+    <div class="confirm-message" id="confirmModalMessage"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+      <button class="confirm-btn-danger" id="confirmModalOkBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCsrf() {
+  let v = null;
+  document.cookie.split(';').forEach(c => {
+    c = c.trim();
+    if (c.startsWith('csrftoken=')) v = decodeURIComponent(c.substring(10));
+  });
+  return v;
+}
+
+const BASE = "/staff/{{ request.user.uuid }}/organizations/";
+
+function switchTab(tab) {
+  document.querySelectorAll('.org-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.org-tab[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('tab-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+  document.getElementById('tab-requests').style.display = tab === 'requests' ? 'block' : 'none';
+}
+
+function openCreateModal() {
+  document.getElementById('createModalOverlay').style.display = 'flex';
+}
+function closeCreateModal(e) {
+  if (e && e.target !== document.getElementById('createModalOverlay')) return;
+  document.getElementById('createModalOverlay').style.display = 'none';
+}
+
+function openEditModal(orgId) {
+  fetch(`${BASE}${orgId}/detail/`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) return;
+      const org = data.org;
+
+      document.getElementById('editOrgId').value = org.id;
+      document.getElementById('editOrgName').value = org.organization_name;
+      document.getElementById('editOrgMotto').value = org.motto || '';
+      document.getElementById('editOrgDesc').value = org.description || '';
+      document.getElementById('editOrgMaxMembers').value = org.max_members || '';
+      document.getElementById('editOrgFoundedDate').value = org.founded_date || '';
+
+      const previewWrap = document.getElementById('editCoverPreviewWrap');
+      const previewImg = document.getElementById('editCoverPreviewImg');
+      const fileNameLabel = document.getElementById('editCoverFileName');
+      document.getElementById('editOrgCoverImage').value = ''; 
+      if (org.cover_image_url) {
+        previewImg.src = org.cover_image_url;
+        previewWrap.style.display = 'block';
+        fileNameLabel.textContent = 'Current image';
+      } else {
+        previewWrap.style.display = 'none';
+        fileNameLabel.textContent = 'No file chosen';
+      }
+
+      document.getElementById('editOrgSchool').value = org.school_id || '';
+
+      const deptSelect = document.getElementById('editDeptSelect');
+      const advisorSelect = document.getElementById('editOrgAdvisor');
+
+      if (org.school_id) {
+        fetch(`${BASE}departments-by-school/?school_id=${org.school_id}`)
+          .then(res => res.json())
+          .then(deptData => {
+            deptSelect.innerHTML = '<option value="">— None —</option>' +
+              deptData.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            deptSelect.value = org.department_id || '';
+
+            if (org.department_id) {
+              fetch(`${BASE}advisors-by-department/?department_id=${org.department_id}`)
+                .then(res => res.json())
+                .then(advData => {
+                  advisorSelect.innerHTML = '<option value="">— None —</option>' +
+                    advData.advisors.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                  advisorSelect.value = org.advisor_id || '';
+                });
+            } else {
+              advisorSelect.innerHTML = '<option value="">— Select department first —</option>';
+            }
+          });
+      } else {
+        deptSelect.innerHTML = '<option value="">— Select school first —</option>';
+        advisorSelect.innerHTML = '<option value="">— Select department first —</option>';
+      }
+
+      document.getElementById('editModalOverlay').style.display = 'flex';
+    });
+}
+
+function previewEditCoverImage(input) {
+  const wrap = document.getElementById('editCoverPreviewWrap');
+  const img = document.getElementById('editCoverPreviewImg');
+  const nameLabel = document.getElementById('editCoverFileName');
+
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    nameLabel.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      img.src = e.target.result;
+      wrap.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('editModalOverlay')) return;
+  document.getElementById('editModalOverlay').style.display = 'none';
+}
+
+document.getElementById('editOrgForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  const name = document.getElementById('editOrgName').value.trim();
+  if (!name || name.length < 3) {
+    toastError('Organization name must be at least 3 characters.');
+    return;
+  }
+
+  const orgId = document.getElementById('editOrgId').value;
+  const formData = new FormData();
+  formData.append('organization_name', name);
+  formData.append('motto', document.getElementById('editOrgMotto').value.trim());
+  formData.append('description', document.getElementById('editOrgDesc').value.trim());
+  formData.append('school', document.getElementById('editOrgSchool').value);
+  formData.append('department', document.getElementById('editDeptSelect').value);
+  formData.append('advisor', document.getElementById('editOrgAdvisor').value);
+  formData.append('max_members', document.getElementById('editOrgMaxMembers').value.trim());
+  formData.append('founded_date', document.getElementById('editOrgFoundedDate').value);
+
+  const fileInput = document.getElementById('editOrgCoverImage');
+  if (fileInput.files[0]) {
+    formData.append('cover_image', fileInput.files[0]);
+  }
+
+  fetch(`${BASE}${orgId}/update/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+    body: formData,
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        toastSuccess(data.message);
+        closeEditModal();
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        toastError(data.error);
+      }
+    });
+});
+
+function deleteOrg(orgId, name) {
+  showConfirmModal(
+    'Delete Organization?',
+    `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+    function () {
+      fetch(`${BASE}${orgId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            toastSuccess(data.message);
+            document.getElementById(`org-row-${orgId}`).remove();
+
+            const carouselCard = document.querySelector(`.carousel-card[data-org-id="${orgId}"]`);
+            if (carouselCard) carouselCard.remove();
+
+            paginateTable();
+            initCarouselAutoSlide();
+          } else {
+            toastError(data.error);
+          }
+        });
+    }
+  );
+}
+
+function approveRequest(reqId) {
+  fetch(`${BASE}requests/${reqId}/approve/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        toastSuccess(data.message);
+        document.getElementById(`req-row-${reqId}`).remove();
+      } else {
+        toastError(data.error);
+      }
+    });
+}
+
+function rejectRequest(reqId) {
+  showConfirmModal(
+    'Reject Request?',
+    'Are you sure you want to reject this join request?',
+    function () {
+      fetch(`${BASE}requests/${reqId}/reject/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            toastSuccess(data.message);
+            document.getElementById(`req-row-${reqId}`).remove();
+          } else {
+            toastError(data.error);
+          }
+        });
+    },
+    'Reject'
+  );
+}
+
+let currentMembersOrgId = null;
+
+function openMembersModal(orgId, orgName) {
+  currentMembersOrgId = orgId;
+  const nameEl = document.getElementById('membersOrgName');
+  nameEl.textContent = orgName;
+  nameEl.title = orgName;
+  document.getElementById('memberSearchInput').value = '';
+  document.getElementById('studentSearchResults').innerHTML = '';
+  loadCurrentMembers();
+  document.getElementById('membersModalOverlay').style.display = 'flex';
+}
+
+function closeMembersModal(e) {
+  if (e && e.target !== document.getElementById('membersModalOverlay')) return;
+  document.getElementById('membersModalOverlay').style.display = 'none';
+}
+
+function loadCurrentMembers() {
+  fetch(`${BASE}${currentMembersOrgId}/members/`)
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById('currentMembersList');
+      document.getElementById('currentMembersCount').textContent = data.members.length;
+      if (!data.members.length) {
+        list.innerHTML = '<div class="empty-hint"><i class="ti ti-users-group"></i> No members yet.</div>';
+        return;
+      }
+      list.innerHTML = data.members.map(m => `
+        <div class="member-row">
+          <div class="member-avatar">${m.name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div>
+          <div class="member-info">
+            <div class="member-name">${m.name}</div>
+            <div class="member-email">${m.email} • <span class="member-status ${m.status.toLowerCase()}">${m.status}</span></div>
+          </div>
+          <button class="btn-reject" onclick="removeMember(${m.membership_id})" title="Remove"><i class="ti ti-x"></i></button>
+        </div>
+      `).join('');
+    });
+}
+
+function searchStudents() {
+  const q = document.getElementById('memberSearchInput').value;
+  const box = document.getElementById('studentSearchResults');
+  if (q.length < 2) {
+    box.innerHTML = '';
+    box.classList.remove('has-results');
+    return;
+  }
+  fetch(`${BASE}search-students/?q=${encodeURIComponent(q)}&org_id=${currentMembersOrgId}`)
+    .then(res => res.json())
+    .then(data => {
+      box.classList.add('has-results');
+      if (!data.students.length) {
+        box.innerHTML = '<div class="empty-hint">No matching students found.</div>';
+        return;
+      }
+      box.innerHTML = data.students.map(s => `
+        <div class="member-row">
+          <div class="member-avatar">${s.name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div>
+          <div class="member-info">
+            <div class="member-name">${s.name}</div>
+            <div class="member-email">${s.email} • ${s.student_number}</div>
+          </div>
+          <button class="btn-approve" onclick="addMember(${s.id})"><i class="ti ti-plus"></i> Add</button>
+        </div>
+      `).join('');
+    });
+}
+
+function addMember(studentId) {
+  const formData = new FormData();
+  formData.append('student_id', studentId);
+  fetch(`${BASE}${currentMembersOrgId}/members/add/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+    body: formData,
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        toastSuccess(data.message);
+        document.getElementById('memberSearchInput').value = '';
+        document.getElementById('studentSearchResults').innerHTML = '';
+        loadCurrentMembers();
+      } else {
+        toastError(data.error);
+      }
+    });
+}
+
+function removeMember(membershipId) {
+  showConfirmModal(
+    'Remove Member?',
+    'Are you sure you want to remove this member from the organization?',
+    function () {
+      fetch(`${BASE}members/${membershipId}/remove/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            toastSuccess(data.message);
+            loadCurrentMembers();
+          }
+        });
+    },
+    'Remove'
+  );
+}
+
+function filterAdvisorsByDept(deptId, selectId) {
+  fetch(`${BASE}advisors-by-department/?department_id=${deptId}`)
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById(selectId);
+      select.innerHTML = '<option value="">— None —</option>' +
+        data.advisors.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    });
+}
+
+function previewCoverImage(input) {
+  const wrap = document.getElementById('coverPreviewWrap');
+  const img = document.getElementById('coverPreviewImg');
+  const nameLabel = document.getElementById('coverFileName');
+
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    nameLabel.textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      img.src = e.target.result;
+      wrap.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    clearFieldError('coverImage');
+  } else {
+    nameLabel.textContent = 'No file chosen';
+    wrap.style.display = 'none';
+  }
+}
+
+const PAGE_SIZE = 5;
+let currentPage = 1;
+
+function paginateTable() {
+  const rows = document.querySelectorAll('#catalogTableBody .paginated-row');
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+  const pager = document.getElementById('catalogPager');
+
+  if (rows.length <= PAGE_SIZE) {
+    pager.style.display = 'none';
+    rows.forEach(r => r.style.display = '');
+    return;
+  }
+
+  pager.style.display = 'flex';
+  rows.forEach((row, i) => {
+    const page = Math.floor(i / PAGE_SIZE) + 1;
+    row.style.display = page === currentPage ? '' : 'none';
+  });
+
+  document.getElementById('pagerLabel').textContent = `Page ${currentPage} of ${totalPages}`;
+  document.getElementById('pagerPrev').disabled = currentPage === 1;
+  document.getElementById('pagerNext').disabled = currentPage === totalPages;
+}
+
+function changePage(delta) {
+  const rows = document.querySelectorAll('#catalogTableBody .paginated-row');
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+  currentPage = Math.min(Math.max(1, currentPage + delta), totalPages);
+  paginateTable();
+}
+
+document.addEventListener('DOMContentLoaded', paginateTable);
+
+let carouselRAF = null;
+let carouselPaused = false;
+const CAROUSEL_SPEED_PX_PER_SEC = 40; 
+
+function initCarouselAutoSlide() {
+  const track = document.getElementById('orgCarousel');
+  if (!track) return;
+
+  const cards = track.querySelectorAll('.carousel-card');
+  if (cards.length <= 1) return; 
+
+  cancelAnimationFrame(carouselRAF);
+  carouselPaused = false;
+
+  let lastTime = null;
+
+  function step(timestamp) {
+    if (!track) return;
+    if (lastTime === null) lastTime = timestamp;
+    const delta = timestamp - lastTime;
+    lastTime = timestamp;
+
+    if (!carouselPaused) {
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      const advance = (CAROUSEL_SPEED_PX_PER_SEC * delta) / 1000;
+
+      if (track.scrollLeft >= maxScroll - 1) {
+        track.scrollLeft = 0;
+      } else {
+        track.scrollLeft += advance;
+      }
+    }
+
+    carouselRAF = requestAnimationFrame(step);
+  }
+
+  carouselRAF = requestAnimationFrame(step);
+}
+
+function pauseCarousel() {
+  carouselPaused = true;
+}
+
+function resumeCarousel() {
+  carouselPaused = false;
+}
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  paginateTable();
+  initCarouselAutoSlide();
+
+  const track = document.getElementById('orgCarousel');
+  if (track) {
+    track.addEventListener('mouseenter', pauseCarousel);
+    track.addEventListener('mouseleave', resumeCarousel);
+    track.addEventListener('touchstart', pauseCarousel, { passive: true });
+    track.addEventListener('touchend', resumeCarousel, { passive: true });
+  }
+});
+
+function filterDeptsBySchool(schoolId, deptSelectId) {
+  const deptSelect = document.getElementById(deptSelectId);
+  const advisorSelectId = deptSelectId === 'createDeptSelect' ? 'createAdvisorSelect' : 'editOrgAdvisor';
+  const advisorSelect = document.getElementById(advisorSelectId);
+
+  if (advisorSelect) {
+    advisorSelect.innerHTML = '<option value="">— Select department first —</option>';
+    advisorSelect.disabled = true;
+  }
+
+  if (!schoolId) {
+    deptSelect.innerHTML = '<option value="">— Select school first —</option>';
+    deptSelect.disabled = true;
+    return;
+  }
+
+  fetch(`${BASE}departments-by-school/?school_id=${schoolId}`)
+    .then(res => res.json())
+    .then(data => {
+      deptSelect.disabled = false;
+      deptSelect.innerHTML = '<option value="">— None —</option>' +
+        data.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+      if (deptSelectId === 'createDeptSelect') clearFieldError('school');
+    });
+}
+
+function filterAdvisorsByDept(deptId, selectId) {
+  const select = document.getElementById(selectId);
+
+  if (!deptId) {
+    select.innerHTML = '<option value="">— Select department first —</option>';
+    select.disabled = true;
+    return;
+  }
+
+  fetch(`${BASE}advisors-by-department/?department_id=${deptId}`)
+    .then(res => res.json())
+    .then(data => {
+      select.disabled = false;
+      select.innerHTML = '<option value="">— None —</option>' +
+        data.advisors.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      if (selectId === 'createAdvisorSelect') clearFieldError('department');
+    });
+}
+
+
+function getCreateFieldDefs() {
+  return {
+    orgName: {
+      input: document.getElementById('orgNameInput'),
+      highlight: document.getElementById('orgNameInput'),
+      error: document.getElementById('err-orgName'),
+      isFilled: () => document.getElementById('orgNameInput').value.trim().length >= 3,
+    },
+    motto: {
+      input: document.getElementById('mottoInput'),
+      highlight: document.getElementById('mottoInput'),
+      error: document.getElementById('err-motto'),
+      isFilled: () => document.getElementById('mottoInput').value.trim().length > 0,
+    },
+    description: {
+      input: document.getElementById('descriptionInput'),
+      highlight: document.getElementById('descriptionInput'),
+      error: document.getElementById('err-description'),
+      isFilled: () => document.getElementById('descriptionInput').value.trim().length > 0,
+    },
+    coverImage: {
+      input: document.getElementById('coverImageInput'),
+      highlight: document.getElementById('coverUploadBtn'),
+      error: document.getElementById('err-coverImage'),
+      isFilled: () => document.getElementById('coverImageInput').files.length > 0,
+    },
+    school: {
+      input: document.getElementById('createSchoolSelect'),
+      highlight: document.getElementById('createSchoolSelect'),
+      error: document.getElementById('err-school'),
+      isFilled: () => document.getElementById('createSchoolSelect').value !== '',
+    },
+    department: {
+      input: document.getElementById('createDeptSelect'),
+      highlight: document.getElementById('createDeptSelect'),
+      error: document.getElementById('err-department'),
+      isFilled: () => document.getElementById('createDeptSelect').value !== '',
+    },
+    advisor: {
+      input: document.getElementById('createAdvisorSelect'),
+      highlight: document.getElementById('createAdvisorSelect'),
+      error: document.getElementById('err-advisor'),
+      isFilled: () => document.getElementById('createAdvisorSelect').value !== '',
+    },
+    maxMembers: {
+      input: document.getElementById('maxMembersInput'),
+      highlight: document.getElementById('maxMembersInput'),
+      error: document.getElementById('err-maxMembers'),
+      isFilled: () => {
+        const v = document.getElementById('maxMembersInput').value.trim();
+        return v !== '' && !isNaN(v) && parseInt(v, 10) >= 1;
+      },
+    },
+    foundedDate: {
+      input: document.getElementById('foundedDateInput'),
+      highlight: document.getElementById('foundedDateInput'),
+      error: document.getElementById('err-foundedDate'),
+      isFilled: () => {
+        const v = document.getElementById('foundedDateInput').value;
+        if (!v) return false;
+        const today = new Date().toISOString().split('T')[0];
+        return v <= today;
+      },
+    },
+  };
+}
+
+function showFieldError(key) {
+  const defs = getCreateFieldDefs();
+  const def = defs[key];
+  if (!def) return;
+  def.error.classList.add('show');
+  if (def.highlight) def.highlight.classList.add('input-error');
+}
+
+function clearFieldError(key) {
+  const defs = getCreateFieldDefs();
+  const def = defs[key];
+  if (!def) return;
+  def.error.classList.remove('show');
+  if (def.highlight) def.highlight.classList.remove('input-error');
+}
+
+function validateCreateOrgForm() {
+  const defs = getCreateFieldDefs();
+  let firstInvalidEl = null;
+  let missingCount = 0;
+
+  Object.keys(defs).forEach(key => {
+    const def = defs[key];
+    if (def.isFilled()) {
+      clearFieldError(key);
+    } else {
+      showFieldError(key);
+      missingCount++;
+      if (!firstInvalidEl) firstInvalidEl = def.input;
+    }
+  });
+
+  if (missingCount > 0) {
+    toastError(`Please fill in all ${missingCount} required field${missingCount > 1 ? 's' : ''} marked in red.`);
+    if (firstInvalidEl) {
+      firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (firstInvalidEl.focus) firstInvalidEl.focus();
+    }
+    return false;
+  }
+  return true;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const createForm = document.getElementById('createOrgForm');
+  if (!createForm) return;
+
+  const liveFieldMap = {
+    orgNameInput: 'orgName',
+    mottoInput: 'motto',
+    descriptionInput: 'description',
+    maxMembersInput: 'maxMembers',
+    foundedDateInput: 'foundedDate',
+  };
+
+  Object.keys(liveFieldMap).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        const defs = getCreateFieldDefs();
+        if (defs[liveFieldMap[id]].isFilled()) clearFieldError(liveFieldMap[id]);
+      });
+    }
+  });
+});
+
+document.getElementById('createOrgForm').addEventListener('submit', function (e) {
+  if (!validateCreateOrgForm()) {
+    e.preventDefault();
+    return false;
+  }
+
+  const submitBtn = this.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="ti ti-loader-2"></i> Creating...';
+});
+
+function openCreateModal() {
+  document.getElementById('createModalOverlay').style.display = 'flex';
+  const defs = getCreateFieldDefs();
+  Object.keys(defs).forEach(key => clearFieldError(key));
+}
+
+let currentViewOrgId = null;
+let currentViewOrgName = '';
+
+function openViewOrgModal(orgId) {
+  fetch(`${BASE}${orgId}/detail/`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) return;
+      const org = data.org;
+      currentViewOrgId = org.id;
+      currentViewOrgName = org.organization_name;
+
+      document.getElementById('viewOrgName').textContent = org.organization_name;
+      document.getElementById('viewOrgName').title = org.organization_name;
+      document.getElementById('viewOrgMotto').textContent = org.motto ? `"${org.motto}"` : '';
+      document.getElementById('viewOrgDesc').textContent = org.description || 'No description provided.';
+      document.getElementById('viewOrgDesc').title = org.description || '';
+      document.getElementById('viewOrgSchool').textContent = org.school_name || '—';
+      document.getElementById('viewOrgDept').textContent = org.department_name || '—';
+      document.getElementById('viewOrgAdvisor').textContent = org.advisor_name || 'TBA';
+      document.getElementById('viewOrgFounded').textContent = org.founded_date || '—';
+      document.getElementById('viewOrgMembers').textContent =
+        org.max_members ? `${org.active_member_count} / ${org.max_members}` : `${org.active_member_count}`;
+
+      const coverWrap = document.getElementById('viewOrgCoverWrap');
+      const coverImg = document.getElementById('viewOrgCoverImg');
+      if (org.cover_image_url) {
+        coverImg.src = org.cover_image_url;
+        coverWrap.style.display = 'block';
+      } else {
+        coverWrap.style.display = 'none';
+      }
+
+      document.getElementById('viewOrgModalOverlay').style.display = 'flex';
+    });
+}
+
+function closeViewOrgModal(e) {
+  if (e && e.target !== document.getElementById('viewOrgModalOverlay')) return;
+  document.getElementById('viewOrgModalOverlay').style.display = 'none';
+}
+
+let confirmModalCallback = null;
+
+function showConfirmModal(title, message, onConfirm, confirmLabel = 'Delete') {
+  document.getElementById('confirmModalTitle').textContent = title;
+  document.getElementById('confirmModalMessage').textContent = message;
+  const okBtn = document.getElementById('confirmModalOkBtn');
+  okBtn.textContent = confirmLabel;
+  confirmModalCallback = onConfirm;
+  document.getElementById('confirmModalOverlay').style.display = 'flex';
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModalOverlay').style.display = 'none';
+  confirmModalCallback = null;
+}
+
+document.getElementById('confirmModalOkBtn').addEventListener('click', function () {
+  if (confirmModalCallback) confirmModalCallback();
+  closeConfirmModal();
+});
+
+</script>
+{% endblock %}
+
+<!-- ********************************************** Arun code **************************************************** -->

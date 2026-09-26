@@ -1,0 +1,2041 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block title %}
+    Research Milestones | Student Portal
+{% endblock %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_student_research_milestones %}active{% endblock %}
+{% block extra_css %}
+<style>
+    .advisor-message-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 190px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #c5050c;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.advisor-message-link i {
+    font-size: 14px;
+}
+
+.advisor-message-link:hover {
+    background: #a90409;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 767px) {
+    .advisor-message-link {
+        max-width: 100%;
+        font-size: 11px;
+        padding: 8px 10px;
+    }
+}
+</style>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/Research/phdstudent_research_milestone_list.css' %}" />
+{% endblock %}
+{% block content %}
+    <div class="research-wrapper">
+        <section class="research-hero">
+            <div class="hero-content">
+                <div class="hero-breadcrumb">
+                    <span>PhD Workflow</span>
+                    <i class="ti ti-chevron-right"></i>
+                    <span>Research</span>
+                </div>
+                <div class="hero-title-row">
+                    <div class="hero-icon">
+                        <i class="ti ti-flask"></i>
+                    </div>
+                    <div>
+                        <h1>Research Milestones</h1>
+                        <p>
+                            Track your research milestones, submissions,
+                            evaluations, revisions and overall research progress.
+                        </p>
+                    </div>
+                </div>
+                <div class="hero-meta">
+                    <div class="hero-meta-item">
+                        <i class="ti ti-user"></i>
+                        <span>{{ student.user.get_full_name|default:student|default:"Student" }}</span>
+                    </div>
+                    <div class="hero-meta-item">
+                        <i class="ti ti-school"></i>
+                        <span>{{ phd_student.phd_program|default:"PhD Program" }}</span>
+                    </div>
+                    <div class="hero-meta-item">
+                        <i class="ti ti-user-star"></i>
+                        <span>
+                            Advisor:
+                            {{ phd_student.advisor|default:"Not Assigned" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'Student:phd_dashboard' uuid=request.user.uuid %}"
+                   class="hero-back-btn">
+                    <i class="ti ti-arrow-left"></i>
+                    <span>PhD Dashboard</span>
+                </a>
+            </div>
+        </section>
+        {% comment %} <section class="stats-grid">
+            <div class="stat-card stat-card-red">
+                <div class="stat-icon">
+                    <i class="ti ti-target"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Total Milestones</span>
+                    <strong class="stat-number" id="totalMilestones">{{ milestones|length|default:0 }}</strong>
+                    <span class="stat-caption">Research stages</span>
+                </div>
+            <div class="stat-card stat-card-green">
+                <div class="stat-icon">
+                    <i class="ti ti-circle-check"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Completed</span>
+                    <strong class="stat-number" id="completedMilestones">0</strong>
+                    <span class="stat-caption">Successfully completed</span>
+                </div>
+            </div>
+            <div class="stat-card stat-card-blue">
+                <div class="stat-icon">
+                    <i class="ti ti-files"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Submissions</span>
+                    <strong class="stat-number" id="totalSubmissions">0</strong>
+                    <span class="stat-caption">Research submissions</span>
+                </div>
+            </div>
+            <div class="stat-card stat-card-purple">
+                <div class="stat-icon">
+                    <i class="ti ti-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">Overall Progress</span>
+                    <strong class="stat-number" id="averageProgress">0%</strong>
+                    <span class="stat-caption">Combined milestone progress</span>
+                </div>
+            </div>
+        </section> {% endcomment %}
+        <div class="research-layout">
+            <main class="research-main">
+                <section class="panel-card progress-overview">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-kicker">Research Journey</div>
+                            <h2>Your Research Progress</h2>
+                            <p>
+                                Track your progress across all assigned
+                                research milestones.
+                            </p>
+                        </div>
+                        <div class="overall-progress-circle"
+                             id="overallProgressCircle"
+                             data-progress="{{ overall_progress|default:0 }}">
+                            <span id="overallProgressValue">{{ overall_progress|default:0 }}%</span>
+                        </div>
+                    </div>
+                    <div class="journey-line">
+                        <div class="journey-progress"
+                             id="journeyProgress"
+                             style="width: {{ overall_progress|default:0 }}%"></div>
+                        {% for milestone in milestones %}
+                            <div class="journey-node {% if milestone.status == 'COMPLETED' %}completed{% elif milestone.status == 'IN_PROGRESS' %}active{% endif %}">
+                                <span>{{ milestone.sequence_number|default:forloop.counter }}</span>
+                            </div>
+                        {% empty %}
+                            <div class="journey-node active">
+                                <span>0</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="journey-labels">
+                        <span>Started</span>
+                        <span>Current Research Stage</span>
+                        <span>Completion</span>
+                    </div>
+                </section>
+                <form method="get" class="research-toolbar" id="milestoneFilterForm">
+                    <div class="toolbar-search">
+                        <i class="ti ti-search"></i>
+                        <input type="search"
+                               name="q"
+                               id="milestoneSearch"
+                               value="{{ request.GET.q|default:'' }}"
+                               placeholder="Search milestones..."
+                               autocomplete="off"
+                               aria-label="Search research milestones">
+                        <button type="button"
+                                id="clearSearch"
+                                class="clear-search"
+                                aria-label="Clear search">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </div>
+                    <div class="toolbar-filter">
+                        <select name="status"
+                                id="statusFilter"
+                                aria-label="Filter milestones by status">
+                            <option value="ALL">All Status</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="UNDER_REVIEW">Under Review</option>
+                            <option value="REVISION_REQUIRED">Revision Required</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                    </div>
+                    <span class="results-count" id="resultsCount">
+                        {{ milestones|length|default:0 }}
+                        milestone{{ milestones|length|pluralize }}
+                    </span>
+                </form>
+                {% if overall_progress|default:0 < 100 %}
+                    <section class="quick-submit-card">
+                        <div class="quick-submit-icon">
+                            {% if current_milestone.latest_submission %}
+                                {% if current_milestone.latest_submission.status == "SUBMITTED" or current_milestone.latest_submission.status == "UNDER_REVIEW" %}
+                                    <i class="ti ti-clock"></i>
+                                {% elif current_milestone.latest_submission.status == "REVISION_REQUIRED" %}
+                                    <i class="ti ti-refresh"></i>
+                                {% elif current_milestone.latest_submission.status == "EVALUATED" %}
+                                    <i class="ti ti-circle-check"></i>
+                                {% else %}
+                                    <i class="ti ti-file-upload"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="ti ti-file-upload"></i>
+                            {% endif %}
+                        </div>
+                        <div class="quick-submit-content">
+                            <span class="quick-submit-kicker">
+                                {% if current_milestone.latest_submission %}
+                                    {% if current_milestone.latest_submission.status == "SUBMITTED" or current_milestone.latest_submission.status == "UNDER_REVIEW" %}
+                                        Submission Status
+                                    {% elif current_milestone.latest_submission.status == "REVISION_REQUIRED" %}
+                                        Revision Required
+                                    {% elif current_milestone.latest_submission.status == "EVALUATED" %}
+                                        Submission Completed
+                                    {% else %}
+                                        Quick Submission
+                                    {% endif %}
+                                {% else %}
+                                    Quick Submission
+                                {% endif %}
+                            </span>
+                            <h3>
+                                {% if current_milestone.latest_submission %}
+                                    {% if current_milestone.latest_submission.status == "SUBMITTED" or current_milestone.latest_submission.status == "UNDER_REVIEW" %}
+                                        Submission Under Review
+                                    {% elif current_milestone.latest_submission.status == "REVISION_REQUIRED" %}
+                                        Revision Required
+                                    {% elif current_milestone.latest_submission.status == "EVALUATED" %}
+                                        Submission Evaluated
+                                    {% else %}
+                                        Submit Your Current Milestone
+                                    {% endif %}
+                                {% else %}
+                                    Submit Your Current Milestone
+                                {% endif %}
+                            </h3>
+                            {% if current_milestone %}
+                                <p>
+                                    {% if current_milestone.latest_submission %}
+                                        {% if current_milestone.latest_submission.status == "SUBMITTED" or current_milestone.latest_submission.status == "UNDER_REVIEW" %}
+                                            Your latest submission for
+                                            <strong>
+                                                M{{ current_milestone.sequence_number|default:"1" }}
+                                                ·
+                                                {{ current_milestone.milestone_title }}
+                                            </strong>
+                                            has been submitted and is currently under faculty evaluation.
+                                        {% elif current_milestone.latest_submission.status == "REVISION_REQUIRED" %}
+                                            Your latest submission for
+                                            <strong>
+                                                M{{ current_milestone.sequence_number|default:"1" }}
+                                                ·
+                                                {{ current_milestone.milestone_title }}
+                                            </strong>
+                                            requires revision. Please review the faculty feedback and resubmit your work.
+                                        {% elif current_milestone.latest_submission.status == "EVALUATED" %}
+                                            Your latest submission for
+                                            <strong>
+                                                M{{ current_milestone.sequence_number|default:"1" }}
+                                                ·
+                                                {{ current_milestone.milestone_title }}
+                                            </strong>
+                                            has been evaluated by the faculty.
+                                        {% else %}
+                                            Ready to submit your latest research work for
+                                            <strong>
+                                                M{{ current_milestone.sequence_number|default:"1" }}
+                                                ·
+                                                {{ current_milestone.milestone_title }}
+                                            </strong>.
+                                        {% endif %}
+                                    {% else %}
+                                        Ready to submit your latest research work for
+                                        <strong>
+                                            M{{ current_milestone.sequence_number|default:"1" }}
+                                            ·
+                                            {{ current_milestone.milestone_title }}
+                                        </strong>.
+                                    {% endif %}
+                                </p>
+                                <div class="quick-submit-meta">
+                                    <span>
+                                        <i class="ti ti-target"></i>
+                                        Current Milestone
+                                    </span>
+                                    <span>
+                                        <i class="ti ti-chart-line"></i>
+                                        {{ current_milestone.current_progress_percentage|default:0 }}% Progress
+                                    </span>
+                                    {% if current_milestone.latest_submission %}
+                                        <span>
+                                            <i class="ti ti-file-text"></i>
+                                            Submission #{{ current_milestone.latest_submission.submission_number }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <p>
+                                    Select your current research milestone and submit
+                                    your latest research work for faculty evaluation.
+                                </p>
+                            {% endif %}
+                        </div>
+                        {% if current_milestone %}
+                            {% if current_milestone.latest_submission %}
+                                {% if current_milestone.latest_submission.status == "REVISION_REQUIRED" %}
+                                    <a href="{% url 'Student:student_research_milestone_resubmit' uuid=request.user.uuid milestone_id=current_milestone.milestone_id %}"
+                                       class="quick-submit-button">
+                                        <span>Resubmit Now</span>
+                                        <i class="ti ti-refresh"></i>
+                                    </a>
+                                {% elif current_milestone.latest_submission.status == "SUBMITTED" or current_milestone.latest_submission.status == "UNDER_REVIEW" %}
+                                    <div class="quick-submit-status under-review">
+                                        <i class="ti ti-clock"></i>
+                                        <span>Under Review</span>
+                                    </div>
+                                {% elif current_milestone.latest_submission.status == "EVALUATED" %}
+                                    <div class="quick-submit-status evaluated">
+                                        <i class="ti ti-circle-check"></i>
+                                        <span>Evaluated</span>
+                                    </div>
+                                {% else %}
+                                    <a href="{% url 'Student:student_research_milestone_submit' uuid=request.user.uuid milestone_id=current_milestone.milestone_id %}"
+                                       class="quick-submit-button">
+                                        <span>Submit Now</span>
+                                        <i class="ti ti-arrow-up-right"></i>
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'Student:student_research_milestone_submit' uuid=request.user.uuid milestone_id=current_milestone.milestone_id %}"
+                                   class="quick-submit-button">
+                                    <span>Submit Now</span>
+                                    <i class="ti ti-arrow-up-right"></i>
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                    </section>
+                {% endif %}
+                <section class="srm-list-section" id="allMilestones">
+                    <div class="srm-carousel" id="milestoneCarousel">
+                        <div class="srm-carousel-viewport" id="milestoneViewport">
+                            <div class="srm-list-grid" id="milestoneGrid">
+                                {% for milestone in milestones %}
+                                    {% with latest=milestone.latest_submission %}
+                                        <article class="srm-list-card"
+                                                 data-title="{{ milestone.milestone_title|default:''|lower }}"
+                                                 data-description="{{ milestone.description|default:''|lower }}"
+                                                 data-status="{{ milestone.status|default:'PENDING'|upper }}"
+                                                 data-progress="{{ milestone.current_progress_percentage|default:0 }}">
+                                            <div class="srm-list-card-top">
+                                                <div class="srm-list-number">
+                                                    <span>M{{ milestone.sequence_number|default:forloop.counter }}</span>
+                                                </div>
+                                                {% if milestone.status == "COMPLETED" %}
+                                                    <span class="srm-list-status srm-list-status-completed">
+                                                        <span class="srm-list-status-dot"></span>
+                                                        Completed
+                                                    </span>
+                                                {% elif milestone.status == "IN_PROGRESS" %}
+                                                    <span class="srm-list-status srm-list-status-progress">
+                                                        <span class="srm-list-status-dot"></span>
+                                                        In Progress
+                                                    </span>
+                                                {% elif milestone.status == "UNDER_REVIEW" %}
+                                                    <span class="srm-list-status srm-list-status-review">
+                                                        <span class="srm-list-status-dot"></span>
+                                                        Under Review
+                                                    </span>
+                                                {% elif milestone.status == "REVISION_REQUIRED" %}
+                                                    <span class="srm-list-status srm-list-status-revision">
+                                                        <span class="srm-list-status-dot"></span>
+                                                        Revision Required
+                                                    </span>
+                                                {% else %}
+                                                    <span class="srm-list-status srm-list-status-pending">
+                                                        <span class="srm-list-status-dot"></span>
+                                                        Pending
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="srm-list-card-body">
+                                                <div class="milestone-heading-row">
+                                                    <div class="milestone-heading-icon">
+                                                        <i class="ti ti-flask"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span class="milestone-kicker">Research Milestone</span>
+                                                        <h3 class="srm-list-card-title">{{ milestone.milestone_title|default:"Untitled Research Milestone" }}</h3>
+                                                    </div>
+                                                </div>
+                                                <p class="srm-list-card-description">
+                                                    {{ milestone.description|default:"No milestone description has been provided." }}
+                                                </p>
+                                                <div class="srm-list-progress-box">
+                                                    <div class="srm-list-progress-header">
+                                                        <div>
+                                                            <i class="ti ti-chart-line"></i>
+                                                            <span>Research Progress</span>
+                                                        </div>
+                                                        <strong>{{ milestone.current_progress_percentage|default:0 }}%</strong>
+                                                    </div>
+                                                    <div class="srm-list-progress-track">
+                                                        <div class="srm-list-progress-fill"
+                                                             style="width: {{ milestone.current_progress_percentage|default:0 }}%">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="srm-list-meta-grid">
+                                                    <div class="srm-list-meta-item">
+                                                        <div class="srm-list-meta-icon">
+                                                            <i class="ti ti-files"></i>
+                                                        </div>
+                                                        <div class="srm-list-meta-content">
+                                                            <small>Submissions</small>
+                                                            <strong>{{ milestone.submission_count|default:0 }}</strong>
+                                                        </div>
+                                                    </div>
+                                                    <div class="srm-list-meta-item">
+                                                        <div class="srm-list-meta-icon">
+                                                            <i class="ti ti-file-check"></i>
+                                                        </div>
+                                                        <div class="srm-list-meta-content">
+                                                            <small>Latest Submission</small>
+                                                            <strong>
+                                                                {% if latest %}
+                                                                    #{{ latest.submission_number|default:1 }}
+                                                                {% else %}
+                                                                    Not Submitted
+                                                                {% endif %}
+                                                            </strong>
+                                                        </div>
+                                                    </div>
+                                                    <div class="srm-list-meta-item">
+                                                        <div class="srm-list-meta-icon">
+                                                            <i class="ti ti-user-star"></i>
+                                                        </div>
+                                                        <div class="srm-list-meta-content">
+                                                            <small>Chair Faculty</small>
+                                                            <strong class="srm-list-chair-name">{{ milestone.chair_faculty|default:"Not Assigned" }}</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="srm-list-evaluation-box">
+                                                    <div class="srm-list-evaluation-icon">
+                                                        {% if milestone.latest_evaluation %}
+                                                            <i class="ti ti-circle-check"></i>
+                                                        {% else %}
+                                                            <i class="ti ti-clock"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="srm-list-evaluation-content">
+                                                        <small>Latest Evaluation</small>
+                                                        <strong>
+                                                            {% if milestone.latest_evaluation %}
+                                                                Evaluated
+                                                            {% elif latest %}
+                                                                Pending Evaluation
+                                                            {% else %}
+                                                                No Submission Yet
+                                                            {% endif %}
+                                                        </strong>
+                                                    </div>
+                                                    {% if milestone.latest_evaluation %}
+                                                        <span class="evaluation-status">
+                                                            <i class="ti ti-check"></i>
+                                                            Reviewed
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="srm-list-card-footer">
+                                                <a href="{% url 'Student:student_research_milestone_detail' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                                                   class="srm-list-view-button">
+                                                    <span>View Milestone</span>
+                                                    <i class="ti ti-arrow-up-right"></i>
+                                                </a>
+                                                {% if latest %}
+                                                    <a href="{% url 'Student:student_research_milestone_submission_list' uuid=request.user.uuid milestone_id=milestone.milestone_id %}"
+                                                       class="srm-list-history-button">
+                                                        <i class="ti ti-history"></i>
+                                                        <span>Submission History</span>
+                                                    </a>
+                                                {% else %}
+                                                    <span class="srm-list-history-button">
+                                                        <i class="ti ti-file-off"></i>
+                                                        <span>No Submission</span>
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </article>
+                                    {% endwith %}
+                                {% empty %}
+                                    <div class="srm-list-empty-state">
+                                        <div class="srm-list-empty-icon">
+                                            <i class="ti ti-flask-off"></i>
+                                        </div>
+                                        <h3>No Research Milestones Yet</h3>
+                                        <p>
+                                            Your research milestones will appear here
+                                            once they are created and assigned to your
+                                            PhD record.
+                                        </p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="srm-carousel-controls" id="milestoneCarouselControls">
+                            <button type="button"
+                                    class="srm-carousel-btn"
+                                    id="milestonePrev"
+                                    aria-label="Previous milestone">
+                                <i class="ti ti-chevron-left"></i>
+                            </button>
+                            <div class="srm-carousel-center">
+                                <div class="srm-carousel-dots" id="milestoneDots"></div>
+                                <span class="srm-carousel-position" id="milestonePosition">1 / 1</span>
+                            </div>
+                            <button type="button"
+                                    class="srm-carousel-btn"
+                                    id="milestoneNext"
+                                    aria-label="Next milestone">
+                                <i class="ti ti-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="srm-list-filtered-empty" id="filteredEmpty">
+                        <div class="srm-list-filtered-icon">
+                            <i class="ti ti-search-off"></i>
+                        </div>
+                        <h3>No Matching Milestones</h3>
+                        <p>Try changing your search term or status filter.</p>
+                    </div>
+                </section>
+                <section class="milestone-history-cta">
+                    <div class="history-cta-icon">
+                        <i class="ti ti-history"></i>
+                    </div>
+                    <div class="history-cta-content">
+                        <span>Research History</span>
+                        <h3>View All Past Milestones &amp; Submissions</h3>
+                        <p>
+                            Review your milestone progress, previous submissions
+                            and research evaluation history.
+                        </p>
+                    </div>
+                    <a href="{% url 'Student:student_research_milestone_submission_list_all' uuid=phd_student.student.user.uuid %}"
+                       class="history-cta-button">
+                        <span>View All</span>
+                        <i class="ti ti-arrow-right"></i>
+                    </a>
+                </section>
+                <section class="quick-actions-section">
+                    <div class="section-heading">
+                        <div>
+                            <span>Quick Access</span>
+                            <h2>Research Tools</h2>
+                        </div>
+                    </div>
+                    <div class="quick-actions-grid">
+                        <a href="{% url 'Student:student_advisory_committee' uuid=request.user.uuid %}"
+                           class="quick-action-card">
+                            <div class="quick-action-icon red">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div>
+                                <strong>Advisory Committee</strong>
+                                <span>View your committee members</span>
+                            </div>
+                            <i class="ti ti-arrow-up-right"></i>
+                        </a>
+                        <a href="{% url 'Student:student_dissertation_proposal' uuid=request.user.uuid %}"
+                           class="quick-action-card">
+                            <div class="quick-action-icon purple">
+                                <i class="ti ti-file-description"></i>
+                            </div>
+                            <div>
+                                <strong>Dissertation Proposal</strong>
+                                <span>Review proposal progress</span>
+                            </div>
+                            <i class="ti ti-arrow-up-right"></i>
+                        </a>
+                        <a href="{% url 'Student:student_qualifying_exam_list' uuid=request.user.uuid %}"
+                           class="quick-action-card">
+                            <div class="quick-action-icon blue">
+                                <i class="ti ti-certificate"></i>
+                            </div>
+                            <div>
+                                <strong>Qualifying Examination</strong>
+                                <span>Check examination progress</span>
+                            </div>
+                            <i class="ti ti-arrow-up-right"></i>
+                        </a>
+                    </div>
+                </section>
+                <section class="tips-card">
+                    <div class="tips-visual">
+                        <div class="tips-orbit orbit-one"></div>
+                        <div class="tips-orbit orbit-two"></div>
+                        <div class="tips-main-icon">
+                            <i class="ti ti-bulb"></i>
+                        </div>
+                    </div>
+                    <div class="tips-content">
+                        <span class="tips-label">Research Tip</span>
+                        <h3 id="researchTipTitle">Keep your research evidence organised.</h3>
+                        <p id="researchTipText">
+                            Maintain a structured record of datasets,
+                            references, experiments, drafts and feedback
+                            so every milestone submission is easy to prepare.
+                        </p>
+                        <button type="button" id="nextTip" class="tips-button">
+                            <span>Next Tip</span>
+                            <i class="ti ti-refresh"></i>
+                        </button>
+                    </div>
+                </section>
+            </main>
+            <aside class="research-sidebar">
+                <section class="side-card snapshot-card">
+                    <div class="side-card-header">
+                        <div>
+                            <span>Overview</span>
+                            <h3>Research Snapshot</h3>
+                        </div>
+                        <div class="side-header-icon">
+                            <i class="ti ti-chart-donut"></i>
+                        </div>
+                    </div>
+                    <div class="snapshot-progress">
+                        <div class="snapshot-circle"
+                             id="snapshotCircle"
+                             data-progress="{{ overall_progress|default:0 }}">
+                            <span id="snapshotProgress">{{ overall_progress|default:0 }}%</span>
+                        </div>
+                        <div>
+                            <strong>Overall Progress</strong>
+                            <p>Based on your current milestone progress.</p>
+                        </div>
+                    </div>
+                    <div class="snapshot-list">
+                        <div>
+                            <span>Total Milestones</span>
+                            <strong>{{ milestones|length|default:0 }}</strong>
+                        </div>
+                        <div>
+                            <span>Completed</span>
+                            <strong id="snapshotCompleted">0</strong>
+                        </div>
+                        <div>
+                            <span>Submissions</span>
+                            <strong id="snapshotSubmissions">0</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="side-card">
+                    <div class="side-card-header">
+                        <div>
+                            <span>Milestone Status</span>
+                            <h3>Status Guide</h3>
+                        </div>
+                    </div>
+                    <div class="status-guide">
+                        <div>
+                            <span class="guide-dot pending"></span>
+                            <span>Pending</span>
+                        </div>
+                        <div>
+                            <span class="guide-dot progress"></span>
+                            <span>In Progress</span>
+                        </div>
+                        <div>
+                            <span class="guide-dot review"></span>
+                            <span>Under Review</span>
+                        </div>
+                        <div>
+                            <span class="guide-dot revision"></span>
+                            <span>Revision Required</span>
+                        </div>
+                        <div>
+                            <span class="guide-dot completed"></span>
+                            <span>Completed</span>
+                        </div>
+                    </div>
+                </section>
+                <section class="side-card faq-card">
+                    <div class="side-card-header">
+                        <div>
+                            <span>Help Center</span>
+                            <h3>Research FAQ</h3>
+                        </div>
+                        <div class="side-header-icon">
+                            <i class="ti ti-help"></i>
+                        </div>
+                    </div>
+                    <div class="faq-list">
+                        <div class="faq-item">
+                            <button type="button" class="faq-question">
+                                <span>What is a milestone?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="faq-answer">
+                                <p>
+                                    A milestone represents a defined stage
+                                    of your PhD research journey.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button type="button" class="faq-question">
+                                <span>What happens after submission?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="faq-answer">
+                                <p>
+                                    Your submission will move through the
+                                    configured evaluation workflow.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button type="button" class="faq-question">
+                                <span>Can I submit revisions?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="faq-answer">
+                                <p>
+                                    Revisions can be submitted when the
+                                    previous submission requires correction.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button type="button" class="faq-question">
+                                <span>Who evaluates my work?</span>
+                                <i class="ti ti-chevron-down"></i>
+                            </button>
+                            <div class="faq-answer">
+                                <p>
+                                    Your research is evaluated by faculty
+                                    members assigned through the research workflow.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section class="help-card">
+                    <div class="help-icon">
+                        <i class="ti ti-message-circle"></i>
+                    </div>
+                    <div>
+    <span>Need Help?</span>
+    <strong>Talk to your advisor</strong>
+    <p>
+        Discuss research progress, corrections
+        or upcoming submissions.
+    </p>
+    <a href="{% url 'Student:student_advisor_message_list' request.user.uuid %}" class="advisor-message-link">
+        <i class="ti ti-message"></i>
+        Message Advisor
+    </a>
+</div>
+                </section>
+            </aside>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            "use strict";
+
+
+            const milestoneCards = Array.from(
+                document.querySelectorAll(".srm-list-card")
+            );
+
+
+            const searchInput =
+                document.getElementById("milestoneSearch");
+
+
+            const clearSearch =
+                document.getElementById("clearSearch");
+
+
+            const statusFilter =
+                document.getElementById("statusFilter");
+
+
+            const grid =
+                document.getElementById("milestoneGrid");
+
+
+            const filteredEmpty =
+                document.getElementById("filteredEmpty");
+
+
+            const resultsCount =
+                document.getElementById("resultsCount");
+
+
+            const gridViewBtn =
+                document.getElementById("gridViewBtn");
+
+
+            const listViewBtn =
+                document.getElementById("listViewBtn");
+
+
+            const totalMilestones =
+                document.getElementById("totalMilestones");
+
+
+            const completedMilestones =
+                document.getElementById("completedMilestones");
+
+
+            const totalSubmissions =
+                document.getElementById("totalSubmissions");
+
+
+            const averageProgress =
+                document.getElementById("averageProgress");
+
+
+            const overallProgressCircle =
+                document.getElementById("overallProgressCircle");
+
+
+            const overallProgressValue =
+                document.getElementById("overallProgressValue");
+
+
+            const journeyProgress =
+                document.getElementById("journeyProgress");
+
+
+            const snapshotCircle =
+                document.getElementById("snapshotCircle");
+
+
+            const snapshotProgress =
+                document.getElementById("snapshotProgress");
+
+
+            const snapshotCompleted =
+                document.getElementById("snapshotCompleted");
+
+
+            const snapshotSubmissions =
+                document.getElementById("snapshotSubmissions");
+
+
+            const carousel =
+                document.getElementById("milestoneCarousel");
+
+
+            const viewport =
+                document.getElementById("milestoneViewport");
+
+
+            const prevButton =
+                document.getElementById("milestonePrev");
+
+
+            const nextButton =
+                document.getElementById("milestoneNext");
+
+
+            const dotsContainer =
+                document.getElementById("milestoneDots");
+
+
+            const positionLabel =
+                document.getElementById("milestonePosition");
+
+
+            /*
+             * Start on the latest assigned milestone.
+             *
+             * Milestones are rendered in sequence order, so the last
+             * milestone is the latest assigned research stage.
+             * updateCarousel() will safely reset the index when filtering
+             * leaves fewer visible cards.
+             */
+            let carouselIndex =
+                Math.max(milestoneCards.length - 1, 0);
+
+
+            function getVisibleCards() {
+
+                return milestoneCards.filter(function (card) {
+
+                    return card.style.display !== "none";
+
+                });
+
+            }
+
+
+            function updateCarousel() {
+
+                if (!grid || !carousel) {
+                    return;
+                }
+
+
+                const visibleCards =
+                    getVisibleCards();
+
+
+                if (!visibleCards.length) {
+
+                    carouselIndex = 0;
+
+                    carousel.classList.add("is-empty");
+
+
+                    if (positionLabel) {
+                        positionLabel.textContent = "0 / 0";
+                    }
+
+
+                    if (dotsContainer) {
+                        dotsContainer.innerHTML = "";
+                    }
+
+
+                    if (prevButton) {
+                        prevButton.disabled = true;
+                    }
+
+
+                    if (nextButton) {
+                        nextButton.disabled = true;
+                    }
+
+
+                    return;
+                }
+
+
+                carousel.classList.remove("is-empty");
+
+
+                if (
+                    carouselIndex >=
+                    visibleCards.length
+                ) {
+
+                    carouselIndex =
+                        visibleCards.length - 1;
+                }
+
+
+                if (carouselIndex < 0) {
+
+                    carouselIndex = 0;
+                }
+
+
+                const offset =
+                    carouselIndex * -100;
+
+
+                grid.style.transform =
+                    "translate3d(" +
+                    offset +
+                    "%, 0, 0)";
+
+
+                if (positionLabel) {
+
+                    positionLabel.textContent =
+                        (carouselIndex + 1) +
+                        " / " +
+                        visibleCards.length;
+                }
+
+
+                if (prevButton) {
+
+                    prevButton.disabled =
+                        visibleCards.length <= 1;
+                }
+
+
+                if (nextButton) {
+
+                    nextButton.disabled =
+                        visibleCards.length <= 1;
+                }
+
+
+                if (dotsContainer) {
+
+                    dotsContainer.innerHTML = "";
+
+
+                    visibleCards.forEach(
+                        function (card, index) {
+
+                            const dot =
+                                document.createElement(
+                                    "button"
+                                );
+
+
+                            dot.type = "button";
+
+
+                            dot.className =
+                                "srm-carousel-dot" +
+                                (
+                                    index ===
+                                    carouselIndex
+                                    ? " active"
+                                    : ""
+                                );
+
+
+                            dot.setAttribute(
+                                "aria-label",
+                                "Go to milestone " +
+                                (index + 1)
+                            );
+
+
+                            dot.addEventListener(
+                                "click",
+                                function () {
+
+                                    carouselIndex =
+                                        index;
+
+                                    updateCarousel();
+
+                                }
+                            );
+
+
+                            dotsContainer.appendChild(
+                                dot
+                            );
+
+                        }
+                    );
+                }
+
+            }
+
+
+            function moveCarousel(direction) {
+
+                const visibleCards =
+                    getVisibleCards();
+
+
+                if (
+                    visibleCards.length <= 1
+                ) {
+                    return;
+                }
+
+
+                carouselIndex += direction;
+
+
+                if (carouselIndex < 0) {
+
+                    carouselIndex =
+                        visibleCards.length - 1;
+                }
+
+
+                if (
+                    carouselIndex >=
+                    visibleCards.length
+                ) {
+
+                    carouselIndex = 0;
+                }
+
+
+                updateCarousel();
+
+            }
+
+
+            if (prevButton) {
+
+                prevButton.addEventListener(
+                    "click",
+                    function () {
+
+                        moveCarousel(-1);
+
+                    }
+                );
+
+            }
+
+
+            if (nextButton) {
+
+                nextButton.addEventListener(
+                    "click",
+                    function () {
+
+                        moveCarousel(1);
+
+                    }
+                );
+
+            }
+
+
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+
+            if (viewport) {
+
+                viewport.addEventListener(
+                    "touchstart",
+                    function (event) {
+
+                        touchStartX =
+                            event.changedTouches[0].screenX;
+
+                    },
+                    {
+                        passive: true
+                    }
+                );
+
+
+                viewport.addEventListener(
+                    "touchend",
+                    function (event) {
+
+                        touchEndX =
+                            event.changedTouches[0].screenX;
+
+
+                        const distance =
+                            touchEndX -
+                            touchStartX;
+
+
+                        if (
+                            Math.abs(distance) < 45
+                        ) {
+                            return;
+                        }
+
+
+                        moveCarousel(
+                            distance < 0
+                                ? 1
+                                : -1
+                        );
+
+                    },
+                    {
+                        passive: true
+                    }
+                );
+
+            }
+
+
+            if (carousel) {
+
+                carousel.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key ===
+                            "ArrowLeft"
+                        ) {
+
+                            event.preventDefault();
+
+                            moveCarousel(-1);
+
+                        }
+
+
+                        if (
+                            event.key ===
+                            "ArrowRight"
+                        ) {
+
+                            event.preventDefault();
+
+                            moveCarousel(1);
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+            let statusChoices = null;
+
+
+            if (
+                statusFilter &&
+                typeof Choices !== "undefined"
+            ) {
+
+                statusChoices =
+                    new Choices(
+                        statusFilter,
+                        {
+                            searchEnabled: false,
+                            itemSelectText: "",
+                            shouldSort: false,
+                            allowHTML: false,
+                            removeItemButton: false
+                        }
+                    );
+
+            }
+
+
+            function getCardProgress(card) {
+
+                const progress =
+                    Number(
+                        card.dataset.progress || 0
+                    );
+
+
+                return Math.min(
+                    Math.max(
+                        progress,
+                        0
+                    ),
+                    100
+                );
+
+            }
+
+
+            function getCardStatus(card) {
+
+                return (
+                    card.dataset.status ||
+                    "PENDING"
+                ).toUpperCase();
+
+            }
+
+
+            function getCardSequence(card) {
+
+                const sequenceElement =
+                    card.querySelector(
+                        ".srm-list-number span"
+                    );
+
+
+                if (!sequenceElement) {
+                    return 0;
+                }
+
+
+                const sequenceText =
+                    sequenceElement.textContent
+                        .replace("M", "")
+                        .trim();
+
+
+                return (
+                    Number(sequenceText) || 0
+                );
+
+            }
+
+
+            function calculateSummary() {
+
+                let completed = 0;
+
+                let submissions = 0;
+
+
+                /*
+                 * Overall research progress is calculated by the backend.
+                 *
+                 * The milestone cards contain individual milestone progress,
+                 * but the latest milestone is NOT the overall research
+                 * progress. Therefore, never derive overall progress from
+                 * the highest sequence number or from the visible cards.
+                 *
+                 * The backend value is rendered into:
+                 *     #overallProgressCircle[data-progress]
+                 *
+                 * This keeps the UI consistent with the server-side
+                 * research workflow calculation.
+                 */
+
+
+                milestoneCards.forEach(
+                    function (card) {
+
+                        const status =
+                            getCardStatus(card);
+
+
+                        if (
+                            status ===
+                            "COMPLETED"
+                        ) {
+
+                            completed += 1;
+
+                        }
+
+
+                        const submissionElement =
+                            card.querySelector(
+                                ".srm-list-meta-item:first-child strong"
+                            );
+
+
+                        if (
+                            submissionElement
+                        ) {
+
+                            const submissionCount =
+                                Number(
+                                    submissionElement
+                                        .textContent
+                                        .trim()
+                                ) || 0;
+
+
+                            submissions +=
+                                submissionCount;
+
+                        }
+
+                    }
+                );
+
+
+                const total =
+                    milestoneCards.length;
+
+
+                /*
+                 * Use the backend-provided overall progress.
+                 *
+                 * Do NOT calculate this from milestoneCards because:
+                 *
+                 * M1 = 10%
+                 * M2 = 25%
+                 * M3 = 0%
+                 *
+                 * Overall progress may still be 25% according to the
+                 * research workflow/business rules.
+                 */
+                const overall =
+                    Math.min(
+                        Math.max(
+                            Math.round(
+                                Number(
+                                    overallProgressCircle
+                                        ? overallProgressCircle.dataset.progress
+                                        : 0
+                                ) || 0
+                            ),
+                            0
+                        ),
+                        100
+                    );
+
+
+                if (totalMilestones) {
+
+                    totalMilestones.textContent =
+                        total;
+
+                }
+
+
+                if (completedMilestones) {
+
+                    completedMilestones.textContent =
+                        completed;
+
+                }
+
+
+                if (totalSubmissions) {
+
+                    totalSubmissions.textContent =
+                        submissions;
+
+                }
+
+
+                if (averageProgress) {
+
+                    averageProgress.textContent =
+                        overall + "%";
+
+                }
+
+
+                if (overallProgressValue) {
+
+                    overallProgressValue.textContent =
+                        overall + "%";
+
+                }
+
+
+                if (snapshotProgress) {
+
+                    snapshotProgress.textContent =
+                        overall + "%";
+
+                }
+
+
+                if (snapshotCompleted) {
+
+                    snapshotCompleted.textContent =
+                        completed;
+
+                }
+
+
+                if (snapshotSubmissions) {
+
+                    snapshotSubmissions.textContent =
+                        submissions;
+
+                }
+
+
+                if (overallProgressCircle) {
+
+                    overallProgressCircle.dataset.progress =
+                        overall;
+
+
+                    const degrees =
+                        overall * 3.6;
+
+
+                    overallProgressCircle.style.background =
+                        "conic-gradient(#C5050C 0deg " +
+                        degrees +
+                        "deg, #eceef1 " +
+                        degrees +
+                        "deg 360deg)";
+
+                }
+
+
+                if (snapshotCircle) {
+
+                    snapshotCircle.dataset.progress =
+                        overall;
+
+
+                    const degrees =
+                        overall * 3.6;
+
+
+                    snapshotCircle.style.background =
+                        "conic-gradient(#C5050C 0deg " +
+                        degrees +
+                        "deg, #eceef1 " +
+                        degrees +
+                        "deg 360deg)";
+
+                }
+
+
+                if (journeyProgress) {
+
+                    journeyProgress.style.width =
+                        overall + "%";
+
+                }
+
+            }
+
+
+            function normalize(value) {
+
+                return String(
+                    value || ""
+                )
+                    .toLowerCase()
+                    .trim();
+
+            }
+
+
+            function filterMilestones() {
+
+                const searchTerm =
+                    normalize(
+                        searchInput
+                            ? searchInput.value
+                            : ""
+                    );
+
+
+                const selectedStatus =
+                    statusFilter
+                        ? statusFilter.value ||
+                          "ALL"
+                        : "ALL";
+
+
+                let visibleCount = 0;
+
+
+                milestoneCards.forEach(
+                    function (card) {
+
+                        const title =
+                            normalize(
+                                card.dataset.title
+                            );
+
+
+                        const description =
+                            normalize(
+                                card.dataset.description
+                            );
+
+
+                        const status =
+                            normalize(
+                                card.dataset.status
+                            );
+
+
+                        const searchMatch =
+                            !searchTerm ||
+                            title.includes(
+                                searchTerm
+                            ) ||
+                            description.includes(
+                                searchTerm
+                            );
+
+
+                        const statusMatch =
+                            selectedStatus ===
+                            "ALL" ||
+                            status ===
+                            normalize(
+                                selectedStatus
+                            );
+
+
+                        const visible =
+                            searchMatch &&
+                            statusMatch;
+
+
+                        card.style.display =
+                            visible
+                                ? ""
+                                : "none";
+
+
+                        if (visible) {
+
+                            visibleCount += 1;
+
+                        }
+
+                    }
+                );
+
+
+                if (resultsCount) {
+
+                    resultsCount.textContent =
+                        visibleCount +
+                        " milestone" +
+                        (
+                            visibleCount === 1
+                                ? ""
+                                : "s"
+                        );
+
+                }
+
+
+                if (clearSearch) {
+
+                    if (searchTerm) {
+
+                        clearSearch.classList.add(
+                            "show"
+                        );
+
+                    } else {
+
+                        clearSearch.classList.remove(
+                            "show"
+                        );
+
+                    }
+
+                }
+
+
+                updateCarousel();
+
+
+                if (
+                    filteredEmpty &&
+                    grid
+                ) {
+
+                    if (
+                        milestoneCards.length >
+                            0 &&
+                        visibleCount === 0
+                    ) {
+
+                        grid.style.display =
+                            "none";
+
+
+                        filteredEmpty.classList.add(
+                            "show"
+                        );
+
+                    } else {
+
+                        grid.style.display =
+                            "";
+
+
+                        filteredEmpty.classList.remove(
+                            "show"
+                        );
+
+                    }
+
+                }
+
+            }
+
+
+            function setView(mode) {
+
+                if (!grid) {
+                    return;
+                }
+
+
+                if (mode === "list") {
+
+                    grid.classList.add(
+                        "list-mode"
+                    );
+
+
+                    if (listViewBtn) {
+
+                        listViewBtn.classList.add(
+                            "active"
+                        );
+
+                    }
+
+
+                    if (gridViewBtn) {
+
+                        gridViewBtn.classList.remove(
+                            "active"
+                        );
+
+                    }
+
+
+                    localStorage.setItem(
+                        "researchMilestoneView",
+                        "list"
+                    );
+
+
+                } else {
+
+                    grid.classList.remove(
+                        "list-mode"
+                    );
+
+
+                    if (gridViewBtn) {
+
+                        gridViewBtn.classList.add(
+                            "active"
+                        );
+
+                    }
+
+
+                    if (listViewBtn) {
+
+                        listViewBtn.classList.remove(
+                            "active"
+                        );
+
+                    }
+
+
+                    localStorage.setItem(
+                        "researchMilestoneView",
+                        "grid"
+                    );
+
+                }
+
+            }
+
+
+            if (searchInput) {
+
+                searchInput.addEventListener(
+                    "input",
+                    filterMilestones
+                );
+
+            }
+
+
+            if (statusFilter) {
+
+                statusFilter.addEventListener(
+                    "change",
+                    filterMilestones
+                );
+
+            }
+
+
+            if (clearSearch) {
+
+                clearSearch.addEventListener(
+                    "click",
+                    function () {
+
+                        if (searchInput) {
+
+                            searchInput.value =
+                                "";
+
+                        }
+
+
+                        filterMilestones();
+
+
+                        if (searchInput) {
+
+                            searchInput.focus();
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+            if (gridViewBtn) {
+
+                gridViewBtn.addEventListener(
+                    "click",
+                    function () {
+
+                        setView("grid");
+
+                    }
+                );
+
+            }
+
+
+            if (listViewBtn) {
+
+                listViewBtn.addEventListener(
+                    "click",
+                    function () {
+
+                        setView("list");
+
+                    }
+                );
+
+            }
+
+
+            const savedView =
+                localStorage.getItem(
+                    "researchMilestoneView"
+                );
+
+
+            if (savedView === "list") {
+
+                setView("list");
+
+            }
+
+
+            document
+                .querySelectorAll(
+                    ".faq-question"
+                )
+                .forEach(
+                    function (button) {
+
+                        button.addEventListener(
+                            "click",
+                            function () {
+
+                                const item =
+                                    button.closest(
+                                        ".faq-item"
+                                    );
+
+
+                                if (!item) {
+                                    return;
+                                }
+
+
+                                const isOpen =
+                                    item.classList.contains(
+                                        "open"
+                                    );
+
+
+                                document
+                                    .querySelectorAll(
+                                        ".faq-item"
+                                    )
+                                    .forEach(
+                                        function (faq) {
+
+                                            faq.classList.remove(
+                                                "open"
+                                            );
+
+                                        }
+                                    );
+
+
+                                if (!isOpen) {
+
+                                    item.classList.add(
+                                        "open"
+                                    );
+
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+
+            const tips = [
+
+                {
+                    title:
+                        "Keep your research evidence organised.",
+
+                    text:
+                        "Maintain a structured record of datasets, references, experiments, drafts and feedback so every milestone submission is easy to prepare."
+                },
+
+                {
+                    title:
+                        "Break large research goals into smaller tasks.",
+
+                    text:
+                        "Divide every milestone into measurable research activities so your progress remains easy to track."
+                },
+
+                {
+                    title:
+                        "Review faculty feedback carefully.",
+
+                    text:
+                        "Before submitting a revision, make sure every correction requested by the faculty has been addressed."
+                },
+
+                {
+                    title:
+                        "Keep your literature review updated.",
+
+                    text:
+                        "Regularly add relevant recent research papers instead of waiting until the dissertation writing stage."
+                }
+
+            ];
+
+
+            let tipIndex = 0;
+
+
+            const tipTitle =
+                document.getElementById(
+                    "researchTipTitle"
+                );
+
+
+            const tipText =
+                document.getElementById(
+                    "researchTipText"
+                );
+
+
+            const nextTip =
+                document.getElementById(
+                    "nextTip"
+                );
+
+
+            if (nextTip) {
+
+                nextTip.addEventListener(
+                    "click",
+                    function () {
+
+                        tipIndex =
+                            (
+                                tipIndex + 1
+                            ) %
+                            tips.length;
+
+
+                        if (tipTitle) {
+
+                            tipTitle.textContent =
+                                tips[tipIndex].title;
+
+                        }
+
+
+                        if (tipText) {
+
+                            tipText.textContent =
+                                tips[tipIndex].text;
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+            calculateSummary();
+
+            filterMilestones();
+
+
+            {% if messages %}
+
+                {% for message in messages %}
+
+                    Swal.fire({
+
+                        icon:
+                            "{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %}",
+
+                        title:
+                            "{% if message.tags == 'error' %}Something went wrong{% elif message.tags == 'warning' %}Attention{% elif message.tags == 'success' %}Success{% else %}Information{% endif %}",
+
+                        text:
+                            "{{ message|escapejs }}",
+
+                        confirmButtonColor:
+                            "#C5050C",
+
+                        confirmButtonText:
+                            "Continue",
+
+                        allowOutsideClick:
+                            true
+
+                    });
+
+                {% endfor %}
+
+            {% endif %}
+
+        });
+    </script>
+{% endblock %}

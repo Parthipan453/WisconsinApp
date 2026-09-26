@@ -1,0 +1,719 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Edit Course{% endblock %}
+{% block page_title %}Edit Course{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/course/course_edit.css' %}">
+
+{% endblock %}
+
+
+{% block content %}
+<div class="form-page">
+
+    <!-- Page Header -->
+    <div class="edit-course-header-card">
+
+        <div class="edit-course-header-left">
+
+            <div class="edit-course-header-content">
+              
+                <h2 class="form-heading">
+                    Edit Course
+                </h2>
+
+
+                <p class="form-sub">
+                    Update the details for
+                    <strong>
+                        {{ course.course_name|truncatechars:30 }}
+                    </strong>.
+                </p>
+
+                <nav class="dept-breadcrumb" aria-label="breadcrumb">
+
+                    <i data-lucide="home"></i>
+
+                    <a href="{% url 'admin_dashboard' request.user.uuid %}">
+                        Dashboard
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <a href="{% url 'course_dashboard' %}">
+                        Courses
+                    </a>
+
+                    <i data-lucide="chevron-right"></i>
+
+                    <span class="cur">
+                        Edit — {{ course.course_name|truncatechars:20 }}
+                    </span>
+
+                </nav>
+
+
+
+            </div>
+
+        </div>
+
+
+        <div class="edit-course-header-right">
+
+            <a href="{% url 'course_dashboard' %}"
+               class="btn-back">
+
+                <i data-lucide="arrow-left"></i>
+
+                Back to Courses
+
+            </a>
+
+        </div>
+
+    </div>
+
+  <form method="POST" id="courseForm" novalidate>
+    {% csrf_token %}
+
+    <div class="form-col">
+
+      {# ── Course Information — FULL WIDTH ── #}
+      <div class="f-card">
+        <div class="f-card__hd">
+          <div class="f-card__icon red"><i data-lucide="book-open"></i></div>
+          <span class="f-card__title">Course Information</span>
+        </div>
+        <div class="dept-meta-strip">
+          <span><i data-lucide="hash"></i>ID: <strong>{{ course.course_id }}</strong></span>
+          <span><i data-lucide="calendar-plus"></i>Created: <strong>{{ course.created_at|date:"M d, Y" }}</strong></span>
+          <span><i data-lucide="calendar-check"></i>Last updated: <strong>{{ course.updated_at|date:"M d, Y" }}</strong></span>
+        </div>
+        <div class="f-card__body">
+          <div class="row g-3">
+
+            <div class="col-md-6">
+              <label class="form-label" for="course_name">Course Name <span class="req">*</span></label>
+              <input type="text" id="course_name" name="course_name"
+                     class="form-control" value="{{ course.course_name }}"
+                     placeholder="e.g. Introduction to Artificial Intelligence"
+                     data-validate="required|text-only|min:3|max:255" autocomplete="off">
+              <div class="field-err" id="err_course_name"><i data-lucide="alert-circle"></i><span></span></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="course_code">Course Code <span class="req">*</span></label>
+              <input type="text"
+                id="course_code"
+                name="course_code"
+                class="form-control{% if form.course_code.errors %} is-invalid{% endif %}"
+                placeholder="e.g. 100"
+                value="{{ form.course_code.value|default:'' }}"
+                data-validate="required|course-code|min:1|max:5"
+                autocomplete="off">
+
+              <div class="field-err{% if form.errors.course_code %} show{% endif %}" id="err_course_code">
+                <i data-lucide="alert-circle"></i><span>{{ form.errors.course_code.0|default:'' }}</span>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="credits">Credits <span class="req">*</span></label>
+              <input type="text" id="credits" name="credits"
+                     class="form-control" value="{{ course.credits }}"
+                     placeholder="e.g. 3"
+                     data-validate="required|credits" inputmode="numeric" autocomplete="off">
+              <div class="field-err" id="err_credits"><i data-lucide="alert-circle"></i><span></span></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="department">Department <span class="req">*</span></label>
+              <select id="department" name="department" class="form-select" data-validate="required-select">
+                <option value="">— Select Department —</option>
+                {% for dept in departments %}
+                  <option value="{{ dept.department_id }}"
+                    {% if dept.department_id == course.department.department_id %}selected{% endif %}>
+                    {{ dept.department_name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="field-err" id="err_department"><i data-lucide="alert-circle"></i><span></span></div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="academic_program">Academic Program</label>
+              <select id="academic_program" name="academic_program"
+                      class="form-select{% if form.academic_program.errors %} is-invalid{% endif %}">
+                <option value="">— Select Academic Program —</option>
+                {% for prog in academic_programs %}
+                  <option value="{{ prog.program_id }}"
+                   data-department="{{ prog.department_id }}"
+                    {% if form.academic_program.value|stringformat:"s" == prog.program_id|stringformat:"s" %}selected{% endif %}>
+                    {{ prog.program_name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="field-err{% if form.academic_program.errors %} show{% endif %}" id="err_academic_program">
+                <i data-lucide="alert-circle"></i><span>{{ form.academic_program.errors.0|default:'' }}</span>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="degree">Degree</label>
+              <select id="degree" name="degree"
+                      class="form-select{% if form.degree.errors %} is-invalid{% endif %}">
+                <option value="">— Select Degree —</option>
+                {% for deg in degrees %}
+                  <option value="{{ deg.degree_id }}"
+                    {% if form.degree.value|stringformat:"s" == deg.degree_id|stringformat:"s" %}selected{% endif %}>
+                    {{ deg.degree_name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="field-err{% if form.degree.errors %} show{% endif %}" id="err_degree">
+                <i data-lucide="alert-circle"></i><span>{{ form.degree.errors.0|default:'' }}</span>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="description">Description</label>
+              <textarea id="description" name="description" rows="4"
+                        class="form-control"
+                        placeholder="Course description, learning outcomes, prerequisites…"
+                        data-validate="words" data-maxwords="1000">{{ course.description }}</textarea>
+              <div class="char-count" id="desc_counter">0 / 1000 words</div>
+              <div class="field-err" id="err_description"><i data-lucide="alert-circle"></i><span></span></div>
+            </div>
+
+          </div>
+        </div>
+        <div class="req-note">
+          <i data-lucide="info"></i>
+          All fields marked <strong style="color:#c5050c;margin:0 2px;">*</strong> are required.
+        </div>
+      </div>
+
+      {# ── Contact + Settings — SIDE BY SIDE ── #}
+      <div class="contact-settings-grid">
+
+        <div class="f-card">
+          <div class="f-card__hd">
+            <div class="f-card__icon blue"><i data-lucide="phone"></i></div>
+            <span class="f-card__title">Contact Information</span>
+          </div>
+          <div class="f-card__body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control"
+                       value="{{ course.email|default:'' }}" placeholder="course@wisc.edu" data-validate="email">
+                <div class="field-err" id="err_email"><i data-lucide="alert-circle"></i><span></span></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="phone_number">Phone Number</label>
+                <input type="text" id="phone_number" name="phone_number" class="form-control"
+                       value="{{ course.phone_number|default:'' }}" placeholder="+1 608-123-4567" data-validate="phone">
+                <div class="field-err" id="err_phone_number"><i data-lucide="alert-circle"></i><span></span></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="website">Website</label>
+                <input type="url" id="website" name="website" class="form-control"
+                       value="{{ course.website|default:'' }}" placeholder="https://course.wisc.edu" data-validate="url">
+                <div class="field-err" id="err_website"><i data-lucide="alert-circle"></i><span></span></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="office_location">Office Location</label>
+                <input type="text" id="office_location" name="office_location" class="form-control"
+                       value="{{ course.office_location|default:'' }}"
+                       placeholder="e.g. Engineering Hall, Room 101" data-validate="text-only|max:255">
+                <div class="field-err" id="err_office_location"><i data-lucide="alert-circle"></i><span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="f-card">
+          <div class="f-card__hd">
+            <div class="f-card__icon green"><i data-lucide="settings-2"></i></div>
+            <span class="f-card__title">Settings</span>
+          </div>
+          <div class="f-card__body">
+            <div class="mb-3">
+              <label class="form-label">Status <span class="req">*</span></label>
+              <div class="status-toggle">
+                <input type="radio" name="status" id="status_active" value="ACTIVE"
+                       {% if course.status == 'ACTIVE' %}checked{% endif %}>
+                <label for="status_active"><i data-lucide="check-circle"></i>Active</label>
+                <input type="radio" name="status" id="status_inactive" value="INACTIVE"
+                       {% if course.status == 'INACTIVE' %}checked{% endif %}>
+                <label for="status_inactive"><i data-lucide="x-circle"></i>Inactive</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>{# /contact-settings-grid #}
+
+
+    
+      <div class="sub-cards-grid">
+
+        {# ── 1. Course Requirements ── #}
+        <div class="sub-toggle-card {% if requirements %}expanded{% endif %}" id="card-req">
+          <div class="sub-toggle-hd">
+            <div class="sub-card-icon amber"><i data-lucide="git-branch"></i></div>
+            <span class="sub-card-title">Course Requirements</span>
+            <span class="sub-card-count">{{ requirements|length }}</span>
+            <!-- <button type="button" class="sub-toggle-btn" onclick="toggleCard('card-req')">
+              <i data-lucide="plus" class="plus-icon"></i>
+              <i data-lucide="chevron-up" class="chevron" style="display:none;"></i>
+              <span class="btn-label">Add</span>
+            </button> -->
+          </div>
+          <div class="sub-toggle-body">
+
+            <div class="sub-form">
+              <div class="row g-2">
+                <div class="col-12">
+                  <label class="sub-form .form-label" for="req_type">Requirement Type <span class="req">*</span></label>
+                  <select id="req_type" class="form-select" name="_req_type">
+                    <option value="">— Select Type —</option>
+                    {% for rt in requirement_types %}
+                      <option value="{{ rt.requirement_type_id }}">{{ rt.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="sub-field-err" id="err_req_type">
+                    <i data-lucide="alert-circle"></i><span>Required.</span>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="sub-form .form-label" for="req_related_course">Related Course</label>
+                  <select id="req_related_course" class="form-select" name="_req_related_course">
+                    <option value="">— None —</option>
+                    {% for ac in available_courses %}
+                      <option value="{{ ac.course_id }}">{{ ac.course_code }} — {{ ac.course_name|truncatechars:30 }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-8">
+                  <label class="sub-form .form-label" for="req_note">Note</label>
+                  <input type="text" id="req_note" class="form-control" name="_req_note" placeholder="Optional note…" maxlength="255">
+                </div>
+                <div class="col-md-4">
+                  <label class="sub-form .form-label" for="req_order">Order</label>
+                  <input type="number" id="req_order" class="form-control" name="_req_order" value="1" min="1" max="999">
+                </div>
+              </div>
+              <div class="sub-field-err mt-2" id="err_req_duplicate">
+                <i data-lucide="alert-circle"></i><span></span>
+              </div>
+              <button type="button" class="btn-sub-add" id="addReqBtn">
+                <i data-lucide="plus"></i>Add Requirement
+              </button>
+            </div>
+
+            <div class="sub-table-wrap">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Type</th>
+                    <th>Related Course</th>
+                    <th>Note</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="reqTbody">
+                  {% for req in requirements %}
+                  <tr id="req-row-{{ req.requirement_id }}">
+                    <td><span class="order-badge">{{ req.display_order }}</span></td>
+                    <td><span class="sub-type-pill">{{ req.requirement_type.name }}</span></td>
+                    <td>
+                      {% if req.related_course %}
+                        <span class="sub-course-code">{{ req.related_course.course_code }}</span>
+                        <span style="font-size:12px;color:#495057;margin-left:3px;">{{ req.related_course.course_name|truncatechars:20 }}</span>
+                      {% else %}
+                        <span style="font-size:12px;color:#adb5bd;font-style:italic;">None</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if req.note %}<span class="sub-note">{{ req.note|truncatechars:30 }}</span>
+                      {% else %}<span style="font-size:12px;color:#adb5bd;">—</span>{% endif %}
+                    </td>
+                    <td>
+                      <div class="sub-act-btns">
+                        <button type="button" class="sub-act-btn del" title="Remove"
+                                data-kind="req" data-id="{{ req.requirement_id }}"
+                                data-name="{{ req.requirement_type.name|escapejs }}"
+                                onclick="confirmDeleteSub(this)">
+                          <i data-lucide="trash-2"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="req-empty-row">
+                    <td colspan="5">
+                      <div class="sub-empty"><i data-lucide="git-branch"></i>No requirements added yet.</div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>{# /card-req #}
+
+
+        {# ── 2. Course Designations ── #}
+        <div class="sub-toggle-card {% if designations %}expanded{% endif %}" id="card-desg">
+          <div class="sub-toggle-hd">
+            <div class="sub-card-icon purple"><i data-lucide="tag"></i></div>
+            <span class="sub-card-title">Course Designations</span>
+            <span class="sub-card-count">{{ designations|length }}</span>
+            <!-- <button type="button" class="sub-toggle-btn" onclick="toggleCard('card-desg')">
+              <i data-lucide="plus" class="plus-icon"></i>
+              <i data-lucide="chevron-up" class="chevron" style="display:none;"></i>
+              <span class="btn-label">Add</span>
+            </button> -->
+          </div>
+          <div class="sub-toggle-body">
+
+            <div class="sub-form">
+              <div class="row g-2">
+                <div class="col-12">
+                  <label class="sub-form .form-label" for="desg_type">Designation Type <span class="req">*</span></label>
+                  <select id="desg_type" class="form-select" name="_desg_type">
+                    <option value="">— Select Type —</option>
+                    {% for dt in designation_types %}
+                      <option value="{{ dt.designation_type_id }}">{{ dt.designation_name }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="sub-field-err" id="err_desg_type">
+                    <i data-lucide="alert-circle"></i><span>Required.</span>
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <label class="sub-form .form-label" for="desg_value">Value</label>
+                  <input type="text" id="desg_value" class="form-control" name="_desg_value"
+                         placeholder="e.g. Breadth — Natural Sci" maxlength="255">
+                </div>
+                <div class="col-md-4">
+                  <label class="sub-form .form-label" for="desg_order">Order</label>
+                  <input type="number" id="desg_order" class="form-control" name="_desg_order" value="1" min="1" max="999">
+                </div>
+              </div>
+              <div class="sub-field-err mt-2" id="err_desg_duplicate">
+                <i data-lucide="alert-circle"></i><span></span>
+              </div>
+              <button type="button" class="btn-sub-add" id="addDesgBtn" style="background:#6d28d9;">
+                <i data-lucide="plus"></i>Add Designation
+              </button>
+            </div>
+
+            <div class="sub-table-wrap">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="desgTbody">
+                  {% for desg in designations %}
+                  <tr id="desg-row-{{ desg.designation_id }}">
+                    <td><span class="order-badge">{{ desg.display_order }}</span></td>
+                    <td><span class="sub-type-pill desg">{{ desg.designation_type.designation_name }}</span></td>
+                    <td>
+                      {% if desg.designation_value %}
+                        <span style="font-size:13px;color:#495057;">{{ desg.designation_value }}</span>
+                      {% else %}
+                        <span style="font-size:12px;color:#adb5bd;font-style:italic;">No value</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="sub-act-btns">
+                        <button type="button" class="sub-act-btn del" title="Remove"
+                                data-kind="desg" data-id="{{ desg.designation_id }}"
+                                data-name="{{ desg.designation_type.designation_name|escapejs }}"
+                                onclick="confirmDeleteSub(this)">
+                          <i data-lucide="trash-2"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="desg-empty-row">
+                    <td colspan="4">
+                      <div class="sub-empty"><i data-lucide="tag"></i>No designations added yet.</div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>{# /card-desg #}
+
+
+        {# ── 3. Last Taught ── #}
+        <div class="sub-toggle-card {% if offerings %}expanded{% endif %}" id="card-offering">
+          <div class="sub-toggle-hd">
+            <div class="sub-card-icon red"><i data-lucide="calendar"></i></div>
+            <span class="sub-card-title">Last Taught</span>
+            <span class="sub-card-count">{{ offerings|length }}</span>
+            <!-- <button type="button" class="sub-toggle-btn" onclick="toggleCard('card-offering')">
+              <i data-lucide="plus" class="plus-icon"></i>
+              <i data-lucide="chevron-up" class="chevron" style="display:none;"></i>
+              <span class="btn-label">Add</span>
+            </button> -->
+          </div>
+          <div class="sub-toggle-body">
+
+            <div class="sub-form">
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <label class="sub-form .form-label" for="id_term">Term <span class="req">*</span></label>
+                  {{ offering_form.term }}
+                </div>
+                <div class="col-md-5">
+                  <label class="sub-form .form-label" for="id_year">Year <span class="req">*</span></label>
+                  {{ offering_form.year }}
+                  <div class="sub-field-err" id="err_id_year">
+                    <i data-lucide="alert-circle"></i><span>Enter a valid 4-digit year.</span>
+                  </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button type="button" class="btn-sub-add w-100" id="addOfferingBtn" style="margin-top:0;">
+                    <i data-lucide="plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sub-table-wrap">
+              <table class="sub-table" id="offeringTable">
+                <thead>
+                  <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Term</th>
+                    <th>Year</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="offeringTableBody">
+                  {% for offering in offerings %}
+                  <tr id="offering-row-{{ offering.offering_id }}">
+                    <td><span class="order-badge">{{ forloop.counter }}</span></td>
+                    <td>{{ offering.term }}</td>
+                    <td>{{ offering.year }}</td>
+                    <td>
+                      <div class="sub-act-btns">
+                        <button type="button" class="sub-act-btn del" title="Remove"
+                                onclick="confirmDeleteSub('offering', {{ offering.offering_id }}, '{{ offering.term }} {{ offering.year }}')">
+                          <i data-lucide="trash-2"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="offering-empty-row">
+                    <td colspan="4"><div class="sub-empty"><i data-lucide="calendar"></i>No records found.</div></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>{# /card-offering #}
+
+
+        {# ── 4. Learning Outcomes ── #}
+        <div class="sub-toggle-card {% if learning_outcomes %}expanded{% endif %}" id="card-outcome">
+          <div class="sub-toggle-hd">
+            <div class="sub-card-icon blue"><i data-lucide="graduation-cap"></i></div>
+            <span class="sub-card-title">Learning Outcomes</span>
+            <span class="sub-card-count">{{ learning_outcomes|length }}</span>
+            <!-- <button type="button" class="sub-toggle-btn" onclick="toggleCard('card-outcome')">
+              <i data-lucide="plus" class="plus-icon"></i>
+              <i data-lucide="chevron-up" class="chevron" style="display:none;"></i>
+              <span class="btn-label">Add</span>
+            </button> -->
+          </div>
+          <div class="sub-toggle-body">
+
+            <div class="sub-form">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-10">
+                  <label class="sub-form .form-label" for="id_outcome">Outcome <span class="req">*</span></label>
+                  {{ learning_outcome_form.outcome }}
+                  <div class="sub-field-err" id="err_id_outcome">
+                    <i data-lucide="alert-circle"></i><span>Please enter a learning outcome.</span>
+                  </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button type="button" class="btn-sub-add w-100" id="addOutcomeBtn"
+                          style="background:#2563eb;margin-top:0;">
+                    <i data-lucide="plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sub-table-wrap">
+              <table class="sub-table" id="outcomeTable">
+                <thead>
+                  <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Learning Outcome</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="learningOutcomeTableBody">
+                  {% for outcome in learning_outcomes %}
+                  <tr id="outcome-row-{{ outcome.outcome_id }}">
+                    <td><span class="order-badge">{{ forloop.counter }}</span></td>
+                    <td>{{ outcome.outcome|linebreaksbr }}</td>
+                    <td>
+                      <div class="sub-act-btns">
+                        <button type="button" class="sub-act-btn del" title="Remove"
+                                onclick="confirmDeleteSub('outcome', {{ outcome.outcome_id }}, '{{ outcome.outcome|escapejs }}')">
+                          <i data-lucide="trash-2"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="learning-empty-row">
+                    <td colspan="3"><div class="sub-empty"><i data-lucide="graduation-cap"></i>No Learning Outcomes Added.</div></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>{# /card-outcome #}
+
+      </div>{# /sub-cards-grid #}
+
+
+      {# ── Action row ── #}
+      <div class="form-action-row">
+        <button type="submit" class="btn-save" id="submitBtn">
+          <i data-lucide="save"></i>Update Course
+        </button>
+        <a href="{% url 'course_dashboard' %}" class="btn-cancel">
+          <i data-lucide="x"></i>Cancel
+        </a>
+      </div>
+
+    </div>{# /form-col #}
+  </form>
+
+</div>
+{% endblock %}
+
+
+{% block global_modal %}
+<div class="modal fade" id="subDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+    <div class="modal-content shadow">
+      <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:36px;height:36px;background:#fff0f0;border-radius:8px;
+                       display:inline-flex;align-items:center;justify-content:center;">
+            <i data-lucide="trash-2" style="width:16px;height:16px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0">Remove Item</h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="font-size:13px;color:#495057;padding-top:.75rem;">
+        Remove <strong id="subDeleteName" class="subDeleteName"></strong>? This cannot be undone.
+      </div>
+      <div class="modal-footer" style="border-top:none;padding-top:0;gap:.5rem;">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-dismiss="modal"
+                style="font-size:13px;border-radius:8px;padding:6px 16px;">
+          Cancel
+        </button>
+        <form id="subDeleteForm" method="POST" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;
+                         background:#c5050c;color:#fff;border:none;font-weight:600;">
+            Remove
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+  /* ── URLs passed from Django ── */
+  function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+  }
+  const COURSE_REQUIREMENT_ADD_URL  = "{% url 'course_requirement_add'       course.course_uuid %}";
+  const COURSE_DESIGNATION_ADD_URL  = "{% url 'course_designation_add'       course.course_uuid %}";
+  const COURSE_OFFERING_ADD_URL     = "{% url 'course_offering_add'          course.course_uuid %}";
+  const COURSE_OUTCOME_ADD_URL      = "{% url 'course_learning_outcome_add'  course.course_uuid %}";
+  const COURSE_OFFERING_DELETE_URL  = "{% url 'course_offering_delete'       0 %}";
+  const COURSE_OUTCOME_DELETE_URL   = "{% url 'course_learning_outcome_delete' 0 %}";
+</script>
+<script src="{% static 'script/course_edit.js' %}"></script>
+
+<script>
+/* ══ Toggle card open / close ═══════════════════════════════ */
+function toggleCard(cardId) {
+  const card = document.getElementById(cardId);
+  const isExpanded = card.classList.contains('expanded');
+
+  card.classList.toggle('expanded');
+
+  const plusIcon  = card.querySelector('.plus-icon');
+  const chevron   = card.querySelector('.chevron');
+  const btnLabel  = card.querySelector('.btn-label');
+
+  if (!isExpanded) {
+    /* opening */
+    plusIcon.style.display  = 'none';
+    chevron.style.display   = 'inline-block';
+    btnLabel.textContent    = 'Close';
+  } else {
+    /* closing */
+    plusIcon.style.display  = 'inline-block';
+    chevron.style.display   = 'none';
+    btnLabel.textContent    = 'Add';
+  }
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/* ── Run on load to sync icons for pre-expanded cards ── */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.sub-toggle-card.expanded').forEach(card => {
+    const plusIcon = card.querySelector('.plus-icon');
+    const chevron  = card.querySelector('.chevron');
+    const btnLabel = card.querySelector('.btn-label');
+    if (plusIcon)  plusIcon.style.display = 'none';
+    if (chevron)   chevron.style.display  = 'inline-block';
+    if (btnLabel)  btnLabel.textContent   = 'Close';
+  });
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+});
+</script>
+{% endblock %}

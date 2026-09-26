@@ -1,0 +1,295 @@
+<!-- *********************************************** Arun code *************************************************** -->
+
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block nav_personal_open %}open{% endblock %}
+{% block nav_personal_submenu %}open{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/personal/profile.css' %}">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="pg">
+
+  <div class="ph">
+    <div class="ph-left">
+      <div class="pt">My Profile</div>
+      <div class="psub">View and manage your personal information.</div>
+    </div>
+    <button class="btn-ed" id="editToggle" onclick="toggleEdit()">
+      <i class="ti ti-edit"></i> Edit Profile
+    </button>
+  </div>
+
+  <div class="layout">
+
+    <!-- ── Top Banner ── -->
+    <div class="top-banner" data-aos="fade-up" data-aos-duration="500">
+      <div class="av">
+        {% if request.user.profile_photo %}
+          <img src="{{ request.user.profile_photo.url }}" alt="{{ request.user.get_full_name }}" class="av-img" />
+        {% else %}
+          <span class="av-initials">{{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}</span>
+        {% endif %}
+        <div class="av-dot"><i class="ti ti-check"></i></div>
+      </div>
+      <div class="banner-info">
+        <div class="bi-name">{{ request.user.get_full_name }}</div>
+        <div class="bi-id">{{ profile.student_number }}</div>
+        <div class="bi-badges">
+          <span class="bdg bdg-green"><i class="ti ti-point-filled"></i> {{ profile.get_current_status_display }}</span>
+          <span class="bdg bdg-blue">{{ profile.get_academic_level_display }}</span>
+          <span class="bdg bdg-red">{{ academic.major|default:"Not Assigned" }}</span>
+        </div>
+      </div>
+      <div class="banner-meta">
+        <div class="bm-item"><i class="ti ti-mail"></i> {{ profile.university_email }}</div>
+        <div class="bm-item"><i class="ti ti-calendar"></i>  Admitted {{ profile.admission_date|date:"M Y" }}</div>
+        <div class="bm-item"><i class="ti ti-flag"></i> {{ profile.get_citizenship_status_display }}</div>
+        <div class="bm-item"><i class="ti ti-chart-line"></i> GPA {{ profile.cumulative_gpa|default:"0.00" }}</div>
+      </div>
+    </div>
+
+    <!-- ── Stat Cards ── -->
+    <div class="cards-grid">
+
+      <div class="stat-card">
+        <div class="sc-icon"><i class="ti ti-id-badge"></i></div>
+        <div class="sc-label">Student ID</div>
+        <div class="sc-val small">{{ profile.student_number }}</div>
+        <div class="sc-sub">{{ profile.get_academic_level_display }}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-icon"><i class="ti ti-chart-bar"></i></div>
+        <div class="sc-label">Cumulative GPA</div>
+        <div class="sc-val">3.72</div>
+        <div class="sc-sub">Out of 4.0</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-icon"><i class="ti ti-calendar-event"></i></div>
+        <div class="sc-label">Expected Graduation</div>
+        <div class="sc-val small">May 2027</div>
+        <div class="sc-sub">Admitted {{ profile.admission_date|date:"M Y" }}</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-icon"><i class="ti ti-shield-check"></i></div>
+        <div class="sc-label">Account Status</div>
+        <div class="sc-val small status-active">{{ profile.get_current_status_display }}</div>
+        <div class="sc-sub">Verified &amp; enrolled</div>
+      </div>
+
+    </div>
+
+    <!-- ── Personal Information ── -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-head-left"><i class="ti ti-user"></i> Personal Information</div>
+      </div>
+      <div class="sec-body">
+        <div class="fg">
+
+          <div class="field">
+            <div class="fl">First Name</div>
+            <div class="fv" data-field="first_name">{{ request.user.first_name }}</div>
+            <input class="fi"
+              type="text"
+              name="first_name"
+              value="{{ request.user.first_name }}">
+          </div>
+
+          <div class="field">
+            <div class="fl">Last Name</div>
+            <div class="fv" data-field="last_name">{{ request.user.last_name }}</div>
+            <input class="fi"
+              type="text"
+              name="last_name"
+              value="{{ request.user.last_name }}">
+          </div>
+
+          <div class="field">
+            <div class="fl">Preferred Name</div>
+            <div class="fv">{{ profile.preferred_name|default:"-" }}</div>
+            <input class="fi"
+              type="text"
+              name="preferred_name"
+              value="{{ profile.preferred_name }}">
+          </div>
+
+          <div class="field">
+            <div class="fl">Date of Birth</div>
+            <div class="fv">{{ request.user.date_of_birth|date:"F d, Y"|default:"-" }}</div>
+            <input class="fi"
+              type="date"
+              name="date_of_birth"
+              value="{{ request.user.date_of_birth|date:'Y-m-d' }}">
+          </div>
+
+          <div class="field">
+            <div class="fl">Gender</div>
+            <div class="fv">{{ request.user.get_gender_display }}</div>
+            <select class="fi" name="gender">
+                {% for value,label in request.user.GENDER_CHOICES %}
+                    <option value="{{ value }}"
+                        {% if request.user.gender == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <div class="fl">Marital Status</div>
+            <div class="fv">Single</div>
+            <select class="fi" name="marital_status">
+                {% for value,label in profile.MARITAL_STATUS_CHOICES %}
+                    <option value="{{ value }}"
+                        {% if profile.marital_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <div class="fl">Citizenship</div>
+            <div class="fv">Citizen</div>
+            <select class="fi" name="citizenship_status">
+                {% for value,label in profile.CITIZENSHIP_CHOICES %}
+                    <option value="{{ value }}"
+                        {% if profile.citizenship_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <div class="fl">Nationality</div>
+            <div class="fv">American</div>
+            <input class="fi" type="text" value="American">
+          </div>
+
+        </div>
+      </div>
+      <div class="edit-bar" id="eb1">
+        <button class="btn-cn" onclick="cancelEdit()">Cancel</button>
+        <button class="btn-sv" onclick="saveProfile()">
+          <i class="ti ti-device-floppy"></i> Save Changes
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Contact Information ── -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-head-left"><i class="ti ti-phone"></i> Contact Information</div>
+      </div>
+      <div class="sec-body">
+        <div class="fg">
+
+          <div class="field fw">
+            <div class="fl">University Email</div>
+            <div class="fv">
+              {{ profile.university_email }}
+              <span class="tag-v">Verified</span>
+            </div>
+            <input class="fi" type="email" value="john.anderson@wisc.edu" disabled>
+          </div>
+
+          <div class="field fw">
+            <div class="fl">Personal Email</div>
+            <div class="fv">j.anderson2004@gmail.com</div>
+            <input class="fi"
+              type="email"
+              name="personal_email"
+              value="{{ profile.personal_email }}">
+          </div>
+
+          <div class="field">
+            <div class="fl">Phone Number</div>
+            <div class="fv">{{ request.user.mobile_number|default:"-" }}</div>
+            <input class="fi"
+              type="text"
+              name="mobile_number"
+              value="{{ request.user.mobile_number }}">
+          </div>
+
+          <div class="field">
+            <div class="fl">Alternate Phone</div>
+            <div class="fv empty">—</div>
+            <input class="fi" type="tel" placeholder="Enter alternate phone">
+          </div>
+
+        </div>
+      </div>
+      <div class="edit-bar" id="eb2">
+        <button class="btn-cn" onclick="cancelEdit()">Cancel</button>
+        <button class="btn-sv" onclick="saveProfile()">
+          <i class="ti ti-device-floppy"></i> Save Changes
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Academic Information (read-only) ── -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-head-left"><i class="ti ti-school"></i> Academic Information</div>
+        <span class="readonly-tag">Read-only</span>
+      </div>
+      <div class="sec-body">
+        <div class="fg">
+
+          <div class="field">
+            <div class="fl">Student Number</div>
+            <div class="fv">{{ profile.student_number }}</div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Academic Level</div>
+            <div class="fv">{{ profile.get_academic_level_display }}</div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Current Status</div>
+            <div class="fv"><span class="bdg bdg-green"><i class="ti ti-point-filled"></i> {{ profile.get_current_status_display }}</span></div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Cumulative GPA</div>
+            <div class="fv">3.72</div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Admission Date</div>
+            <div class="fv">August 26, 2024</div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Expected Graduation</div>
+            <div class="fv">May 2027</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Personal/profile.js' %}"></script>
+{% endblock %}
+
+<!-- *********************************************** Arun code *************************************************** -->

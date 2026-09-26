@@ -1,0 +1,581 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Departments{% endblock %}
+{% block page_title %}Departments{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department/department_home.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+{% endblock %}
+
+
+{% block content %}
+
+<div class="dept-page">
+
+  {# ── Breadcrumb + Add ── #}
+  <div class="dept-page">
+
+    <!-- Page Header -->
+    <div class="dept-page-header-card">
+
+        <div class="dept-page-header-left">
+
+            <h2 class="dept-page-title">Departments</h2>
+
+            <nav class="dept-breadcrumb">
+                <span>Dashboard</span>
+                <span class="sep">›</span>
+                <span>Administration</span>
+                <span class="sep">›</span>
+                <span class="active">Departments</span>
+            </nav>
+
+        </div>
+
+
+        <div class="dept-page-header-right">
+
+            <div class="header-stat">
+                <span class="header-stat-label">Total</span>
+                <span class="header-stat-value">{{ all_count }}</span>
+            </div>
+
+
+            {% if no_university or no_school %}
+
+                <button
+                    type="button"
+                    class="btn-add-dept"
+                    data-bs-toggle="modal"
+                    data-bs-target="#departmentPrerequisiteModal">
+
+                    + Add Department
+
+                </button>
+
+            {% else %}
+
+                <a href="{% url 'department_add' %}"
+                   class="btn-add-dept">
+
+                    + Add Department
+
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+  {# ── Stat cards ── #}
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon red"><i data-lucide="building-2"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Total Departments</div>
+        <div class="stat-value">{{ total_departments }}</div>
+        <div class="stat-meta">Across {{ total_schools }} schools</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i data-lucide="check-circle"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Active</div>
+        <div class="stat-value" style="color:#198754">{{ active_departments }}</div>
+        <div class="stat-meta">{{ active_pct }}% of total</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue"><i data-lucide="book-open"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Total Courses</div>
+        <div class="stat-value">{{ total_courses }}</div>
+        <div class="stat-meta">Across all departments</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i data-lucide="award"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Programs</div>
+        <div class="stat-value">{{ total_programs }}</div>
+        <div class="stat-meta">UG · PG · PhD</div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Main grid ── #}
+  <div class="dept-grid">
+
+    {# ─── Department table card ─── #}
+    <div class="dept-card">
+
+      <div class="dept-card__hd">
+        <div class="dept-card__title">
+          <i data-lucide="building-2"></i>All Departments
+        </div>
+        <a href="#"
+           class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+           style="font-size:12px;border-radius:8px;">
+          <i data-lucide="download" style="width:13px;height:13px;"></i>Export CSV
+        </a>
+      </div>
+
+      {# Tabs #}
+      <div class="dept-tabs" role="tablist">
+        <button class="dept-tab active" data-tab="all" role="tab">
+          All&nbsp;<span class="text-muted fw-normal">({{ total_departments }})</span>
+        </button>
+        <button class="dept-tab" data-tab="ACTIVE" role="tab">
+          Active&nbsp;<span class="text-muted fw-normal">({{ active_departments }})</span>
+        </button>
+        <button class="dept-tab" data-tab="INACTIVE" role="tab">
+          Inactive&nbsp;<span class="text-muted fw-normal">({{ inactive_departments }})</span>
+        </button>
+      </div>
+
+      {# Filters #}
+      <div class="dept-filter">
+        <div class="search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="deptSearch" class="form-control"
+                 placeholder="Search name or code…" oninput="filterDepts()">
+        </div>
+        <select id="schoolFilter" class="form-select"
+                onchange="filterDepts()">
+          <option value="">All schools</option>
+          {% for school in schools %}
+            <option value="{{ school.school_id }}">{{ school.school_name }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                onclick="resetFilters()"
+                style="font-size:12px;border-radius:8px;height:36px;padding:0 12px;white-space:nowrap;">
+          <i data-lucide="x" style="width:13px;height:13px;"></i>Reset
+        </button>
+      </div>
+
+      {# Table #}
+      <div class="table-responsive">
+        <table class="dept-tbl" id="deptTable" aria-label="Departments list">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th class="col-school">School</th>
+              <th class="col-courses" style="text-align:center;">Courses</th>
+              <th class="col-est">Est.</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="deptTbody">
+            {% for dept in departments %}
+            <tr data-name="{{ dept.department_name|lower }}"
+                data-code="{{ dept.department_code|lower }}"
+                data-school="{{ dept.school.school_id }}"
+                data-status="{{ dept.status }}">
+              <td>
+                <div class="d-name">{{ dept.department_name|truncatechars:20 }}</div>
+                
+                <span class="d-code">{{ dept.department_code }}</span>
+              </td>
+              <td class="col-school">
+                <span class="school-pill">
+                  <i data-lucide="building"></i>{{ dept.school.school_name }}
+                </span>
+              </td>
+              <td class="col-courses" style="text-align:center;font-weight:600;">
+                {{ dept.course_count }}
+              </td>
+              <td class="col-est" style="color:#6c757d;">
+                {{ dept.established_year|default:"—" }}
+              </td>
+              <td>
+                {% if dept.status == 'ACTIVE' %}
+                  <span class="b-active">Active</span>
+                {% else %}
+                  <span class="b-inactive">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="act-btns">
+                  <a href="{% url 'department_view' dept.department_uuid %}" class="act-btn" title="View department">
+                    <i class="fa-regular fa-eye"></i>
+                  </a>
+                  <a href="{% url 'department_edit' dept.department_uuid %}"
+                     class="act-btn" title="Edit">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                  </a>
+                  {# Ban button — disabled if already inactive #}
+                  {% if dept.status == 'ACTIVE' %}
+                    <button class="act-btn danger" title="Mark as Inactive"
+                            onclick="confirmInactive('{{ dept.department_uuid }}','{{ dept.department_name }}')">
+                      <i class="fa-solid fa-ban"></i>
+                    </button>
+                  {% else %}
+                    <button class="act-btn" title="Already Inactive" disabled
+                            style="opacity:.4;cursor:not-allowed;">
+                      <i class="fa-solid fa-ban"></i>
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr id="emptyRow">
+              <td colspan="6">
+                <div class="dept-empty">
+                  <i data-lucide="inbox"></i>
+                  <p>No departments yet.</p>
+                   {% if no_university or no_school %}
+
+    <button
+        type="button"
+        class="btn-add-dept"
+        data-bs-toggle="modal"
+        data-bs-target="#departmentPrerequisiteModal">
+
+        <i data-lucide="plus"></i>
+        Add Department
+
+    </button>
+
+{% else %}
+
+    <a href="{% url 'department_add' %}"
+       class="btn-add-dept">
+
+        <i data-lucide="plus"></i>
+        Add Department
+
+    </a>
+
+{% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# No-results placeholder #}
+      <div id="noResults" style="display:none;">
+        <div class="dept-empty">
+          <i data-lucide="search-x"></i>
+          <p>No departments match your search.</p>
+          <button class="btn btn-sm btn-outline-secondary"
+                  onclick="resetFilters()"
+                  style="font-size:12px;border-radius:8px;">
+            Clear filters
+          </button>
+        </div>
+      </div>
+
+      {# Pagination #}
+      {% if is_paginated %}
+      <div class="dept-pg">
+        <small>
+          Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}
+          of {{ paginator.count }} departments
+        </small>
+        <div class="d-flex gap-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&search={{ q_search }}&school={{ q_school }}"
+               class="pg-btn">
+              <i data-lucide="chevron-left"></i>Prev
+            </a>
+          {% endif %}
+          {% for num in paginator.page_range %}
+            {% if num == page_obj.number %}
+              <span class="pg-btn" style="background:#fff0f0;color:#c5050c;border-color:#f5c6cb;">
+                {{ num }}
+              </span>
+            {% elif num == page_obj.previous_page_number or num == page_obj.next_page_number %}
+              <a href="?page={{ num }}&search={{ q_search }}&school={{ q_school }}"
+                 class="pg-btn">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ q_search }}&school={{ q_school }}"
+               class="pg-btn">
+              Next<i data-lucide="chevron-right"></i>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>{# /dept-card #}
+
+    {# ─── Right column ─── #}
+    <div class="right-col">
+
+      {# Recent programs card #}
+      <div class="dept-card">
+        <div class="dept-card__hd">
+          <div class="dept-card__title">
+            <i data-lucide="award"></i>Recent Programs
+          </div>
+          <a href="#" style="font-size:12px;color:#c5050c;text-decoration:none;white-space:nowrap;">
+            View all
+          </a>
+        </div>
+        {% for prog in recent_programs %}
+        <div class="prog-item">
+          <div style="min-width:0;">
+            <div class="prog-name text-truncate">{{ prog.program_name }}</div>
+            <div class="prog-meta">
+              {{ prog.department.department_name }} ·
+              {{ prog.get_program_type_display }} ·
+              {{ prog.duration }} yr{{ prog.duration|pluralize }}
+            </div>
+          </div>
+          <div style="flex-shrink:0;text-align:right;">
+            {% if prog.degree.level == 'UG' %}
+              <span class="prog-badge ug">UG</span>
+            {% elif prog.degree.level == 'PG' %}
+              <span class="prog-badge pg">PG</span>
+            {% else %}
+              <span class="prog-badge phd">PhD</span>
+            {% endif %}
+            <div class="prog-cr">{{ prog.total_credits }} credits</div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="dept-empty" style="padding:1.5rem;">
+          <i data-lucide="inbox"></i>
+          <p>No programs yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      {# Departments by school bar chart card #}
+      <div class="dept-card">
+        <div class="dept-card__hd">
+          <div class="dept-card__title">
+            <i data-lucide="bar-chart-2"></i>Departments by School
+          </div>
+        </div>
+        <div style="padding:1.1rem 1.25rem;">
+          {% for school in schools_with_counts %}
+          <div class="bar-item">
+            <div class="bar-label">
+              <span>{{ school.school_name }}</span>
+              <span>{{ school.dept_count }}</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:{{ school.dept_pct }}%"></div>
+            </div>
+          </div>
+          {% empty %}
+          <p style="font-size:13px;color:#6c757d;">No data.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>{# /right-col #}
+
+  </div>{# /dept-grid #}
+
+</div>{# /dept-page #}
+
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="{% static 'script/department_home.js' %}"></script>
+
+{% endblock %}
+
+
+{# ── Mark as Inactive confirm modal ── #}
+{% block global_modal %}
+<div class="modal fade" id="inactiveModal" tabindex="-1"
+     aria-labelledby="inactiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content shadow" style="border-radius:14px;border:none;">
+
+      <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:38px;height:38px;background:#fff0f0;border-radius:9px;
+                       display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="shield-alert" style="width:18px;height:18px;color:#c5050c;"></i>
+          </span>
+          <h6 class="modal-title fw-semibold mb-0" id="inactiveModalLabel">
+            Mark as Inactive?
+          </h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body" style="font-size:13px;color:#495057;padding-top:.85rem;">
+        <p style="margin-bottom:.5rem;">
+          You are about to mark
+          <strong id="inactiveDeptName"></strong>
+          as <strong style="color:#c5050c;">Inactive</strong>.
+        </p>
+        <ul style="margin:0;padding-left:1.1rem;font-size:12.5px;color:#6c757d;line-height:1.8;">
+          <li>The department will be hidden from active listings.</li>
+          <li>Linked courses will remain but won't be visible.</li>
+          <li>You can reactivate it from the edit page at any time.</li>
+        </ul>
+      </div>
+
+      <div class="modal-footer" style="border-top:none;padding-top:0;gap:.5rem;">
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-dismiss="modal"
+                style="font-size:13px;border-radius:8px;padding:6px 16px;">
+          Cancel
+        </button>
+        <form id="inactiveForm" method="POST" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm"
+                  style="font-size:13px;border-radius:8px;padding:6px 16px;
+                         background:#c5050c;color:#fff;border:none;font-weight:600;">
+            <i data-lucide="ban" style="width:13px;height:13px;"></i>
+            Yes, Mark Inactive
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% if no_school %}
+
+<div class="modal fade"
+     id="departmentPrerequisiteModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content modern-status-modal">
+
+            <div class="status-modal-header">
+
+                <div class="status-modal-icon">
+
+                    <svg width="34"
+                         height="34"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+
+                        <path d="M12 6V2M8 18l4 4 4-4M8 6l-4 4 4 4"/>
+                        <path d="M16 6l4 4-4 4"/>
+                        <path d="M12 2v4"/>
+                        <path d="M12 22v-4"/>
+                        <path d="M2 12h4"/>
+                        <path d="M18 12h4"/>
+
+                    </svg>
+
+                </div>
+
+                <h4 class="status-modal-title">
+                    Department Creation Prerequisites
+                </h4>
+
+            </div>
+
+            <div class="status-modal-body">
+
+                <p>
+                    Before creating a <strong>Department</strong>, complete the required hierarchy.
+                </p>
+
+                <ul class="prerequisite-list-modern">
+
+                    <li>
+                        <span class="item-label">University</span>
+                        {% if no_university %}
+                            <span class="status-badge danger">
+                                <i data-lucide="x"></i>
+                                Required
+                            </span>
+                        {% else %}
+                            <span class="status-badge success">
+                                <i data-lucide="check"></i>
+                                Completed
+                            </span>
+                        {% endif %}
+                    </li>
+
+                    <li>
+                        <span class="item-label">School</span>
+                        {% if no_school %}
+                            <span class="status-badge danger">
+                                <i data-lucide="x"></i>
+                                Required
+                            </span>
+                        {% else %}
+                            <span class="status-badge success">
+                                <i data-lucide="check"></i>
+                                Completed
+                            </span>
+                        {% endif %}
+                    </li>
+
+                    <li>
+                        <span class="item-label">Department</span>
+                        <span class="status-badge pending">
+                            <i data-lucide="clock"></i>
+                            Pending
+                        </span>
+                    </li>
+
+                </ul>
+
+            </div>
+
+            <div class="status-modal-footer">
+
+                <button
+                    class="btn-cancel"
+                    data-bs-dismiss="modal">
+
+                    Stay Here
+
+                </button>
+
+                {% if no_university %}
+
+                    <a href="{% url 'add_university' %}"
+                       class="btn-confirm">
+
+                        Create University
+
+                    </a>
+
+                {% elif no_school %}
+
+                    <a href="{% url 'add_school' %}"
+                       class="btn-confirm">
+
+                        Create School
+
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+{% endblock %}

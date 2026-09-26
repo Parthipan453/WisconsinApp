@@ -1,0 +1,437 @@
+{% extends 'staff_base.html' %}
+{% load static %}
+
+{% block title %}Financial Aid Support — University of Wisconsin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'staffdashboard/staff_dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'Student_Services/financial_aid.css' %}" />
+{% endblock %}
+
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_aid %}active{% endblock %}
+
+{% block content %}
+
+<div class="aid-page-header">
+  <div>
+    <h1>Financial Aid Support</h1>
+    <p>Manage student financial aid applications, scholarships, grants, and loan disbursements.</p>
+  </div>
+  <div class="dash-date-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    {{ today|date:"d M Y, l" }}
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="aid-stats">
+  <div class="aid-stat-card" data-aos="fade-up" data-aos-delay="0">
+    <div class="aid-stat-number" data-count="1,847">0</div>
+    <div class="aid-stat-label">Total Aid Applications</div>
+    <div class="aid-stat-change up">↑ 15% from last year</div>
+  </div>
+  <div class="aid-stat-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="aid-stat-number" data-count="2.4">0</div>
+    <div class="aid-stat-label">Avg. Award ($)</div>
+    <div class="aid-stat-change up">↑ 8% this semester</div>
+  </div>
+  <div class="aid-stat-card" data-aos="fade-up" data-aos-delay="200">
+    <div class="aid-stat-number" data-count="342">0</div>
+    <div class="aid-stat-label">Pending Reviews</div>
+    <div class="aid-stat-change down">↓ 3% from last year</div>
+  </div>
+  <div class="aid-stat-card" data-aos="fade-up" data-aos-delay="300">
+    <div class="aid-stat-number" data-count="89">0</div>
+    <div class="aid-stat-label">Scholarships Offered</div>
+    <div class="aid-stat-change up">↑ 12% from 2025</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="aid-actions">
+  <a href="#" class="action-btn primary" onclick="toastInfo('New application form opened')">
+    <i class="ti ti-plus"></i> New Application
+  </a>
+  <a href="#" class="action-btn" onclick="toastInfo('Bulk upload started')">
+    <i class="ti ti-upload"></i> Bulk Upload
+  </a>
+  <a href="#" class="action-btn" onclick="toastInfo('Scholarship list loaded')">
+    <i class="ti ti-award"></i> Manage Scholarships
+  </a>
+  <a href="#" class="action-btn" onclick="toastInfo('Generating report...')">
+    <i class="ti ti-file-report"></i> Reports
+  </a>
+</div>
+
+<!-- Search & Filter -->
+<div class="aid-search-filter">
+  <div class="search-wrapper">
+    <i class="ti ti-search"></i>
+    <input type="text" id="aidSearch" placeholder="Search by name, ID, or application..." onkeyup="filterAid()">
+  </div>
+  <div class="filter-wrapper">
+    <select id="statusFilter" onchange="filterAid()" class="filter-select">
+      <option value="all">All Status</option>
+      <option value="approved">Approved</option>
+      <option value="pending">Pending Review</option>
+      <option value="rejected">Rejected</option>
+      <option value="incomplete">Incomplete</option>
+      <option value="disbursed">Disbursed</option>
+    </select>
+    <select id="typeFilter" onchange="filterAid()" class="filter-select">
+      <option value="all">All Types</option>
+      <option value="scholarship">Scholarship</option>
+      <option value="grant">Grant</option>
+      <option value="loan">Loan</option>
+      <option value="workstudy">Work Study</option>
+    </select>
+    <button class="btn-clear-filter" onclick="clearFilters()">
+      <i class="ti ti-rotate"></i> Reset
+    </button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="aid-table-wrap">
+  <table class="aid-table" id="aidTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Student <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(1)">Student ID <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(2)">Aid Type <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(3)">Amount ($) <i class="ti ti-chevron-up-down"></i></th>
+        <th onclick="sortTable(4)">Status <i class="ti ti-chevron-up-down"></i></th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="aidBody">
+      <!-- Row 1 -->
+      <tr data-status="approved" data-type="scholarship">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar">JD</div>
+            <div>
+              <div class="student-name">John Doe</div>
+              <div class="student-id">john.doe@wisc.edu</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2024-001</td>
+        <td>Scholarship</td>
+        <td>$12,500</td>
+        <td><span class="aid-status approved">Approved</span></td>
+        <td>
+          <a href="#" class="aid-action-link view-link" onclick="viewAid(event, 'John Doe', 'STU-2024-001')">View</a>
+          <a href="#" class="aid-action-link" onclick="editAid(event, 'John Doe', 'STU-2024-001')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 2 -->
+      <tr data-status="pending" data-type="grant">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#2563eb;">AS</div>
+            <div>
+              <div class="student-name">Anna Staresinic</div>
+              <div class="student-id">anna.s@wisc.edu</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2025-042</td>
+        <td>Grant</td>
+        <td>$8,200</td>
+        <td><span class="aid-status pending">Pending Review</span></td>
+        <td>
+          <a href="#" class="aid-action-link view-link" onclick="viewAid(event, 'Anna Staresinic', 'STU-2025-042')">View</a>
+          <a href="#" class="aid-action-link" onclick="editAid(event, 'Anna Staresinic', 'STU-2025-042')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 3 -->
+      <tr data-status="disbursed" data-type="loan">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#d97706;">MR</div>
+            <div>
+              <div class="student-name">Michael Rodriguez</div>
+              <div class="student-id">michael.r@wisc.edu</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2024-089</td>
+        <td>Loan</td>
+        <td>$15,000</td>
+        <td><span class="aid-status disbursed">Disbursed</span></td>
+        <td>
+          <a href="#" class="aid-action-link view-link" onclick="viewAid(event, 'Michael Rodriguez', 'STU-2024-089')">View</a>
+          <a href="#" class="aid-action-link" onclick="editAid(event, 'Michael Rodriguez', 'STU-2024-089')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 4 -->
+      <tr data-status="approved" data-type="scholarship">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#7c3aed;">SK</div>
+            <div>
+              <div class="student-name">Sarah Kim</div>
+              <div class="student-id">sarah.kim@wisc.edu</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2023-156</td>
+        <td>Scholarship</td>
+        <td>$18,000</td>
+        <td><span class="aid-status approved">Approved</span></td>
+        <td>
+          <a href="#" class="aid-action-link view-link" onclick="viewAid(event, 'Sarah Kim', 'STU-2023-156')">View</a>
+          <a href="#" class="aid-action-link" onclick="editAid(event, 'Sarah Kim', 'STU-2023-156')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 5 -->
+      <tr data-status="rejected" data-type="grant">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#16a34a;">EL</div>
+            <div>
+              <div class="student-name">Emily Larson</div>
+              <div class="student-id">emily.l@wisc.edu</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2025-203</td>
+        <td>Grant</td>
+        <td>$6,500</td>
+        <td><span class="aid-status rejected">Rejected</span></td>
+        <td>
+          <a href="#" class="aid-action-link view-link" onclick="viewAid(event, 'Emily Larson', 'STU-2025-203')">View</a>
+          <a href="#" class="aid-action-link" onclick="editAid(event, 'Emily Larson', 'STU-2025-203')">Edit</a>
+        </td>
+      </tr>
+      <!-- Row 6 -->
+      <tr data-status="incomplete" data-type="workstudy">
+        <td>
+          <div class="student-info">
+            <div class="student-avatar" style="background:#dc2626;">JC</div>
+            <div>
+              <div class="student-name">James Chen</div>
+              <div class="student-id">james.c@wisc.edu</div>
+            </div>
+          </div>
+        </td>
+        <td>STU-2026-018</td>
+        <td>Work Study</td>
+        <td>$4,200</td>
+        <td><span class="aid-status incomplete">Incomplete</span></td>
+        <td>
+          <a href="#" class="aid-action-link view-link" onclick="viewAid(event, 'James Chen', 'STU-2026-018')">View</a>
+          <a href="#" class="aid-action-link" onclick="editAid(event, 'James Chen', 'STU-2026-018')">Edit</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- No Results -->
+<div class="no-results" id="noResults" style="display:none;">
+  <i class="ti ti-search"></i>
+  <p>No applications found matching your search criteria.</p>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="aidModal" onclick="closeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modalTitle">Financial Aid Details</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Dynamic content -->
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  animateStats();
+  if (typeof AOS !== 'undefined') {
+    AOS.init({ once: true, duration: 400 });
+  }
+  updateCounts();
+});
+
+
+function animateStats() {
+  const stats = document.querySelectorAll('.aid-stat-number');
+  stats.forEach(stat => {
+    const target = stat.getAttribute('data-count');
+    const isDecimal = target.includes('.');
+    const numTarget = parseFloat(target.replace(/,/g, ''));
+    const duration = 1500;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = eased * numTarget;
+      
+      if (isDecimal) {
+        stat.textContent = current.toFixed(1);
+      } else {
+        stat.textContent = Math.floor(current).toLocaleString();
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        stat.textContent = target;
+      }
+    }
+    requestAnimationFrame(update);
+  });
+}
+
+
+function filterAid() {
+  const searchInput = document.getElementById('aidSearch');
+  const statusFilter = document.getElementById('statusFilter');
+  const typeFilter = document.getElementById('typeFilter');
+  const searchTerm = searchInput.value.toLowerCase();
+  const statusTerm = statusFilter.value;
+  const typeTerm = typeFilter.value;
+  const rows = document.querySelectorAll('#aidBody tr');
+  let visibleCount = 0;
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const status = row.getAttribute('data-status');
+    const type = row.getAttribute('data-type');
+    
+    const matchesSearch = text.includes(searchTerm);
+    const matchesStatus = statusTerm === 'all' || status === statusTerm;
+    const matchesType = typeTerm === 'all' || type === typeTerm;
+    
+    if (matchesSearch && matchesStatus && matchesType) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  const noResults = document.getElementById('noResults');
+  noResults.style.display = visibleCount === 0 ? 'flex' : 'none';
+  updateCounts();
+}
+
+function clearFilters() {
+  document.getElementById('aidSearch').value = '';
+  document.getElementById('statusFilter').value = 'all';
+  document.getElementById('typeFilter').value = 'all';
+  filterAid();
+  toastSuccess('Filters cleared');
+}
+
+function updateCounts() {
+  const rows = document.querySelectorAll('#aidBody tr:not([style*="display: none"])');
+  document.getElementById('startCount').textContent = rows.length > 0 ? 1 : 0;
+  document.getElementById('endCount').textContent = rows.length;
+  document.getElementById('totalCount').textContent = document.querySelectorAll('#aidBody tr').length;
+}
+
+
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+  const tbody = document.getElementById('aidBody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  
+  sortDirection[columnIndex] = sortDirection[columnIndex] === 'asc' ? 'desc' : 'asc';
+  const direction = sortDirection[columnIndex];
+  
+  rows.sort((a, b) => {
+    const aCols = a.querySelectorAll('td');
+    const bCols = b.querySelectorAll('td');
+    let aVal = aCols[columnIndex]?.textContent.trim() || '';
+    let bVal = bCols[columnIndex]?.textContent.trim() || '';
+    
+    const aNum = parseFloat(aVal.replace(/[$,]/g, ''));
+    const bNum = parseFloat(bVal.replace(/[$,]/g, ''));
+    
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return direction === 'asc' ? aNum - bNum : bNum - aNum;
+    }
+    return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+  
+  rows.forEach(row => tbody.appendChild(row));
+  
+  const headers = document.querySelectorAll('#aidTable th');
+  headers.forEach((th, index) => {
+    const icon = th.querySelector('.ti-chevron-up-down');
+    if (icon) {
+      icon.className = index === columnIndex 
+        ? (direction === 'asc' ? 'ti ti-chevron-up' : 'ti ti-chevron-down')
+        : 'ti ti-chevron-up-down';
+    }
+  });
+  
+  toastSuccess('Sorted by ' + (headers[columnIndex] ? headers[columnIndex].textContent.trim() : 'column'));
+}
+
+
+function viewAid(event, name, id) {
+  event.preventDefault();
+  const modal = document.getElementById('aidModal');
+  document.getElementById('modalTitle').textContent = `Financial Aid - ${name}`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-student-info">
+      <div class="modal-avatar" style="background:#c5050c;">${name.split(' ').map(n => n[0]).join('')}</div>
+      <div class="modal-details">
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Student ID:</strong> ${id}</p>
+        <p><strong>Email:</strong> ${name.toLowerCase().replace(' ', '.')}@wisc.edu</p>
+        <p><strong>Aid Type:</strong> Scholarship</p>
+        <p><strong>Amount:</strong> $12,500</p>
+        <p><strong>Status:</strong> <span style="color:#16a34a;">Approved</span></p>
+        <p><strong>Application Date:</strong> Jan 15, 2026</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="closeModal()">Close</button>
+      <button class="modal-btn" onclick="closeModal(); toastInfo('Editing ${name}')">Edit</button>
+    </div>
+  `;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function editAid(event, name, id) {
+  event.preventDefault();
+  toastInfo(`Editing ${name} (${id})`);
+}
+
+
+function closeModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('aidModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+  }
+});
+
+console.log('✅ Financial Aid Support loaded successfully!');
+console.log('✅ Using common toast system from staff_base.html');
+</script>
+{% endblock %}

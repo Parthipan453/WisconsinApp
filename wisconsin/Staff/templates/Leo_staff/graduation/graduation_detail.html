@@ -1,0 +1,579 @@
+{% extends "staff_base.html" %}
+{% load static %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_staff/graduation/graduation_detail.css' %}">
+{% endblock %}
+{% block nav_student_open %}open{% endblock %}
+{% block nav_student_submenu %}open{% endblock %}
+{% block nav_graduation %}active{% endblock %}
+{% block content %}
+    <div class="graduation-detail-page">
+        <div class="page-breadcrumb">
+            <span>PHD MANAGEMENT</span>
+            <i class="fa-solid fa-chevron-right"></i>
+            <strong>GRADUATION</strong>
+        </div>
+        <section class="detail-hero">
+            <div class="hero-content">
+                <div class="hero-icon">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="hero-text">
+                    <span>ACADEMIC COMPLETION</span>
+                    <h1>Graduation Record</h1>
+                    <p>Review doctoral graduation details, eligibility verification, and Chair Faculty approval status.</p>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <span class="status-badge {% if graduation.status == 'APPROVED' %}approved{% elif graduation.status == 'COMPLETED' %}completed{% else %}pending{% endif %}">
+                    <i class="fa-solid fa-circle"></i>
+                    {{ graduation.get_status_display }}
+                </span>
+                <a href="{% url 'Leo_Staff:graduation_update' graduation_id=graduation.graduation_id %}"
+                   class="hero-button">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    Edit
+                </a>
+            </div>
+        </section>
+        <div class="detail-layout">
+            <main class="detail-main">
+                <section class="detail-card student-card">
+                    <div class="card-header">
+                        <div class="section-icon">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div>
+                            <span>STUDENT INFORMATION</span>
+                            <h2>PhD Student</h2>
+                        </div>
+                    </div>
+                    <div class="student-profile">
+                        <div class="student-avatar">{{ graduation.phd_student.student.user.first_name|first|upper }}</div>
+                        <div class="student-main">
+                            <h3>{{ graduation.phd_student.student.user.get_full_name }}</h3>
+                            <p>{{ graduation.phd_student.student.user.email }}</p>
+                        </div>
+                        <div class="student-id">
+                            <span>PhD ID</span>
+                            <strong>{{ graduation.phd_student }}</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="detail-card graduation-video-card">
+                    <div class="card-header graduation-video-card-header">
+                        <div class="section-icon graduation-video-section-icon">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <div class="graduation-video-card-title">
+                            <span>GRADUATION EVIDENCE</span>
+                            {% if video_evidence %}
+                                <h2>Graduation Video Added</h2>
+                            {% elif graduation_approved %}
+                                <h2>Add Graduation Video</h2>
+                            {% else %}
+                                <h2>Video Evidence</h2>
+                            {% endif %}
+                        </div>
+                        {% comment %} {% if video_evidence %}
+                            <span class="graduation-video-status added">
+                                <i class="fa-solid fa-circle-check"></i>
+                                Added
+                            </span>
+                        {% elif graduation_approved %}
+                            <button type="button"
+                                    class="graduation-video-add-btn"
+                                    onclick="openGraduationVideoModal()">
+                                <i class="fa-solid fa-plus"></i>
+                                Add Graduation Video
+                            </button>
+                        {% else %}
+                            <span class="graduation-video-status locked">
+                                <i class="fa-solid fa-lock"></i>
+                                Awaiting Approval
+                            </span>
+                        {% endif %} {% endcomment %}
+                    </div>
+                    <div class="graduation-video-card-body">
+                        {% if video_evidence %}
+                            <div class="graduation-video-player-wrap">
+                                <video controls preload="metadata" class="graduation-video-player">
+                                    <source src="{{ video_evidence.video.url }}">
+                                    Your browser does not support the video element.
+                                </video>
+                            </div>
+                            <div class="graduation-video-info-row">
+                                <div class="graduation-video-file-info">
+                                    <div class="graduation-video-file-icon">
+                                        <i class="fa-solid fa-file-video"></i>
+                                    </div>
+                                    <div class="graduation-video-file-text">
+                                        <strong>{{ video_evidence.video.name|cut:"phd/video_evidence/" }}</strong>
+                                        <span>Uploaded {{ video_evidence.uploaded_at|date:"d M Y, h:i A" }}</span>
+                                        {% if video_evidence.uploaded_by %}
+                                            <span>By {{ video_evidence.uploaded_by.get_full_name|default:video_evidence.uploaded_by.username }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="graduation-video-actions">
+                                    <a href="{{ video_evidence.video.url }}"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="graduation-video-action primary">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        Open Video
+                                    </a>
+                                    <a href="{{ video_evidence.video.url }}"
+                                       download
+                                       class="graduation-video-action secondary">
+                                        <i class="fa-solid fa-download"></i>
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+                        {% elif graduation_approved %}
+                            <div class="graduation-video-ready-state">
+                                <div class="graduation-video-ready-icon">
+                                    <i class="fa-solid fa-clapperboard"></i>
+                                </div>
+                                <div class="graduation-video-ready-content">
+                                    <strong>Graduation is approved</strong>
+                                    <span>Add the official graduation recording to this academic record.</span>
+                                </div>
+                                <button type="button"
+                                        class="graduation-video-ready-btn"
+                                        onclick="openGraduationVideoModal()">
+                                    <i class="fa-solid fa-video"></i>
+                                    Add Video
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="graduation-video-locked-state">
+                                <div class="graduation-video-locked-icon">
+                                    <i class="fa-solid fa-lock"></i>
+                                </div>
+                                <div>
+                                    <strong>Video evidence is locked</strong>
+                                    <span>Graduation video can be added after Chair Faculty approval.</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+                <section class="detail-card">
+                    <div class="card-header">
+                        <div class="section-icon">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <span>GRADUATION SCHEDULE</span>
+                            <h2>Ceremony Details</h2>
+                        </div>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fa-regular fa-calendar"></i>
+                                Graduation Date
+                            </span>
+                            <strong>{{ graduation.graduation_date|date:"F d, Y" }}</strong>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fa-regular fa-clock"></i>
+                                Graduation Time
+                            </span>
+                            <strong>{{ graduation.graduation_time|time:"g:i A" }}</strong>
+                        </div>
+                        <div class="info-item full-width">
+                            <span class="info-label">
+                                <i class="fa-solid fa-location-dot"></i>
+                                Graduation Location
+                            </span>
+                            <strong>{{ graduation.graduation_location }}</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="detail-card">
+                    <div class="card-header">
+                        <div class="section-icon">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <span>ACADEMIC RESULT</span>
+                            <h2>Final Academic Performance</h2>
+                        </div>
+                    </div>
+                    <div class="gpa-panel">
+                        <div class="gpa-icon">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+                        <div class="gpa-content">
+                            <span>FINAL GPA</span>
+                            <strong>{{ graduation.final_gpa }}</strong>
+                        </div>
+                        <div class="gpa-scale">
+                            <span>Academic Record</span>
+                            <strong>Verified</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="detail-card">
+                    <div class="card-header">
+                        <div class="section-icon">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <span>ELIGIBILITY VERIFICATION</span>
+                            <h2>Graduation Requirements</h2>
+                        </div>
+                    </div>
+                    <div class="verification-banner">
+                        <div class="verification-icon">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <strong>Student Is Eligible</strong>
+                            <p>All required academic and research requirements have been successfully verified.</p>
+                        </div>
+                    </div>
+                    <div class="requirements-grid">
+                        <div class="requirement-item">
+                            <div class="requirement-icon">
+                                <i class="fa-solid fa-file-circle-check"></i>
+                            </div>
+                            <div>
+                                <strong>Final Dissertation</strong>
+                                <span>Approved</span>
+                            </div>
+                            <i class="fa-solid fa-circle-check requirement-check"></i>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="requirement-icon">
+                                <i class="fa-solid fa-gavel"></i>
+                            </div>
+                            <div>
+                                <strong>Dissertation Defense</strong>
+                                <span>Passed</span>
+                            </div>
+                            <i class="fa-solid fa-circle-check requirement-check"></i>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="requirement-icon">
+                                <i class="fa-solid fa-chart-simple"></i>
+                            </div>
+                            <div>
+                                <strong>Research Progress</strong>
+                                <span>100% Completed</span>
+                            </div>
+                            <i class="fa-solid fa-circle-check requirement-check"></i>
+                        </div>
+                        <div class="requirement-item">
+                            <div class="requirement-icon">
+                                <i class="fa-solid fa-user-check"></i>
+                            </div>
+                            <div>
+                                <strong>Doctoral Candidacy</strong>
+                                <span>Approved</span>
+                            </div>
+                            <i class="fa-solid fa-circle-check requirement-check"></i>
+                        </div>
+                    </div>
+                </section>
+                <section class="detail-card approval-card">
+                    <div class="card-header">
+                        <div class="section-icon">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                        <div>
+                            <span>CHAIR FACULTY APPROVAL</span>
+                            <h2>Approval Workflow</h2>
+                        </div>
+                    </div>
+                    <div class="approval-status">
+                        <div class="approval-status-icon">
+                            {% if graduation.chair_approved_by %}
+                                <i class="fa-solid fa-check"></i>
+                            {% else %}
+                                <i class="fa-solid fa-clock"></i>
+                            {% endif %}
+                        </div>
+                        <div class="approval-status-content">
+                            {% if graduation.chair_approved_by %}
+                                <strong>Approved by Chair Faculty</strong>
+                                <p>This graduation record has been reviewed and approved.</p>
+                            {% else %}
+                                <strong>Pending Chair Faculty Approval</strong>
+                                <p>This graduation record is waiting for Chair Faculty review and approval.</p>
+                            {% endif %}
+                        </div>
+                        <span class="approval-label {% if graduation.chair_approved_by %}approved{% else %}pending{% endif %}">
+                            {% if graduation.chair_approved_by %}
+                                Approved
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if graduation.chair_approved_by %}
+                        <div class="approver-details">
+                            <div>
+                                <span>Approved By</span>
+                                <strong>{{ graduation.chair_approved_by.user.get_full_name }}</strong>
+                            </div>
+                            {% if graduation.chair_approved_at %}
+                                <div>
+                                    <span>Approved On</span>
+                                    <strong>{{ graduation.chair_approved_at|date:"F d, Y g:i A" }}</strong>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </section>
+            </main>
+            <aside class="detail-sidebar">
+                <section class="side-card">
+                    <div class="side-card-header">
+                        <div class="side-icon">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+                        <div>
+                            <span>RECORD STATUS</span>
+                            <h3>Graduation Status</h3>
+                        </div>
+                    </div>
+                    <div class="status-display">
+                        <div class="status-dot"></div>
+                        <div>
+                            <strong>{{ graduation.get_status_display }}</strong>
+                            {% if graduation.status == "PENDING" %}
+                                <span>Awaiting Chair Faculty approval</span>
+                            {% elif graduation.status == "APPROVED" %}
+                                <span>Chair Faculty approval completed</span>
+                            {% elif graduation.status == "COMPLETED" %}
+                                <span>Graduation process completed</span>
+                            {% else %}
+                                <span>Graduation record is under review</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+                <section class="side-card">
+                    <div class="side-card-header">
+                        <div class="side-icon">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <div>
+                            <span>RECORD INFORMATION</span>
+                            <h3>Record Details</h3>
+                        </div>
+                    </div>
+                    <div class="meta-list">
+                        <div class="meta-item">
+                            <span>Created On</span>
+                            <strong>{{ graduation.created_at|date:"M d, Y" }}</strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Created By</span>
+                            <strong>{{ graduation.created_by.user.get_full_name }}</strong>
+                        </div>
+                        <div class="meta-item">
+                            <span>Record Status</span>
+                            <strong>{{ graduation.get_status_display }}</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="side-card workflow-card">
+                    <div class="side-card-header">
+                        <div class="side-icon">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+                        <div>
+                            <span>WORKFLOW</span>
+                            <h3>Graduation Process</h3>
+                        </div>
+                    </div>
+                    <div class="workflow-list">
+                        <div class="workflow-step completed">
+                            <span>1</span>
+                            <div>
+                                <strong>Eligibility Verified</strong>
+                                <small>All requirements completed</small>
+                            </div>
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div class="workflow-step completed">
+                            <span>2</span>
+                            <div>
+                                <strong>Graduation Details</strong>
+                                <small>Schedule information recorded</small>
+                            </div>
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div class="workflow-step completed">
+                            <span>3</span>
+                            <div>
+                                <strong>Graduation Record</strong>
+                                <small>Record created successfully</small>
+                            </div>
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div class="workflow-step {% if graduation.chair_approved_by %}completed{% else %}current{% endif %}">
+                            <span>4</span>
+                            <div>
+                                <strong>Chair Faculty Approval</strong>
+                                <small>
+                                    {% if graduation.chair_approved_by %}
+                                        Approval completed
+                                    {% else %}
+                                        Awaiting review
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% if graduation.chair_approved_by %}
+                                <i class="fa-solid fa-check"></i>
+                            {% else %}
+                                <i class="fa-solid fa-clock"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+        <div class="page-actions">
+            <a href="{% url 'Leo_Staff:graduation_list' %}" class="secondary-action">
+                <i class="fa-solid fa-arrow-left"></i>
+                Back to Graduations
+            </a>
+            <a href="{% url 'Leo_Staff:graduation_update' graduation_id=graduation.graduation_id %}"
+               class="primary-action">
+                <i class="fa-solid fa-pen-to-square"></i>
+                Edit Graduation
+            </a>
+        </div>
+    </div>
+    {% if graduation_approved and not video_evidence %}
+        <div class="graduation-video-modal"
+             id="graduationVideoModal"
+             aria-hidden="true">
+            <div class="graduation-video-modal-backdrop"
+                 onclick="closeGraduationVideoModal()"></div>
+            <div class="graduation-video-modal-dialog"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="graduationVideoModalTitle">
+                <div class="graduation-video-celebration" aria-hidden="true">
+                    <span class="graduation-confetti c1"></span>
+                    <span class="graduation-confetti c2"></span>
+                    <span class="graduation-confetti c3"></span>
+                    <span class="graduation-confetti c4"></span>
+                    <span class="graduation-confetti c5"></span>
+                    <span class="graduation-confetti c6"></span>
+                    <span class="graduation-spark s1">✦</span>
+                    <span class="graduation-spark s2">✦</span>
+                    <span class="graduation-spark s3">✦</span>
+                    <span class="graduation-cap-art"><i class="fa-solid fa-graduation-cap"></i></span>
+                </div>
+                <div class="graduation-video-modal-header">
+                    <div class="graduation-video-modal-title">
+                        <div class="graduation-video-modal-icon">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <div>
+                            <span>GRADUATION EVIDENCE</span>
+                            <h3 id="graduationVideoModalTitle">Add Graduation Video</h3>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="graduation-video-modal-close"
+                            onclick="closeGraduationVideoModal()"
+                            aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="graduation-video-modal-body">
+                    <div class="graduation-video-celebration-copy">
+                        <span class="graduation-approved-badge">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Graduation Approved
+                        </span>
+                        <h4>Preserve the milestone</h4>
+                        <p>Upload the official graduation recording and keep this celebration connected to the student's academic record.</p>
+                    </div>
+                    <form method="post"
+                          enctype="multipart/form-data"
+                          action="{% url 'Leo_Staff:video_evidence_create' uuid=request.user.uuid %}"
+                          class="graduation-video-form">
+                        {% csrf_token %}
+                        <input type="hidden"
+                               name="phd_student"
+                               value="{{ graduation.phd_student.pk }}">
+                        <input type="hidden" name="evidence_type" value="GRADUATION">
+                        <input type="hidden" name="target" value="{{ graduation.graduation_id }}">
+                        <input type="hidden" name="return_url" value="{{ request.path }}">
+                        <label class="graduation-video-dropzone">
+                            <input type="file"
+                                   name="video"
+                                   accept="video/*"
+                                   required
+                                   onchange="updateGraduationVideoFile(this)">
+                            <span class="graduation-video-upload-icon">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </span>
+                            <strong>Select graduation video</strong>
+                            <span>Choose the official ceremony recording</span>
+                            <em id="graduationVideoSelected">No file selected</em>
+                        </label>
+                        <div class="graduation-video-modal-actions">
+                            <button type="button"
+                                    class="graduation-video-cancel"
+                                    onclick="closeGraduationVideoModal()">Cancel</button>
+                            <button type="submit" class="graduation-video-submit">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                Add Graduation Video
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <script>
+        function openGraduationVideoModal() {
+            const modal = document.getElementById("graduationVideoModal");
+            if (!modal) return;
+            modal.classList.add("is-open");
+            modal.setAttribute("aria-hidden", "false");
+            document.body.classList.add("graduation-video-modal-open");
+        }
+
+        function closeGraduationVideoModal() {
+            const modal = document.getElementById("graduationVideoModal");
+            if (!modal) return;
+            modal.classList.remove("is-open");
+            modal.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("graduation-video-modal-open");
+        }
+
+        function updateGraduationVideoFile(input) {
+            const selected = document.getElementById("graduationVideoSelected");
+            if (!selected) return;
+            if (input.files && input.files.length) {
+                selected.textContent = input.files[0].name;
+                selected.classList.add("has-file");
+            } else {
+                selected.textContent = "No file selected";
+                selected.classList.remove("has-file");
+            }
+        }
+
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape") {
+                closeGraduationVideoModal();
+            }
+        });
+    </script>
+{% endblock %}

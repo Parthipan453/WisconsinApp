@@ -1,0 +1,401 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Research Funding{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/faculty_research/research_funding.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="rf-page">
+    <!-- Header -->
+    <div class="rf-header">
+        <div>
+            <h1>
+                <i data-lucide="wallet"></i>
+                Research Funding
+            </h1>
+            <p>
+                Manage research grants, sponsors and funding allocation
+            </p>
+        </div>
+        <button class="rf-btn rf-btn-primary" onclick="openFundingModal()">
+            <i data-lucide="plus"></i>
+            Add New Funding
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="rf-stats-grid">
+        <div class="rf-stat-card">
+            <div class="rf-icon rf-icon-red">
+                <i data-lucide="wallet"></i>
+            </div>
+            <div>
+                <h3>{{ total_funding }}</h3>
+                <span>Total Funding</span>
+            </div>
+        </div>
+        <div class="rf-stat-card">
+            <div class="rf-icon rf-icon-green">
+                <i data-lucide="circle-dollar-sign"></i>
+            </div>
+            <div>
+                <h3>${{ total_amount }}</h3>
+                <span>Total Amount</span>
+            </div>
+        </div>
+        <div class="rf-stat-card">
+            <div class="rf-icon rf-icon-gold">
+                <i data-lucide="building-2"></i>
+            </div>
+            <div>
+                <h3>{{ total_sponsors }}</h3>
+                <span>Sponsors</span>
+            </div>
+        </div>
+        <div class="rf-stat-card">
+            <div class="rf-icon rf-icon-blue">
+                <i data-lucide="flask-conical"></i>
+            </div>
+            <div>
+                <h3>{{ total_projects }}</h3>
+                <span>Projects</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="rf-filter-section">
+        <form method="GET">
+        <div class="rf-filter-row">
+            <div class="rf-filter-group">
+                <label>
+                    Research Project
+                </label>
+                <select class="rf-choice" id="researchFilter" name="research_filter">
+                    <option value="all">
+                        All Projects
+                    </option>
+                    {% for opportunity in opportunities %}
+                    <option value="{{ opportunity.research_id }}"
+                    {% if request.GET.research_filter == opportunity.research_id|stringformat:"s" %}
+                    selected
+                    {% endif %} >
+                    {{ opportunity.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="rf-filter-group">
+                <label>
+                    Funding Source
+                </label>
+                <select class="rf-choice" name="source">
+                    <option value="all">
+                        All Sources
+                    </option>
+                    {% for source in funding_sources %}
+                    <option value="{{ source }}"
+                    {% if request.GET.source == source %}
+                    selected
+                    {% endif %}>
+                    {{ source }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="rf-filter-group">
+                <label>
+                    Sponsor
+                </label>
+                <select class="rf-choice" name="sponsor">
+                    <option value="all">
+                        All Sponsors
+                    </option>
+                    {% for sponsor in sponsors %}
+                    <option value="{{ sponsor }}"
+                    {% if request.GET.sponsor == sponsor %}
+                    selected
+                    {% endif %}>
+                    {{ sponsor }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="rf-filter-group rf-filter-reset">
+                <button 
+                    type="submit"
+                    class="rf-btn rf-btn-primary">                
+                    <i data-lucide="search"></i>
+                    Filter
+                </button>
+            </div>
+            <div class="rf-filter-group rf-filter-reset">
+                <a 
+                    href="{% url 'Elsa_research:research_funding' uuid %}"
+                    class="rf-btn rf-btn-reset">
+                    <i data-lucide="rotate-ccw"></i>
+                    Reset
+                </a>
+            </div>
+        </div>
+        </form>
+    </div>
+
+    <!-- Funding Cards -->
+    <div class="rf-section">
+        <div class="rf-section-header">
+            <h3>
+                <i data-lucide="landmark"></i>
+                Funding Records
+            </h3>
+        </div>
+        <div class="rf-grid">
+            {% for funding in fundings %}
+            <div class="rf-card">
+                <div class="rf-card-top">
+                    <div class="rf-avatar">
+                        {{ funding.research.title|slice:":2"|upper }}
+                    </div>
+                    <div>
+                        <h4 class="rf-card-title">
+                            {{ funding.research.title }}
+                        </h4>
+                        <p class="rf-card-sub">
+                            {{ funding.research.department.name }}
+                        </p>
+                    </div>
+                </div>
+                <div class="rf-badges">
+                    <span class="rf-source">
+                        {{ funding.funding_source }}
+                    </span>
+                    <span class="rf-status">
+                        {{ funding.research.status }}
+                    </span>
+                </div>
+                <div class="rf-details">
+                    <div class="rf-detail">
+                        <span>
+                            <i data-lucide="building"></i>
+                            Sponsor
+                        </span>
+                        <b>{{ funding.sponsor }}</b>
+                    </div>
+                    <div class="rf-detail">
+                        <span>
+                            <i data-lucide="indian-rupee"></i>
+                            Amount
+                        </span>
+                        <b>$ {{ funding.amount }}</b>
+                    </div>
+                    <div class="rf-detail">
+                        <span>
+                            <i data-lucide="calendar"></i>
+                            Award Date
+                        </span>
+
+                        <b>{{ funding.award_date|date:"d M Y" }}</b>
+                    </div>
+                </div>              
+                <div class="rf-actions">
+                    <a href="{% url 'Elsa_research:research_funding_view' uuid funding.research.research_id %}"
+                    class="rf-btn rf-btn-view">
+                        <i data-lucide="eye"></i>
+                        View
+                    </a>
+                    <button
+                        type="button"
+                        class="rf-btn rf-btn-edit"
+                        data-id="{{ funding.funding_id }}"
+                        data-research="{{ funding.research.research_id }}"
+                        data-source="{{ funding.funding_source }}"
+                        data-amount="{{ funding.amount }}"
+                        data-date="{{ funding.award_date|date:'Y-m-d' }}"
+                        data-sponsor="{{ funding.sponsor }}"
+                        onclick="editFunding(this)">
+                        <i data-lucide="pencil"></i>
+                        Edit
+                    </button>               
+                </div>            
+            </div>
+            {% empty %}
+            <div class="rf-empty">
+                <div class="rf-empty-icon">
+                    <i data-lucide="folder-search"></i>
+                </div>
+                <p>No funding records found.</p>
+                <span>
+                    Try changing your filters or add a new funding record.
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="rf-pagination">
+            <div class="rf-page-info">
+                Showing
+                {{ fundings.start_index }}-{{ fundings.end_index }}
+                of
+                {{ fundings.paginator.count }}
+                Transactions
+            </div>
+        <div class="rf-page-nav">
+            {% if fundings.has_previous %}
+            <a href="?page={{ fundings.previous_page_number }}&research_filter={{ request.GET.research_filter }}&source={{ request.GET.source }}&sponsor={{ request.GET.sponsor }}"
+            class="rf-page-btn">
+            <i class="bi bi-chevron-left"></i>
+            </a>
+            {% else %}
+            <span class="rf-page-btn rf-disabled">
+            <i class="bi bi-chevron-left"></i>
+            </span>
+            {% endif %}
+            <span class="rf-page-btn rf-active">
+            {{ fundings.number }}
+            </span>
+            {% if fundings.has_next %}
+            <a href="?page={{ fundings.next_page_number }}&research_filter={{ request.GET.research_filter }}&source={{ request.GET.source }}&sponsor={{ request.GET.sponsor }}"
+            class="rf-page-btn">
+            <i class="bi bi-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="rf-page-btn rf-disabled">
+            <i class="bi bi-chevron-right"></i>
+            </span>
+            {% endif %}
+        </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Funding Modal -->
+<div class="rf-modal-overlay" id="fundingModal">
+    <div class="rf-modal">
+        <div class="rf-modal-header">
+            <h3 id="fundingModalTitle">
+                <i data-lucide="hand-coins"></i>
+                Add New Funding
+            </h3>
+            <button class="rf-close" onclick="closeFundingModal()">
+                ×
+                
+            </button>
+        </div>
+        <form method="POST" id="fundingForm">
+        {% csrf_token %}
+        <input type="hidden" id="fundingId" name="funding_id">
+        <div class="rf-modal-body">
+            <div class="rf-form-group">
+                <label>
+                    Research Opportunity
+                    <span>*</span>
+                </label>
+                <select id="researchSelect" name="research" class="rf-input" required>
+                    <option value="">Select Research</option>
+                    {% for opportunity in opportunities %}
+                        <option value="{{ opportunity.research_id }}">
+                            {{ opportunity.title }}
+                        </option>
+                    {% empty %}
+                        <option disabled>No Research Opportunities Found</option>
+                    {% endfor %}
+                </select>
+                <div class="text-danger" id="err-research"></div>
+            </div>
+            <div class="rf-form-group">
+                <label>
+                    Funding Source
+                    <span>*</span>
+                </label>
+            <input 
+                type="text"
+                name="funding_source"
+                id="fundingSource"
+                list="funding_sources"
+                maxlength="255"
+                class="rf-input"
+                value="{{ old.funding_source|default:'' }}"
+                required>
+            <div class="text-danger" id="err-funding_source"></div>
+            <datalist id="funding_sources">
+                <option value="Internal Funding">
+                <option value="External Grant">
+                <option value="Industry Sponsorship">
+                <option value="Government Grant">
+                <option value="Foundation Grant">
+            </datalist>
+            </div>
+            <div class="rf-form-group">
+                <label>
+                    Amount
+                    <span>*</span>
+                </label>
+                <input 
+                type="number"
+                name="amount"
+                id="fundingAmount"
+                step="0.01"
+                class="rf-input"
+                placeholder="Enter amount" 
+                 value="{{ old.amount|default:'' }}"
+                 required>
+            <div class="text-danger" id="err-amount"></div>              
+            </div>
+            <div class="rf-form-group">
+                <label>
+                    Award Date
+                    <span>*</span>
+                </label>
+                <input 
+                type="date"
+                name="award_date"
+                class="rf-input" 
+                id="awardDate"
+                value="{{ old.award_date|default:'' }}" required
+                    onkeydown="return false;"
+                    onpaste="return false;"
+                    ondrop="return false;">
+                <div class="text-danger" id="err-award_date"></div>
+            </div>
+            <div class="rf-form-group">
+                <label>
+                    Sponsor
+                    <span>*</span>
+                </label>
+                <input 
+                type="text"
+                name="sponsor"
+                id="sponsor"
+                class="rf-input"
+                value="{{ old.sponsor|default:'' }}"
+                placeholder="Example: NSF, NIH, University" required>
+                <div class="text-danger" id="err-sponsor"></div>
+            </div>
+        </div>
+        <div class="rf-modal-footer">
+            <button type="button" id="cancelFundingBtn"
+            class="rf-btn rf-btn-reset">
+                Cancel
+            </button>
+            <button type="submit"
+            class="rf-btn rf-btn-primary"
+            id="saveFundingBtn">
+                <i data-lucide="save"></i>
+                Save Funding
+            </button>          
+        </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/faculty_research/research_funding.js' %}"></script>
+{% endblock %}

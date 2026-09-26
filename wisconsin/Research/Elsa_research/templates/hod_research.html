@@ -1,0 +1,211 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}
+Faculty Dashboard
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/hod_research.css' %}">
+<link  rel="stylesheet"  href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+{% endblock %}
+
+{% block content %}
+
+
+<div class="research-page hod-research-page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>Research Approvals</h1>
+            <p>Review, approve, or reject research proposals submitted in your department</p>
+        </div>
+        <div class="header-actions">
+            <button class="research-btn primary-btn" onclick="exportHodReport()">
+                <i class="ti ti-download"></i> Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="hodStatsGrid">
+        <div class="stat-card">
+            <div class="icon red"><i class="ti ti-folder"></i></div>
+            <div><h3 id="statTotalRequests">0</h3><span>Total Requests</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="icon orange"><i class="ti ti-clock"></i></div>
+            <div><h3 id="statPending">0</h3><span>Pending Approval</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="icon green"><i class="ti ti-circle-check"></i></div>
+            <div><h3 id="statApproved">0</h3><span>Approved</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="icon rose"><i class="ti ti-circle-x"></i></div>
+            <div><h3 id="statRejected">0</h3><span>Rejected</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="icon blue"><i class="ti ti-microscope"></i></div>
+            <div><h3 id="statOngoing">0</h3><span>Ongoing Research</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="icon purple"><i class="ti ti-users"></i></div>
+            <div><h3 id="statResearchers">0</h3><span>Active Researchers</span></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section card">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label><i class="ti ti-status"></i> Status</label>
+                <select id="hodStatusFilter" class="filter-input" onchange="filterHodCards()">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="ongoing">Ongoing</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="ti ti-users"></i> Type</label>
+                <select id="hodTypeFilter" class="filter-input" onchange="filterHodCards()">
+                    <option value="">All Types</option>
+                    <option value="student">Student-Initiated</option>
+                    <option value="faculty">Faculty-Led</option>
+                </select>
+            </div>
+
+            <div class="filter-group" style="flex: 2;">
+                <label><i class="ti ti-search"></i> Search</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="hodSearchInput" class="filter-input"
+                           placeholder="Search by research code, title, or name..."
+                           style="flex: 1;" oninput="filterHodCards()">
+                    <button class="filter-search-btn" onclick="filterHodCards()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button class="filter-btn reset-btn" onclick="resetHodFilters()">
+                    <i class="ti ti-refresh"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Research Requests Grid -->
+    <div class="project-section">
+        <div class="section-header">
+            <h3><i class="ti ti-clipboard-list"></i> Research Requests</h3>
+            <span class="record-count" id="hodRecordCount">0 Requests</span>
+        </div>
+        <div class="project-grid" id="hodResearchGrid">
+            <!-- JS renderHodCards() -->
+        </div>
+    </div>
+
+    <!-- Research Detail Modal -->
+    <div class="modal-overlay" id="researchDetailModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="ti ti-microscope"></i> Research Details
+                    <span id="modalResearchCode" class="research-code"></span>
+                </h3>
+                <button class="modal-close" onclick="closeHodModal('researchDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="researchDetailBody">
+                <!-- JS: showResearchDetails() -->
+            </div>
+            <div class="modal-footer" id="researchDetailActions">
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Reason Modal -->
+    <div class="modal-overlay" id="rejectReasonModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="ti ti-circle-x"></i> Reject Research Request</h3>
+                <button class="modal-close" onclick="closeHodModal('rejectReasonModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Reason for rejection <span class="required">*</span></label>
+                    <textarea id="rejectReasonInput" class="form-input" rows="4"
+                              placeholder="Explain what needs to change or why this is being rejected..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="filter-btn reset-btn" onclick="closeHodModal('rejectReasonModal')">Cancel</button>
+                <button class="filter-btn reject-btn" onclick="confirmRejectResearch()">
+                    <i class="ti ti-circle-x"></i> Confirm Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+<!-- Uploads Modal -->
+<div class="modal-overlay" id="uploadsModal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="ti ti-files"></i> Uploaded Documents</h3>
+            <button class="modal-close" onclick="closeHodModal('uploadsModal')"> &times; </button>
+        </div>
+        <div class="modal-body">
+            <div class="upload-item">
+                <div class="upload-info">
+                    <i class="ti ti-file-type-pdf"></i>
+                    <div>
+                        <h4>Research Proposal.pdf</h4>
+                        <small>Uploaded by Student</small>
+                    </div>
+                </div>
+                <button class="filter-btn view-btn"><i class="ti ti-eye"></i> View </button>
+                <button class="filter-btn download-btn"><i class="ti ti-download"></i> Download</button>
+            </div>
+            <div class="upload-item">
+                <div class="upload-info">
+                    <i class="ti ti-file-type-pdf"></i>
+                    <div>
+                        <h4>Synopsis.pdf</h4>
+                        <small>Uploaded by Student</small>
+                    </div>
+                </div>
+                <button class="filter-btn view-btn"><i class="ti ti-eye"></i> View </button>
+                <button class="filter-btn download-btn"><i class="ti ti-download"></i> Download</button>
+            </div>
+            <div class="upload-item">
+                <div class="upload-info">
+                    <i class="ti ti-file-type-doc"></i>
+                    <div>
+                        <h4>Consent Form.docx</h4>
+                        <small>Uploaded by Student</small>
+                    </div>
+                </div>
+                <button class="filter-btn view-btn"><i class="ti ti-eye"></i> View </button>
+                <button class="filter-btn download-btn"><i class="ti ti-download"></i> Download</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+</div>
+
+
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/hod_research.js' %}"></script>
+{% endblock %}

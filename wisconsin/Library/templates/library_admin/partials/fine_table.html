@@ -1,0 +1,707 @@
+<!--=========================================================
+TABLE CARD
+==========================================================-->
+
+<div class="table-card">
+
+    <div class="table-responsive">
+
+        <table class="table fine-table align-middle">
+
+            <thead>
+
+                <tr>
+
+                    <th style="width:45px;">#</th>
+
+                    <th>Student</th>
+
+                    <th>Book</th>
+
+                    <th>Issue Date</th>
+
+                    <th>Due Date</th>
+
+                    <th>Return Date</th>
+
+                    <th>Overdue</th>
+
+                    <th>Fine / Day</th>
+
+                    <th>Total Fine</th>
+
+                    <th>Status</th>
+
+                    <!-- <th>Payment</th> -->
+
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for fine in page_obj %}
+
+            <tr>
+
+                <!-- Number -->
+
+                <td>
+
+                    {{ page_obj.start_index|add:forloop.counter0 }}
+
+                </td>
+
+                <!-- Student -->
+
+                <td>
+
+                    <div class="fine-user-info">
+
+                        <div class="fine-user-avatar">
+
+                            {% if fine.transaction.library_user.user.profile_image %}
+
+                                <img
+                                    src="{{ fine.transaction.library_user.user.profile_image.url }}"
+                                    alt="User">
+
+                            {% else %}
+
+                                {{ fine.transaction.library_user.user.username|slice:":1"|upper }}
+
+                            {% endif %}
+
+                        </div>
+
+                        <div class="fine-user-details">
+
+                            <h6>
+
+                                {% if fine.transaction.library_user.user.first_name or fine.transaction.library_user.user.last_name %}
+
+                                    {{ fine.transaction.library_user.user.get_full_name }}
+
+                                {% else %}
+
+                                    {{ fine.transaction.library_user.user.username }}
+
+                                {% endif %}
+
+                            </h6>
+
+                            <span>
+
+                                {{ fine.transaction.library_user.get_user_type_display }}
+
+                                •
+
+                                {{ fine.transaction.library_user.user.username }}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <!-- Book -->
+
+                <td>
+
+                    <div class="fine-book-info">
+
+                        <div class="fine-book-avatar">
+
+                            <i class="fa-solid fa-book"></i>
+
+                        </div>
+
+                        <div class="fine-book-details">
+
+                            <h6>
+
+                                {{ fine.transaction.copy.resource.title }}
+
+                            </h6>
+
+                            <span>
+
+                                {{ fine.transaction.copy.resource.author }}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <!-- Issue -->
+
+                <td>
+
+                    {{ fine.transaction.issue_date|date:"d M Y" }}
+
+                </td>
+
+
+                <!-- Due -->
+
+                <td>
+
+                    {{ fine.transaction.due_date|date:"d M Y" }}
+
+                </td>
+
+
+                <!-- Return -->
+
+                <td>
+
+                    {% if fine.transaction.return_date %}
+
+                        {{ fine.transaction.return_date|date:"d M Y" }}
+
+                    {% else %}
+
+                        <span class="fine-return-pending">
+
+                            Not Returned
+
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+
+                <td>
+
+    {% if fine.overdue_days > 0 %}
+
+        <span class="fine-overdue-badge">
+
+            <strong>{{ fine.overdue_days }}</strong>
+
+            <small>Days</small>
+
+        </span>
+
+    {% else %}
+
+        <span class="fine-clear-badge">
+
+            <strong>0</strong>
+
+            <small>Days</small>
+
+        </span>
+
+    {% endif %}
+
+</td>
+<td>
+
+    <span class="fine-day">
+
+        ${{ fine.fine_per_day }}
+
+    </span>
+
+</td>
+
+<td>
+
+    <span class="fine-total">
+
+        ${{ fine.fine_amount }}
+
+    </span>
+
+</td>
+
+
+                <!-- Status -->
+
+                <td>
+
+{% if fine.payment_status == "PAID" %}
+
+<div class="fine-status fine-status-paid">
+
+    <div class="fine-status-icon">
+        <i class="fa-solid fa-check"></i>
+    </div>
+
+    <div class="fine-status-text">
+
+        <span class="fine-status-title">
+            SETTLED
+        </span>
+
+        <span class="fine-status-sub">
+            Paid
+        </span>
+
+    </div>
+
+</div>
+
+{% else %}
+
+<div class="fine-status fine-status-overdue">
+
+    <div class="fine-status-icon">
+        <i class="fa-solid fa-circle-exclamation"></i>
+    </div>
+
+    <div class="fine-status-text">
+
+        <span class="fine-status-title">
+            OVERDUE
+        </span>
+
+        <span class="fine-status-sub">
+            Unpaid
+        </span>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+</td>
+
+                <!-- Payment -->
+
+                <!-- <td>
+
+                    {% if fine.payment_status == "PAID" %}
+
+                        <div class="payment-info">
+
+                            <strong>
+
+                                {{ fine.payment_method }}
+
+                            </strong>
+
+                            <span>
+
+                                {{ fine.payment_transaction_id }}
+
+                            </span>
+
+                        </div>
+
+                    {% else %}
+
+                        <span class="payment-pending">
+
+                            Pending
+
+                        </span>
+
+                    {% endif %}
+
+                </td> -->
+
+
+                <!-- Actions -->
+
+                <td>
+
+<div class="fine-actions">
+
+    <!-- View -->
+
+    <a href="{% url 'fine_details' fine.id %}"
+       class="fine-action-btn action-view">
+
+        <i class="fa-regular fa-eye"></i>
+
+    </a>
+
+    {% if fine.payment_status == "PAID" %}
+
+        <a href="{% url 'send_fine_acknowledgement' fine.id %}"
+           class="fine-action-btn action-download">
+
+            <i class="fa-solid fa-envelope"></i>
+
+        </a>
+
+    {% else %}
+
+        <a href="{% url 'collect_fine' fine.id %}"
+           class="fine-action-btn action-pay">
+
+            <i class="fa-solid fa-dollar-sign"></i>
+
+        </a>
+
+    {% endif %}
+
+
+</div>
+
+</td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+
+                <td colspan="10">
+
+                    <div class="empty-state">
+
+                        <i class="fa-solid fa-wallet"></i>
+
+                        <h5>
+
+                            No Fine Records Found
+
+                        </h5>
+
+                        <p>
+
+                            There are currently no fine records available.
+
+                        </p>
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- ==========================================================
+     TABLE FOOTER
+========================================================== -->
+
+<div class="table-footer">
+
+    <div class="table-info">
+
+        Showing
+
+        <strong id="startIndex">
+
+            {{ page_obj.start_index }}
+
+        </strong>
+
+        to
+
+        <strong id="endIndex">
+
+            {{ page_obj.end_index }}
+
+        </strong>
+
+        of
+
+        <strong id="totalFines">
+
+            {{ page_obj.paginator.count }}
+
+        </strong>
+
+        fine record{{ page_obj.paginator.count|pluralize }}
+
+    </div>
+
+    <nav
+    class="fine-pagination-wrapper"
+    aria-label="Fine Management Pagination"
+>
+
+    <ul
+        class="fine-pagination"
+        id="finepagination"
+    >
+
+
+        <!-- ======================================
+             PREVIOUS
+        ======================================= -->
+
+        <li>
+
+            {% if page_obj.has_previous %}
+
+                <button
+                    type="button"
+                    class="fine-pagination-btn"
+                    onclick="loadFineManagement({{ page_obj.previous_page_number }})"
+                >
+                    Previous
+                </button>
+
+            {% else %}
+
+                <button
+                    type="button"
+                    class="fine-pagination-btn disabled"
+                    disabled
+                >
+                    Previous
+                </button>
+
+            {% endif %}
+
+        </li>
+
+
+        <!-- ======================================
+             PAGE NUMBERS
+        ======================================= -->
+
+        {% if page_obj.paginator.num_pages <= 4 %}
+
+            {% for page in page_obj.paginator.page_range %}
+
+                <li>
+
+                    <button
+                        type="button"
+                        class="fine-page-number {% if page == page_obj.number %}active{% endif %}"
+                        onclick="loadFineManagement({{ page }})"
+                    >
+                        {{ page }}
+                    </button>
+
+                </li>
+
+            {% endfor %}
+
+
+        {% elif page_obj.number <= 2 %}
+
+
+            <!-- 1 -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number {% if page_obj.number == 1 %}active{% endif %}"
+                    onclick="loadFineManagement(1)"
+                >
+                    1
+                </button>
+
+            </li>
+
+
+            <!-- 2 -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number {% if page_obj.number == 2 %}active{% endif %}"
+                    onclick="loadFineManagement(2)"
+                >
+                    2
+                </button>
+
+            </li>
+
+
+            <!-- ... -->
+
+            <li class="fine-pagination-ellipsis">
+                ...
+            </li>
+
+
+            <!-- Last -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number"
+                    onclick="loadFineManagement({{ page_obj.paginator.num_pages }})"
+                >
+                    {{ page_obj.paginator.num_pages }}
+                </button>
+
+            </li>
+
+
+        {% elif page_obj.number >= page_obj.paginator.num_pages|add:"-1" %}
+
+
+            <!-- First -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number"
+                    onclick="loadFineManagement(1)"
+                >
+                    1
+                </button>
+
+            </li>
+
+
+            <!-- ... -->
+
+            <li class="fine-pagination-ellipsis">
+                ...
+            </li>
+
+
+            <!-- Second Last -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number {% if page_obj.number == page_obj.paginator.num_pages|add:'-1' %}active{% endif %}"
+                    onclick="loadFineManagement({{ page_obj.paginator.num_pages|add:'-1' }})"
+                >
+                    {{ page_obj.paginator.num_pages|add:"-1" }}
+                </button>
+
+            </li>
+
+
+            <!-- Last -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number {% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}"
+                    onclick="loadFineManagement({{ page_obj.paginator.num_pages }})"
+                >
+                    {{ page_obj.paginator.num_pages }}
+                </button>
+
+            </li>
+
+
+        {% else %}
+
+
+            <!-- First -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number"
+                    onclick="loadFineManagement(1)"
+                >
+                    1
+                </button>
+
+            </li>
+
+
+            <!-- ... -->
+
+            <li class="fine-pagination-ellipsis">
+                ...
+            </li>
+
+
+            <!-- Current -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number active"
+                >
+                    {{ page_obj.number }}
+                </button>
+
+            </li>
+
+
+            <!-- ... -->
+
+            <li class="fine-pagination-ellipsis">
+                ...
+            </li>
+
+
+            <!-- Last -->
+
+            <li>
+
+                <button
+                    type="button"
+                    class="fine-page-number"
+                    onclick="loadFineManagement({{ page_obj.paginator.num_pages }})"
+                >
+                    {{ page_obj.paginator.num_pages }}
+                </button>
+
+            </li>
+
+
+        {% endif %}
+
+
+        <!-- ======================================
+             NEXT
+        ======================================= -->
+
+        <li>
+
+            {% if page_obj.has_next %}
+
+                <button
+                    type="button"
+                    class="fine-pagination-btn"
+                    onclick="loadFineManagement({{ page_obj.next_page_number }})"
+                >
+                    Next
+                </button>
+
+            {% else %}
+
+                <button
+                    type="button"
+                    class="fine-pagination-btn disabled"
+                    disabled
+                >
+                    Next
+                </button>
+
+            {% endif %}
+
+        </li>
+
+
+    </ul>
+
+</nav>
+
+</div>

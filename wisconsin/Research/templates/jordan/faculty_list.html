@@ -1,0 +1,290 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Faculty Members{% endblock %}
+{% block page_title %}Faculty Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="{% static 'css/jordan/faculty_list.css' %}">
+{% endblock %}
+
+{% block content %}
+
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-left">
+            <div>
+                <h1 class="page-title">Assign Mentor</h1>
+                <p class="text-muted">Manage and assign mentor roles to faculty members</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="100">
+            <div class="stat-icon purple">
+                <i class="ti ti-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_faculty }}</h3>
+                <span>Total Faculty</span>
+            </div>
+        </div>
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="200">
+            <div class="stat-icon blue">
+                <i class="ti ti-building"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_departments }}</h3>
+                <span>Departments</span>
+            </div>
+        </div>
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="300">
+            <div class="stat-icon green">
+                <i class="ti ti-star"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ mentors }}</h3>
+                <span>Mentors</span>
+            </div>
+        </div>
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="600">
+            <div class="stat-icon orange">
+                <i class="ti ti-user-x"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ no_role }}</h3>
+                <span>No Role</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filter-section">
+        <div class="filter-body">
+            <form method="GET" action="" id="filterForm">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="ti ti-building"></i> Department
+                        </label>
+                        <select name="department" id="departmentFilter" class="filter-input" onchange="this.form.submit()">
+                            <option value="">All Departments</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.slug }}" {% if department_filter == dept.slug %}selected{% endif %}>
+                                {{ dept.department_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="ti ti-user"></i> Role
+                        </label>
+                        <select name="role" id="roleFilter" class="filter-input" onchange="this.form.submit()">
+                            <option value="">All Roles</option>
+                            <option value="mentor" {% if role_filter == 'mentor' %}selected{% endif %}>Mentor</option>
+                            <option value="none" {% if role_filter == 'none' %}selected{% endif %}>No Role</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group search-group">
+                        <label class="filter-label">
+                            <i class="ti ti-search"></i> Search Faculty
+                        </label>
+                        <div class="search-wrapper">
+                            <input type="text" id="searchInput" name="search" value="{{ search_query }}" placeholder="Search by name, email, or ID..." class="filter-input">
+                            <button type="submit" class="search-btn">
+                                <i class="ti ti-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Faculty Grid -->
+    <div class="faculty-section">
+        <div class="section-header">
+            <div class="section-header-left">
+                <h3 class="section-title">
+                    Faculty Members
+                </h3>
+                <span class="record-count">{{ faculty_list|length }} faculty members</span>
+            </div>
+            <div class="section-header-right">
+                <button class="btn-filter" onclick="resetFilters()">
+                    <i class="ti ti-filter-off"></i> Reset Filters
+                </button>
+            </div>
+        </div>
+
+        <div class="faculty-grid" id="facultyGrid">
+            {% for faculty in faculty_list %}
+            <div class="faculty-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:100 }}">
+                <div class="faculty-card-header">
+                    <div class="faculty-avatar">
+                        {% if faculty.profile_photo %}
+                            <img src="{{ faculty.profile_photo.url }}" alt="{{ faculty.user.get_full_name }}">
+                        {% else %}
+                            <span>{{ faculty.user.get_full_name|slice:":2"|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="faculty-status-badge">
+                        <span class="status-badge {% if faculty.employment_status == 'ACTIVE' %}active{% else %}inactive{% endif %}">
+                            <i class="ti {% if faculty.employment_status == 'ACTIVE' %}ti-circle-check{% else %}ti-circle-x{% endif %}"></i>
+                            {{ faculty.get_employment_status_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="faculty-info">
+                    <h4 class="faculty-name">{{ faculty.user.get_full_name }}</h4>
+                    <div class="faculty-email">
+                        <i class="ti ti-mail"></i> {{ faculty.email }}
+                    </div>
+                    <div class="faculty-department">
+                        <i class="ti ti-building"></i> {{ faculty.department.department_name|default:"No Department" }}
+                    </div>
+                    <div class="faculty-id">
+                        <i class="ti ti-id"></i> {{ faculty.employee_id }}
+                    </div>
+                    
+                    <!-- Mentor Role Badge - Single Role Only -->
+                    <div class="faculty-role-badge">
+                        {% if faculty.is_mentor %}
+                        <span class="role-badge mentor">
+                            <i class="ti ti-star"></i> Mentor
+                        </span>
+                        {% else %}
+                        <span class="role-badge none">
+                            <i class="ti ti-user"></i> No Role
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="faculty-actions">
+                    <a href="{% url 'faculty:faculty_detail' faculty.user.uuid %}" class="btn-view">
+                        <i class="ti ti-eye"></i> View Profile
+                    </a>
+                    <button class="btn-assign {% if faculty.has_any_mentor_role %}update{% endif %}" 
+                            onclick="openModal('{{ faculty.user.uuid }}', '{{ faculty.user.get_full_name|escapejs }}', '{{ faculty.department.department_name|default:'No Department'|escapejs }}')">
+                        <i class="ti {% if faculty.has_any_mentor_role %}ti-edit{% else %}ti-user-plus{% endif %}"></i> 
+                        {% if faculty.has_any_mentor_role %}Update Role{% else %}Assign Role{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <h3>No Faculty Members Found</h3>
+                <p>Try adjusting your search or filter criteria</p>
+                <button class="btn btn-primary icon-reset" onclick="resetFilters()">
+                    <i class="ti ti-refresh"></i> Reset Filters
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+
+
+    <!-- Success Notification -->
+    <div class="notification" id="successNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-check-circle notification-icon success"></i>
+            <span id="notificationMessage">Role assigned successfully!</span>
+            <button class="notification-close" onclick="closeNotification()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Notification -->
+    <div class="notification error" id="errorNotification" style="display: none;">
+        <div class="notification-content">
+            <i class="ti ti-exclamation-circle notification-icon error"></i>
+            <span id="errorMessage">An error occurred!</span>
+            <button class="notification-close" onclick="closeErrorNotification()">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+    </div>
+    
+
+
+{% endblock %}
+{% block global_modal  %}
+    <!-- Assign/Update Role Modal -->
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">
+                    <i class="ti ti-user-plus"></i>
+                    Assign Mentor Role
+                </h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-faculty-info">
+                    <div class="modal-avatar" id="modalFacultyAvatar">JD</div>
+                    <div>
+                        <h4 id="modalFacultyName">Dr. John Doe</h4>
+                        <p class="text-muted" id="modalFacultyDept">Computer Science Department</p>
+                        <div class="current-role" id="currentRoleDisplay">
+                            Current Role: <span id="currentRole">None</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-role-selection">
+                    <label class="modal-role-label">Select Role to Assign:</label>
+                    <div class="modal-role-options"> 
+                        <label class="role-option">
+                            <input type="radio" name="mentor_role" value="mentor">
+                            <span class="role-label mentor">Mentor</span>
+                        </label>
+                        <label class="role-option">
+                            <input type="radio" name="mentor_role" value="none">
+                            <span class="role-label none">Remove Role</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="modal-message" id="modalMessage">
+                    <i class="ti ti-info-circle"></i>
+                    <p>Select one role to assign. This will replace any existing role.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+                <button class="btn btn-primary" id="confirmAssignBtn" onclick="confirmAssign()">
+                    <i class="ti ti-check"></i> Assign Role
+                </button>
+            </div>
+        </div>
+    </div>
+
+{% endblock  %}
+
+
+{% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="{% static "script/jordan/faculty_list.js" %} "></script>
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+{% endblock %}

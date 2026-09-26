@@ -1,0 +1,425 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Faculty Attendance{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static "css/rupa/facultybase/facultybase.css" %}">
+<link rel="stylesheet" href="{% static 'css/jordan/faculty_attendance.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.css">
+{% endblock %}
+
+{% block content %}
+
+    <div class="attendance-page">
+
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1>My Attendance</h1>
+                <p>Track your daily login, logout, and working hours</p>
+            </div>
+            <div class="header-actions">
+                <button class="attendance-btn" onclick="refreshData()">
+                    <i class="ti ti-refresh"></i> Refresh
+                </button>
+                <button class="attendance-btn primary-btn" onclick="window.location.href='{% url 'faculty_dashboard' uuid=request.user.uuid %}'">
+                    <i class="ti ti-dashboard"></i> Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="icon blue">
+                    <i class="ti ti-calendar"></i>
+                </div>
+                <div>
+                    <h3 id="statTotalDays">{{ overall_total_days }}</h3>
+                    <span>Total Days</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon green">
+                    <i class="ti ti-user-check"></i>
+                </div>
+                <div>
+                    <h3 id="statPresentDays">{{ overall_present_days }}</h3>
+                    <span>Present Days</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon red">
+                    <i class="ti ti-user-x"></i>
+                </div>
+                <div>
+                    <h3 id="statAbsentDays">{{ overall_absent_days }}</h3>
+                    <span>Absent Days</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon orange">
+                    <i class="ti ti-clock"></i>
+                </div>
+                <div>
+                    <h3 id="statAvgHours">{{ overall_avg_hours }}h</h3>
+                    <span>Avg Working Hours</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Status -->
+        <div class="today-status card">
+            <div class="today-header">
+                <h3><i class="ti ti-calendar-event"></i> Today's Attendance</h3>
+                <span class="today-date" id="todayDate">{{ today_date|date:"l, F j, Y" }}</span>
+            </div>
+            <div class="today-grid">
+                <div class="today-item">
+                    <div class="today-icon login-icon">
+                        <i class="ti ti-login"></i>
+                    </div>
+                    <div>
+                        <label>Login Time</label>
+                        <h4 id="todayLogin">{{ today_login }}</h4>
+                    </div>
+                </div>
+                <div class="today-item">
+                    <div class="today-icon logout-icon">
+                        <i class="ti ti-logout"></i>
+                    </div>
+                    <div>
+                        <label>Logout Time</label>
+                        <h4 id="todayLogout">{{ today_logout }}</h4>
+                    </div>
+                </div>
+                <div class="today-item">
+                    <div class="today-icon hours-icon">
+                        <i class="ti ti-clock"></i>
+                    </div>
+                    <div>
+                        <label>Working Hours</label>
+                        <h4 id="todayHours">{{ today_hours }}</h4>
+                    </div>
+                </div>
+                <div class="today-item">
+                    <div class="today-icon status-icon">
+                        <i class="ti ti-activity"></i>
+                    </div>
+                    <div>
+                        <label>Status</label>
+                        <h4><span class="status-badge {{ today_status }}" id="todayStatus">{{ today_status|title }}</span></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Filters and Export -->
+        <div class="filter-section card">
+            <div class="filter-row">
+                <!-- Year Filter -->
+                <div class="filter-group">
+                    <label><i class="ti ti-calendar-year"></i> Year</label>
+                    <select id="yearFilter" class="filter-input">
+                        <option value="">All Years</option>
+                        {% for year in year_range %}
+                        <option value="{{ year }}">{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Month Filter -->
+                <div class="filter-group">
+                    <label><i class="ti ti-calendar-month"></i> Month</label>
+                    <select id="monthFilter" class="filter-input">
+                        <option value="">All Months</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                
+                <!-- Day of Week Filter -->
+                <div class="filter-group">
+                    <label><i class="ti ti-calendar-week"></i> Day</label>
+                    <select id="dayOfWeekFilter" class="filter-input">
+                        <option value="">All Days</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <label><i class="ti ti-status"></i> Status</label>
+                    <select id="statusFilter" class="filter-input">
+                        <option value="">All Status</option>
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                        <option value="late">Late</option>
+                        <option value="half-day">Half Day</option>
+                        <option value="leave">Leave</option>
+                    </select>
+                </div>
+                
+                <!-- Search Input -->
+                <div class="filter-group" style="flex: 2;">
+                    <label><i class="ti ti-search"></i> Search</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="searchInput" placeholder="Search by date, notes, status..." class="filter-input" value="{{ search_query }}" style="flex: 1;">
+                        <button class="filter-search-btn" onclick="applySearch()" style="padding: 8px 12px; cursor: pointer;">
+                            <i class="ti ti-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <div class="export-buttons">
+                        <button class="filter-btn reset-btn" onclick="resetFilters()">
+                            <i class="ti ti-refresh"></i> Reset
+                        </button>
+                        <button class="filter-btn export-excel" onclick="exportData('excel')">
+                            <i class="ti ti-file-spreadsheet"></i> Excel
+                        </button>
+                        <button class="filter-btn export-pdf" onclick="exportData('pdf')">
+                            <i class="ti ti-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="card table-card">
+            <div class="card-header">
+                <h3>Attendance History</h3>
+                <span class="record-count" id="recordCount">Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} records</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
+                            <th>Working Hours</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        {% for record in attendance_list %}
+                        <tr>
+                            <td>{{ forloop.counter|add:page_obj.start_index|add:-1 }}</td>
+                            <td>
+                                <span class="date-display">
+                                    <i class="ti ti-calendar"></i>
+                                    {{ record.date }}
+                                </span>
+                            </td>
+                            <td>{{ record.day }}</td>
+                            <td>
+                                <span class="time-login">
+                                    <i class="ti ti-login"></i>
+                                    {{ record.login }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="time-logout">
+                                    <i class="ti ti-logout"></i>
+                                    {{ record.logout }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="working-hours">
+                                    <i class="ti ti-clock"></i>
+                                    {{ record.hours }}h
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ record.status }}">{{ record.status|title }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="ti ti-calendar-off"></i>
+                                <p>No attendance records found</p>
+                                <span class="empty-sub">Try adjusting your filters</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-section">
+                <div class="pagination-info" id="paginationInfo">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+                </div>
+                <div class="pagination-controls" id="paginationControls">
+                    {% if page_obj.has_previous %}
+                        <a href="#" data-page="1" class="page-link pagination-link">&laquo;</a>
+                        <a href="#" data-page="{{ page_obj.previous_page_number }}" class="page-link pagination-link">&lsaquo;</a>
+                    {% else %}
+                        <span class="page-link disabled">&laquo;</span>
+                        <span class="page-link disabled">&lsaquo;</span>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="page-link active" data-page="{{ num }}">{{ num }}</span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="#" data-page="{{ num }}" class="page-link pagination-link">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <a href="#" data-page="{{ page_obj.next_page_number }}" class="page-link pagination-link">&rsaquo;</a>
+                        <a href="#" data-page="{{ page_obj.paginator.num_pages }}" class="page-link pagination-link">&raquo;</a>
+                    {% else %}
+                        <span class="page-link disabled">&rsaquo;</span>
+                        <span class="page-link disabled">&raquo;</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Summary & Charts -->
+        <div class="bottom-grid">
+            <!-- Monthly Attendance Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Monthly Attendance Overview</h3>
+                    <span class="month-label" id="currentMonthLabel">{{ current_month_name }}</span>
+                </div>
+                <div class="monthly-stats" id="monthlyStats">
+                    <div class="monthly-stat-item">
+                        <span class="stat-label">Present</span>
+                        <div class="stat-bar-wrapper">
+                            <div class="stat-bar present-bar" id="presentBar" style="width: {{ present_percentage }}%"></div>
+                        </div>
+                        <span class="stat-percentage" id="presentPercent">{{ present_percentage }}%</span>
+                    </div>
+                    <div class="monthly-stat-item">
+                        <span class="stat-label">Absent</span>
+                        <div class="stat-bar-wrapper">
+                            <div class="stat-bar absent-bar" id="absentBar" style="width: {{ absent_percentage }}%"></div>
+                        </div>
+                        <span class="stat-percentage" id="absentPercent">{{ absent_percentage }}%</span>
+                    </div>
+                    <div class="monthly-stat-item">
+                        <span class="stat-label">Late</span>
+                        <div class="stat-bar-wrapper">
+                            <div class="stat-bar late-bar" id="lateBar" style="width: {{ late_percentage }}%"></div>
+                        </div>
+                        <span class="stat-percentage" id="latePercent">{{ late_percentage }}%</span>
+                    </div>
+                    <div class="monthly-stat-item">
+                        <span class="stat-label">Half Day</span>
+                        <div class="stat-bar-wrapper">
+                            <div class="stat-bar halfday-bar" id="halfdayBar" style="width: {{ halfday_percentage }}%"></div>
+                        </div>
+                        <span class="stat-percentage" id="halfdayPercent">{{ halfday_percentage }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Quick Summary</h3>
+                </div>
+                <div class="summary-box" id="summaryBox">
+                    <div class="summary-item">
+                        <div class="summary-icon present-icon">
+                            <i class="ti ti-user-check"></i>
+                        </div>
+                        <div>
+                            <h4 id="summaryPresent">{{ present_days }}</h4>
+                            <p>Present Days</p>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon absent-icon">
+                            <i class="ti ti-user-x"></i>
+                        </div>
+                        <div>
+                            <h4 id="summaryAbsent">{{ absent_days }}</h4>
+                            <p>Absent Days</p>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon late-icon">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                        <div>
+                            <h4 id="summaryLate">{{ late_days }}</h4>
+                            <p>Late Days</p>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon total-icon">
+                            <i class="ti ti-calendar"></i>
+                        </div>
+                        <div>
+                            <h4 id="summaryTotal">{{ total_days }}</h4>
+                            <p>Total Days</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Hours Chart -->
+        <div class="card weekly-chart">
+            <div class="card-header">
+                <h3>Weekly Working Hours</h3>
+                <span class="week-label" id="currentWeekLabel">Current Week</span>
+            </div>
+            <div class="weekly-bars" id="weeklyBars">
+                {% for day in weekly_data %}
+                <div class="weekly-item">
+                    <div class="weekly-bar-wrapper">
+                        <div class="weekly-bar" style="height: {{ day.percentage }}%">
+                            <span class="weekly-hours">{% if day.hours > 0 %}{{ day.hours|floatformat:1 }}h{% else %}-{% endif %}</span>
+                        </div>
+                    </div>
+                    <span class="weekly-day">{{ day.day }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    {% block extra_js %}
+    <!-- Include JavaScript -->
+    <script src="{% static "script/rupa/facultybase/facultybase.js" %}"></script>
+    <script src="{% static 'script/jordan/faculty_attendance.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@2/dist/slimselect.min.js"></script>
+    {% endblock %}
+{% endblock %}

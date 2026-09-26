@@ -1,0 +1,314 @@
+ {% extends "dashboard_base.html" %}
+{% load static %}
+<!-- /* kali's code */ -->
+{% load permission_tags %}
+{% block title %}Olympic Performances{% endblock %}
+{% block page_title %}Olympic Performances{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/olympic_performance.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="op-page" id="opPage">
+
+    
+    <section class="op-hero op-section" style="animation-delay:.02s" data-op-animate>
+        <div class="op-hero__bg" aria-hidden="true"></div>
+        <svg class="op-hero__rings" viewBox="0 0 200 200" aria-hidden="true">
+            <circle cx="40" cy="45" r="30" fill="none" stroke="#fff" stroke-width="8"/>
+            <circle cx="85" cy="45" r="30" fill="none" stroke="#fff" stroke-width="8"/>
+            <circle cx="130" cy="45" r="30" fill="none" stroke="#fff" stroke-width="8"/>
+            <circle cx="60" cy="80" r="30" fill="none" stroke="#fff" stroke-width="8"/>
+            <circle cx="110" cy="80" r="30" fill="none" stroke="#fff" stroke-width="8"/>
+        </svg>
+        <span class="op-hero__float op-hero__float--1" aria-hidden="true"><i data-lucide="medal"></i></span>
+        <span class="op-hero__float op-hero__float--2" aria-hidden="true"><i data-lucide="trophy"></i></span>
+        <span class="op-hero__float op-hero__float--3" aria-hidden="true"><i data-lucide="flag"></i></span>
+        <span class="op-hero__float op-hero__float--4" aria-hidden="true"><i data-lucide="target"></i></span>
+
+        <div class="op-hero__content">
+            <span class="op-hero__eyebrow"><i data-lucide="sparkles"></i> Olympics Module</span>
+            <h1>Olympic <span>Performance</span> Center</h1>
+            <p>Track every competition, ranking and medal moment for university athletes chasing Olympic glory — from qualifiers to the podium.</p>
+            <div class="op-hero__actions">
+                <!-- <button class="op-btn op-btn--primary" id="opAddBtn" type="button">
+                    <i data-lucide="plus-circle"></i><span>Add Performance</span>
+                </button> -->
+
+                {% has_permission "olympicperformance_create" as create_olympicperformance %}
+
+                {% if create_olympicperformance  %}
+                <a class="op-btn op-btn--primary" id="opAddBtn" href="{% url 'olympic_performance_add_page' %}">
+                    <i data-lucide="plus-circle"></i><span>Add Performance</span>
+                </a>
+
+                {% endif %}
+                <!-- <button class="op-btn op-btn--ghost" id="opExportBtnHero" type="button">
+                    <i data-lucide="download"></i><span>Export Report</span>
+                </button> -->
+            </div>
+            <div class="op-hero__stats">
+                <div class="op-hero__stat">
+                    <div class="val"><i data-lucide="activity"></i><span id="heroStatTotal">0</span></div>
+                    <div class="lbl">Performances</div>
+                </div>
+                <div class="op-hero__stat">
+                    <div class="val"><i data-lucide="medal"></i><span id="heroStatMedals">0</span></div>
+                    <div class="lbl">Total Medals</div>
+                </div>
+                <div class="op-hero__stat">
+                    <div class="val"><i data-lucide="globe"></i><span id="heroStatCountries">0</span></div>
+                    <div class="lbl">Countries</div>
+                </div>
+                <div class="op-hero__stat">
+                    <div class="val"><i data-lucide="trending-up"></i><span id="heroStatRank">0</span></div>
+                    <div class="lbl">Avg. Ranking</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="op-section" style="animation-delay:.06s" data-op-animate>
+        <div class="op-stats-grid" id="opStatsGrid"><!-- injected by JS --></div>
+    </section>
+
+
+ 
+    <section class="op-section" style="animation-delay:.10s" data-op-animate>
+        <div class="op-row-2">
+            <div class="op-card op-medal-card">
+                <div class="op-section-head" style="margin-bottom:14px;">
+                    <div>
+                        <span class="op-eyebrow"><i data-lucide="award"></i> Distribution</span>
+                        <h2 style="margin-top:4px;"><i data-lucide="medal"></i>Medal Distribution</h2>
+                    </div>
+                </div>
+                <div class="op-medal-card__body">
+                    <div class="op-donut-wrap">
+                        <canvas id="opMedalDonut"></canvas>
+                        <div class="op-donut-center"><span class="n" id="opDonutCenterN">0</span><span class="l">Medals</span></div>
+                    </div>
+                    <div class="op-medal-legend" id="opMedalLegend"><!-- injected by JS --></div>
+                </div>
+            </div>
+
+            <div class="op-card op-rank-card">
+                <div class="op-section-head" style="margin-bottom:14px;">
+                    <div>
+                        <span class="op-eyebrow"><i data-lucide="line-chart"></i> Trend</span>
+                        <h2 style="margin-top:4px;"><i data-lucide="trophy"></i>Ranking Overview</h2>
+                    </div>
+                </div>
+                <canvas id="opRankChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+  
+    <section class="op-section" style="animation-delay:.12s" data-op-animate>
+        <div class="op-row-2">
+            <div class="op-card op-country-card">
+                <div class="op-section-head" style="margin-bottom:14px;">
+                    <div><h2><i data-lucide="globe-2"></i>Country Participation</h2></div>
+                </div>
+                <div class="op-country-list" id="opCountryList"></div>
+            </div>
+
+            <div class="op-card op-highlight-card">
+                <div class="op-section-head" style="margin-bottom:14px;">
+                    <div><h2><i data-lucide="star"></i>Performance Highlights</h2></div>
+                </div>
+                <div class="op-highlight-list" id="opHighlightList"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="op-section" style="animation-delay:.14s" data-op-animate>
+        <div class="op-section-head">
+            <div><h2><i data-lucide="calendar-clock"></i>Competition Timeline</h2><p>Chronological view of major competitions this season</p></div>
+        </div>
+        <div class="op-card op-timeline-card">
+            <div class="op-timeline" id="opTimeline"></div>
+        </div>
+    </section>
+
+ 
+    <section class="op-section" style="animation-delay:.16s" data-op-animate>
+        <div class="op-section-head">
+            <div><h2><i data-lucide="clock"></i>Recent Performances</h2><p>Latest logged results across all athletes</p></div>
+        </div>
+        <div class="op-recent-grid" id="opRecentGrid"><!-- injected by JS --></div>
+    </section>
+
+ 
+
+    <section class="op-section" style="animation-delay:.28s" data-op-animate>
+        <div class="op-section-head">
+            <div><h2><i data-lucide="table"></i>All Performances</h2><p>Complete, filterable performance log</p></div>
+
+                <div class="op-table-search">
+                    <i data-lucide="search"></i>
+                    <input
+                        type="search"
+                        id="opTableSearch"
+                        placeholder="Search athlete, country    "
+                    >
+                </div>
+
+        </div>
+        <div class="op-card op-table-card">
+            <div class="op-table-scroll">
+                <table class="op-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="athlete">Athlete </th>
+                            <th data-sort="competition_name">Competition </th>
+                            <!-- <th data-sort="event_name">Event <i data-lucide="arrow-up-down"></i></th> -->
+                            <th data-sort="host_country">Country </th>
+                            <th data-sort="competition_level">Level </th>
+                            <th data-sort="competition_date">Date </th>
+                            <th data-sort="ranking">Ranking</th>
+                            <!-- <th data-sort="score_time">Score / Time <i data-lucide="arrow-up-down"></i></th> -->
+                            <th data-sort="medal">Medal</th>
+                            <th data-sort="participation_status">Status </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opTableBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="op-table-foot">
+                <div class="op-table-foot__left">
+                    <span id="opTableCount">Showing 0 of 0 performances</span>
+                    <a href="javascript:void(0)" id="opArchiveToggleLink" class="op-archive-toggle-link">View Archived Records</a>
+                </div>
+                <div class="op-pagination" id="opPagination"></div>
+            </div>
+        </div>
+    </section>
+
+</div>  
+
+<div class="op-toast-stack" id="opToastStack"></div>
+{% endblock %}
+
+{% block global_modal %}
+
+<div class="modal fade op-view-modal" id="opViewModal" tabindex="-1" aria-labelledby="opViewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content op-view-modal__content">
+
+      <button type="button" class="op-view-modal__close" data-bs-dismiss="modal" aria-label="Close"><i data-lucide="x"></i></button>
+
+      <div class="op-view-modal__banner">
+        <svg class="op-view-modal__banner-rings" viewBox="0 0 200 90" aria-hidden="true">
+            <circle cx="30" cy="30" r="20" fill="none" stroke="#fff" stroke-width="6"/>
+            <circle cx="65" cy="30" r="20" fill="none" stroke="#fff" stroke-width="6"/>
+            <circle cx="100" cy="30" r="20" fill="none" stroke="#fff" stroke-width="6"/>
+            <circle cx="47" cy="55" r="20" fill="none" stroke="#fff" stroke-width="6"/>
+            <circle cx="83" cy="55" r="20" fill="none" stroke="#fff" stroke-width="6"/>
+        </svg>
+
+        <span id="opViewModalLabel" class="op-view-modal__eyebrow"><i data-lucide="eye"></i> Performance Details</span>
+
+        <div class="op-view-modal__profile">
+            <div class="op-view-modal__avatar-wrap">
+                <img id="opvAthletePhoto" src="" alt="" class="op-view-modal__avatar">
+            </div>
+            <div class="op-view-modal__profile-info">
+                <div class="op-view-modal__name" id="opvAthleteName">—</div>
+                <div class="op-view-modal__num"><i data-lucide="hash"></i><span id="opvAthleteNo">—</span></div>
+            </div>
+            <div class="op-view-modal__profile-badges">
+                <span id="opvMedal"></span>
+                <span id="opvStatus"></span>
+            </div>
+        </div>
+      </div>
+
+      <div class="modal-body op-view-modal__body">
+
+        <div class="op-view-modal__section">
+            <span class="op-view-modal__section-title"><i data-lucide="landmark"></i>Competition Information</span>
+            <div class="op-view-modal__grid">
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon"><i data-lucide="flag"></i></span>
+                    <div><span class="l">Competition</span><span class="v" id="opvCompetitionName">—</span></div>
+                </div>
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon"><i data-lucide="target"></i></span>
+                    <div><span class="l">Event</span><span class="v" id="opvEventName">—</span></div>
+                </div>
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon"><i data-lucide="bar-chart-2"></i></span>
+                    <div><span class="l">Level</span><span class="v" id="opvCompetitionLevel">—</span></div>
+                </div>
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon"><i data-lucide="calendar-days"></i></span>
+                    <div><span class="l">Date</span><span class="v" id="opvCompetitionDate">—</span></div>
+                </div>
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon"><i data-lucide="map-pin"></i></span>
+                    <div><span class="l">Host City</span><span class="v" id="opvHostCity">—</span></div>
+                </div>
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon"><i data-lucide="globe"></i></span>
+                    <div><span class="l">Host Country</span><span class="v" id="opvHostCountry">—</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="op-view-modal__section">
+            <span class="op-view-modal__section-title"><i data-lucide="trophy"></i>Result &amp; Standing</span>
+            <div class="op-view-modal__grid">
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon op-view-modal__icon--gold"><i data-lucide="stopwatch"></i></span>
+                    <div><span class="l">Score / Time</span><span class="v" id="opvScoreTime">—</span></div>
+                </div>
+                <div class="op-view-modal__field">
+                    <span class="op-view-modal__icon op-view-modal__icon--gold"><i data-lucide="award"></i></span>
+                    <div><span class="l">Ranking</span><span class="v" id="opvRanking">—</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="op-view-modal__note">
+            <span class="op-view-modal__icon op-view-modal__icon--muted"><i data-lucide="message-square"></i></span>
+            <div>
+                <span class="l">Remarks</span>
+                <p class="v" id="opvRemarks">No remarks recorded.</p>
+            </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer op-view-modal__footer">
+        <div class="op-view-modal__meta">
+            <span><i data-lucide="clock"></i>Created <b id="opvCreatedAt">—</b></span>
+            <span><i data-lucide="refresh-cw"></i>Updated <b id="opvUpdatedAt">—</b></span>
+        </div>
+        <button type="button" class="op-btn op-btn--ghost" data-bs-dismiss="modal"><i data-lucide="x"></i><span>Close</span></button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+    {% has_permission "olympicperformance_update" as update_olympicperformance %}
+    window.OP_CAN_UPDATE_PERFORMANCE = {{ update_olympicperformance|yesno:"true,false" }};
+</script>
+<script src="{% static 'script/olympic_performance.js' %}"></script>
+<script>
+  if (!window.bootstrap) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"><\/script>');
+  }
+</script>
+{% endblock %}

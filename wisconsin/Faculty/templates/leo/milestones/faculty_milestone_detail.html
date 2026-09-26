@@ -1,0 +1,775 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}
+{{ student_name }} - PhD Milestone History
+{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{% static 'css/leo/milestones/faculty_milestone_detail.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="phd-detail-page">
+
+    {% comment %} <div class="phd-detail-topbar">
+        <a href="{% url 'faculty_milestone_list' uuid=faculty.user.uuid %}" class="phd-back-link">
+            <span class="phd-back-icon">
+                <i class="bi bi-arrow-left"></i>
+            </span>
+            <span>Back to Milestones</span>
+        </a>
+
+        <div class="phd-secure-label">
+            <i class="bi bi-shield-lock-fill"></i>
+            Authorized Faculty View
+        </div>
+    </div> {% endcomment %}
+
+    <section class="phd-profile-hero">
+
+        <div class="phd-hero-glow phd-glow-one"></div>
+        <div class="phd-hero-glow phd-glow-two"></div>
+
+        <div class="phd-hero-content">
+
+            <div class="phd-profile-avatar">
+                <span>
+                    {% if student_name %}
+                        {{ student_name|first|upper }}
+                    {% else %}
+                        S
+                    {% endif %}
+                </span>
+                <div class="phd-avatar-pulse"></div>
+            </div>
+
+            <div class="phd-profile-main">
+
+                <div class="phd-profile-label">
+                    <span class="phd-label-line"></span>
+                    DOCTORAL CANDIDATE
+                </div>
+
+                <h1>{{ student_name|default:"Student Name Not Available" }}</h1>
+
+                <div class="phd-profile-details">
+
+                    {% if student_id %}
+                    <span>
+                        <i class="bi bi-person-vcard-fill"></i>
+                        {{ student_id }}
+                    </span>
+                    {% endif %}
+
+                    {% if phd_program %}
+                    <span>
+                        <i class="bi bi-mortarboard-fill"></i>
+                        {{ phd_program }}
+                    </span>
+                    {% endif %}
+
+                    {% if academic_summary.admission_date %}
+                    <span>
+                        <i class="bi bi-calendar-event-fill"></i>
+                        Admitted {{ academic_summary.admission_date|date:"d M Y" }}
+                    </span>
+                    {% endif %}
+
+                </div>
+
+                <div class="phd-profile-tags">
+
+                    {% with status=academic_summary.current_status|default:""|upper %}
+
+                        {% if "APPROVED" in status or "COMPLETED" in status or "PASSED" in status or "ACTIVE" in status %}
+                            <span class="phd-status-tag phd-status-success">
+                                <i class="bi bi-check-circle-fill"></i>
+                                {{ academic_summary.current_status }}
+                            </span>
+                        {% elif "HOLD" in status or "REJECT" in status or "FAIL" in status %}
+                            <span class="phd-status-tag phd-status-danger">
+                                <i class="bi bi-exclamation-circle-fill"></i>
+                                {{ academic_summary.current_status }}
+                            </span>
+                        {% else %}
+                            <span class="phd-status-tag phd-status-pending">
+                                <i class="bi bi-clock-fill"></i>
+                                {{ academic_summary.current_status|default:"Status Not Available" }}
+                            </span>
+                        {% endif %}
+
+                    {% endwith %}
+
+                    <span class="phd-role-tag">
+                        {% if is_chair %}
+                            <i class="bi bi-person-badge-fill"></i>
+                            Chair Faculty
+                        {% elif is_committee_member %}
+                            <i class="bi bi-people-fill"></i>
+                            Committee Member
+                        {% endif %}
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="phd-hero-progress">
+
+                <div class="phd-progress-ring">
+                    <svg viewBox="0 0 120 120">
+                        <circle class="ring-track" cx="60" cy="60" r="50"></circle>
+                        <circle
+                            class="ring-value"
+                            cx="60"
+                            cy="60"
+                            r="50"
+                            style="--progress: {{ completion_percentage }};"
+                        ></circle>
+                    </svg>
+
+                    <div class="phd-ring-content">
+                        <strong>{{ completion_percentage }}%</strong>
+                        <span>Complete</span>
+                    </div>
+                </div>
+
+                <div class="phd-progress-caption">
+                    <strong>Doctoral Progress</strong>
+                    <span>{{ timeline_count }} academic events</span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="phd-hero-bottom">
+            <div>
+                <span>Academic Journey</span>
+                <strong>Complete Milestone History</strong>
+            </div>
+
+            <div class="phd-hero-line"></div>
+
+            <i class="bi bi-arrow-down-circle"></i>
+        </div>
+
+    </section>
+
+    <section class="phd-metrics">
+
+        <article class="phd-metric-card metric-total">
+            <div class="metric-icon">
+                <i class="bi bi-layers-fill"></i>
+            </div>
+            <div class="metric-content">
+                <span>Total Milestones</span>
+                <strong>{{ timeline_count }}</strong>
+                <small>Academic events recorded</small>
+            </div>
+        </article>
+
+        <article class="phd-metric-card metric-completed">
+            <div class="metric-icon">
+                <i class="bi bi-check2-all"></i>
+            </div>
+            <div class="metric-content">
+                <span>Completed</span>
+                <strong>{{ completed_count }}</strong>
+                <small>Successfully completed</small>
+            </div>
+        </article>
+
+        <article class="phd-metric-card metric-pending">
+            <div class="metric-icon">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="metric-content">
+                <span>Pending</span>
+                <strong>{{ pending_count }}</strong>
+                <small>Awaiting completion</small>
+            </div>
+        </article>
+
+        <article class="phd-metric-card metric-progress">
+            <div class="metric-icon">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="metric-content">
+                <span>Completion</span>
+                <strong>{{ completion_percentage }}%</strong>
+                <small>Overall doctoral progress</small>
+            </div>
+        </article>
+
+    </section>
+
+    <section class="phd-section phd-overview-section">
+
+        <div class="phd-section-heading">
+            <div class="phd-heading-icon">
+                <i class="bi bi-person-vcard-fill"></i>
+            </div>
+
+            <div>
+                <span>STUDENT PROFILE</span>
+                <h2>Academic Information</h2>
+                <p>Core information associated with the doctoral student</p>
+            </div>
+        </div>
+
+        <div class="phd-info-layout">
+
+            <div class="phd-info-primary">
+                <span>Student Name</span>
+                <strong>{{ student_name|default:"Not Available" }}</strong>
+                <small>
+                    <i class="bi bi-person-fill"></i>
+                    Doctoral Student
+                </small>
+            </div>
+
+            <div class="phd-info-grid">
+
+                <div class="phd-info-item">
+                    <span>Student ID</span>
+                    <strong>{{ student_id|default:"Not Available" }}</strong>
+                </div>
+
+                <div class="phd-info-item">
+                    <span>Current Status</span>
+                    <strong>{{ academic_summary.current_status|default:"Not Available" }}</strong>
+                </div>
+
+                <div class="phd-info-item">
+                    <span>PhD Program</span>
+                    <strong>{{ phd_program|default:"Not Available" }}</strong>
+                </div>
+
+                <div class="phd-info-item">
+                    <span>Admission Date</span>
+                    <strong>
+                        {% if academic_summary.admission_date %}
+                            {{ academic_summary.admission_date|date:"d M Y" }}
+                        {% else %}
+                            Not Recorded
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="phd-info-item">
+                    <span>Committee Formation</span>
+                    <strong>
+                        {% if academic_summary.committee_formation_date %}
+                            {{ academic_summary.committee_formation_date|date:"d M Y" }}
+                        {% else %}
+                            Not Recorded
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="phd-info-item">
+                    <span>Milestones Recorded</span>
+                    <strong>{{ timeline_count }}</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="phd-section">
+
+        <div class="phd-section-heading">
+            <div class="phd-heading-icon">
+                <i class="bi bi-diagram-3-fill"></i>
+            </div>
+
+            <div>
+                <span>SUPERVISION STRUCTURE</span>
+                <h2>Advisor & Doctoral Committee</h2>
+                <p>Faculty responsible for supervision, guidance and evaluation</p>
+            </div>
+        </div>
+
+        <div class="phd-supervision-grid">
+
+            <article class="phd-supervisor-card advisor-card">
+
+                <div class="supervisor-top">
+                    <div class="supervisor-icon">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+
+                    <span class="supervisor-badge">ADVISOR</span>
+                </div>
+
+                <span class="supervisor-label">Research Advisor</span>
+
+                <strong>
+                    {% if advisor %}
+                        {{ advisor }}
+                    {% else %}
+                        Advisor Not Assigned
+                    {% endif %}
+                </strong>
+
+                <p>
+                    {% if advisor %}
+                        Primary doctoral research supervisor
+                    {% else %}
+                        No advisor has been assigned
+                    {% endif %}
+                </p>
+
+            </article>
+
+            <article class="phd-supervisor-card chair-card">
+
+                <div class="supervisor-top">
+                    <div class="supervisor-icon">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+
+                    <span class="supervisor-badge">CHAIR</span>
+                </div>
+
+                <span class="supervisor-label">Committee Chair</span>
+
+                <strong>
+                    {% if committee_information.chair %}
+                        {{ committee_information.chair }}
+                    {% else %}
+                        Chair Not Assigned
+                    {% endif %}
+                </strong>
+
+                <p>
+                    Doctoral committee chair responsible for oversight
+                </p>
+
+            </article>
+
+        </div>
+
+        <div class="phd-committee-area">
+
+            <div class="phd-subheading">
+                <div>
+                    <i class="bi bi-people-fill"></i>
+                    <span>Committee Members</span>
+                </div>
+
+                <strong>{{ committee_members|length }}</strong>
+            </div>
+
+            {% if committee_members %}
+
+                <div class="phd-faculty-grid">
+
+                    {% for member in committee_members %}
+
+                    <article class="phd-faculty-card">
+
+                        <div class="faculty-avatar">
+                            {% if member.faculty %}
+                                {{ member.faculty.first_name|first|upper }}
+                            {% else %}
+                                F
+                            {% endif %}
+                        </div>
+
+                        <div class="faculty-information">
+
+                            <strong>
+                                {% if member.faculty %}
+                                    {{ member.faculty }}
+                                {% else %}
+                                    Faculty Member
+                                {% endif %}
+                            </strong>
+
+                            {% if member.department %}
+                                <span>{{ member.department }}</span>
+                            {% endif %}
+
+                            {% if member.role %}
+                                <small>{{ member.get_role_display|default:member.role }}</small>
+                            {% endif %}
+
+                        </div>
+
+                        <div class="faculty-arrow">
+                            <i class="bi bi-arrow-up-right"></i>
+                        </div>
+
+                    </article>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="phd-empty-small">
+                    <i class="bi bi-people"></i>
+                    <span>No committee members recorded.</span>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+    <section class="phd-section phd-journey-section">
+
+        <div class="phd-section-heading">
+            <div class="phd-heading-icon">
+                <i class="bi bi-signpost-2-fill"></i>
+            </div>
+
+            <div>
+                <span>DOCTORAL JOURNEY</span>
+                <h2>Complete Academic Timeline</h2>
+                <p>Chronological journey from admission through doctoral progress</p>
+            </div>
+
+            <div class="phd-event-count">
+                {{ timeline_count }} Events
+            </div>
+        </div>
+
+        {% if timeline %}
+
+        <div class="phd-roadmap">
+
+            <div class="roadmap-line"></div>
+
+            {% for event in timeline %}
+
+            {% with status=event.status|default:""|upper %}
+
+            <article class="roadmap-event">
+
+                <div class="roadmap-node-wrap">
+
+                    {% if "APPROVED" in status or "COMPLETED" in status or "PASSED" in status or "PASS" in status or "ACCEPTED" in status or "SATISFACTORY" in status or "ACTIVE" in status or "ASSIGNED" in status or "A+" in status %}
+
+                        <div class="roadmap-node node-completed">
+                            <i class="bi bi-check-lg"></i>
+                        </div>
+
+                    {% elif "HOLD" in status or "REJECT" in status or "FAIL" in status %}
+
+                        <div class="roadmap-node node-danger">
+                            <i class="bi bi-exclamation-lg"></i>
+                        </div>
+
+                    {% elif "PROGRESS" in status or "REVIEW" in status or "PENDING" in status or "DRAFT" in status %}
+
+                        <div class="roadmap-node node-progress">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </div>
+
+                    {% else %}
+
+                        <div class="roadmap-node node-pending">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+                <div class="roadmap-card">
+
+                    <div class="roadmap-card-top">
+
+                        <div class="roadmap-title-area">
+
+                            <span class="roadmap-step">
+                                {{ forloop.counter|stringformat:"02d" }}
+                            </span>
+
+                            <div>
+                                <h3>{{ event.title|default:"Academic Milestone" }}</h3>
+
+                                <div class="roadmap-date">
+                                    <i class="bi bi-calendar3"></i>
+
+                                    {% if event.date %}
+                                        {{ event.date|date:"d M Y" }}
+                                    {% else %}
+                                        Date Not Recorded
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {% if event.status %}
+                            <span class="roadmap-status">{{ event.status }}</span>
+                        {% endif %}
+
+                    </div>
+
+                    {% if event.description %}
+                    <div class="roadmap-description">
+                        {{ event.description }}
+                    </div>
+                    {% endif %}
+
+                    {% if event.remarks %}
+                    <div class="roadmap-remarks">
+                        <div class="remarks-icon">
+                            <i class="bi bi-chat-left-text-fill"></i>
+                        </div>
+
+                        <div>
+                            <span>Faculty Remarks</span>
+                            <p>{{ event.remarks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+
+            </article>
+
+            {% endwith %}
+
+            {% endfor %}
+
+        </div>
+
+        {% else %}
+
+        <div class="phd-empty-state">
+            <div class="empty-state-icon">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <h3>No Timeline Records Available</h3>
+            <p>No milestone history has been recorded for this student.</p>
+        </div>
+
+        {% endif %}
+
+    </section>
+
+    <section class="phd-section">
+
+        <div class="phd-section-heading">
+            <div class="phd-heading-icon">
+                <i class="bi bi-folder2-open"></i>
+            </div>
+
+            <div>
+                <span>ACADEMIC RECORDS</span>
+                <h2>Complete Academic History</h2>
+                <p>Detailed records captured throughout the doctoral journey</p>
+            </div>
+        </div>
+
+        {% if history_sections %}
+
+        <div class="phd-history-grid">
+
+            {% for section in history_sections %}
+
+            <article class="phd-history-card">
+
+                <div class="history-card-header">
+
+                    <div class="history-icon">
+
+                        {% if section.key == "admission" %}
+                            <i class="bi bi-door-open-fill"></i>
+                        {% elif section.key == "advisor" %}
+                            <i class="bi bi-person-check-fill"></i>
+                        {% elif section.key == "committee" %}
+                            <i class="bi bi-people-fill"></i>
+                        {% elif section.key == "coursework" %}
+                            <i class="bi bi-journal-bookmark-fill"></i>
+                        {% elif section.key == "examination" %}
+                            <i class="bi bi-pencil-square"></i>
+                        {% elif section.key == "candidacy" %}
+                            <i class="bi bi-patch-check-fill"></i>
+                        {% elif section.key == "proposal" %}
+                            <i class="bi bi-file-earmark-text-fill"></i>
+                        {% elif section.key == "dissertation" %}
+                            <i class="bi bi-file-earmark-richtext-fill"></i>
+                        {% elif section.key == "annual_progress" %}
+                            <i class="bi bi-graph-up"></i>
+                        {% elif section.key == "publication" %}
+                            <i class="bi bi-journal-text"></i>
+                        {% elif section.key == "defense" %}
+                            <i class="bi bi-shield-check"></i>
+                        {% elif section.key == "graduation" %}
+                            <i class="bi bi-mortarboard-fill"></i>
+                        {% elif section.key == "communication" %}
+                            <i class="bi bi-chat-left-text-fill"></i>
+                        {% else %}
+                            <i class="bi bi-folder-fill"></i>
+                        {% endif %}
+
+                    </div>
+
+                    <div class="history-title">
+                        <span>ACADEMIC STAGE</span>
+                        <h3>{{ section.title }}</h3>
+                    </div>
+
+                    <div class="history-count">
+                        {{ section.records|length }}
+                    </div>
+
+                </div>
+
+                <div class="history-records">
+
+                    {% for record in section.records %}
+
+                    <div class="history-record">
+
+                        <div class="history-record-title">
+                            <i class="bi bi-record-circle-fill"></i>
+                            <strong>{{ record.model_name }}</strong>
+                        </div>
+
+                        {% if record.fields %}
+
+                        <div class="history-fields">
+
+                            {% for field in record.fields %}
+
+                            <div class="history-field">
+
+                                <span>{{ field.label }}</span>
+
+                                <strong>
+                                    {% if field.value %}
+                                        {{ field.value }}
+                                    {% else %}
+                                        <em>Not Available</em>
+                                    {% endif %}
+                                </strong>
+
+                            </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </article>
+
+            {% endfor %}
+
+        </div>
+
+        {% else %}
+
+        <div class="phd-empty-state">
+            <div class="empty-state-icon">
+                <i class="bi bi-folder2-open"></i>
+            </div>
+            <h3>No Detailed Academic Records</h3>
+            <p>No additional academic records are available for this student.</p>
+        </div>
+
+        {% endif %}
+
+    </section>
+
+    <section class="phd-section phd-approval-section">
+
+        <div class="phd-section-heading">
+            <div class="phd-heading-icon">
+                <i class="bi bi-shield-check"></i>
+            </div>
+
+            <div>
+                <span>GOVERNANCE & APPROVAL</span>
+                <h2>Doctoral Committee Status</h2>
+                <p>Current committee formation and approval information</p>
+            </div>
+        </div>
+
+        <div class="approval-layout">
+
+            <div class="approval-main">
+
+                <div class="approval-check">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+
+                <div>
+                    <span>Committee Approval Status</span>
+                    <strong>
+                        {{ committee_information.approval_status|default:"Not Available" }}
+                    </strong>
+                </div>
+
+            </div>
+
+            <div class="approval-items">
+
+                <div class="approval-item">
+                    <span>Formation Date</span>
+                    <strong>
+                        {% if committee_information.formation_date %}
+                            {{ committee_information.formation_date|date:"d M Y" }}
+                        {% else %}
+                            Not Recorded
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="approval-item">
+                    <span>Committee Chair</span>
+                    <strong>
+                        {{ committee_information.chair|default:"Not Assigned" }}
+                    </strong>
+                </div>
+
+                <div class="approval-item">
+                    <span>Committee Members</span>
+                    <strong>{{ committee_members|length }}</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <div class="phd-bottom-bar">
+
+        <a href="{% url 'faculty_milestone_list' uuid=faculty.user.uuid %}" class="phd-bottom-back">
+            <i class="bi bi-arrow-left"></i>
+            <span>Back to Milestones</span>
+        </a>
+
+        <div class="phd-bottom-security">
+            <span class="security-dot"></span>
+            <span>Protected academic information</span>
+            <i class="bi bi-shield-lock-fill"></i>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock content %}

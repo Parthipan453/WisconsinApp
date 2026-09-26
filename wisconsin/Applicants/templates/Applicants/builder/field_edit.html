@@ -1,0 +1,269 @@
+{% extends "Applicants/builder/base.html" %}
+{% block title %}Edit Field — {{ field.label }}{% endblock %}
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_field_edit.css' %}">
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_dashboard.css' %}">
+{% endblock %}
+{% block content %}
+<div class="bld-dash-hero">
+  <a href="{% url 'builder_form_edit' field.section.form_id %}" class="bld-back-link" style="color:rgba(255,255,255,0.85)">&larr; Back to Form</a>
+  <h1>{{ field.label }}</h1>
+  <p><code style="color:rgba(255,255,255,0.9)">{{ field.code }}</code> &middot; {{ field.section.title }} &middot; {{ field.field_type }}</p>
+</div>
+
+<div class="bld-tabs">
+  <button class="bld-tab active" onclick="switchTab(this,'props')"><i class="ti ti-settings"></i> Properties</button>
+  <button class="bld-tab" onclick="switchTab(this,'choices')"><i class="ti ti-list"></i> Choices ({{ choices|length }})</button>
+  <button class="bld-tab" onclick="switchTab(this,'validations')"><i class="ti ti-shield-check"></i> Validation ({{ validations|length }})</button>
+  <button class="bld-tab" onclick="switchTab(this,'visibility')"><i class="ti ti-eye"></i> Visibility ({{ visibility_rules|length }})</button>
+</div>
+
+{# ── Properties Tab ── #}
+<div class="bld-tab-content active" id="tab-props">
+  <div class="bld-card">
+    <div class="bld-card-body">
+    <form method="POST">
+      {% csrf_token %}
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Code *</label>
+          <input type="text" name="code" class="bld-input" value="{{ field.code }}" required pattern="[a-z0-9_]+">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Field Type</label>
+          <select name="field_type" class="bld-input">
+            {% for val, label in field_types %}
+            <option value="{{ val }}" {% if field.field_type == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Label *</label>
+        <input type="text" name="label" class="bld-input" value="{{ field.label }}" required>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Placeholder</label>
+          <input type="text" name="placeholder" class="bld-input" value="{{ field.placeholder }}">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Default Value</label>
+          <input type="text" name="default_value" class="bld-input" value="{{ field.default_value }}">
+        </div>
+      </div>
+      <div class="bld-form-group">
+        <label class="bld-label">Help Text</label>
+        <input type="text" name="help_text" class="bld-input" value="{{ field.help_text }}">
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:140px">
+          <label class="bld-label">Layout Width</label>
+          <select name="layout_width" class="bld-input">
+            {% for val, label in layout_widths %}
+            <option value="{{ val }}" {% if field.layout_width == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-form-group" style="width:80px">
+          <label class="bld-label">Sort Order</label>
+          <input type="number" name="sort_order" class="bld-input" value="{{ field.sort_order }}">
+        </div>
+        <div class="bld-form-group" style="width:80px">
+          <label class="bld-label">Rows</label>
+          <input type="number" name="rows" class="bld-input" value="{{ field.rows }}" min="1">
+        </div>
+        <div class="bld-form-group" style="width:120px">
+          <label class="bld-label">CSS Class</label>
+          <input type="text" name="css_class" class="bld-input" value="{{ field.css_class }}">
+        </div>
+      </div>
+      <div class="bld-form-row">
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Prefix Text</label>
+          <input type="text" name="prefix_text" class="bld-input" value="{{ field.prefix_text }}">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Suffix Text</label>
+          <input type="text" name="suffix_text" class="bld-input" value="{{ field.suffix_text }}">
+        </div>
+      </div>
+      <div class="bld-form-row">
+        <label class="bld-checkbox"><input type="checkbox" name="is_required" {% if field.is_required %}checked{% endif %}> Required</label>
+        <label class="bld-checkbox"><input type="checkbox" name="is_readonly" {% if field.is_readonly %}checked{% endif %}> Read-only</label>
+        <label class="bld-checkbox"><input type="checkbox" name="is_encrypted" {% if field.is_encrypted %}checked{% endif %}> Encrypted</label>
+        <label class="bld-checkbox"><input type="checkbox" name="is_active" {% if field.is_active %}checked{% endif %}> Active</label>
+      </div>
+      {% if field.field_type == 'file' %}
+      <div class="bld-form-row">
+        <div class="bld-form-group" style="width:120px">
+          <label class="bld-label">Max File (MB)</label>
+          <input type="number" name="max_file_size_mb" class="bld-input" value="{{ field.max_file_size_mb }}">
+        </div>
+        <div class="bld-form-group bld-flex-1">
+          <label class="bld-label">Allowed Extensions</label>
+          <input type="text" name="allowed_extensions" class="bld-input" value="{{ field.allowed_extensions }}">
+        </div>
+      </div>
+      {% endif %}
+      <div class="bld-form-group">
+        <label class="bld-label">Data Source</label>
+        <input type="text" name="data_source" class="bld-input" value="{{ field.data_source }}" placeholder="Code reference for dynamic choices">
+      </div>
+      <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Field</button>
+    </form>
+    </div>
+  </div>
+</div>
+
+{# ── Choices Tab ── #}
+<div class="bld-tab-content" id="tab-choices">
+  <div class="bld-card">
+    <div class="bld-card-header"><h2 class="bld-h2"><i class="ti ti-list"></i> Field Choices</h2></div>
+    <div class="bld-card-body">
+    <div class="bld-table-wrap">
+      <table class="bld-table">
+        <thead><tr><th>Value</th><th>Label</th><th>Order</th><th>Default</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for c in choices %}
+          <tr>
+            <td><code>{{ c.value }}</code></td>
+            <td>{{ c.label }}</td>
+            <td>{{ c.sort_order }}</td>
+            <td>{% if c.is_default %}<i class="ti ti-star-filled" style="color:#f59e0b"></i>{% endif %}</td>
+            <td>
+              <form method="POST" action="{% url 'builder_choice_delete' c.pk %}" style="display:inline" onsubmit="return confirm('Delete choice?')">
+                {% csrf_token %}
+                <button type="submit" class="bld-btn-icon bld-btn-icon-danger"><i class="ti ti-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="bld-empty">No choices. Add choices for select/radio/multi_select fields.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="POST" action="{% url 'builder_choice_add' field.pk %}" class="bld-inline-form">
+      {% csrf_token %}
+      <input type="text" name="value" class="bld-input" placeholder="Value" required style="width:150px">
+      <input type="text" name="label" class="bld-input" placeholder="Label" required style="width:200px">
+      <input type="number" name="sort_order" class="bld-input" placeholder="Order" value="1" style="width:80px">
+      <label class="bld-checkbox"><input type="checkbox" name="is_default"> Default</label>
+      <button type="submit" class="bld-btn bld-btn-primary bld-btn-sm"><i class="ti ti-plus"></i> Add</button>
+    </form>
+    </div>
+  </div>
+</div>
+
+{# ── Validation Tab ── #}
+<div class="bld-tab-content" id="tab-validations">
+  <div class="bld-card">
+    <div class="bld-card-header"><h2 class="bld-h2"><i class="ti ti-shield-check"></i> Validation Rules</h2></div>
+    <div class="bld-card-body">
+    <div class="bld-table-wrap">
+      <table class="bld-table">
+        <thead><tr><th>Type</th><th>Value</th><th>Max Value</th><th>Error Message</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for v in validations %}
+          <tr>
+            <td><span class="bld-badge bld-badge-blue">{{ v.validation_type }}</span></td>
+            <td><code>{{ v.value|truncatechars:30 }}</code></td>
+            <td><code>{{ v.value_max|truncatechars:20 }}</code></td>
+            <td>{{ v.error_message|truncatechars:40 }}</td>
+            <td>
+              <form method="POST" action="{% url 'builder_validation_delete' v.pk %}" style="display:inline" onsubmit="return confirm('Delete rule?')">
+                {% csrf_token %}
+                <button type="submit" class="bld-btn-icon bld-btn-icon-danger"><i class="ti ti-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="bld-empty">No validation rules.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="POST" action="{% url 'builder_validation_add' field.pk %}" class="bld-inline-form bld-form-wrap">
+      {% csrf_token %}
+      <select name="validation_type" class="bld-input" required style="width:160px">
+        <option value="">Select type...</option>
+        {% for val, label in validation_types %}
+        <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="value" class="bld-input" placeholder="Value" style="width:200px">
+      <input type="text" name="value_max" class="bld-input" placeholder="Max (optional)" style="width:140px">
+      <input type="text" name="error_message" class="bld-input" placeholder="Error message" style="width:240px">
+      <input type="number" name="sort_order" class="bld-input" placeholder="Order" value="1" style="width:70px">
+      <button type="submit" class="bld-btn bld-btn-primary bld-btn-sm"><i class="ti ti-plus"></i> Add</button>
+    </form>
+    </div>
+  </div>
+</div>
+
+{# ── Visibility Tab ── #}
+<div class="bld-tab-content" id="tab-visibility">
+  <div class="bld-card">
+    <div class="bld-card-header"><h2 class="bld-h2"><i class="ti ti-eye"></i> Visibility Rules</h2></div>
+    <div class="bld-card-body">
+    <div class="bld-table-wrap">
+      <table class="bld-table">
+        <thead><tr><th>When Field</th><th>Operator</th><th>Value</th><th>Logic</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for vr in visibility_rules %}
+          <tr>
+            <td><code>{{ vr.target_field.label }}</code></td>
+            <td><span class="bld-badge">{{ vr.operator }}</span></td>
+            <td><code>{{ vr.value|truncatechars:20 }}</code></td>
+            <td><span class="bld-badge">{{ vr.logic_operator }}</span></td>
+            <td>
+              <form method="POST" action="{% url 'builder_visibility_delete' vr.pk %}" style="display:inline" onsubmit="return confirm('Delete rule?')">
+                {% csrf_token %}
+                <button type="submit" class="bld-btn-icon bld-btn-icon-danger"><i class="ti ti-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="bld-empty">No visibility rules. Field will always be shown.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="POST" action="{% url 'builder_visibility_add' field.pk %}" class="bld-inline-form bld-form-wrap">
+      {% csrf_token %}
+      <select name="target_field" class="bld-input" required style="width:200px">
+        <option value="">Select field...</option>
+        {% for f in all_fields %}
+        <option value="{{ f.pk }}">{{ f.label }} (<code>{{ f.code }}</code>)</option>
+        {% endfor %}
+      </select>
+      <select name="operator" class="bld-input" style="width:120px">
+        {% for val, label in visibility_operators %}
+        <option value="{{ val }}">{{ val }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="value" class="bld-input" placeholder="Compare value" style="width:160px">
+      <select name="logic_operator" class="bld-input" style="width:80px">
+        {% for val, label in logic_operators %}
+        <option value="{{ val }}">{{ val }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="bld-btn bld-btn-primary bld-btn-sm"><i class="ti ti-plus"></i> Add</button>
+    </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function switchTab(el, tabId) {
+  document.querySelectorAll('.bld-tab').forEach(function(t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  document.querySelectorAll('.bld-tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+  document.getElementById('tab-' + tabId).classList.add('active');
+}
+</script>
+{% endblock %}

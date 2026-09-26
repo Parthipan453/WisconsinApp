@@ -1,0 +1,277 @@
+{% extends 'faculty_base.html' %}
+{% load static %}
+
+{% block title %}Grade Change Request{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Elsa/update_request.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="gcr-page">
+    <div class="gcr-page-header">
+        <div class="cg-header-left">
+            <h1>Grade Change Request</h1>
+            <p>Submit a request to update a student's score.</p>
+        </div>
+        <div class="cg-header-right">
+            {% if back_course %}
+            <a href="{% url 'course_grade' %}?course={{ back_course.course_id }}{% if section_id_param %}&section={{ section_id_param }}{% endif %}" class="gcr-back-btn">
+            {% else %}
+            <a href="{% url 'course_grade_dashboard' %}" class="gcr-back-btn">
+            {% endif %}
+                <i class="ti ti-arrow-left"></i> Back to Grades
+            </a>
+        </div>
+    </div>
+
+    {% if errors.lookup %}
+    <div class="gcr-flash gcr-flash-error">
+        <i class="ti ti-alert-triangle"></i> {{ errors.lookup }}
+    </div>
+    {% endif %}
+{% if not view_history %}
+    <div class="gcr-card">
+        {% if prefill_record %}
+        <div class="gcr-banner">
+            <div class="gcr-banner-avatar">
+                {{ prefill_record.student.preferred_name|default:prefill_record.student.user.get_full_name|first|upper }}
+            </div>
+            <div>
+                <p class="gcr-banner-name">
+                    {{ prefill_record.student.preferred_name|default:prefill_record.student.user.get_full_name }}
+                    <span class="gcr-banner-id">{{ prefill_record.student.student_number }}</span>
+                </p>
+                <p class="gcr-banner-course">
+                    <i class="ti ti-book"></i> {{ prefill_record.course.course_code }} &middot; {{ prefill_record.course.course_name }}
+                </p>
+            </div>
+            <span class="gcr-banner-score">
+                Current score: <strong>{{ prefill_record.numeric_score }}</strong>
+            </span>
+        </div>
+        {% endif %}
+
+        <div class="gcr-card-body">
+            <form method="POST" id="gcrForm">
+                {% csrf_token %}
+                <input type="hidden" name="section_id" value="{{ section_id_param }}">
+                <div class="gcr-form-grid">
+
+                    {% if prefill_record %}
+                        <div class="gcr-form-group">
+                            <label class="gcr-label">Student</label>
+                            <input type="text" class="gcr-input gcr-input-readonly"
+                                   value="{{ prefill_record.student.preferred_name|default:prefill_record.student.user.get_full_name }} ({{ old.student_id }})" readonly>
+                            <input type="hidden" name="student_id" value="{{ old.student_id }}">
+                        </div>
+                        <div class="gcr-form-group">
+                            <label class="gcr-label">Course</label>
+                            <input type="text" class="gcr-input gcr-input-readonly"
+                                   value="{{ prefill_record.course.course_code }} — {{ prefill_record.course.course_name }}" readonly>
+                            <input type="hidden" name="course_id" value="{{ old.course_id }}">
+                        </div>
+                    {% else %}
+                        <div class="gcr-form-group">
+                            <label class="gcr-label">Student ID</label>
+                            <input type="text" class="gcr-input gcr-input-readonly" name="student_id" value="{{ old.student_id }}" readonly>
+                            {% if errors.student_id %}<small class="gcr-field-error">{{ errors.student_id }}</small>{% endif %}
+                        </div>
+                        <div class="gcr-form-group">
+                            <label class="gcr-label">Course ID</label>
+                            <input type="text" class="gcr-input gcr-input-readonly" name="course_id" value="{{ old.course_id }}" readonly>
+                            {% if errors.course_id %}<small class="gcr-field-error">{{ errors.course_id }}</small>{% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="gcr-form-group">
+                        <label class="gcr-label">Instructor</label>
+                        <input type="text" class="gcr-input gcr-input-readonly"
+                               value="{{ request.user.get_full_name|default:request.user.username }}" readonly>
+                    </div>
+
+                    <div class="gcr-form-group">
+                        <label class="gcr-label">Current Score</label>
+                        <input type="text" class="gcr-input gcr-input-readonly"
+                               id="current_score" name="current_score" value="{{ old.current_score }}" readonly>
+                        {% if errors.current_score %}<small class="gcr-field-error">{{ errors.current_score }}</small>{% endif %}
+                    </div>
+
+                    <div class="gcr-form-group">
+                        <label class="gcr-label">Requested Score <span class="gcr-required">*</span></label>
+                        <input type="text" class="gcr-input" id="requested_score" name="requested_score"
+                               inputmode="decimal" maxlength="5"
+                               placeholder="0-99.99" value="{{ old.requested_score }}" required>
+                        <small id="requested_score_error" class="gcr-field-error"></small>
+                        {% if errors.requested_score %}<small class="gcr-field-error">{{ errors.requested_score }}</small>{% endif %}
+                    </div>
+
+                    <div class="gcr-form-group">
+                        <label class="gcr-label">Current Grade</label>
+                        <input type="text" class="gcr-input gcr-input-readonly"
+                               value="{{ prefill_record.grade_scale.letter_grade|default:'—' }}" readonly>
+                        <input type="hidden" name="current_grade" value="{{ old.current_grade }}">
+                    </div>
+
+                    <div class="gcr-form-group">
+                        <label class="gcr-label">Requested Grade</label>
+                        <input type="text" class="gcr-input gcr-input-readonly" id="requested_grade_display"
+                               value="—" readonly>
+                        <input type="hidden" name="requested_grade" id="requested_grade_hidden" value="{{ old.requested_grade }}">
+                        {% if errors.requested_grade %}<small class="gcr-field-error">{{ errors.requested_grade }}</small>{% endif %}
+                    </div>
+
+                    <div class="gcr-form-group gcr-form-group-full">
+                        <label class="gcr-label">Reason for Change <span class="gcr-required">*</span></label>
+                        <textarea class="gcr-input" rows="4" name="reason"
+                                  placeholder="Explain why the score should be changed..." required>{{ old.reason }}</textarea>
+                        {% if errors.reason %}<small class="gcr-field-error">{{ errors.reason }}</small>{% endif %}
+                    </div>
+
+                    {% if errors.duplicate %}
+                    <div class="gcr-form-group gcr-form-group-full">
+                        <div class="gcr-field-error gcr-field-error-block">{{ errors.duplicate }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="gcr-btn-group">
+                    <button type="submit" class="gcr-btn gcr-btn-primary" id="gcrSubmitBtn" disabled>
+                        <i class="ti ti-send"></i> Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+    <!-- History -->
+{% if view_history %}
+    <div class="gcr-card gcr-history-card">
+        <div class="gcr-card-header">
+            <h3><i class="ti ti-history"></i> Previous Requests</h3>
+        </div>
+        <div class="gcr-card-body">
+            <div class="gcr-table-wrap">
+                <table class="gcr-table">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th><th>Student ID</th><th>Course</th>
+                            <th>Current</th><th>Requested</th><th>Status</th>
+                            <th>Approved By</th><th>Approved Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr data-request-id="{{ req.request_id }}">
+                            <td data-label="Request ID">{{ req.request_code }}</td>
+                            <td data-label="Student ID">{{ req.student_id }}</td>
+                            <td data-label="Course">{{ req.course_id }}</td>
+                            <td data-label="Current">{{ req.current_score }}</td>
+                            <td data-label="Requested">{{ req.requested_score }}</td>
+                            <td data-label="Status">
+                                <span class="gcr-badge
+                                    {% if req.approval_status == 'Pending' %}gcr-req-pending
+                                    {% elif req.approval_status == 'Approved' %}gcr-req-approved
+                                    {% elif req.approval_status == 'Rejected' %}gcr-req-rejected{% endif %}">
+                                    {{ req.approval_status }}
+                                </span>
+                            </td>
+                            <td data-label="Approved By">{{ req.approved_by|default:"—" }}</td>
+                            <td data-label="Approved Date">{{ req.approved_date|date:"d M Y" |default:"---" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="gcr-empty">No requests found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+        <div class="gcr-pagination">
+        <div class="gcr-page-info">
+            Showing {{ requests.start_index }}–{{ requests.end_index }}
+            of {{ requests.paginator.count }} Requests
+        </div>
+        <div class="gcr-page-nav">
+            <!-- Previous -->
+            {% if requests.has_previous %}
+                <a class="gcr-page-btn gcr-page-arrow"
+                href="?page={{ requests.previous_page_number }}&view=history&course_id={{ course_id_param }}{% if section_id_param %}&section_id={{ section_id_param }}{% endif %}">
+                    <i class="ti ti-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="gcr-page-btn gcr-page-arrow gcr-page-disabled">
+                    <i class="ti ti-chevron-left"></i>
+                </span>
+            {% endif %}
+            <!-- First page -->
+            {% if requests.number > 3 %}
+                <a class="gcr-page-btn"
+                href="?page=1&view=history&course_id={{ course_id_param }}{% if section_id_param %}&section_id={{ section_id_param }}{% endif %}">
+                    1
+                </a>
+                <span class="gcr-page-dots">...</span>
+            {% endif %}
+            <!-- Page Numbers (windowed) -->
+            {% for num in requests.paginator.page_range %}
+                {% if num >= requests.number|add:"-2" and num <= requests.number|add:"2" %}
+                    {% if requests.number == num %}
+                        <span class="gcr-page-btn gcr-page-active">
+                            {{ num }}
+                        </span>
+                    {% else %}
+                        <a class="gcr-page-btn"
+                        href="?page={{ num }}&view=history&course_id={{ course_id_param }}{% if section_id_param %}&section_id={{ section_id_param }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            <!-- Last page -->
+            {% if requests.number < requests.paginator.num_pages|add:"-2" %}
+                <span class="gcr-page-dots">...</span>
+                <a class="gcr-page-btn"
+                href="?page={{ requests.paginator.num_pages }}&view=history&course_id={{ course_id_param }}{% if section_id_param %}&section_id={{ section_id_param }}{% endif %}">
+                    {{ requests.paginator.num_pages }}
+                </a>
+            {% endif %}
+            <!-- Next -->
+            {% if requests.has_next %}
+                <a class="gcr-page-btn gcr-page-arrow"
+                href="?page={{ requests.next_page_number }}&view=history&course_id={{ course_id_param }}{% if section_id_param %}&section_id={{ section_id_param }}{% endif %}">
+                    <i class="ti ti-chevron-right"></i>
+                </a>
+            {% else %}
+                <span class="gcr-page-btn gcr-page-arrow gcr-page-disabled">
+                    <i class="ti ti-chevron-right"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+</div>
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage">Message here</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    window.GCR_HAS_ERRORS = {{ errors|length|yesno:"true,false" }};
+    window.GCR_GRADE_SCALE = [
+        {% for g in grades %}
+        { id: {{ g.id }}, letter: "{{ g.letter_grade|escapejs }}", min: {{ g.minimum_percentage }}, max: {{ g.maximum_percentage }} }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+</script>
+<script src="{% static 'script/Elsa/update_request.js' %}"></script>
+{% endblock %}

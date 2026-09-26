@@ -1,0 +1,123 @@
+{% if assignment.status == "assigned" %}
+<div class="prm-card prm-workflow">
+  <div class="prm-workflow__head">
+    <i class="ti ti-play"></i>
+    <span class="prm-workflow__title">Start review</span>
+  </div>
+  <div class="prm-workflow__body">
+    <p class="prm-hint">Begin your evaluation of this application. Starting the review logs your activity and moves it into review.</p>
+    {% if review_readiness.ready %}
+    <form method="post" action="{% url 'start_review' request.user.uuid app.application_id %}">
+      {% csrf_token %}
+      <button type="submit" class="prm-btn prm-btn--primary"><i class="ti ti-play"></i> Start review</button>
+    </form>
+    {% else %}
+    <button type="submit" class="prm-btn prm-btn--primary" disabled><i class="ti ti-play"></i> Start review</button>
+    <p class="prm-hint prm-hint--danger" style="margin-top:10px;">Awaiting missing materials before review can begin.</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if assignment.is_verified and assignment.status == "ready_for_decision" %}
+<div class="prm-card">
+  <div class="prm-banner prm-banner--success" style="margin:14px;">
+    <i class="ti ti-circle-check"></i>
+    <div><b>Recommendation submitted</b> — this application is ready for the admission decision. The admissions office has been notified.</div>
+  </div>
+</div>
+{% endif %}
+
+{% if assignment.status == "decided" %}
+<div class="prm-card">
+  <div class="prm-banner prm-banner--success" style="margin:14px;">
+    <i class="ti ti-scale"></i>
+    <div><b>Decision made</b> — final decision: <b>{{ app.get_status_display }}</b>.{% if assignment.decision_note %}<div style="margin-top:3px;font-weight:400;">{{ assignment.decision_note }}</div>{% endif %}</div>
+  </div>
+</div>
+{% endif %}
+
+{% if assignment.status != "assigned" and assignment.status != "decided" and not assignment.is_verified %}
+{% if app.apply_method == "online" %}
+<div class="prm-card prm-workflow">
+  <div class="prm-workflow__head">
+    <i class="ti ti-list-check"></i>
+    <span class="prm-workflow__title">Field-by-field review</span>
+  </div>
+  <div class="prm-workflow__body">
+    <p class="prm-hint">Review each online response one at a time and flag any that need to be corrected by the applicant.</p>
+    <a class="prm-btn prm-btn--primary" href="{% url 'field_review' request.user.uuid app.application_id %}">
+      <i class="ti ti-arrow-right"></i> Open field review
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="prm-card prm-workflow">
+  <div class="prm-workflow__head">
+    <i class="ti ti-file-check"></i>
+    <span class="prm-workflow__title">Document verification</span>
+    <span class="prm-card__sub">{{ unverified_docs_count }} pending</span>
+  </div>
+  <div class="prm-workflow__body" style="padding:0;">
+    {% if documents %}
+    {% for doc in documents %}
+    <div class="prm-doc">
+      <span class="prm-doc__icon"><i class="ti ti-file"></i></span>
+      <div class="prm-doc__body">
+        <div class="prm-doc__name">{{ doc.file_name }}</div>
+        <div class="prm-doc__meta">{{ doc.get_doc_type_display|default:"Document" }} · {{ doc.uploaded_at|date:"M d, Y" }}</div>
+      </div>
+      {% if doc.is_verified %}
+      <span class="prm-chip prm-chip--green">Verified</span>
+      <a class="prm-btn prm-btn--ghost prm-btn--sm" href="{% url 'verify_document' request.user.uuid app.application_id doc.pk %}">Unverify</a>
+      {% else %}
+      <span class="prm-chip prm-chip--orange">Not verified</span>
+      <a class="prm-btn prm-btn--success prm-btn--sm" href="{% url 'verify_document' request.user.uuid app.application_id doc.pk %}">Verify</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="prm-hint" style="padding:14px 20px;">No documents uploaded yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="prm-card">
+  <div class="prm-card__head">
+    <i class="ti ti-check"></i>
+    <span class="prm-card__title">Submit recommendation</span>
+  </div>
+  <form method="post" action="{% url 'mark_ready' request.user.uuid app.application_id %}" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+    {% csrf_token %}
+    {% if unverified_docs_count %}
+    <p class="prm-hint prm-hint--danger">Verify all {{ unverified_docs_count }} pending document{{ unverified_docs_count|pluralize }} before submitting your recommendation.</p>
+    {% endif %}
+    <div class="prm-decision">
+      <label class="prm-decision__option">
+        <input type="radio" name="recommendation" value="admit" required>
+        <span class="prm-decision__card prm-decision__card--admit">
+          <i class="ti ti-circle-check"></i><b>Recommend Admit</b><small>Offer admission</small>
+        </span>
+      </label>
+      <label class="prm-decision__option">
+        <input type="radio" name="recommendation" value="waitlist">
+        <span class="prm-decision__card prm-decision__card--waitlist">
+          <i class="ti ti-clock"></i><b>Recommend Waitlist</b><small>Hold for review</small>
+        </span>
+      </label>
+      <label class="prm-decision__option">
+        <input type="radio" name="recommendation" value="deny">
+        <span class="prm-decision__card prm-decision__card--deny">
+          <i class="ti ti-circle-x"></i><b>Recommend Deny</b><small>Do not admit</small>
+        </span>
+      </label>
+    </div>
+    <div>
+      <label class="prm-label" for="staff-rec-note">Recommendation note (shared with the admissions office)</label>
+      <textarea name="recommendation_note" id="staff-rec-note" class="prm-textarea" rows="3" placeholder="Summary of your findings and recommendation."></textarea>
+    </div>
+    <button type="submit" class="prm-btn prm-btn--success" {% if unverified_docs_count %}disabled{% endif %}><i class="ti ti-send"></i> Submit recommendation</button>
+  </form>
+</div>
+{% endif %}

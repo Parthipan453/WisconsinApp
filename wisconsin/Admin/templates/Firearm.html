@@ -1,0 +1,465 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Firearm Management{% endblock %}
+{% block page_title %}Firearm Management{% endblock %}
+{% load permission_tags %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/firearm.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="fa-page" id="faPage">
+
+    <section class="fa-header">
+        <div class="fa-header__overlay"></div>
+        <div class="fa-header__main">
+            <div class="fa-header__eyebrow">
+                <i data-lucide="shield-alert"></i> 
+                <span>Armory Registry</span>
+            </div>
+            <h1 class="fa-header__title">Firearm Management</h1>
+            <p class="fa-header__subtitle">Track inventory, custody, and storage compliance across every campus armory location.</p>
+            <div class="fa-header__meta">
+                <i data-lucide="calendar-days"></i>
+                <span>{% now "l, F j, Y" %}</span>
+            </div> 
+        </div>
+        <div class="fa-header__actions">
+            <!-- <button type="button" class="fa-btn fa-btn--ghost" data-fa-action="filter">
+                <i data-lucide="sliders-horizontal"></i>
+                <span>Filter</span>
+            </button>
+            <button type="button" class="fa-btn fa-btn--ghost" data-fa-action="export">
+                <i data-lucide="download"></i>
+                <span>Export</span>
+            </button> -->
+            {% has_permission "firearm_create" as create_firearm %}
+
+            {% if create_firearm %}
+            <button type="button" class="fa-btn fa-btn--primary" data-fa-action="add">
+                <i data-lucide="plus"></i>
+                <span>Add Firearm</span>
+            </button>
+            {% endif %}
+        </div> 
+    </section>
+
+    <div id="faDashboardSections">
+
+    <section class="fa-stats" aria-label="Firearm statistics">
+
+        <div class="fa-stat">
+            <div class="fa-stat__icon fa-stat__icon--total"><i data-lucide="boxes"></i></div>
+            <div class="fa-stat__body">
+                <span class="fa-stat__label">Total Firearms</span>
+                <span class="fa-stat__number" data-count-to="{{ stats.total }}">0</span>
+                <div class="fa-stat__bar"><span style="width:100%"></span></div>
+            </div>
+        </div>
+
+        <div class="fa-stat">
+            <div class="fa-stat__icon fa-stat__icon--active"><i data-lucide="shield-check"></i></div>
+            <div class="fa-stat__body">
+                <span class="fa-stat__label">Active</span>
+                <span class="fa-stat__number" data-count-to="{{ stats.active }}">0</span>
+                <!-- <span class="fa-stat__pct" data-pct-of="{{ stats.total }}" data-pct-value="{{ stats.active }}"></span> -->
+                <div class="fa-stat__bar"><span data-fill-pct="{{ stats.active }}" data-fill-total="{{ stats.total }}"></span></div>
+            </div>
+        </div>
+
+        <div class="fa-stat">
+            <div class="fa-stat__icon fa-stat__icon--stored"><i data-lucide="archive"></i></div>
+            <div class="fa-stat__body">
+                <span class="fa-stat__label">Stored</span>
+                <span class="fa-stat__number" data-count-to="{{ stats.stored }}">0</span>
+                <!-- <span class="fa-stat__pct" data-pct-of="{{ stats.total }}" data-pct-value="{{ stats.stored }}"></span> -->
+                <div class="fa-stat__bar"><span data-fill-pct="{{ stats.stored }}" data-fill-total="{{ stats.total }}"></span></div>
+            </div>
+        </div>
+
+
+        <div class="fa-stat">
+            <div class="fa-stat__icon fa-stat__icon--types"><i data-lucide="shapes"></i></div>
+            <div class="fa-stat__body">
+                <span class="fa-stat__label">Firearm Types</span>
+                <span class="fa-stat__number" id="faTypeCount" data-count-to="0">0</span>
+                <div class="fa-stat__bar"><span style="width:100%"></span></div>
+            </div>
+        </div>
+
+        <div class="fa-stat">
+            <div class="fa-stat__icon fa-stat__icon--locations"><i data-lucide="map-pin"></i></div>
+            <div class="fa-stat__body">
+                <span class="fa-stat__label">Storage Locations</span>
+                <span class="fa-stat__number" id="faLocationCount" data-count-to="0">0</span>
+                <div class="fa-stat__bar"><span style="width:100%"></span></div>
+            </div>
+        </div>
+
+    </section>
+
+    <section class="fa-analytics">
+
+        <div class="fa-panel fa-panel--chart">
+            <div class="fa-panel__head">
+                <h2><i data-lucide="pie-chart"></i>Firearm Type Distribution</h2>
+                <span class="fa-panel__tag">By registry</span>
+            </div>
+            <div class="fa-panel__chart-wrap">
+                <canvas id="faTypeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="fa-panel fa-panel--chart">
+            <div class="fa-panel__head">
+                <h2><i data-lucide="bar-chart-3"></i>Firearm Status Overview</h2>
+                <span class="fa-panel__tag">Current cycle</span>
+            </div>
+            <div class="fa-panel__chart-wrap">
+                <canvas id="faStatusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="fa-panel fa-panel--activity">
+            <div class="fa-panel__head">
+                <h2><i data-lucide="history"></i>Recent Activity</h2>
+                <span class="fa-panel__tag">Live feed</span>
+            </div>
+            <ul class="fa-activity">
+                {% for entry in recent_activity %}
+                <li class="fa-activity__item">
+                    <span class="fa-activity__icon fa-activity__icon--{{ entry.tone }}"><i data-lucide="{{ entry.icon }}"></i></span>
+                    <div class="fa-activity__body">
+                        <span class="fa-activity__title">{{ entry.title }}</span>
+                        <span class="fa-activity__detail">{{ entry.detail }}</span>
+                        <span class="fa-activity__time">{{ entry.timestamp }}</span>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+    </section>
+
+    <!-- <section class="fa-section">
+        <div class="fa-section__head">
+            <h2><i data-lucide="warehouse"></i>Storage Overview</h2>
+            <span class="fa-section__sub">Vaults, racks, and armories currently in use</span>
+        </div>
+        <div class="fa-locations" id="faLocations">
+            
+        </div>
+
+    </section>
+
+    <section class="fa-analytics fa-analytics--single">
+        <div class="fa-panel fa-panel--chart">
+            <div class="fa-panel__head">
+                <h2><i data-lucide="git-branch"></i>Firearms by Acquisition Method</h2>
+                <span class="fa-panel__tag">Registry history</span>
+            </div>
+            <div class="fa-panel__chart-wrap">
+                <canvas id="faAcquisitionChart"></canvas>
+            </div>
+        </div>
+    </section> -->
+
+    <section class="fa-analytics fa-analytics--split">
+        <div class="fa-section fa-section--storage">
+            <div class="fa-section__head">
+                <h2><i data-lucide="warehouse"></i>Storage Overview</h2>
+                <span class="fa-section__sub">Vaults, racks, and armories currently in use</span>
+            </div>
+            <div class="fa-location-carousel" id="faLocationCarousel">
+                <div class="fa-locations" id="faLocations"></div>
+                <div class="fa-location-carousel__dots" id="faLocationDots"></div>
+            </div>
+        </div>
+
+        <div class="fa-panel fa-panel--chart">
+            <div class="fa-panel__head">
+                <h2><i data-lucide="git-branch"></i>Firearms by Acquisition Method</h2>
+                <span class="fa-panel__tag">Registry history</span>
+            </div>
+            <div class="fa-panel__chart-wrap">
+                <canvas id="faAcquisitionChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section class="fa-section">
+        <div class="fa-table-header">
+            <div class="fa-table-header__left">
+                <h2><i data-lucide="user-check"></i>Firearm Access</h2>
+                <span class="fa-section__sub">Users granted a firearm-related permission — static data for now</span>
+            </div>
+            <div class="fa-table-header__right">
+                <div class="fa-search-wrap">
+                    <i data-lucide="search" class="fa-search-icon"></i>
+                    <input type="search" id="faUserSearch" class="fa-search" placeholder="Search users...">
+                </div>
+                <div class="fa-select-wrap">
+                    <select id="faPermissionFilter" class="fa-select fa-choices-target">
+                        <option value="">All permission levels</option>
+                        <option value="Full Access">Full Access</option>
+                        <option value="Custody Only">Custody Only</option>
+                        <option value="View Only">View Only</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+ 
+        <div class="fa-table-wrap">
+            <table class="fa-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Department / Role</th>
+                        <th>Firearm Type</th>
+                        <th>Assigned Firearms</th>
+                        <th>Granted On</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="faUserTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="fa-cards" id="faUserCards">
+        </div>
+    </section>
+
+    </div> 
+    
+    <!-- /#faDashboardSections -->
+
+    <section class="fa-form-section" id="faAddFirearmSection" style="display:none;" aria-label="Add Firearm">
+        <form class="fa-form" id="faAddFirearmForm" novalidate data-mode="add">
+            <input type="hidden" id="faFirearmRecordId" name="firearm_id" value="">
+            <div class="fa-form__head">
+                <div>
+                    <h2><i data-lucide="package-plus"></i><span id="faFormHeadTitle">Add Firearm</span></h2>
+                    <span class="fa-section__sub" id="faFormHeadSub">Register a new firearm into the armory registry</span>
+                </div>
+            </div>
+
+            <div class="fa-form__grid">
+
+                <div class="fa-form__group fa-form__group--autocomplete">
+                    <label class="fa-form__label" for="faUserSearchField">Assigned User <span class="fa-form__required">*</span></label>
+                    <div class="fa-user-autocomplete" id="faUserAutocomplete">
+                        <input type="text" class="fa-form__input" id="faUserSearchField" placeholder="Start typing a username..." autocomplete="off" data-field="username">
+                        <input type="hidden" id="faUserSearchValue" name="username">
+                        <ul class="fa-user-autocomplete__list" id="faUserAutocompleteList" hidden></ul>
+                    </div>
+                    <span class="fa-form__error" data-error-for="username"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faFirearmName">Firearm Name <span class="fa-form__required">*</span></label>
+                    <input type="text" class="fa-form__input" id="faFirearmName" name="firearm_name" maxlength="150" placeholder="e.g. Glock 19 Sidearm">
+                    <span class="fa-form__error" data-error-for="firearm_name"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faFirearmType">Firearm Type <span class="fa-form__required">*</span></label>
+                    <select class="fa-form__select fa-choices-target" id="faFirearmType" name="firearm_type">
+                        <option value="">Select type</option>
+                        <option value="HANDGUN">Handgun</option>
+                        <option value="RIFLE">Rifle</option>
+                        <option value="SHOTGUN">Shotgun</option>
+                        <option value="TRAINING">Training Firearm</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <span class="fa-form__error" data-error-for="firearm_type"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faManufacturer">Manufacturer</label>
+                    <input type="text" class="fa-form__input" id="faManufacturer" name="manufacturer" maxlength="150" placeholder="e.g. Glock Ges.m.b.H.">
+                    <span class="fa-form__error" data-error-for="manufacturer"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faModelName">Model</label>
+                    <input type="text" class="fa-form__input" id="faModelName" name="model_name" maxlength="150" placeholder="e.g. Gen 5">
+                    <span class="fa-form__error" data-error-for="model_name"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faSerialNumber">Serial Number <span class="fa-form__required">*</span></label>
+                    <input type="text" class="fa-form__input" id="faSerialNumber" name="serial_number" maxlength="150" placeholder="Unique serial number">
+                    <span class="fa-form__error" data-error-for="serial_number"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faCaliber">Caliber</label>
+                    <input type="text" class="fa-form__input" id="faCaliber" name="caliber" maxlength="50" placeholder="e.g. 9mm">
+                    <span class="fa-form__error" data-error-for="caliber"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faPurchaseDate">Purchase Date</label>
+                    <input type="date" class="fa-form__input fa-datepicker-input" id="faPurchaseDate" name="purchase_date">
+                    <span class="fa-form__error" data-error-for="purchase_date"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faAcquisitionMethod">Acquisition Method</label>
+                    <select class="fa-form__select fa-choices-target" id="faAcquisitionMethod" name="acquisition_method">
+                        <option value="PURCHASE">Purchase</option>
+                        <option value="DONATION">Donation</option>
+                        <option value="TRANSFER">Transfer</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <span class="fa-form__error" data-error-for="acquisition_method"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faLocationName">Storage Location</label>
+                    <input type="text" class="fa-form__input" id="faLocationName" name="location_name" maxlength="150" placeholder="e.g. Main Armory Vault">
+                    <span class="fa-form__error" data-error-for="location_name"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faBuildingName">Building</label>
+                    <input type="text" class="fa-form__input" id="faBuildingName" name="building_name" maxlength="150" placeholder="e.g. Campus Police HQ">
+                    <span class="fa-form__error" data-error-for="building_name"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faRoomNumber">Room Number</label>
+                    <input type="text" class="fa-form__input" id="faRoomNumber" name="room_number" maxlength="50" placeholder="e.g. B-104">
+                    <span class="fa-form__error" data-error-for="room_number"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faSecurityLevel">Security Level</label>
+                    <input type="text" class="fa-form__input" id="faSecurityLevel" name="security_level" maxlength="100" placeholder="e.g. Level 3 - Biometric">
+                    <span class="fa-form__error" data-error-for="security_level"></span>
+                </div>
+
+                <div class="fa-form__group">
+                    <label class="fa-form__label" for="faCurrentStatus">Current Status</label>
+                    <select class="fa-form__select fa-choices-target" id="faCurrentStatus" name="current_status">
+                        <option value="ACTIVE">Active</option>
+                        <option value="STORED">Stored</option>
+                        <option value="RETIRED">Retired</option>
+                        <option value="DISPOSED">Disposed</option>
+                    </select>
+                    <span class="fa-form__error" data-error-for="current_status"></span>
+                </div>
+
+                <!-- <div class="fa-form__group fa-form__group--checkbox">
+                    <label class="fa-form__checkbox">
+                        <input type="checkbox" id="faIsFullCrud" name="is_full_crud" checked>
+                        <span>Grant Full CRUD Access on this record</span>
+                    </label>
+                    <span class="fa-form__error" data-error-for="is_full_crud"></span>
+                </div> -->
+
+                <div class="fa-form__group fa-form__group--full">
+                    <label class="fa-form__label" for="faNotes">Notes</label>
+                    <textarea class="fa-form__textarea" id="faNotes" name="notes" rows="3" placeholder="Optional additional notes"></textarea>
+                    <span class="fa-form__error" data-error-for="notes"></span>
+                </div>
+
+            </div>
+
+            <div class="fa-form__actions">
+                <button type="button" class="fa-btn fa-btn--outline" id="faCancelAddFirearm">
+                    <i data-lucide="x"></i>
+                    <span>Cancel</span>
+                </button>
+                <button type="submit" class="fa-btn fa-btn--primary" id="faSaveFirearm">
+                    <i data-lucide="save"></i>
+                    <span>Save</span>
+                </button>
+            </div>
+        </form>
+    </section>
+
+    
+
+   
+
+</div>
+
+<script>
+    window.FA_ENDPOINTS = {
+        userSearch: "{% url 'firearm_user_search_json' %}",
+        createFirearm: "{% url 'firearm_create_json' %}",
+        updateFirearmBase: "{% url 'firearm_update_json' 0 %}".replace('/0/update/', '/')
+    };
+</script>
+
+<script id="faFirearmsData" type="application/json">
+[
+{% for f in firearms %}
+    {
+        "id": {{ f.id }},
+        "username": "{{ f.user.username|escapejs }}",
+        "name": "{{ f.firearm_name|escapejs }}",
+        "type": "{{ f.firearm_type|escapejs }}",
+        "manufacturer": "{{ f.manufacturer|escapejs }}",
+        "model": "{{ f.model_name|escapejs }}",
+        "serial": "{{ f.serial_number|escapejs }}",
+        "caliber": "{{ f.caliber|escapejs }}",
+        "status": "{{ f.current_status|escapejs }}",
+        "purchase": "{% if f.purchase_date %}{{ f.purchase_date|date:"Y-m-d" }}{% endif %}",
+        "location": "{{ f.location_name|escapejs }}",
+        "building": "{{ f.building_name|escapejs }}",
+        "room": "{{ f.room_number|escapejs }}",
+        "security": "{{ f.security_level|escapejs }}",
+        "acquisition": "{{ f.acquisition_method|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+
+<script id="faChartData" type="application/json">
+{
+    "typeLabels": {{ type_chart_labels|safe }},
+    "typeData": {{ type_chart_data|safe }},
+    "statusLabels": {{ status_chart_labels|safe }},
+    "statusData": {{ status_chart_data|safe }}
+}
+</script>
+
+{% endblock %}
+
+{% block page_toasts %}
+
+ <!-- <div class="fa-toast" id="faToast" role="status" aria-live="polite"></div> -->
+
+ <div id="fa-global-toast-container">
+    <div class="fa-toast" id="faToast" role="alert" aria-live="polite" hidden>
+        <div class="fa-toast__icon-wrap" id="faToastIconWrap">
+            <i data-lucide="x-circle" id="faToastIcon"></i>
+        </div>
+        <div class="fa-toast__body">
+            <span class="fa-toast__title" id="faToastTitle">Error</span>
+            <span class="fa-toast__msg" id="faToastMsg"></span>
+        </div>
+        <button type="button" class="fa-toast__close" id="faToastClose" aria-label="Dismiss">
+            <i data-lucide="x"></i>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+<script id="faPermissionUsersData" type="application/json">{{ permission_users_json|safe }}</script>
+<script>
+    {% has_permission "firearm_update" as update_firearm %}
+    window.FA_CAN_UPDATE_FIREARM = {{ update_firearm|yesno:"true,false" }};
+</script>
+<script src="{% static 'script/firearm.js' %}"></script>
+{% endblock %}

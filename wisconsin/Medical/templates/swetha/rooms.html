@@ -1,0 +1,282 @@
+<!-- kali code  -->
+
+{% extends "medical_base.html" %}
+{% load static %}
+
+{% block title %}Rooms{% endblock %}
+{% block page_title %}Rooms{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+<link rel="stylesheet" href="{% static "css/swetha/rooms.css" %}" />
+{% endblock %}
+
+{% block content %}
+<div class="med-rooms"
+     data-admission-requests-url="{% url 'Medical:admission_requests_list' %}"
+     data-admit-url="{% url 'Medical:admit_patient_to_room' %}"
+     data-room-occupant-url-base="/medical/rooms/room/">
+
+    <div class="med-rooms__head" data-aos="fade-up">
+        <div>
+            <h1 class="med-rooms__title">Rooms</h1>
+            <p class="med-rooms__subtitle">
+                {% if hospital %}
+                    {{ hospital.hospital_name }}{% if building %} &middot; {{ building.building_name }}{% endif %}
+                {% else %}
+                    No hospital assigned to your profile
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <section class="med-rooms__section" data-aos="fade-up">
+        <div class="med-rooms__section-head">
+            <h2><i class="fas fa-notes-medical"></i> Admission Requests</h2>
+            <span class="med-rooms__count-pill" id="admissionRequestsCount">{{ admission_requests|length }} pending</span>
+        </div>
+
+        <div class="med-rooms__admissions" id="admissionRequestsList">
+            {% for req in admission_requests %}
+            <div class="med-rooms__admission-card med-rooms__admission-card--{{ req.priority }}"
+                 data-id="{{ req.id }}"
+                 data-patient-name="{{ req.patient_name }}"
+                 data-patient-number="{{ req.patient_number }}"
+                 data-number="{{ req.number }}"
+                 data-remark="{{ req.remark }}"
+                 data-requested-by="{{ req.requested_by }}"
+                 data-requested-at="{{ req.requested_at }}"
+                 data-priority="{{ req.priority }}">
+                <div class="med-rooms__admission-top">
+                    <div class="med-rooms__admission-patient">
+                        <span class="med-rooms__admission-avatar">{{ req.patient_name|slice:":1" }}</span>
+                        <div>
+                            <div class="med-rooms__admission-name">{{ req.patient_name }}</div>
+                            <div class="med-rooms__admission-id">{{ req.number }}</div>
+                        </div>
+                    </div>
+                    <span class="med-rooms__priority-badge med-rooms__priority-badge--{{ req.priority }}">
+                        {{ req.priority|title }}
+                    </span>
+                </div>
+                <div class="med-rooms__admission-reason">{{ req.remark|default:"No remark provided." }}</div>
+                <div class="med-rooms__admission-meta">
+                    <span><i class="fas fa-user-doctor"></i> {{ req.requested_by }}</span>
+                    <span><i class="fas fa-clock"></i> {{ req.requested_at }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="med-rooms__empty" id="admissionRequestsEmpty" {% if admission_requests %}style="display:none;"{% endif %}>
+            No admission requests right now.
+        </div>
+    </section>
+
+    <section class="med-rooms__stats" data-aos="fade-up">
+        <div class="med-rooms__stat-card">
+            <div class="med-rooms__stat-icon med-rooms__stat-icon--floors"><i class="fas fa-layer-group"></i></div>
+            <div>
+                <div class="med-rooms__stat-value" id="statTotalFloors">{{ total_floors }}</div>
+                <div class="med-rooms__stat-label">Total Floors</div>
+            </div>
+        </div>
+        <div class="med-rooms__stat-card">
+            <div class="med-rooms__stat-icon med-rooms__stat-icon--rooms"><i class="fas fa-door-open"></i></div>
+            <div>
+                <div class="med-rooms__stat-value" id="statTotalRooms">{{ total_rooms }}</div>
+                <div class="med-rooms__stat-label">Total Rooms</div>
+            </div>
+        </div>
+        <div class="med-rooms__stat-card">
+            <div class="med-rooms__stat-icon med-rooms__stat-icon--available"><i class="fas fa-check-circle"></i></div>
+            <div>
+                <div class="med-rooms__stat-value" id="statAvailable">{{ status_counts.available }}</div>
+                <div class="med-rooms__stat-label">Available</div>
+            </div>
+        </div>
+        <div class="med-rooms__stat-card">
+            <div class="med-rooms__stat-icon med-rooms__stat-icon--occupied"><i class="fas fa-bed-pulse"></i></div>
+            <div>
+                <div class="med-rooms__stat-value" id="statOccupied">{{ status_counts.occupied }}</div>
+                <div class="med-rooms__stat-label">Occupied</div>
+            </div>
+        </div>
+        <div class="med-rooms__stat-card">
+            <div class="med-rooms__stat-icon med-rooms__stat-icon--maintenance"><i class="fas fa-screwdriver-wrench"></i></div>
+            <div>
+                <div class="med-rooms__stat-value" id="statMaintenance">{{ status_counts.maintenance }}</div>
+                <div class="med-rooms__stat-label">Maintenance</div>
+            </div>
+        </div>
+        <div class="med-rooms__stat-card">
+            <div class="med-rooms__stat-icon med-rooms__stat-icon--blocked"><i class="fas fa-ban"></i></div>
+            <div>
+                <div class="med-rooms__stat-value" id="statBlocked">{{ status_counts.blocked }}</div>
+                <div class="med-rooms__stat-label">Blocked</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="med-rooms__section" data-aos="fade-up">
+        <div class="med-rooms__section-head">
+            <h2><i class="fas fa-building"></i> Floors &amp; Rooms</h2>
+        </div>
+
+        {% if floors %}
+        <div class="med-rooms__accordion" id="floorsAccordion">
+            {% for floor in floors %}
+            <div class="med-rooms__floor" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:"50" }}" data-floor-id="{{ floor.id }}">
+                <button type="button" class="med-rooms__floor-head" data-target="floor-{{ floor.id }}">
+                    <span class="med-rooms__floor-name">
+                        <i class="fas fa-layer-group"></i>
+                        {{ floor.floor_name }}
+                        <span class="med-rooms__floor-number">Floor {{ floor.floor_number }}</span>
+                    </span>
+                    <span class="med-rooms__floor-right">
+                        <span class="med-rooms__floor-room-count">{{ floor.rooms.all|length }} room{{ floor.rooms.all|length|pluralize }}</span>
+                        <i class="fas fa-chevron-down med-rooms__chevron"></i>
+                    </span>
+                </button>
+
+                <div class="med-rooms__floor-body" id="floor-{{ floor.id }}">
+                    <div class="med-rooms__floor-body-inner">
+                        {% if floor.rooms.all %}
+                        <div class="med-rooms__room-grid">
+                            {% for room in floor.rooms.all %}
+                            <div class="med-rooms__room-card"
+                                 data-room-id="{{ room.id }}"
+                                 data-floor-id="{{ floor.id }}"
+                                 data-room-number="{{ room.room_number }}"
+                                 data-room-name="{{ room.room_name }}"
+                                 data-status="{{ room.status }}">
+                                <div class="med-rooms__room-top">
+                                    <span class="med-rooms__room-number">{{ room.room_number }}</span>
+                                    <span class="med-rooms__status-badge med-rooms__status-badge--{{ room.status|lower }}">
+                                        {{ room.get_status_display }}
+                                    </span>
+                                </div>
+                                <div class="med-rooms__room-name">{{ room.room_name }}</div>
+                                <div class="med-rooms__room-type">
+                                    {% if room.room_type %}
+                                        <i class="fas fa-tag"></i> {{ room.get_room_type_display }}
+                                    {% else %}
+                                        <i class="fas fa-tag"></i> Unspecified
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="med-rooms__empty">No rooms on this floor.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="med-rooms__empty">
+            <i class="fas fa-building-circle-xmark"></i>
+            <p>No building/floor data found for your hospital.</p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<div id="admissionRequestModal" class="med-rooms__modal" style="display:none;">
+    <div class="med-rooms__modal-overlay" data-close-modal="admissionRequestModal"></div>
+    <div class="med-rooms__modal-content">
+        <div class="med-rooms__modal-header">
+            <div>
+                <h3><i class="fas fa-notes-medical"></i> Admission Request</h3>
+                <p id="admissionModalPatientName">Patient</p>
+            </div>
+            <button type="button" class="med-rooms__modal-close" data-close-modal="admissionRequestModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="med-rooms__modal-body">
+            <div class="med-rooms__detail-grid" id="admissionModalDetails"></div>
+
+            <div class="med-rooms__room-picker">
+                <h4><i class="fas fa-door-open"></i> Select an Available Room</h4>
+                <div class="med-rooms__room-picker-list" id="roomPickerList"></div>
+                <div class="med-rooms__empty" id="roomPickerEmpty" style="display:none;">
+                    No available rooms right now.
+                </div>
+            </div>
+        </div>
+
+        <div class="med-rooms__modal-footer">
+            <button type="button" class="med-rooms__btn med-rooms__btn-secondary" data-close-modal="admissionRequestModal">
+                Cancel
+            </button>
+            <button type="button" class="med-rooms__btn med-rooms__btn-success" id="confirmAdmitBtn" disabled>
+                <i class="fas fa-bed-pulse"></i>
+                Admit Patient
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<div id="roomOccupantModal" class="med-rooms__modal" style="display:none;">
+    <div class="med-rooms__modal-overlay" data-close-modal="roomOccupantModal"></div>
+    <div class="med-rooms__modal-content med-rooms__modal-content--lg">
+        <div class="med-rooms__modal-header">
+            <div>
+                <h3><i class="fas fa-bed-pulse"></i> Room Occupant</h3>
+                <p id="occupantModalRoomName">Room</p>
+            </div>
+            <button type="button" class="med-rooms__modal-close" data-close-modal="roomOccupantModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="med-rooms__modal-body med-rooms__modal-body--split">
+            <div class="med-rooms__occupant-col">
+                <div class="med-rooms__detail-grid" id="occupantModalDetails"></div>
+            </div>
+
+            <div class="med-rooms__occupant-col med-rooms__checkup-col">
+                <h4><i class="fas fa-notes-medical"></i> Checkup Remarks</h4>
+
+                <div class="med-rooms__checkup-input-wrap">
+                    <textarea
+                        id="checkupNoteInput"
+                        class="med-rooms__checkup-input"
+                        rows="3"
+                        placeholder="Add a checkup remark..."
+                    ></textarea>
+
+                    <button type="button" class="med-rooms__checkup-save-btn" id="saveCheckupBtn" title="Save Remark">
+                        <i class="fas fa-floppy-disk"></i>
+                    </button>
+                </div>
+
+                <div class="med-rooms__checkup-list" id="checkupNotesList"></div>
+                <div class="med-rooms__empty" id="checkupNotesEmpty" style="display:none;">
+                    No checkup remarks yet.
+                </div>
+            </div>
+        </div>
+
+        <div class="med-rooms__modal-footer">
+            <button type="button" class="med-rooms__btn med-rooms__btn-secondary" data-close-modal="roomOccupantModal">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="med-rooms-toast-container"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="{% static "js/swetha/rooms.js" %}"></script>
+{% endblock %}

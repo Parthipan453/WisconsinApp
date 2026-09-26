@@ -1,0 +1,426 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Sport Club{% endblock %}
+{% block page_title %}Sport Club{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/reports/club.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+{% endblock %}
+
+{% block content %}
+<div class="club-page">
+
+    <section class="club-hero">
+        <div class="club-hero-slider">
+            {% for club in clubs %}
+            {% if club.image %}
+            <img src="{{ club.image.url }}" class="club-slide {% if forloop.first %}active{% endif %}"
+                alt="{{ club.club_name }}">
+            {% endif %}
+            {% empty %}
+            <img src="{% static 'images/cricket.avif' %}" class="club-slide active" alt="Default Banner">
+            {% endfor %}
+        </div>
+
+        <div class="club-hero__overlay"></div>
+        <div class="club-hero__content">
+
+            <nav class="club-hero__breadcrumb" aria-label="Breadcrumb">
+                <a href="{% url 'admin_dashboard' request.user.uuid %}" class="club-hero__crumb club-hero__crumb"><i
+                        clas="ti ti-soccer-field"></i>SportHub</a>
+                <i data-lucide="chevron-right"></i>
+                <span class="club-hero__crumb--active">Clubs</span>
+            </nav>
+
+            <h1 class="club-hero__title">Our Clubs</h1>
+            <div class="club-hero__underline"></div>
+            <p class="club-hero__subtitle">Discover and join clubs that match your passion.</p>
+            <div class="club-hero__actions">
+                <button href="#" class="club-btn club-btn--primary" data-bs-toggle="modal"
+                    data-bs-target="#addClubModal">
+                    <i data-lucide="plus"></i>New Club
+                </button>
+            </div>
+
+        </div>
+
+        <div class="club-stats">
+            <div data-aos="fade-up" data-aos-duration="500" data-aos-delay="80">
+                <div class="club-stat-card">
+                    <div class="club-stat-card__icon"><i data-lucide="building-2"></i></div>
+                    <div class="club-stat-card__body">
+                        <span class="club-stat-card__label">Total Clubs</span>
+                        <span class="club-stat-card__value">{{ total_clubs }}</span>
+                        <span class="club-stat-card__sub">Active clubs</span>
+                    </div>
+                </div>
+            </div>
+            <div data-aos="fade-up" data-aos-duration="500" data-aos-delay="120">
+                <div class="club-stat-card">
+                    <div class="club-stat-card__icon"><i data-lucide="shield"></i></div>
+                    <div class="club-stat-card__body">
+                        <span class="club-stat-card__label">Total Active Teams</span>
+                        <span class="club-stat-card__value">{{ total_teams }}</span>
+                        <span class="club-stat-card__sub">Across all clubs</span>
+                    </div>
+                </div>
+            </div>
+            <div data-aos="fade-up" data-aos-duration="500" data-aos-delay="160">
+                <div class="club-stat-card">
+                    <div class="club-stat-card__icon"><i data-lucide="user-round"></i></div>
+                    <div class="club-stat-card__body">
+                        <span class="club-stat-card__label">Total Coaches</span>
+                        <span class="club-stat-card__value">{{ total_coaches }}</span>
+                        <span class="club-stat-card__sub">Active Coaches</span>
+                    </div>
+                </div>
+            </div>
+            <div data-aos="fade-up" data-aos-duration="500" data-aos-delay="160">
+                <div class="club-stat-card">
+                    <div class="club-stat-card__icon"><i data-lucide="badge-check"></i></div>
+                    <div class="club-stat-card__body">
+                        <span class="club-stat-card__label">Actve Club</span>
+                        <span class="club-stat-card__value">{{ active_clubs }}</span>
+                        <span class="club-stat-card__sub">Currrently running</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FILTER BAR -->
+    <section class="club-filterbar" data-aos="fade-up" data-aos-duration="500" data-aos-delay="200">
+        <form class="club-filterbar__form" id="clubFilterForm">
+            <div class="club-filterbar__search">
+                <i data-lucide="search"></i>
+                <input type="search" id="clubSearchInput" placeholder="Search clubs by name..."
+                    aria-label="Search clubs by name">
+            </div>
+
+            <div class="club-filterbar__select">
+                <select id="clubCategoryFilter" class="form-select" aria-label="Filter by category">
+                    <option value="">All Category</option>
+                    <option value="team">Team Sports</option>
+                    <option value="individual">Individual Sports</option>
+                </select>
+                <!-- <i data-lucide="chevron-down"></i> -->
+            </div>
+
+            <div class="club-filterbar__select">
+                <select id="clubSportFilter" class="form-select" aria-label="Filter by sport">
+                    <option value="">All Sports</option>
+                    {% for sport in sports %}
+                    <option value="{{ sport.sport_name|lower }}">
+                        {{ sport.sport_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <!-- <i data-lucide="chevron-down"></i> -->
+            </div>
+
+            <div class="club-filterbar__select">
+                <select id="clubStatusFilter" class="form-select" aria-label="Filter by status">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+
+                <!-- <i data-lucide="chevron-down"></i> -->
+            </div>
+
+            <button type="submit" class="club-btn club-btn--filter">
+                <i data-lucide="filter"></i><span>Filter</span>
+            </button>
+            <button type="button" class="club-btn club-btn--reset" id="clubResetBtn">
+                <i data-lucide="rotate-ccw"></i><span>Reset</span>
+            </button>
+        </form>
+    </section>
+
+    <!-- CLUB GRID -->
+    <section class="club-grid" id="clubGrid">
+        {% for club in clubs %}
+
+        <article class="club-card" data-name="{{ club.club_name|lower }}" data-sport="{{ club.sport.sport_name|lower }}"
+            data-category="{% if club.sport.is_team_sport %}team{% else %}individual{% endif %}"
+            data-status="{% if club.is_active %}active{% else %}inactive{% endif %}">
+
+            <div class="club-card__media">
+
+                {% if club.image %}
+                <img src="{{ club.image.url }}" class="club-bg">
+                {% endif %}
+
+                <!-- <span class="club-card__badge">
+                    {{ club.sport.sport_name|lower }}
+                </span> -->
+                <span class="club-card__badge">
+                    {{ club.sport.sport_name|cut:" M"|cut:" F"|lower }}
+                </span>
+                <div class="club-card__logo">
+                    {% if club.logo %}
+                    <img src="{{ club.logo.url }}" alt="{{ club.club_name }}">
+                    {% else %}
+                    <i data-lucide="land-plot"></i>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <div class="club-card__body">
+
+                <div class="club-card__header">
+                    <h3 class="club-card__name"> {{ club.club_name }}</h3>
+
+                    {% if club.is_active %}
+                    <span class="club-card__status club-card__status--active">
+                        Active
+                    </span>
+                    {% else %}
+                    <span class="club-card__status club-card__status--inactive">
+                        Inactive
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="club-card__tagline">
+                    {{ club.description }}
+                </p>
+                <div class="club-card__footer">
+                    <div class="club-card__meta">
+                        <span>
+                            <i data-lucide="shield"></i>
+                            {{ club.total_teams }} Teams
+                        </span>
+                        <span>
+                            <i data-lucide="user-round"></i>
+                            {{ club.total_coaches }} Coach
+                        </span>
+                    </div>
+                    <div class="club-card__actions">
+                        <div class="club-dropdown">
+
+                            <button class="clubbtn club-menu-btn" type="button">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+
+                            <div class="club-dropdown-menu">
+                                <a href="{% url 'club_view' club.id %}" title="View">
+                                    <i data-lucide="eye"></i>
+                                </a>
+                                <a href="#" class=edit-btn 
+                                title="Edit"
+                                    data-url="{% url 'club_update' club.id %}" data-id="{{ club.id }}"
+                                    data-name="{{ club.club_name }}" data-description="{{ club.description }}"
+                                    data-sport="{{ club.sport.id }}"
+                                   data-status="{% if club.is_active %}ACTIVE{% else %}INACTIVE{% endif %}"
+                                    data-bs-toggle="modal" data-bs-target="#editClubModal">
+                                    <i data-lucide="square-pen"></i>
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </article>
+
+        {% empty %}
+
+        <p>No Clubs Found.</p>
+
+        {% endfor %}
+
+    </section>
+
+    <!-- EMPTY STATE -->
+    <div class="club-empty" id="clubEmptyState" hidden>
+        <i data-lucide="search-x"></i>
+        <p>No clubs match your search.</p>
+    </div>
+
+    <!-- PAGINATION -->
+    <nav class="club-pagination" aria-label="Club list pages">
+        <button class="club-page-btn club-page-btn--nav" id="clubPrevPage" aria-label="Previous page">
+            <i data-lucide="chevrons-left"></i>
+        </button>
+        <div id="clubPageNumbers"></div>
+        <button class="club-page-btn club-page-btn--nav" id="clubNextPage" aria-label="Next page">
+            <i data-lucide="chevrons-right"></i>
+        </button>
+    </nav>
+
+</div>
+{% endblock %}
+
+
+<!-- add club modal -->
+{% block global_modal %}
+
+<div class="modal fade" id="addClubModal" tabindex="-1">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+
+        <div class="modal-content">
+
+            <form id="clubForm" method="POST" action="{% url 'club_save' %}" enctype="multipart/form-data" novalidate>
+
+                {% csrf_token %}
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Sports Club</h5>
+                    <button type="button" id="clubCloseBtn" class="btn-close" data-bs-dismiss="modal">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label">Club Name <span style="color:red"> *</span></label>
+                            <input type="text" name="club_name" id="club_name" class="form-control" >
+                            <div class="invalid-feedback"></div>
+
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sport <span style="color:red"> *</span></label>
+                            <select name="sport" class="form-select" id="addclubsport" >
+                                <option value=""> Select Sport</option>
+                                {% for sport in sports %}
+                                <option value="{{sport.id}}">
+                                    {{sport.sport_name}}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Description <small class="text-muted">(optinal)</small></label>
+                            <textarea name="description" id="description" class="form-control" rows="1"> </textarea>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status <span style="color:red"> *</span></label>
+                            <select name="status" class="form-select" id="addclubstatus">
+                                <option value="">status</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE"> Inactive </option>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Club Logo <small class="text-muted">(optinal)</small></label>
+                            <input type="file" name="logo" id="logo" class="form-control"
+                                accept=".jpg,.jpeg,.png,.webp,image/*">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cover Image<span style="color:red"> *</span></label>
+                            <input type="file" name="image" id="image" class="form-control"
+                                accept=".jpg,.jpeg,.png,.webp,image/*" >
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="clubCancelBtn" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        Save Club
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- editclub -->
+<div class="modal fade" id="editClubModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <form id="editClubForm" method="POST"  enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Sports Club</h5>
+                    <button type="button"  class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Club Name <span style="color:red"> *</span></label>
+                            <input type="text" name="club_name" class="form-control" value="{{club.club_name}}">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sport <span style="color:red"> *</span></label>
+                            <select name="sport" class="form-select" id="editclubsport" required>
+                                {% for sport in sports %}
+                                <option value="{{ sport.id }}" {% if sport.id == club.sport.id %}selected{% endif %}>
+                                    {{ sport.sport_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Description <small class="text-muted">(optinal)</small></label>
+                            <textarea name="description" class="form-control" rows="2"></textarea>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status <span style="color:red"> *</span></label>
+                            <select name="status" class="form-select " id="editclubstatus" required>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive
+                                </option>
+                            </select>
+                
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Club Logo <small class="text-muted">(optinal)</small></label>
+                            <input type="file" name="logo" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/*">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Cover Image</label>
+                            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/*">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"> <i class="fa fa-arrow-left text-white"></i> Back</button>
+                    <button type="submit" class="btn btn-danger">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/reports/club.js' %}"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+{% endblock %}

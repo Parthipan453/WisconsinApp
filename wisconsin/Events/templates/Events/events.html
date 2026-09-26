@@ -1,0 +1,250 @@
+<!-- Gayathri G -->
+{% extends "Base/events_base.html" %}
+{% load static %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/Events/events.css' %}" />
+{% endblock extra_css %}
+{% block content %}
+  <section class="events-section" data-aos="fade-up">
+    <div class="events-container">
+      <!-- Header -->
+      <div class="events-header">
+        <img src="{% static 'img/Events/logo.png' %}"
+             alt="Wisconsin Logo"
+             width="60"
+             height="90" />
+        <div>
+          <h1>Events Calendar</h1>
+        </div>
+      </div>
+      <h2 class="events-heading">All Events</h2>
+      <span class="browse-underline"></span>
+      <!-- Layout -->
+      <div class="events-layout">
+        <!-- LEFT -->
+        <div class="events-main">
+          {% if grouped_events %}
+            {% for group in grouped_events %}
+              <div class="event-day">
+                <div class="day-header">
+                  <i class="ti ti-calendar-event"></i>
+                  {% if group.date == today %}
+                    {% comment %} F j Y => Full Month name, day, 4 digit year {% endcomment %}
+                    Today, {{ group.date|date:"F j, Y" }}
+                  {% elif group.date == tomorrow %}
+                    Tomorrow, {{ group.date|date:"F j, Y" }}
+                  {% else %}
+                    {{ group.date|date:"l, F j, Y" }}
+                  {% endif %}
+                </div>
+                {% for event in group.events %}
+                  <div class="event-card">
+                    <div class="event-icon">
+                      <i class="ti ti-users"></i>
+                    </div>
+                    <div class="event-content">
+                      <div class="event-title-row">
+                        <a href="{% url 'event-detail' event.event_id %}" class="event-title">{{ event.event_title }}</a>
+                        {% if event.event_status == "Cancelled" %}
+                          <span class="event-status-badge cancelled">Cancelled</span>
+                        {% endif %}
+                      </div>
+                      {% if event.event_subtitle %}
+                        <p class="event-subtitle">{{ event.event_subtitle }}</p>
+                      {% endif %}
+                      <div class="event-meta">
+                        <span>
+                          <i class="event-meta-icon ti ti-clock"></i>
+                          <p class="event-meta-details">
+                            {{ event.start_datetime|date:"M j, Y g:i A" }}
+                            {% if event.end_datetime %}
+                              - {{ event.end_datetime|date:"M j, Y g:i A" }}
+                            {% endif %}
+                          </p>
+                        </span>
+                        <span>
+                          <i class="event-meta-icon ti ti-map-pin-filled"></i>
+                          <p class="event-meta-details">
+                            {% if event.event_mode == event.ONLINE %}
+                              Online
+                            {% else %}
+                              {{ event.venue.venue_name }}
+                            {% endif %}
+                          </p>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                {% empty %}
+                  <div class="event-empty-day">
+                    <div class="event-empty-day-icon">
+                      <i class="ti ti-calendar-off"></i>
+                    </div>
+                    <div class="event-empty-day-content">
+                      <h4>No events available for this day</h4>
+                      <p>There are no scheduled events on this date.</p>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="event-day">
+              <div class="day-header">
+                <i class="ti ti-calendar-event"></i>
+                Events
+              </div>
+              <div class="events-empty">
+                <div class="events-empty-icon">
+                  <i class="ti ti-calendar-off"></i>
+                </div>
+                <h3>No Events Available</h3>
+                <p>
+                  There are currently no published events to display.
+                  Please check back later.
+                </p>
+              </div>
+            </div>
+          {% endif %}
+          <!-- Pagination -->
+          {% if page_obj.has_other_pages %}
+            <div class="events-pagination">
+              {% if page_obj.has_previous %}
+                <a class="ajax-filter"
+                   href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_date %}&date={{ selected_date }}{% endif %}">
+                  <button>
+                    <i class="ti ti-arrow-left"></i>
+                    <div class="pagination-text">Previous</div>
+                  </button>
+                </a>
+              {% else %}
+                <button class="pagination-btn pagination-btn-disabled">
+                  <i class="ti ti-arrow-left"></i>
+                  <div class="pagination-text">Previous</div>
+                </button>
+              {% endif %}
+              {% if page_obj.has_next %}
+                <a class="ajax-filter"
+                   href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_date %}&date={{ selected_date }}{% endif %}">
+                  <button>
+                    <div class="pagination-text-next">Next</div>
+                    <i class="ti ti-arrow-right"></i>
+                  </button>
+                </a>
+              {% else %}
+                <button class="pagination-btn pagination-btn-disabled">
+                  <div class="pagination-text-next">Next</div>
+                  <i class="ti ti-arrow-right"></i>
+                </button>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        <!-- SIDEBAR -->
+        <aside class="events-sidebar">
+          <!-- Calendar -->
+          <div class="sidebar-card" id="calendar-container">
+            <div class="calendar-header">
+              <!-- Previous Month -->
+              <a class="ajax-filter"
+                 href="?month={{ prev_month }}&year={{ prev_year }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                <button type="button">
+                  <i class="ti ti-chevron-left"></i>
+                </button>
+              </a>
+              <h4>{{ calendar_month_name }} {{ calendar_year }}</h4>
+              <!-- Next Month -->
+              <a class="ajax-filter"
+                 href="?month={{ next_month }}&year={{ next_year }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                <button type="button">
+                  <i class="ti ti-chevron-right"></i>
+                </button>
+              </a>
+            </div>
+            <div class="calendar-grid">
+              <!-- Weekday Headers -->
+              <span>S</span>
+              <span>M</span>
+              <span>T</span>
+              <span>W</span>
+              <span>T</span>
+              <span>F</span>
+              <span>S</span>
+              <!-- Calendar Dates -->
+              {% for week in calendar_days %}
+                {% for day in week %}
+                  <a href="?date={{ day|date:'Y-m-d' }}&month={{ calendar_month }}&year={{ calendar_year }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                     class="ajax-filter calendar-day {% if day.weekday == 6 %}sunday{% endif %} {% if day.weekday == 5 %}saturday{% endif %} {% if day.month != calendar_month %}calendar-other-month{% endif %} {% if day|date:'Y-m-d' == calendar_date %}calendar-selected{% endif %} {% if day == today %}calendar-today{% endif %} ">
+                    {{ day.day }}
+                  </a>
+                {% endfor %}
+              {% endfor %}
+            </div>
+            {% if selected_date %}
+              <div class="calendar-filter">
+                <div class="calendar-filter-info">
+                  <i class="ti ti-calendar-event"></i>
+                  <span>
+                    Showing events for
+                    <strong>{{ selected_date_obj|date:"M j, Y" }}</strong>
+                  </span>
+                </div>
+                <a href="?month={{ calendar_month }}&year={{ calendar_year }}{% if search %}&search={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
+                   class="ajax-filter calendar-clear-btn">
+                  <i class="ti ti-x"></i>
+                  Clear filter
+                </a>
+              </div>
+            {% endif %}
+          </div>
+          <!-- Search -->
+          <div class="search-box">
+            <i class="ti ti-search"></i>
+            <input id="event-search"
+                   type="text"
+                   placeholder="Search events..."
+                   value="{{ search }}"
+                   autocomplete="off" />
+            <button id="clear-search"
+                    class="clear-search-btn"
+                    type="button"
+                    aria-label="Clear search">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <!-- Categories -->
+          <div class="browse-card" id="browse-container">
+            <div class="browse-header">
+              <h3 class="events-heading">Browse</h3>
+              <span class="browse-underline"></span>
+            </div>
+            <div class="browse-links">
+              <!-- All Categories -->
+              <a href="?{% if search %}search={{ search }}&{% endif %}{% if selected_date %}date={{ selected_date }}&{% endif %}&month={{ calendar_month }}&year={{ calendar_year }}"
+                 class="ajax-filter browse-item {% if not selected_category %}browse-active{% endif %}">
+                <div class="browse-left">
+                  <i class="ti ti-category-filled"></i>
+                  <span>All Categories</span>
+                </div>
+                <i class="ti ti-chevron-right"></i>
+              </a>
+              {% for category in categories %}
+                <a href="?category={{ category.category_id }}&{% if search %}&search={{ search }}{% endif %}&{% if selected_date %}&date={{ selected_date }}{% endif %}&month={{ calendar_month }}&year={{ calendar_year }}"
+                   class="ajax-filter browse-item {% if selected_category == category.category_id|stringformat:'s' %}browse-active{% endif %}">
+                  <div class="browse-left">
+                    <i class="ti ti-bookmark-filled"></i>
+                    <span>{{ category.category_name }}</span>
+                  </div>
+                  <i class="ti ti-chevron-right"></i>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+{% endblock content %}
+{% block extra_js %}
+  <script src="{% static "script/Events/events.js" %}"></script>
+{% endblock extra_js %}

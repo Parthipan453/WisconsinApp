@@ -1,0 +1,720 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+{% block title %}Advisee Publications{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet"
+          href="{% static 'css/leo/ResearchPublications/advisor_publication_list.css' %}">
+{% endblock extra_css %}
+{% block content %}
+    <div class="advisor-publications-page">
+        {% comment %} <div class="committee-publication-management-link">
+            <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}">
+                <i class="ti ti-arrow-left"></i>
+                <span>Back to PhD Management</span>
+            </a>
+        </div> {% endcomment %}
+        <section class="publication-hero">
+            <div class="publication-hero-main">
+                <div class="publication-hero-icon">
+                    <i class="ti ti-book-2"></i>
+                </div>
+                <div class="publication-hero-content">
+                    <div class="publication-eyebrow">
+                        <span class="eyebrow-dot"></span>
+                        ADVISOR RESEARCH
+                    </div>
+                    <h1>Advisee Publications</h1>
+                    <p>
+                        Monitor, review and track research publications
+                        submitted by your PhD advisees.
+                    </p>
+                    <div class="publication-hero-meta">
+                        <span>
+                            <i class="ti ti-users"></i>
+                            {{ total_publications }} Research Records
+                        </span>
+                        <span>
+                            <i class="ti ti-database"></i>
+                            {{ indexed_count }} Indexed
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="publication-hero-decoration">
+                <div class="hero-ring hero-ring-one"></div>
+                <div class="hero-ring hero-ring-two"></div>
+                <i class="ti ti-books hero-floating-icon"></i>
+            </div>
+        </section>
+        <section class="publication-stat-grid">
+            <div class="publication-stat-card">
+                <div class="publication-stat-top">
+                    <div class="publication-stat-icon total">
+                        <i class="ti ti-books"></i>
+                    </div>
+                    <span class="publication-stat-label">TOTAL</span>
+                </div>
+                <div class="publication-stat-value">{{ total_publications }}</div>
+                <div class="publication-stat-footer">
+                    <span>All advisee publications</span>
+                    <i class="ti ti-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="publication-stat-card">
+                <div class="publication-stat-top">
+                    <div class="publication-stat-icon published">
+                        <i class="ti ti-circle-check"></i>
+                    </div>
+                    <span class="publication-stat-label">PUBLISHED</span>
+                </div>
+                <div class="publication-stat-value">{{ published_count }}</div>
+                <div class="publication-stat-footer">
+                    <span>Published research</span>
+                    <i class="ti ti-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="publication-stat-card">
+                <div class="publication-stat-top">
+                    <div class="publication-stat-icon accepted">
+                        <i class="ti ti-rosette-discount-check"></i>
+                    </div>
+                    <span class="publication-stat-label">ACCEPTED</span>
+                </div>
+                <div class="publication-stat-value">{{ accepted_count }}</div>
+                <div class="publication-stat-footer">
+                    <span>Accepted publications</span>
+                    <i class="ti ti-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="publication-stat-card">
+                <div class="publication-stat-top">
+                    <div class="publication-stat-icon indexed">
+                        <i class="ti ti-database"></i>
+                    </div>
+                    <span class="publication-stat-label">INDEXED</span>
+                </div>
+                <div class="publication-stat-value">{{ indexed_count }}</div>
+                <div class="publication-stat-footer">
+                    <span>Indexed publications</span>
+                    <i class="ti ti-arrow-up-right"></i>
+                </div>
+            </div>
+        </section>
+        <section class="publication-filter-card">
+            <div class="publication-filter-header">
+                <div class="filter-heading">
+                    <div class="filter-heading-icon">
+                        <i class="ti ti-adjustments-horizontal"></i>
+                    </div>
+                    <div>
+                        <span>PUBLICATION DIRECTORY</span>
+                        <h2>Research Records</h2>
+                    </div>
+                </div>
+                <div class="filter-record-count">
+                    <strong id="visiblePublicationCount">{{ publication_list.paginator.count }}</strong>
+                    <span>records</span>
+                </div>
+            </div>
+            <form method="get"
+                  id="publicationFilterForm"
+                  class="publication-filter-form">
+                <div class="publication-search-field">
+                    <i class="ti ti-search"></i>
+                    <input type="text"
+                           name="search"
+                           id="publicationSearch"
+                           value="{{ search }}"
+                           placeholder="Search title, advisee, journal, DOI..."
+                           autocomplete="off">
+                    <button type="button"
+                            class="search-clear"
+                            id="clearSearch"
+                            aria-label="Clear search">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div class="publication-select-field">
+                    <i class="ti ti-progress-check"></i>
+                    <select name="status" id="publicationStatus" class="publication-choice">
+                        <option value="">All Publication Status</option>
+                        {% for value, label in publication_status_choices %}
+                            <option value="{{ value }}"
+                                    {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="publication-select-field">
+                    <i class="ti ti-database"></i>
+                    <select name="indexed" id="publicationIndexed" class="publication-choice">
+                        <option value="">All Indexing Status</option>
+                        {% for value, label in indexed_status_choices %}
+                            <option value="{{ value }}"
+                                    {% if indexed_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="publication-date-field publication-date-picker-wrap">
+                    <i class="ti ti-calendar"></i>
+                    <input type="text"
+                           id="publicationDate"
+                           name="publication_date"
+                           value="{{ publication_date }}"
+                           placeholder="Publication date"
+                           autocomplete="off">
+                </div>
+                <button type="submit" class="publication-filter-btn">
+                    <i class="ti ti-filter"></i>
+                    <span>Apply</span>
+                </button>
+                <a href="{% url 'faculty_advisor_publication_list' uuid=faculty.user.uuid %}"
+                   class="publication-reset-btn"
+                   id="resetPublicationFilters">
+                    <i class="ti ti-refresh"></i>
+                    <span>Reset</span>
+                </a>
+            </form>
+        </section>
+        <section class="publication-results">
+            {% if publication_list %}
+                <div class="publication-card-list">
+                    {% for publication in publication_list %}
+                        <article class="publication-card"
+                                 data-publication-title="{{ publication.title|lower }}"
+                                 data-publication-status="{{ publication.publication_status }}"
+                                 data-indexed-status="{{ publication.indexed_status }}"
+                                 data-publication-date="{{ publication.publication_date|date:'Y-m-d' }}">
+                            <div class="publication-card-accent"></div>
+                            <div class="publication-card-body">
+                                <div class="publication-card-top">
+                                    <div class="publication-type-wrap">
+                                        <div class="publication-type-icon">
+                                            <i class="ti ti-book-2"></i>
+                                        </div>
+                                        <div>
+                                            <span class="publication-type-label">{{ publication.get_publication_type_display }}</span>
+                                            <span class="publication-record-id">Publication #{{ publication.publication_id }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="publication-card-statuses">
+                                        <span class="publication-status-badge status-{{ publication.publication_status|lower }}">
+                                            <span></span>
+                                            {{ publication.get_publication_status_display }}
+                                        </span>
+                                        <span class="publication-index-badge index-{{ publication.indexed_status|lower }}">
+                                            <i class="ti ti-database"></i>
+                                            {{ publication.get_indexed_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="publication-card-title-area">
+                                    <h3>{{ publication.title }}</h3>
+                                    {% if publication.abstract %}
+                                        <p>{{ publication.abstract|truncatechars:180 }}</p>
+                                    {% else %}
+                                        <p class="no-abstract">No abstract provided for this publication.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="publication-card-info">
+                                    <div class="publication-info-item">
+                                        <div class="publication-info-icon">
+                                            <i class="ti ti-user"></i>
+                                        </div>
+                                        <div>
+                                            <span>ADVISEE</span>
+                                            <strong>{{ publication.phd_student.student.user.get_full_name }}</strong>
+                                            <small>{{ publication.phd_student.student.student_number }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="publication-info-item">
+                                        <div class="publication-info-icon">
+                                            <i class="ti ti-building-bank"></i>
+                                        </div>
+                                        <div>
+                                            <span>JOURNAL / VENUE</span>
+                                            <strong>
+                                                {% if publication.journal %}
+                                                    {{ publication.journal }}
+                                                {% else %}
+                                                    <em>Not provided</em>
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div class="publication-info-item">
+                                        <div class="publication-info-icon">
+                                            <i class="ti ti-calendar-event"></i>
+                                        </div>
+                                        <div>
+                                            <span>PUBLICATION DATE</span>
+                                            <strong>{{ publication.publication_date|date:"M d, Y" }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="publication-info-item">
+                                        <div class="publication-info-icon">
+                                            <i class="ti ti-link"></i>
+                                        </div>
+                                        <div>
+                                            <span>DOI</span>
+                                            {% if publication.doi %}
+                                                <strong class="doi-value">{{ publication.doi|truncatechars:32 }}</strong>
+                                            {% else %}
+                                                <strong class="not-available">Not provided</strong>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="publication-card-bottom">
+                                    <div class="publication-card-extra">
+                                        {% if publication.indexing_database != "NOT_APPLICABLE" %}
+                                            <span>
+                                                <i class="ti ti-award"></i>
+                                                {{ publication.get_indexing_database_display }}
+                                            </span>
+                                        {% endif %}
+                                        {% if publication.milestone %}
+                                            <span>
+                                                <i class="ti ti-flag"></i>
+                                                {{ publication.milestone.milestone_name }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'faculty_advisor_publication_detail' uuid=faculty.user.uuid publication_id=publication.publication_id %}"
+                                       class="publication-view-btn">
+                                        <span>View Publication</span>
+                                        <i class="ti ti-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+                {% if publication_list.has_other_pages %}
+                    <div class="publication-pagination">
+                        <div class="pagination-summary">
+                            Showing
+                            <strong>{{ publication_list.start_index }}</strong>
+                            -
+                            <strong>{{ publication_list.end_index }}</strong>
+                            of
+                            <strong>{{ publication_list.paginator.count }}</strong>
+                        </div>
+                        <div class="pagination-controls">
+                            {% if publication_list.has_previous %}
+                                <a href="?page={{ publication_list.previous_page_number }}&search={{ search }}&status={{ status_filter }}&indexed={{ indexed_filter }}&publication_date={{ publication_date }}"
+                                   class="pagination-btn">
+                                    <i class="ti ti-chevron-left"></i>
+                                </a>
+                            {% else %}
+                                <span class="pagination-btn disabled">
+                                    <i class="ti ti-chevron-left"></i>
+                                </span>
+                            {% endif %}
+                            <span class="pagination-current">{{ publication_list.number }}</span>
+                            {% if publication_list.has_next %}
+                                <a href="?page={{ publication_list.next_page_number }}&search={{ search }}&status={{ status_filter }}&indexed={{ indexed_filter }}&publication_date={{ publication_date }}"
+                                   class="pagination-btn">
+                                    <i class="ti ti-chevron-right"></i>
+                                </a>
+                            {% else %}
+                                <span class="pagination-btn disabled">
+                                    <i class="ti ti-chevron-right"></i>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="publication-empty-state">
+                    <div class="empty-icon">
+                        <i class="ti ti-books"></i>
+                    </div>
+                    <h2>No Publications Found</h2>
+                    <p>
+                        There are no research publications matching
+                        your current filters.
+                    </p>
+                    <a href="{% url 'faculty_advisor_publication_list' uuid=faculty.user.uuid %}">
+                        <i class="ti ti-refresh"></i>
+                        Clear Filters
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+        <div class="committee-publication-management-link committee-publication-management-link-bottom">
+            <a href="{% url 'faculty_phd_management' uuid=faculty.user.uuid %}">
+                <i class="ti ti-arrow-left"></i>
+                <span>Back to PhD Management</span>
+            </a>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const statusElement =
+
+        document.getElementById("publicationStatus");
+
+    const indexedElement =
+
+        document.getElementById("publicationIndexed");
+
+    if (typeof Choices !== "undefined") {
+
+        if (statusElement) {
+
+            new Choices(statusElement, {
+
+                searchEnabled: false,
+
+                shouldSort: false,
+
+                itemSelectText: "",
+
+                allowHTML: false,
+
+                removeItemButton: false,
+
+                placeholder: true,
+
+                placeholderValue: "All Publication Status"
+
+            });
+
+        }
+
+        if (indexedElement) {
+
+            new Choices(indexedElement, {
+
+                searchEnabled: false,
+
+                shouldSort: false,
+
+                itemSelectText: "",
+
+                allowHTML: false,
+
+                removeItemButton: false,
+
+                placeholder: true,
+
+                placeholderValue: "All Indexing Status"
+
+            });
+
+        }
+
+    } else {
+
+        console.error("Choices.js failed to load.");
+
+    }
+
+    const publicationDate =
+
+        document.getElementById("publicationDate");
+
+    if (
+
+        publicationDate &&
+
+        typeof flatpickr !== "undefined"
+
+    ) {
+
+        const dateFieldWrapper =
+
+            publicationDate.closest(
+
+                ".publication-date-picker-wrap"
+
+            );
+
+        flatpickr(publicationDate, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "M d, Y",
+            allowInput: false,
+            clickOpens: true,
+            disableMobile: true,
+            animate: false,
+            appendTo: dateFieldWrapper || publicationDate.parentElement,
+            positionElement: publicationDate,
+            position: "below left",
+            static: false,
+            maxDate: "today"
+        });
+
+    }
+
+    const searchInput =
+
+        document.getElementById("publicationSearch");
+
+    const clearSearch =
+
+        document.getElementById("clearSearch");
+
+    function updateSearchButton() {
+
+        if (!searchInput || !clearSearch) {
+
+            return;
+
+        }
+
+        clearSearch.classList.toggle(
+
+            "visible",
+
+            searchInput.value.trim().length > 0
+
+        );
+
+    }
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+
+            "input",
+
+            updateSearchButton
+
+        );
+
+    }
+
+    if (clearSearch) {
+
+        clearSearch.addEventListener(
+
+            "click",
+
+            function () {
+
+                searchInput.value = "";
+
+                updateSearchButton();
+
+                searchInput.focus();
+
+            }
+
+        );
+
+    }
+
+    updateSearchButton();
+
+    const filterForm = document.getElementById("publicationFilterForm");
+    if (filterForm) {
+        filterForm.addEventListener("submit", function (event) {
+            const selectedDate = publicationDate ? publicationDate.value.trim() : "";
+            if (!selectedDate) {
+                return;
+            }
+
+            const selectedDateValue = new Date(selectedDate + "T00:00:00");
+            const currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+
+            if (selectedDateValue > currentDate) {
+                event.preventDefault();
+
+                if (publicationDate._flatpickr) {
+                    publicationDate._flatpickr.clear();
+                } else {
+                    publicationDate.value = "";
+                }
+
+                if (typeof Swal !== "undefined") {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Invalid publication date",
+                        text: "Future publication dates cannot be selected.",
+                        confirmButtonColor: "#C5050C"
+                    });
+                }
+            }
+        });
+    }
+
+    const resetButton =
+
+        document.getElementById(
+
+            "resetPublicationFilters"
+
+        );
+
+    if (resetButton) {
+
+        resetButton.addEventListener(
+
+            "click",
+
+            function (event) {
+
+                const status =
+
+                    statusElement
+
+                        ? statusElement.value
+
+                        : "";
+
+                const indexed =
+
+                    indexedElement
+
+                        ? indexedElement.value
+
+                        : "";
+
+                const search =
+
+                    searchInput
+
+                        ? searchInput.value.trim()
+
+                        : "";
+
+                const date =
+
+                    publicationDate
+
+                        ? publicationDate.value.trim()
+
+                        : "";
+
+                if (
+
+                    !status &&
+
+                    !indexed &&
+
+                    !search &&
+
+                    !date
+
+                ) {
+
+                    return;
+
+                }
+
+                event.preventDefault();
+
+                if (typeof Swal === "undefined") {
+
+                    window.location.href =
+
+                        resetButton.href;
+
+                    return;
+
+                }
+
+                Swal.fire({
+
+                    icon: "question",
+
+                    title: "Clear filters?",
+
+                    text:
+
+                        "All publication filters will be reset.",
+
+                    showCancelButton: true,
+
+                    confirmButtonText:
+
+                        "Clear Filters",
+
+                    cancelButtonText:
+
+                        "Keep Filters",
+
+                    confirmButtonColor:
+
+                        "#C5050C",
+
+                    cancelButtonColor:
+
+                        "#6c757d"
+
+                }).then(function (result) {
+
+                    if (result.isConfirmed) {
+
+                        window.location.href =
+
+                            resetButton.href;
+
+                    }
+
+                });
+
+            }
+
+        );
+
+    }
+
+    document
+
+        .querySelectorAll(".publication-card")
+
+        .forEach(function (card) {
+
+            card.addEventListener(
+
+                "mouseenter",
+
+                function () {
+
+                    card.classList.add(
+
+                        "is-hovered"
+
+                    );
+
+                }
+
+            );
+
+            card.addEventListener(
+
+                "mouseleave",
+
+                function () {
+
+                    card.classList.remove(
+
+                        "is-hovered"
+
+                    );
+
+                }
+
+            );
+
+        });
+
+});
+
+    </script>
+{% endblock extra_js %}

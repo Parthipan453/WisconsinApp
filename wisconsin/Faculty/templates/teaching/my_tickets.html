@@ -1,0 +1,205 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}My Support Tickets — University of Wisconsin{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tickets/tickets.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="ticket-page-header">
+  <div>
+    <h1>My Support Tickets</h1>
+    <p>Track the status of issues you've reported.</p>
+  </div>
+  <a href="{% url 'faculty_submit_ticket' uuid=request.user.uuid %}" class="ticket-btn ticket-btn-primary">
+    <i class="ti ti-plus"></i><span>New Ticket</span>
+  </a>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="ticket-toast-trigger" data-tag="{{ message.tags }}" data-msg="{{ message }}"></div>
+  {% endfor %}
+{% endif %}
+
+<div class="ticket-table-wrap">
+  <table class="ticket-table">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Course</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr>
+        <td>
+          <div class="ticket-title">{{ t.subject }}</div>
+          {% if t.description %}<div class="ticket-sub">{{ t.description|truncatechars:60 }}</div>{% endif %}
+        </td>
+        <td>{% if t.course_section %}{{ t.course_section.course_id.course_code }}{% else %}General{% endif %}</td>
+        <td><span class="ticket-badge ticket-{{ t.priority|lower }}">{{ t.get_priority_display }}</span></td>
+        <td><span class="ticket-badge ticket-status-{{ t.status|lower }}">{{ t.get_status_display }}</span></td>
+        <td>{{ t.created_at|date:"M d, Y" }}</td>
+        <td>
+          <div class="ticket-actions">
+            <button type="button" class="ticket-icon-btn ticket-icon-view" title="View" onclick="openTicketModal({{ t.id }}, false)">
+              <i class="ti ti-eye"></i>
+            </button>
+            {% if t.status == "OPEN" %}
+            <button type="button" class="ticket-icon-btn ticket-icon-edit" title="Edit" onclick="openTicketModal({{ t.id }}, true)">
+              <i class="ti ti-edit"></i>
+            </button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;padding:24px;color:#888;">You haven't submitted any tickets yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if tickets.has_other_pages %}
+<div class="ticket-pagination">
+  {% if tickets.has_previous %}<a href="?page={{ tickets.previous_page_number }}">Prev</a>{% endif %}
+  <span>Page {{ tickets.number }} of {{ tickets.paginator.num_pages }}</span>
+  {% if tickets.has_next %}<a href="?page={{ tickets.next_page_number }}">Next</a>{% endif %}
+</div>
+{% endif %}
+
+<!-- Ticket Modal -->
+<div id="ticketModalOverlay" class="ticket-modal-overlay" style="display:none;">
+  <div class="ticket-modal">
+    <div class="ticket-modal-header">
+      <h3 id="ticketModalTitle">Ticket Details</h3>
+      <button type="button" class="ticket-modal-close" onclick="closeTicketModal()">&times;</button>
+    </div>
+    <div class="ticket-modal-body">
+      <label>Subject</label>
+      <input type="text" id="modalSubject" maxlength="255" />
+
+      <label>Priority</label>
+      <select id="modalPriority">
+        {% for value, label in priority_choices %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Description</label>
+      <textarea id="modalDescription" rows="5"></textarea>
+
+      <div class="ticket-modal-readonly">
+        <span>Course: <strong id="modalCourse">—</strong></span>
+        <span>Status: <strong id="modalStatus">—</strong></span>
+      </div>
+    </div>
+    <div class="ticket-modal-footer">
+      <button type="button" class="ticket-btn ticket-btn-ghost" onclick="closeTicketModal()">Cancel</button>
+      <button type="button" id="modalSaveBtn" class="ticket-btn ticket-btn-primary" onclick="saveTicketEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="ticketToastContainer" class="ticket-toast-container"></div>
+
+<script>
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+const CSRF_TOKEN = getCookie('csrftoken');
+const UUID = "{{ request.user.uuid }}";
+let currentTicketId = null;
+
+function showToast(message, type = "success") {
+  const container = document.getElementById("ticketToastContainer");
+  const toast = document.createElement("div");
+  toast.className = `ticket-toast ticket-toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("ticket-toast-show"));
+  setTimeout(() => {
+    toast.classList.remove("ticket-toast-show");
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// Fire toasts for any Django messages already on the page
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".ticket-toast-trigger").forEach(el => {
+    const tag = el.dataset.tag || "success";
+    showToast(el.dataset.msg, tag.includes("error") ? "error" : "success");
+  });
+});
+
+function openTicketModal(ticketId, editable) {
+  currentTicketId = ticketId;
+  fetch(`/faculty/${UUID}/support-tickets/${ticketId}/detail/`)
+    .then(res => res.json())
+    .then(res => {
+      if (!res.success) {
+        showToast(res.error || "Unable to load ticket.", "error");
+        return;
+      }
+      const data = res.data;
+      document.getElementById("ticketModalTitle").textContent = editable ? "Edit Ticket" : "View Ticket";
+      document.getElementById("modalSubject").value = data.subject;
+      document.getElementById("modalDescription").value = data.description || "";
+      document.getElementById("modalPriority").value = data.priority;
+      document.getElementById("modalCourse").textContent = data.course || "General";
+      document.getElementById("modalStatus").textContent = data.status_display;
+
+      const isEditable = editable && data.status === "OPEN";
+      document.getElementById("modalSubject").disabled = !isEditable;
+      document.getElementById("modalDescription").disabled = !isEditable;
+      document.getElementById("modalPriority").disabled = !isEditable;
+      document.getElementById("modalSaveBtn").style.display = isEditable ? "inline-flex" : "none";
+
+      document.getElementById("ticketModalOverlay").style.display = "flex";
+    })
+    .catch(() => showToast("Something went wrong loading the ticket.", "error"));
+}
+
+function closeTicketModal() {
+  document.getElementById("ticketModalOverlay").style.display = "none";
+  currentTicketId = null;
+}
+
+function saveTicketEdit() {
+  if (!currentTicketId) return;
+  const payload = {
+    subject: document.getElementById("modalSubject").value.trim(),
+    description: document.getElementById("modalDescription").value.trim(),
+    priority: document.getElementById("modalPriority").value,
+  };
+
+  fetch(`/faculty/${UUID}/support-tickets/${currentTicketId}/update/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": CSRF_TOKEN,
+    },
+    body: JSON.stringify(payload),
+  })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        showToast("Ticket updated successfully.", "success");
+        closeTicketModal();
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast(res.error || "Unable to update ticket.", "error");
+      }
+    })
+    .catch(() => showToast("Something went wrong updating the ticket.", "error"));
+}
+</script>
+{% endblock %}

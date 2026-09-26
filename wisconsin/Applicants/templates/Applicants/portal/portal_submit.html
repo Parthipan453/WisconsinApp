@@ -1,0 +1,108 @@
+{% load static %}
+{% load form_helpers %}
+<div class="application-wizard-page">
+  <header class="application-wizard-header">
+    <div class="application-wizard-header-inner">
+      <a href="." class="application-wizard-brand" aria-label="Universities of Wisconsin applicant portal">
+        <img src="{% static 'images/apply-uw.png' %}" alt="Universities of Wisconsin">
+      </a>
+      <nav class="application-wizard-actions" aria-label="Application actions">
+        <a href=".">Save &amp; Return Later</a>
+        {% if not locked %}
+        <button type="button" class="application-wizard-delete" onclick="openDeleteModal('{{ app.application_id }}','{{ app.Reference_id|escapejs }}')">Delete Application</button>
+        {% endif %}
+        <a href="?logout">Sign Out</a>
+      </nav>
+    </div>
+    <div class="application-wizard-progress-shell">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="application-wizard-progress" style="flex:1 1 auto;min-width:0" aria-label="Application progress">
+          <div style="height:7px;width:{{ progress }}%;background:linear-gradient(90deg,#b3a369,#c9b97e);transition:width .35s ease"></div>
+        </div>
+        <div class="application-wizard-progress-meta" style="flex:0 0 auto;margin-top:0">{{ progress }}% complete</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="application-wizard-content">
+    <section class="application-wizard-form-panel" aria-labelledby="submit-title">
+      <div class="application-wizard-form-heading">
+        <h1 id="submit-title">Review &amp; Submit</h1>
+        <p>Before submitting, please review your application for completeness.</p>
+      </div>
+
+      {% if app.status == "submitted" or app.status == "complete" or app.status == "under_review" %}
+      <div class="application-wizard-fields">
+        <div style="text-align:center;padding:14px 0 4px">
+          <i class="fas fa-check-circle" style="font-size:52px;color:#16a34a;display:block;margin:0 auto 14px"></i>
+          <h2 style="font-size:20px;font-weight:700;color:#222;margin:0 0 6px">Application Submitted</h2>
+          <p style="font-size:14px;color:#666;margin:0;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.6">Your application {{ app.Reference_id }} has been submitted. You will receive an email acknowledgment shortly.</p>
+        </div>
+      </div>
+      <footer class="application-wizard-footer">
+        <div>
+          <a href="./?state=hub" class="application-wizard-button application-wizard-button-secondary"><i data-lucide="arrow-left" aria-hidden="true"></i><span>Back to Hub</span></a>
+        </div>
+        <div>
+          <a href="./?state=hub" class="application-wizard-button application-wizard-button-primary"><i data-lucide="grid-2x2" aria-hidden="true"></i><span>Go to Hub</span></a>
+        </div>
+      </footer>
+      {% else %}
+
+      <div class="application-wizard-fields">
+        <h3 style="font-size:16px;font-weight:700;color:#222;margin:0 0 12px">Readiness Check</h3>
+        {% for name in sections_done %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f0f0f0">
+          <span style="font-size:14px;color:#333;font-weight:500">{{ name }}</span>
+          <i class="fas fa-check-circle" style="color:#16a34a;font-size:17px"></i>
+        </div>
+        {% endfor %}
+        {% for name in sections_missing %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f0f0f0">
+          <span style="font-size:14px;color:#333;font-weight:500">{{ name }}</span>
+          <i class="fas fa-exclamation-circle" style="color:#d97706;font-size:17px"></i>
+        </div>
+        {% endfor %}
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f0f0f0">
+          <span style="font-size:14px;color:#333;font-weight:500">Application Fee{% if not fee_info.free %} ({{ fee_info.label }}){% else %} (No Fee Required){% endif %}</span>
+          {% if fee_info.paid %}
+          <i class="fas fa-check-circle" style="color:#16a34a;font-size:17px"></i>
+          {% else %}
+          <span style="display:inline-flex;align-items:center;gap:8px">
+            <i class="fas fa-exclamation-circle" style="color:#d97706;font-size:17px"></i>
+            <a href="./?state=payment&app_id={{ app.application_id }}&uuid={{ applicant.uuid }}&next=submit" style="font-size:13px;font-weight:600;color:#b45309;text-decoration:none">Pay Now</a>
+          </span>
+          {% endif %}
+        </div>
+
+        <h3 style="font-size:15px;font-weight:700;color:#222;margin:24px 0 12px">Certification</h3>
+        <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 16px">
+          Academic integrity is valued in our community and in the admission process. By submitting this application, you certify that all information provided is complete and accurate. You are accountable for ensuring the authenticity and honesty of your application, essays, self-reported information, and supporting materials.
+        </p>
+
+        <form method="POST" id="submitForm" novalidate>{% csrf_token %}
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="checkbox" name="certify" required style="margin-top:3px;width:17px;height:17px;accent-color:#c5050c">
+            <span style="font-size:14px;color:#444;line-height:1.5">I certify that the information in this application is true and complete to the best of my knowledge. I understand that inaccurate information may affect my enrollment, tuition, or financial aid status.</span>
+          </label>
+
+          <div style="margin-top:18px">
+            <label for="id_signature" style="font-size:14px;font-weight:600;color:#333;display:block;margin-bottom:6px">Signature <span style="color:#c00">*</span></label>
+            <input type="text" id="id_signature" name="signature" placeholder="Type your full name" style="box-sizing:border-box;width:100%;max-width:420px;min-height:44px;padding:10px 13px;border:1px solid #d7d7d7;border-radius:4px;font-size:14px;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.08)" value="{{ app.applicant.get_full_name }}">
+          </div>
+        </form>
+      </div>
+
+      <footer class="application-wizard-footer">
+        <div>
+          <a href="./?state=hub" class="application-wizard-button application-wizard-button-secondary"><i data-lucide="arrow-left" aria-hidden="true"></i><span>Back to Hub</span></a>
+        </div>
+        <div>
+          <button type="submit" form="submitForm" class="application-wizard-button application-wizard-button-primary" {% if not ready %}disabled aria-disabled="true"{% endif %} data-uw-loading-text="Submitting&hellip;"><i data-lucide="send" aria-hidden="true"></i><span>Submit Application</span></button>
+        </div>
+      </footer>
+      {% endif %}
+    </section>
+  </main>
+</div>

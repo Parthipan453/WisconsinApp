@@ -1,0 +1,581 @@
+{% extends "student_base.html" %}
+{% load static %}
+{% block nav_phd_workflow_open %}active{% endblock %}
+{% block nav_phd_workflow_submenu %}open{% endblock %}
+{% block nav_student_research_milestones %}active{% endblock %}
+{% block title %}
+    Research Milestones History
+{% endblock %}
+{% block content %}
+    <link rel="stylesheet"
+          href="{% static 'css/Leo_Student/Research/research_history.css' %}">
+    <div class="rrh-page">
+        <div class="rrh-breadcrumb">
+            <a href="{% url 'Student:phd_dashboard' uuid=phd_student.student.user.uuid %}">
+                <i class="ti ti-home"></i>
+                Dashboard
+            </a>
+            <i class="ti ti-chevron-right"></i>
+            <a href="{% url 'Student:student_research_milestone_list' uuid=phd_student.student.user.uuid %}">
+                Research Milestones
+            </a>
+            <i class="ti ti-chevron-right"></i>
+            <span>Submission History</span>
+        </div>
+        <section class="rrh-hero">
+            <div class="rrh-hero-icon">
+                <i class="ti ti-history"></i>
+            </div>
+            <div class="rrh-hero-content">
+                <span>RESEARCH SUBMISSION HISTORY</span>
+                <h1>Milestones &amp; Submission Journey</h1>
+                <p>
+                    Review every research milestone, submission version,
+                    faculty evaluation, advisor advice and revision history.
+                </p>
+            </div>
+            <div class="rrh-hero-stat">
+                <strong>{{ total_versions }}</strong>
+                <span>Total Versions</span>
+            </div>
+        </section>
+        <section class="rrh-overview">
+            <div class="rrh-overview-card">
+                <div class="rrh-overview-icon red">
+                    <i class="ti ti-target"></i>
+                </div>
+                <div>
+                    <span>MILESTONES</span>
+                    <strong>{{ total_milestones }}</strong>
+                    <small>Research milestones</small>
+                </div>
+            </div>
+            <div class="rrh-overview-card">
+                <div class="rrh-overview-icon blue">
+                    <i class="ti ti-files"></i>
+                </div>
+                <div>
+                    <span>VERSIONS</span>
+                    <strong>{{ total_versions }}</strong>
+                    <small>Submitted versions</small>
+                </div>
+            </div>
+            <div class="rrh-overview-card">
+                <div class="rrh-overview-icon green">
+                    <i class="ti ti-circle-check"></i>
+                </div>
+                <div>
+                    <span>EVALUATED</span>
+                    <strong>{{ evaluated_count }}</strong>
+                    <small>Versions evaluated</small>
+                </div>
+            </div>
+            <div class="rrh-overview-card">
+                <div class="rrh-overview-icon orange">
+                    <i class="ti ti-refresh"></i>
+                </div>
+                <div>
+                    <span>REVISIONS</span>
+                    <strong>{{ revision_count }}</strong>
+                    <small>Revision requests</small>
+                </div>
+            </div>
+        </section>
+        <section class="rrh-history-section">
+            <div class="rrh-section-heading">
+                <div>
+                    <span>MILESTONE HISTORY</span>
+                    <h2>Your Research Journey</h2>
+                    <p>Each milestone appears once. Open the milestone to view its complete submission history.</p>
+                </div>
+                <div class="rrh-result-count">
+                    <strong>{{ total_milestones }}</strong>
+                    <span>Milestones</span>
+                </div>
+            </div>
+            {% if milestone_groups %}
+                <div class="rrh-submission-list">
+                    {% for group in milestone_groups %}
+                        <article class="rrh-submission-card">
+                            <div class="rrh-card-top">
+                                <div class="rrh-milestone-badge">M{{ group.milestone.sequence_number }}</div>
+                                <div class="rrh-card-title">
+                                    <span>RESEARCH MILESTONE</span>
+                                    <h3>{{ group.milestone.milestone_title }}</h3>
+                                    {% if group.latest_submission %}
+                                        <p>
+                                            Latest Submission #{{ group.latest_submission.submission_number }}
+                                            <span>•</span>
+                                            {{ group.latest_submission.submitted_at|date:"d M Y, h:i A" }}
+                                        </p>
+                                    {% else %}
+                                        <p>No submission has been recorded yet.</p>
+                                    {% endif %}
+                                </div>
+                                {% if group.latest_submission %}
+                                    <div class="rrh-status rrh-status-{{ group.latest_submission.status|lower }}">
+                                        <i class="ti ti-circle-filled"></i>
+                                        {{ group.latest_submission.get_status_display }}
+                                    </div>
+                                {% else %}
+                                    <div class="rrh-status rrh-status-submitted">
+                                        <i class="ti ti-clock"></i>
+                                        Not Submitted
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="rrh-card-body">
+                                <div class="rrh-card-info">
+                                    <div class="rrh-info-box">
+                                        <i class="ti ti-files"></i>
+                                        <div>
+                                            <span>SUBMISSION VERSIONS</span>
+                                            <strong>
+                                                {{ group.version_count }}
+                                                {% if group.version_count == 1 %}
+                                                    Version
+                                                {% else %}
+                                                    Versions
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div class="rrh-info-box">
+                                        <i class="ti ti-calendar-event"></i>
+                                        <div>
+                                            <span>LATEST SUBMISSION</span>
+                                            <strong>
+                                                {% if group.latest_submission %}
+                                                    {{ group.latest_submission.submitted_at|date:"d M Y" }}
+                                                {% else %}
+                                                    Not Available
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div class="rrh-info-box">
+                                        <i class="ti ti-chart-line"></i>
+                                        <div>
+                                            <span>PROGRESS</span>
+                                            <strong>{{ group.milestone.progress_percentage|default:"0" }}%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="rrh-info-box">
+                                        <i class="ti ti-user-check"></i>
+                                        <div>
+                                            <span>CHAIR FACULTY</span>
+                                            <strong>
+                                                {% if group.milestone.chair_faculty %}
+                                                    {{ group.milestone.chair_faculty.user.get_full_name|default:group.milestone.chair_faculty.user.username }}
+                                                {% else %}
+                                                    Not Assigned
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if group.latest_submission %}
+                                    <div class="rrh-card-remark">
+                                        <div class="rrh-remark-icon">
+                                            <i class="ti ti-info-circle"></i>
+                                        </div>
+                                        <div>
+                                            <span>CURRENT MILESTONE STATE</span>
+                                            <p>
+                                                {% if group.latest_submission.status == "REVISION_REQUIRED" %}
+                                                    Revision is required before this milestone can progress.
+                                                    {% if group.can_resubmit %}
+                                                        You have permission to prepare and submit a revised version.
+                                                    {% endif %}
+                                                {% elif group.latest_submission.status == "EVALUATED" %}
+                                                    The latest submitted version has completed the evaluation process.
+                                                {% elif group.latest_submission.status == "UNDER_REVIEW" %}
+                                                    Your latest submission is currently being reviewed by faculty.
+                                                {% else %}
+                                                    Your latest research submission has been received successfully.
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="rrh-card-footer">
+                                <div class="rrh-submission-meta">
+                                    <span>
+                                        <i class="ti ti-history"></i>
+                                        {{ group.version_count }} submission
+                                        {% if group.version_count != 1 %}
+                                            versions
+                                        {% else %}
+                                            version
+                                        {% endif %}
+                                    </span>
+                                    {% if group.latest_submission %}
+                                        <span>
+                                            <i class="ti ti-clock"></i>
+                                            Updated {{ group.latest_submission.updated_at|date:"d M Y, h:i A" }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <button type="button"
+                                        class="rrh-view-button"
+                                        data-open-milestone="rrhModal{{ group.milestone.milestone_id }}">
+                                    View Complete History
+                                    <i class="ti ti-arrow-up-right"></i>
+                                </button>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="rrh-empty-state">
+                    <div class="rrh-empty-icon">
+                        <i class="ti ti-history-off"></i>
+                    </div>
+                    <h3>No Research History Yet</h3>
+                    <p>
+                        Your research milestone submissions will appear here after
+                        you submit your first research document.
+                    </p>
+                    <a href="{% url 'student_research_milestone_list' uuid=phd_student.student.user.uuid %}"
+                       class="rrh-empty-button">
+                        View Research Milestones
+                        <i class="ti ti-arrow-right"></i>
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+    {% for group in milestone_groups %}
+        <div class="rrh-modal"
+             id="rrhModal{{ group.milestone.milestone_id }}"
+             aria-hidden="true">
+            <div class="rrh-modal-backdrop" data-close-modal></div>
+            <div class="rrh-modal-dialog" role="dialog" aria-modal="true">
+                <div class="rrh-modal-header">
+                    <div class="rrh-modal-heading">
+                        <div class="rrh-modal-icon">
+                            <i class="ti ti-history"></i>
+                        </div>
+                        <div>
+                            <span>MILESTONE HISTORY</span>
+                            <h2>{{ group.milestone.milestone_title }}</h2>
+                            <p>
+                                M{{ group.milestone.sequence_number }}
+                                •
+                                {{ group.version_count }}
+                                {% if group.version_count == 1 %}
+                                    submission version
+                                {% else %}
+                                    submission versions
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="rrh-modal-close"
+                            data-close-modal
+                            aria-label="Close">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <div class="rrh-modal-body">
+                    {% if group.latest_submission %}
+                        <div class="rrh-modal-current">
+                            <div class="rrh-modal-current-icon">
+                                <i class="ti ti-activity"></i>
+                            </div>
+                            <div>
+                                <span>CURRENT STATE</span>
+                                <strong>{{ group.latest_submission.get_status_display }}</strong>
+                                <p>
+                                    Latest version:
+                                    Submission #{{ group.latest_submission.submission_number }}
+                                    •
+                                    {{ group.latest_submission.submitted_at|date:"d M Y, h:i A" }}
+                                </p>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <section class="rrh-timeline-section">
+                        <div class="rrh-modal-section-heading">
+                            <div class="rrh-modal-section-icon">
+                                <i class="ti ti-git-branch"></i>
+                            </div>
+                            <div>
+                                <span>VERSION JOURNEY</span>
+                                <h3>Submission Timeline</h3>
+                            </div>
+                        </div>
+                        <div class="rrh-version-timeline">
+                            {% for version in group.versions %}
+                                <article class="rrh-version-item">
+                                    <div class="rrh-version-marker">
+                                        <span>#{{ version.submission.submission_number }}</span>
+                                    </div>
+                                    <div class="rrh-version-content">
+                                        <div class="rrh-version-header">
+                                            <div>
+                                                <span>SUBMISSION VERSION</span>
+                                                <h4>Submission #{{ version.submission.submission_number }}</h4>
+                                                <p>
+                                                    Submitted
+                                                    {{ version.submission.submitted_at|date:"d M Y, h:i A" }}
+                                                </p>
+                                            </div>
+                                            <div class="rrh-version-status rrh-status-{{ version.submission.status|lower }}">
+                                                {{ version.submission.get_status_display }}
+                                            </div>
+                                        </div>
+                                        <div class="rrh-version-summary">
+                                            <div>
+                                                <span>SUBMITTED</span>
+                                                <strong>{{ version.submission.submitted_at|date:"d M Y, h:i A" }}</strong>
+                                            </div>
+                                            <div>
+                                                <span>LAST UPDATED</span>
+                                                <strong>{{ version.submission.updated_at|date:"d M Y, h:i A" }}</strong>
+                                            </div>
+                                            <div>
+                                                <span>EVALUATIONS</span>
+                                                <strong>{{ version.evaluations|length }}</strong>
+                                            </div>
+                                            <div>
+                                                <span>ADVISOR ADVICE</span>
+                                                <strong>{{ version.advices|length }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="rrh-history-block">
+                                            <div class="rrh-history-heading">
+                                                <i class="ti ti-files"></i>
+                                                <span>SUBMITTED DOCUMENTS</span>
+                                            </div>
+                                            {% if version.documents %}
+                                                <div class="rrh-document-grid">
+                                                    {% for document in version.documents %}
+                                                        <a href="{{ document.url }}"
+                                                           target="_blank"
+                                                           rel="noopener noreferrer"
+                                                           class="rrh-document-item">
+                                                            <div class="rrh-document-icon">
+                                                                <i class="ti ti-file-description"></i>
+                                                            </div>
+                                                            <div>
+                                                                <span>{{ document.label }}</span>
+                                                                <strong>{{ document.name }}</strong>
+                                                            </div>
+                                                            <i class="ti ti-external-link"></i>
+                                                        </a>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <div class="rrh-history-empty">No documents are available for this version.</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="rrh-history-block">
+                                            <div class="rrh-history-heading">
+                                                <i class="ti ti-message"></i>
+                                                <span>STUDENT REMARKS</span>
+                                            </div>
+                                            <div class="rrh-history-remarks">{{ version.remarks }}</div>
+                                        </div>
+                                        {% if version.evaluations %}
+                                            <div class="rrh-history-block">
+                                                <div class="rrh-history-heading">
+                                                    <i class="ti ti-clipboard-check"></i>
+                                                    <span>FACULTY EVALUATIONS</span>
+                                                </div>
+                                                <div class="rrh-evaluation-list">
+                                                    {% for evaluation in version.evaluations %}
+                                                        <div class="rrh-evaluation-card">
+                                                            <div class="rrh-evaluation-top">
+                                                                <div class="rrh-evaluation-avatar">
+                                                                    <i class="ti ti-user-check"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <span>{{ evaluation.role }}</span>
+                                                                    <strong>{{ evaluation.evaluator_name }}</strong>
+                                                                    <small>{{ evaluation.evaluated_at }}</small>
+                                                                </div>
+                                                            </div>
+                                                            {% if evaluation.details %}
+                                                                <div class="rrh-evaluation-details">
+                                                                    {% for detail in evaluation.details %}
+                                                                        <div class="rrh-evaluation-detail">
+                                                                            <span>{{ detail.label }}</span>
+                                                                            <strong>{{ detail.value }}</strong>
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if version.advices %}
+                                            <div class="rrh-history-block">
+                                                <div class="rrh-history-heading">
+                                                    <i class="ti ti-message-2"></i>
+                                                    <span>ADVISOR ADVICE</span>
+                                                </div>
+                                                <div class="rrh-advice-list">
+                                                    {% for advice in version.advices %}
+                                                        <div class="rrh-advice-card">
+                                                            <div class="rrh-advice-top">
+                                                                <div class="rrh-advice-icon">
+                                                                    <i class="ti ti-user-star"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <span>ADVISOR</span>
+                                                                    <strong>{{ advice.advisor_name }}</strong>
+                                                                    <small>{{ advice.submitted_at }}</small>
+                                                                </div>
+                                                            </div>
+                                                            {% if advice.details %}
+                                                                <div class="rrh-advice-details">
+                                                                    {% for detail in advice.details %}
+                                                                        <div class="rrh-advice-detail">
+                                                                            <span>{{ detail.label }}</span>
+                                                                            <strong>{{ detail.value }}</strong>
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        <div class="rrh-version-result">
+                                            {% if version.submission.status == "REVISION_REQUIRED" %}
+                                                <div class="revision">
+                                                    <i class="ti ti-refresh"></i>
+                                                    <div>
+                                                        <strong>Revision Required</strong>
+                                                        <span>This version required correction before the student could continue.</span>
+                                                    </div>
+                                                </div>
+                                            {% elif version.submission.status == "EVALUATED" %}
+                                                <div class="completed">
+                                                    <i class="ti ti-circle-check"></i>
+                                                    <div>
+                                                        <strong>Evaluation Completed</strong>
+                                                        <span>This version completed the available evaluation workflow.</span>
+                                                    </div>
+                                                </div>
+                                            {% elif version.submission.status == "UNDER_REVIEW" %}
+                                                <div class="review">
+                                                    <i class="ti ti-eye"></i>
+                                                    <div>
+                                                        <strong>Under Review</strong>
+                                                        <span>This version is currently being reviewed.</span>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="submitted">
+                                                    <i class="ti ti-send"></i>
+                                                    <div>
+                                                        <strong>Submission Received</strong>
+                                                        <span>This version was successfully submitted.</span>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </section>
+                </div>
+                <div class="rrh-modal-footer">
+                    <div class="rrh-modal-reference">
+                        <i class="ti ti-info-circle"></i>
+                        Complete milestone history is maintained for research reference.
+                    </div>
+                    <button type="button" class="rrh-modal-done" data-close-modal>
+                        Close History
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const openButtons = document.querySelectorAll("[data-open-milestone]");
+    const closeButtons = document.querySelectorAll("[data-close-modal]");
+
+    function openModal(id) {
+        const modal = document.getElementById(id);
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add("show");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("rrh-modal-open");
+    }
+
+    function closeModal(modal) {
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+
+        if (!document.querySelector(".rrh-modal.show")) {
+            document.body.classList.remove("rrh-modal-open");
+        }
+    }
+
+    openButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            openModal(
+                button.dataset.openMilestone
+            );
+        });
+    });
+
+    closeButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            closeModal(
+                button.closest(".rrh-modal")
+            );
+        });
+    });
+
+    document.querySelectorAll(".rrh-modal").forEach(function (modal) {
+
+        modal.addEventListener("click", function (event) {
+
+            if (event.target === modal) {
+                closeModal(modal);
+            }
+
+        });
+
+    });
+
+    document.addEventListener("keydown", function (event) {
+
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        const activeModal = document.querySelector(
+            ".rrh-modal.show"
+        );
+
+        if (activeModal) {
+            closeModal(activeModal);
+        }
+
+    });
+
+});
+    </script>
+{% endblock %}

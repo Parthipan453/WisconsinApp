@@ -1,0 +1,1120 @@
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}Advisor Dissertation Proposals{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/choices.js@11.2.3/public/assets/styles/choices.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+<link rel="stylesheet"
+      href="{% static 'css/leo/dissertation/advisor_dissertation_proposal_list.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+
+{% comment %} <nav class="common-page-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'faculty_dashboard' uuid=request.user.uuid %}">
+        <i class="ti ti-layout-dashboard"></i>
+        <span>Dashboard</span>
+    </a>
+
+    <i class="ti ti-chevron-right common-breadcrumb-separator"></i>
+
+    <a href="{% url 'faculty_phd_management' uuid=request.user.uuid %}">
+        <i class="ti ti-school"></i>
+        <span>PhD Management</span>
+    </a>
+</nav> {% endcomment %}
+
+<div class="adv-dp-page">
+
+    <section class="adv-dp-header">
+        <div class="adv-dp-header-main">
+            <div class="adv-dp-header-icon">
+                <i class="ti ti-file-description"></i>
+            </div>
+
+            <div class="adv-dp-header-copy">
+                <span class="adv-dp-eyebrow">
+                    Advisor Workspace
+                </span>
+
+                <h1>Dissertation Proposals</h1>
+
+                <p>
+                    Review and evaluate dissertation proposals submitted by your PhD advisees.
+                </p>
+            </div>
+        </div>
+
+        <div class="adv-dp-header-role">
+            <i class="ti ti-user-check"></i>
+            <span>Advisor</span>
+        </div>
+    </section>
+
+
+    <section class="adv-dp-stats">
+
+        <article class="adv-dp-stat-card">
+            <div class="adv-dp-stat-icon">
+                <i class="ti ti-files"></i>
+            </div>
+
+            <div class="adv-dp-stat-content">
+                <span>Total Proposals</span>
+                <strong id="advDpTotalCount">
+                    {{ total_proposals|default:0 }}
+                </strong>
+            </div>
+        </article>
+
+
+        <article class="adv-dp-stat-card adv-dp-stat-pending">
+            <div class="adv-dp-stat-icon">
+                <i class="ti ti-clock"></i>
+            </div>
+
+            <div class="adv-dp-stat-content">
+                <span>Pending Review</span>
+
+                <strong id="advDpPendingCount">
+                    {{ pending_review_count|default:0 }}
+                </strong>
+            </div>
+        </article>
+
+
+        <article class="adv-dp-stat-card adv-dp-stat-reviewed">
+            <div class="adv-dp-stat-icon">
+                <i class="ti ti-circle-check"></i>
+            </div>
+
+            <div class="adv-dp-stat-content">
+                <span>Reviewed</span>
+
+                <strong id="advDpReviewedCount">
+                    {{ reviewed_count|default:0 }}
+                </strong>
+            </div>
+        </article>
+
+
+        <article class="adv-dp-stat-card adv-dp-stat-attention">
+            <div class="adv-dp-stat-icon">
+                <i class="ti ti-alert-circle"></i>
+            </div>
+
+            <div class="adv-dp-stat-content">
+                <span>Needs Attention</span>
+
+                <strong id="advDpAttentionCount">
+                    {{ attention_count|default:0 }}
+                </strong>
+            </div>
+        </article>
+
+    </section>
+
+
+    <section class="adv-dp-filter-card">
+
+        <div class="adv-dp-filter-heading">
+
+            <div class="adv-dp-filter-title">
+                <div class="adv-dp-filter-icon">
+                    <i class="ti ti-adjustments-horizontal"></i>
+                </div>
+
+                <div>
+                    <h2>Find Proposals</h2>
+                    <p>
+                        Search and filter your advisee proposals.
+                    </p>
+                </div>
+            </div>
+
+
+            <button
+                type="button"
+                class="adv-dp-reset-btn"
+                id="advDpResetBtn"
+            >
+                <i class="ti ti-refresh"></i>
+                <span>Reset</span>
+            </button>
+
+        </div>
+
+
+        <form
+            method="get"
+            class="adv-dp-filter-form"
+            id="advDpFilterForm"
+            autocomplete="off"
+        >
+
+            <div class="adv-dp-search-field">
+
+                <label for="advDpSearch">
+                    Search
+                </label>
+
+                <div class="adv-dp-input-wrap">
+
+                    <i class="ti ti-search"></i>
+
+                    <input
+                        type="text"
+                        id="advDpSearch"
+                        name="search"
+                        value="{{ search|default:'' }}"
+                        placeholder="Search student, proposal title or student ID..."
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+
+                    <button
+                        type="button"
+                        id="advDpSearchClear"
+                        class="adv-dp-search-clear"
+                        aria-label="Clear search"
+                        title="Clear search"
+                    >
+                        <i class="ti ti-x"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="adv-dp-status-field">
+
+                <label for="advDpStatus">
+                    Review Status
+                </label>
+
+                <select id="advDpStatus">
+
+                    <option value="ALL">
+                        All Status
+                    </option>
+
+                    <option value="PENDING">
+                        Pending Review
+                    </option>
+
+                    <option value="REVIEWED">
+                        Reviewed
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="adv-dp-result-field">
+                <span>Showing</span>
+
+                <strong id="advDpVisibleCount">
+                    0
+                </strong>
+
+                <span>proposals</span>
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <section class="adv-dp-list-section">
+
+        <div class="adv-dp-list-heading">
+
+            <div>
+                <span class="adv-dp-section-label">
+                    Your Advisees
+                </span>
+
+                <h2>
+                    Proposal Submissions
+                </h2>
+            </div>
+
+            <div class="adv-dp-list-count">
+                <i class="ti ti-files"></i>
+
+                <span id="advDpHeadingCount">
+                    0
+                </span>
+            </div>
+
+        </div>
+
+
+        <div
+            class="adv-dp-proposal-grid"
+            id="advDpProposalGrid"
+        >
+
+            {% for proposal in proposals %}
+
+            <article
+                class="adv-dp-proposal-card"
+                data-proposal-card
+                data-status="{{ proposal.advisor_review_status|default:'PENDING' }}"
+                data-search="{{ proposal.proposal_title|default:'' }} {{ proposal.phd_student.student.user.get_full_name|default:'' }} {{ proposal.phd_student.student.student_number|default:'' }} {{ proposal.phd_student.phd_program.program_name|default:'' }}"
+            >
+
+                <div class="adv-dp-card-top">
+
+                    <div class="adv-dp-student-block">
+
+                        <div class="adv-dp-student-avatar">
+
+                            {% if proposal.phd_student.student.user.first_name %}
+                                {{ proposal.phd_student.student.user.first_name|first|upper }}
+                            {% else %}
+                                S
+                            {% endif %}
+
+                        </div>
+
+
+                        <div class="adv-dp-student-info">
+
+                            <span class="adv-dp-student-label">
+                                PhD Student
+                            </span>
+
+                            <h3>
+                                {{ proposal.phd_student.student.user.get_full_name|default:"Student" }}
+                            </h3>
+
+                            {% if proposal.phd_student.student.student_number %}
+
+                                <span class="adv-dp-student-id">
+                                    ID:
+                                    {{ proposal.phd_student.student.student_number }}
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="adv-dp-status-wrap">
+
+                        {% if proposal.is_finalized %}
+
+                            {% if proposal.final_approved %}
+
+                                <span class="adv-dp-status adv-dp-status-approved">
+                                    <i class="ti ti-circle-check"></i>
+                                    Approved
+                                </span>
+
+                            {% elif proposal.final_rejected %}
+
+                                <span class="adv-dp-status adv-dp-status-rejected">
+                                    <i class="ti ti-circle-x"></i>
+                                    Rejected
+                                </span>
+
+                            {% elif proposal.final_revision_required %}
+
+                                <span class="adv-dp-status adv-dp-status-revision">
+                                    <i class="ti ti-refresh"></i>
+                                    Revision Required
+                                </span>
+
+                            {% endif %}
+
+                        {% elif proposal.advisor_review_status == "PENDING" %}
+
+                            <span class="adv-dp-status adv-dp-status-pending">
+                                <i class="ti ti-clock"></i>
+                                Pending
+                            </span>
+
+                        {% elif proposal.advisor_review_status == "APPROVED" %}
+
+                            <span class="adv-dp-status adv-dp-status-approved">
+                                <i class="ti ti-circle-check"></i>
+                                Advisor Approved
+                            </span>
+
+                        {% elif proposal.advisor_review_status == "REJECTED" %}
+
+                            <span class="adv-dp-status adv-dp-status-rejected">
+                                <i class="ti ti-circle-x"></i>
+                                Advisor Rejected
+                            </span>
+
+                        {% else %}
+
+                            <span class="adv-dp-status adv-dp-status-reviewed">
+                                <i class="ti ti-circle-check"></i>
+                                Reviewed
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                <div class="adv-dp-card-divider"></div>
+
+
+                <div class="adv-dp-proposal-content">
+
+                    <span class="adv-dp-proposal-label">
+                        Dissertation Proposal
+                    </span>
+
+                    <h3 class="adv-dp-proposal-title">
+                        {{ proposal.proposal_title|truncatechars:45 }}
+                    </h3>
+
+                    <p class="adv-dp-proposal-abstract">
+                        {{ proposal.abstract|default:"No abstract provided."|truncatechars:45 }}
+                    </p>
+
+                </div>
+
+
+                {% if proposal.is_finalized %}
+
+                <div class="adv-dp-final-result">
+
+                    <div class="adv-dp-final-result-icon">
+
+                        {% if proposal.final_approved %}
+                            <i class="ti ti-circle-check"></i>
+                        {% elif proposal.final_rejected %}
+                            <i class="ti ti-circle-x"></i>
+                        {% elif proposal.final_revision_required %}
+                            <i class="ti ti-refresh"></i>
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="adv-dp-final-result-content">
+
+                        <span>
+                            Chair Final Decision
+                        </span>
+
+                        <strong>
+                            {{ proposal.final_result_label }}
+                        </strong>
+
+                        {% if proposal.finalized_at %}
+
+                        <small>
+                            <i class="ti ti-calendar"></i>
+                            Finalized
+                            {{ proposal.finalized_at|date:"M d, Y g:i A" }}
+                        </small>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+                {% endif %}
+
+
+                <div class="adv-dp-meta-grid">
+
+                    <div class="adv-dp-meta-item">
+
+                        <i class="ti ti-school"></i>
+
+                        <div>
+                            <span>Program</span>
+
+                            <strong>
+                                {{ proposal.phd_student.phd_program.program_name|default:"PhD Program" }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="adv-dp-meta-item">
+
+                        <i class="ti ti-calendar"></i>
+
+                        <div>
+                            <span>Submitted</span>
+
+                            <strong>
+                                {% if proposal.submission_date %}
+                                    {{ proposal.submission_date|date:"M d, Y" }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="adv-dp-card-footer">
+
+                    <div class="adv-dp-file-info">
+
+                        {% if proposal.proposal_file %}
+
+                            <i class="ti ti-file-type-pdf"></i>
+                            <span>Proposal document attached</span>
+
+                        {% else %}
+
+                            <i class="ti ti-file-off"></i>
+                            <span>No document attached</span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="adv-dp-card-actions">
+
+                        <a
+                            href="{% url 'faculty_advisor_dissertation_proposal_detail' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                            class="adv-dp-action-btn adv-dp-view-btn"
+                            title="View proposal"
+                        >
+                            <i class="ti ti-eye"></i>
+                            <span>View</span>
+                        </a>
+
+
+                        {% if proposal.advisor_review_status == "PENDING" %}
+
+                            <a
+                                href="{% url 'faculty_advisor_dissertation_proposal_review' uuid=request.user.uuid proposal_id=proposal.proposal_id %}"
+                                class="adv-dp-action-btn adv-dp-review-btn"
+                                title="Review proposal"
+                            >
+                                <i class="ti ti-edit"></i>
+                                <span>Review</span>
+                            </a>
+
+                        {% else %}
+
+                            <button
+                                type="button"
+                                class="adv-dp-action-btn adv-dp-locked-btn"
+                                data-locked-review
+                                title="Review completed"
+                            >
+                                <i class="ti ti-lock"></i>
+                                <span>Completed</span>
+                            </button>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </article>
+
+            {% endfor %}
+
+
+            {% if not proposals %}
+
+            <div
+                class="adv-dp-empty-state"
+                id="advDpEmptyState"
+            >
+
+                <div class="adv-dp-empty-icon">
+                    <i class="ti ti-file-off"></i>
+                </div>
+
+                <h3>
+                    No Dissertation Proposals
+                </h3>
+
+                <p>
+                    Your advisee dissertation proposals will appear here once they are submitted.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <div
+            class="adv-dp-filter-empty"
+            id="advDpFilterEmpty"
+        >
+
+            <div class="adv-dp-filter-empty-icon">
+                <i class="ti ti-search-off"></i>
+            </div>
+
+            <h3>
+                No Matching Proposals
+            </h3>
+
+            <p>
+                Try changing your search or review status filter.
+            </p>
+
+            <button
+                type="button"
+                id="advDpClearFilters"
+            >
+                <i class="ti ti-refresh"></i>
+                Clear Filters
+            </button>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock content %}
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/choices.js@11.2.3/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput = document.getElementById("advDpSearch");
+    const searchClear = document.getElementById("advDpSearchClear");
+    const statusSelect = document.getElementById("advDpStatus");
+
+    const resetButton = document.getElementById("advDpResetBtn");
+    const clearFiltersButton = document.getElementById("advDpClearFilters");
+
+    const cards = Array.from(
+        document.querySelectorAll("[data-proposal-card]")
+    );
+
+    const visibleCount = document.getElementById(
+        "advDpVisibleCount"
+    );
+
+    const headingCount = document.getElementById(
+        "advDpHeadingCount"
+    );
+
+    const totalCount = document.getElementById(
+        "advDpTotalCount"
+    );
+
+    const pendingCount = document.getElementById(
+        "advDpPendingCount"
+    );
+
+    const reviewedCount = document.getElementById(
+        "advDpReviewedCount"
+    );
+
+    const attentionCount = document.getElementById(
+        "advDpAttentionCount"
+    );
+
+    const filterEmpty = document.getElementById(
+        "advDpFilterEmpty"
+    );
+
+    let statusChoice = null;
+
+
+    if (
+        statusSelect &&
+        typeof Choices !== "undefined"
+    ) {
+
+        statusChoice = new Choices(
+            statusSelect,
+            {
+                searchEnabled: false,
+                itemSelectText: "",
+                shouldSort: false,
+                allowHTML: false,
+                allowSearch: false,
+                removeItemButton: false,
+            }
+        );
+
+    }
+
+
+    function normalize(value) {
+
+        return String(value || "")
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .trim();
+
+    }
+
+
+    function getStatusValue() {
+
+        if (statusChoice) {
+
+            const value = statusChoice.getValue(
+                true
+            );
+
+            return normalize(value || "ALL");
+
+        }
+
+        return normalize(
+            statusSelect
+                ? statusSelect.value
+                : "ALL"
+        );
+
+    }
+
+
+    function updateSearchClearButton() {
+
+        if (!searchClear) {
+            return;
+        }
+
+        const hasSearch = normalize(
+            searchInput
+                ? searchInput.value
+                : ""
+        ).length > 0;
+
+        searchClear.classList.toggle(
+            "adv-dp-search-clear-visible",
+            hasSearch
+        );
+
+    }
+
+
+    function updateStats() {
+
+        let pending = 0;
+        let reviewed = 0;
+        let attention = 0;
+
+
+        cards.forEach(function (card) {
+
+            const status = normalize(
+                card.dataset.status
+            );
+
+            if (status === "pending") {
+
+                pending++;
+
+            } else {
+
+                reviewed++;
+
+            }
+
+
+            if (
+                status === "rejected" ||
+                status === "revision_required" ||
+                status === "changes_required"
+            ) {
+
+                attention++;
+
+            }
+
+        });
+
+
+        if (totalCount) {
+
+            totalCount.textContent =
+                cards.length;
+
+        }
+
+
+        if (pendingCount) {
+
+            pendingCount.textContent =
+                pending;
+
+        }
+
+
+        if (reviewedCount) {
+
+            reviewedCount.textContent =
+                reviewed;
+
+        }
+
+
+        if (attentionCount) {
+
+            attentionCount.textContent =
+                attention;
+
+        }
+
+    }
+
+
+    function applyFilters() {
+
+        const query = normalize(
+            searchInput
+                ? searchInput.value
+                : ""
+        );
+
+        const selectedStatus =
+            getStatusValue();
+
+
+        let count = 0;
+
+
+        cards.forEach(function (card) {
+
+            const cardSearch = normalize(
+                card.dataset.search
+            );
+
+            const cardStatus = normalize(
+                card.dataset.status
+            );
+
+
+            const matchesSearch =
+                query === "" ||
+                cardSearch.includes(query);
+
+
+            let matchesStatus = true;
+
+
+            if (
+                selectedStatus === "pending"
+            ) {
+
+                matchesStatus =
+                    cardStatus === "pending";
+
+            }
+
+
+            if (
+                selectedStatus === "reviewed"
+            ) {
+
+                matchesStatus =
+                    cardStatus !== "pending";
+
+            }
+
+
+            const shouldShow =
+                matchesSearch &&
+                matchesStatus;
+
+
+            card.hidden = !shouldShow;
+
+
+            if (shouldShow) {
+                count++;
+            }
+
+        });
+
+
+        if (visibleCount) {
+
+            visibleCount.textContent =
+                count;
+
+        }
+
+
+        if (headingCount) {
+
+            headingCount.textContent =
+                count;
+
+        }
+
+
+        if (filterEmpty) {
+
+            filterEmpty.classList.toggle(
+                "adv-dp-filter-empty-visible",
+                cards.length > 0 &&
+                count === 0
+            );
+
+        }
+
+
+        updateSearchClearButton();
+
+    }
+
+
+    function resetFilters() {
+
+        if (searchInput) {
+
+            searchInput.value = "";
+
+        }
+
+
+        if (statusChoice) {
+
+            statusChoice.setChoiceByValue(
+                "ALL"
+            );
+
+        } else if (statusSelect) {
+
+            statusSelect.value = "ALL";
+
+        }
+
+
+        const currentUrl =
+            new URL(
+                window.location.href
+            );
+
+        currentUrl.searchParams.delete(
+            "search"
+        );
+
+
+        window.history.replaceState(
+            {},
+            document.title,
+            currentUrl.pathname +
+            currentUrl.search
+        );
+
+
+        applyFilters();
+
+        if (searchInput) {
+
+            searchInput.focus();
+
+        }
+
+    }
+
+
+    function clearSearch() {
+
+        if (searchInput) {
+
+            searchInput.value = "";
+
+            applyFilters();
+
+            searchInput.focus();
+
+        }
+
+    }
+
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            function () {
+
+                applyFilters();
+
+            }
+        );
+
+        searchInput.addEventListener(
+            "keyup",
+            function () {
+
+                applyFilters();
+
+            }
+        );
+
+    }
+
+
+    if (searchClear) {
+
+        searchClear.addEventListener(
+            "click",
+            function () {
+
+                clearSearch();
+
+            }
+        );
+
+    }
+
+
+    if (statusSelect) {
+
+        statusSelect.addEventListener(
+            "change",
+            function () {
+
+                applyFilters();
+
+            }
+        );
+
+    }
+
+
+    if (resetButton) {
+
+        resetButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                resetFilters();
+
+            }
+        );
+
+    }
+
+
+    if (clearFiltersButton) {
+
+        clearFiltersButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                resetFilters();
+
+            }
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(
+            "[data-locked-review]"
+        )
+        .forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    if (
+                        typeof Swal ===
+                        "undefined"
+                    ) {
+                        return;
+                    }
+
+
+                    Swal.fire({
+                        icon: "info",
+                        title: "Review Completed",
+                        text: "This dissertation proposal has already been reviewed and is locked.",
+                        confirmButtonText: "Understood",
+                        confirmButtonColor: "#C5050C",
+                        customClass: {
+                            popup: "adv-dp-swal-popup",
+                            title: "adv-dp-swal-title",
+                            htmlContainer: "adv-dp-swal-text",
+                            confirmButton: "adv-dp-swal-confirm"
+                        }
+                    });
+
+                }
+            );
+
+        });
+
+
+    updateStats();
+
+    applyFilters();
+
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            if (
+                typeof Swal !==
+                "undefined"
+            ) {
+
+                Swal.fire({
+                    icon: "{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %}",
+                    title: "{% if message.tags == 'success' %}Success{% elif message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Attention{% else %}Notice{% endif %}",
+                    text: "{{ message|escapejs }}",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#C5050C",
+                    customClass: {
+                        popup: "adv-dp-swal-popup",
+                        title: "adv-dp-swal-title",
+                        htmlContainer: "adv-dp-swal-text",
+                        confirmButton: "adv-dp-swal-confirm"
+                    }
+                });
+
+            }
+
+        {% endfor %}
+
+    {% endif %}
+
+});
+</script>
+
+{% endblock extra_js %}

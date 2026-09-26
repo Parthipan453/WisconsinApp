@@ -1,0 +1,448 @@
+<!-- *********************************************** Arun code *************************************************** -->
+
+{% extends "student_base.html" %}
+{% load static %}
+
+{% block title %}My Documents{% endblock %}
+
+{% block nav_personal_open %}open{% endblock %}
+{% block nav_personal_submenu %}open{% endblock %}
+{% block nav_documents %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/Personal/documents.css' %}">
+<link rel="stylesheet" href="{% static 'css/studentdashboard/student_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="page-title">Documents</div>
+    <div class="page-sub">Upload and manage your official documents for verification.</div>
+  </div>
+  <button class="btn-primary" onclick="openUploadModal()">
+    <i class="ti ti-upload"></i> Upload Document
+  </button>
+</div>
+
+<div class="doc-filter-tabs" data-aos="fade-up" data-aos-duration="400">
+  <button class="doc-tab active" onclick="filterDocs(this, 'all')">All</button>
+  <button class="doc-tab" onclick="filterDocs(this, 'PASSPORT')">Passport</button>
+  <button class="doc-tab" onclick="filterDocs(this, 'VISA')">Visa</button>
+  <button class="doc-tab" onclick="filterDocs(this, 'TRANSCRIPT')">Transcripts</button>
+  <button class="doc-tab" onclick="filterDocs(this, 'DEGREE_CERTIFICATE')">Degree</button>
+  <button class="doc-tab" onclick="filterDocs(this, 'FINANCIAL_DOCUMENT')">Financial</button>
+  <button class="doc-tab" onclick="filterDocs(this, 'OTHER')">Other</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DESKTOP / TABLET: TABLE VIEW
+     ══════════════════════════════════════════ -->
+<div class="doc-table-wrap" data-aos="fade-up" data-aos-duration="500" data-aos-delay="60">
+  <table class="doc-table">
+    <colgroup>
+      <col style="width:38%">
+      <col style="width:16%">
+      <col style="width:16%">
+      <col style="width:16%">
+      <col style="width:14%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Document</th>
+        <th>Type</th>
+        <th>Uploaded</th>
+        <th>Status</th>
+        <th class="th-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="docTableBody">
+
+      {% for document in documents %}
+
+      <tr data-type="{{ document.document_type }}" data-doc-id="{{ document.id }}">
+
+        <td>
+          <div class="doc-name-cell">
+
+            <div class="doc-icon
+                    {% if document.document_type == 'PASSPORT' %}
+                        di-blue
+                    {% elif document.document_type == 'TRANSCRIPT' %}
+                        di-red
+                    {% elif document.document_type == 'FINANCIAL_DOCUMENT' %}
+                        di-green
+                    {% elif document.document_type == 'VISA' %}
+                        di-purple
+                    {% else %}
+                        di-gray
+                    {% endif %}
+                ">
+
+              {% if document.document_type == 'PASSPORT' %}
+              <i class="ti ti-id-badge"></i>
+
+              {% elif document.document_type == 'TRANSCRIPT' %}
+              <i class="ti ti-file-certificate"></i>
+
+              {% elif document.document_type == 'FINANCIAL_DOCUMENT' %}
+              <i class="ti ti-file-dollar"></i>
+
+              {% elif document.document_type == 'VISA' %}
+              <i class="ti ti-license"></i>
+
+              {% else %}
+              <i class="ti ti-file"></i>
+
+              {% endif %}
+
+            </div>
+
+            <div>
+
+              <div class="doc-filename">
+
+                {{ document.file_name }}
+
+              </div>
+
+              <div class="doc-size">
+
+                {% if document.file %}
+                {{ document.file.size|filesizeformat }}
+                {% endif %}
+
+              </div>
+
+            </div>
+
+          </div>
+        </td>
+
+        <td>
+
+          <span class="doc-type-tag">
+
+            {{ document.get_document_type_display }}
+
+          </span>
+
+        </td>
+
+        <td>
+
+          {{ document.upload_date|date:"M d, Y" }}
+
+        </td>
+
+        <td>
+
+          {% if document.verification_status == "VERIFIED" %}
+
+          <span class="status-badge sb-verified">
+            <i class="ti ti-circle-check"></i>
+            Verified
+          </span>
+
+          {% elif document.verification_status == "PENDING" %}
+
+          <span class="status-badge sb-pending">
+            <i class="ti ti-clock"></i>
+            Pending
+          </span>
+
+          {% else %}
+
+          <span class="status-badge sb-rejected">
+            <i class="ti ti-circle-x"></i>
+            Rejected
+          </span>
+
+          {% endif %}
+
+        </td>
+
+        <td class="td-actions">
+
+          {% if document.file %}
+          <a href="{{ document.file.url }}" download class="icon-btn">
+            <i class="ti ti-download"></i>
+          </a>
+          {% endif %}
+
+          {% if document.file %}
+          <a href="{{ document.file.url }}" target="_blank" class="icon-btn">
+            <i class="ti ti-eye"></i>
+          </a>
+          {% endif %}
+
+          <button class="icon-btn danger" onclick="deleteDocument('{{ document.id }}', '{{ document.file_name|escapejs }}')">
+              <i class="ti ti-trash"></i>
+          </button>
+
+        </td>
+
+      </tr>
+
+      {% empty %}
+
+      <tr>
+
+        <td colspan="5">
+
+          <div class="empty-doc">
+
+            <div class="empty-doc-icon">
+
+              <i class="ti ti-file-off"></i>
+
+            </div>
+
+            <h3>No Documents Found</h3>
+
+            <p>
+
+              You haven't uploaded any documents yet.
+
+            </p>
+
+            <button class="btn-primary" onclick="openUploadModal()">
+
+              <i class="ti ti-upload"></i>
+
+              Upload Document
+
+            </button>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MOBILE: CARD LIST VIEW (≤ 520px)
+     ══════════════════════════════════════════ -->
+<div class="doc-card-list" id="docCardList">
+
+  {% for document in documents %}
+
+  <div class="doc-card" data-aos="fade-up" data-type="{{ document.document_type }}" data-doc-id="{{ document.id }}">
+
+    <div class="doc-card-top">
+
+      <div class="doc-card-info">
+
+        <div class="doc-icon
+                {% if document.document_type == 'PASSPORT' %}
+                    di-blue
+                {% elif document.document_type == 'TRANSCRIPT' %}
+                    di-red
+                {% elif document.document_type == 'FINANCIAL_DOCUMENT' %}
+                    di-green
+                {% elif document.document_type == 'VISA' %}
+                    di-purple
+                {% else %}
+                    di-gray
+                {% endif %}
+            ">
+
+          {% if document.document_type == "PASSPORT" %}
+          <i class="ti ti-id-badge"></i>
+
+          {% elif document.document_type == "TRANSCRIPT" %}
+          <i class="ti ti-file-certificate"></i>
+
+          {% elif document.document_type == "FINANCIAL_DOCUMENT" %}
+          <i class="ti ti-file-dollar"></i>
+
+          {% elif document.document_type == "VISA" %}
+          <i class="ti ti-license"></i>
+
+          {% else %}
+
+          <i class="ti ti-file"></i>
+
+          {% endif %}
+
+        </div>
+
+        <div class="doc-card-meta">
+
+          <div class="doc-filename">
+
+            {{ document.file_name }}
+
+          </div>
+
+          <div class="doc-size">
+
+            {% if document.file %}
+            {{ document.file.size|filesizeformat }}
+            {% endif %}
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="doc-card-badges">
+
+      <span class="doc-type-tag">
+
+        {{ document.get_document_type_display }}
+
+      </span>
+
+      {% if document.verification_status == "VERIFIED" %}
+
+      <span class="status-badge sb-verified">
+
+        <i class="ti ti-circle-check"></i>
+
+        Verified
+
+      </span>
+
+      {% elif document.verification_status == "PENDING" %}
+
+      <span class="status-badge sb-pending">
+
+        <i class="ti ti-clock"></i>
+
+        Pending
+
+      </span>
+
+      {% else %}
+
+      <span class="status-badge sb-rejected">
+
+        <i class="ti ti-circle-x"></i>
+
+        Rejected
+
+      </span>
+
+      {% endif %}
+
+      <span class="doc-card-date">
+
+        {{ document.upload_date|date:"M d, Y" }}
+
+      </span>
+
+    </div>
+
+    <div class="doc-card-actions">
+
+      {% if document.file %}
+      <a href="{{ document.file.url }}" download class="icon-btn">
+        <i class="ti ti-download"></i>
+      </a>
+      {% endif %}
+
+      {% if document.file %}
+      <a href="{{ document.file.url }}" target="_blank" class="icon-btn">
+        <i class="ti ti-eye"></i>
+      </a>
+      {% endif %}
+
+      <button class="icon-btn danger" onclick="deleteDocument('{{ document.id }}', '{{ document.file_name|escapejs }}')">
+          <i class="ti ti-trash"></i>
+      </button>
+
+    </div>
+
+  </div>
+  {% empty %}
+  <div class="empty-doc-wrapper">
+    <div class="empty-doc">
+      <div class="empty-doc-icon">
+        <i class="ti ti-file-off"></i>
+      </div>
+      <h3>No Documents Found</h3>
+      <p>
+        You haven't uploaded any documents yet.
+        Upload your first document for verification.
+      </p>
+      <button class="btn-primary" onclick="openUploadModal()">
+        <i class="ti ti-upload"></i>
+        Upload Document
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<div class="modal-overlay" id="uploadModal" style="display:none" onclick="closeUploadModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Upload Document</div>
+      <button class="modal-close" onclick="closeUploadModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+
+      {% csrf_token %}
+
+      <input type="hidden" name="document_id" id="document_id">
+
+      <div class="modal-body">
+        <div class="mfield-group">
+          <label>Document Type</label>
+          <select class="mfield-input" name="document_type" id="uploadType">
+            <option value="">Select type...</option>
+            <option value="PASSPORT">Passport</option>
+            <option value="VISA">Visa</option>
+            <option value="TRANSCRIPT">Transcript</option>
+            <option value="DEGREE_CERTIFICATE">Degree Certificate</option>
+            <option value="FINANCIAL_DOCUMENT">Financial Document</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div class="mfield-group">
+          <label>File</label>
+          <div class="upload-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+            ondragover="event.preventDefault(); this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+            <i class="ti ti-cloud-upload"></i>
+            <div class="drop-label">Click or drag file here</div>
+            <div class="drop-sub">PDF, JPG, PNG up to 10 MB</div>
+          </div>
+          <input type="file" name="document_file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+            onchange="handleFileSelect(event)" />
+          <div class="selected-file" id="selectedFile" style="display:none">
+            <i class="ti ti-file-check"></i>
+            <span id="selectedFileName"></span>
+            <button class="clear-file" onclick="clearFile()"><i class="ti ti-x"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeUploadModal()">Cancel</button>
+        <button type="submit" class="btn-save"><i class="ti ti-upload"></i> Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'script/Personal/documents.js' %}"></script>
+{% endblock %}
+
+
+
+<!-- *********************************************** Arun code *************************************************** -->

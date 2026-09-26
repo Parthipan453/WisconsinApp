@@ -1,0 +1,1046 @@
+{% extends "Applicants/builder/base.html" %}
+{% load static form_helpers %}
+{% block title %}Form Builder — {{ form_def.name }}{% endblock %}
+{% block mobile_title %}{{ form_def.name }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_form_edit.css' %}">
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/Applicants/builder_visual.css' %}">
+<link rel="stylesheet" href="{% static 'css/Applicants/style.css' %}">
+{% endblock %}
+{% block content %}
+<div class="bld-dash-hero">
+  <a href="{% url 'builder_dashboard' %}" class="bld-back-link" style="color:rgba(255,255,255,0.85)">&larr; Dashboard</a>
+  <h1>{{ form_def.name }}</h1>
+  <p><code style="color:rgba(255,255,255,0.9)">{{ form_def.code }}</code> &middot; v{{ form_def.version }}</p>
+  <div class="bld-dash-hero-actions">
+    <button class="bld-btn" onclick="openFormModal()"><i class="ti ti-edit"></i> Edit Form</button>
+    <a href="{% url 'builder_form_preview' form_def.pk %}" class="bld-btn" target="_blank"><i class="ti ti-eye"></i> Preview</a>
+    <a href="{% url 'builder_assignments' form_def.pk %}" class="bld-btn"><i class="ti ti-link"></i> Assignments</a>
+    <a href="{% url 'builder_section_assignments' form_def.pk %}" class="bld-btn"><i class="ti ti-section"></i> Section Assignments</a>
+    <a href="{% url 'builder_form_clone' form_def.pk %}" class="bld-btn"><i class="ti ti-copy"></i> Clone</a>
+    <button class="bld-btn" onclick="openFormDelete()"><i class="ti ti-trash"></i> Delete</button>
+  </div>
+</div>
+
+{# ── Builder Tabs ── #}
+<div class="bld-builder-tabs">
+  <button class="bld-builder-tab active" onclick="switchBuilderTab(this,'builder')">
+    <i class="ti ti-layout-grid"></i> Builder
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Add, edit, and reorder sections and fields. Click a field or use its Edit button to modify it in a modal.</span></span>
+  </button>
+  <button class="bld-builder-tab" onclick="switchBuilderTab(this,'settings')">
+    <i class="ti ti-settings"></i> Settings
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Configure form name, description, icon, sort order, and active status.</span></span>
+  </button>
+  <button class="bld-builder-tab" onclick="switchBuilderTab(this,'logic')">
+    <i class="ti ti-git-branch"></i> Conditional Logic
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Create rules to show/hide fields based on user input. E.g., "If applicant type = Transfer, show College Transcript section."</span></span>
+  </button>
+  <button class="bld-builder-tab" onclick="switchBuilderTab(this,'preview')">
+    <i class="ti ti-eye"></i> Preview
+    <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">See how your form looks to applicants. Test field interactions and validation.</span></span>
+  </button>
+</div>
+
+{# ═══════════════ BUILDER TAB ═══════════════ #}
+<div class="bld-tab-content active" id="tab-builder">
+<div class="bld-builder">
+  <div class="bld-builder-canvas" id="builderCanvas">
+    {% if sections %}
+    {% for section in sections %}
+    <div class="bld-section-card" data-section-id="{{ section.pk }}">
+      <div class="bld-section-header">
+        <span class="bld-section-drag" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></span>
+        <input type="text" class="bld-section-title-input" value="{{ section.title }}" data-section-id="{{ section.pk }}" data-field="title" placeholder="Section Title">
+        <div class="bld-section-actions">
+          <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Sections group related fields together. Each section appears as a card in the form.</span></span>
+          <button class="bld-btn-icon" onclick="openSectionModal({{ section.pk }})" title="Edit section"><i class="ti ti-edit"></i></button>
+          <button class="bld-btn-icon" onclick="openAddField({{ section.pk }})" title="Add field to this section"><i class="ti ti-plus"></i></button>
+          <button class="bld-btn-icon" onclick="toggleSection({{ section.pk }})" title="Collapse/Expand"><i class="ti ti-chevron-down"></i></button>
+          <button class="bld-btn-icon" onclick="openSectionDelete({{ section.pk }}, '{{ section.title|escapejs }}')" title="Delete section"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div class="bld-section-body" id="section-{{ section.pk }}">
+        {% for field in section.fields.all %}
+        <div class="bld-field-card" data-field-id="{{ field.pk }}" onclick="openFieldModal({{ field.pk }})">
+          <div class="bld-field-header">
+            <span class="bld-field-drag" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></span>
+            <div class="bld-field-icon {{ field.field_type }}">
+              {% if field.field_type == 'text' %}<i class="ti ti-text-size-input"></i>
+              {% elif field.field_type == 'email' %}<i class="ti ti-mail"></i>
+              {% elif field.field_type == 'number' %}<i class="ti ti-hash"></i>
+              {% elif field.field_type == 'phone' %}<i class="ti ti-phone"></i>
+              {% elif field.field_type == 'select' %}<i class="ti ti-menu-2"></i>
+              {% elif field.field_type == 'radio' %}<i class="ti ti-circle-dot"></i>
+              {% elif field.field_type == 'checkbox' %}<i class="ti ti-checkbox"></i>
+              {% elif field.field_type == 'textarea' %}<i class="ti ti-align-left"></i>
+              {% elif field.field_type == 'file' %}<i class="ti ti-upload"></i>
+              {% elif field.field_type == 'date' %}<i class="ti ti-calendar"></i>
+              {% elif field.field_type == 'heading' %}<i class="ti ti-heading"></i>
+              {% elif field.field_type == 'hidden' %}<i class="ti ti-eye-off"></i>
+              {% elif field.field_type == 'rich_text' %}<i class="ti ti-note"></i>
+              {% else %}<i class="ti ti-forms"></i>{% endif %}
+            </div>
+            <div class="bld-field-info">
+              <div class="bld-field-label">{{ field.label|default:"Untitled Field" }}</div>
+              <div class="bld-field-meta">
+                <span>{{ field.get_field_type_display }}</span>
+                {% if field.placeholder %}<span>&middot; {{ field.placeholder|truncatechars:30 }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="bld-field-badges">
+              {% if field.is_required %}<span class="bld-field-badge required">Required</span>{% endif %}
+              {% if field.regex_pattern %}<span class="bld-field-badge validation">Regex</span>{% endif %}
+            </div>
+            <div class="bld-field-actions">
+              <button class="bld-btn-icon" onclick="event.stopPropagation(); openFieldModal({{ field.pk }})" title="Edit field"><i class="ti ti-edit"></i></button>
+              <form method="POST" action="{% url 'builder_field_clone' field.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="bld-btn-icon" onclick="event.stopPropagation()" title="Duplicate field"><i class="ti ti-copy"></i></button>
+              </form>
+              <button class="bld-btn-icon bld-btn-icon-danger" onclick="event.stopPropagation(); openFieldDelete({{ field.pk }}, '{{ field.label|default:'this field'|escapejs }}')" title="Delete field"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not section.fields.all %}
+        <div class="bld-section-empty">
+          <i class="ti ti-plus" style="font-size:24px;display:block;margin-bottom:6px"></i>
+          Click "Add Field" to start building this section
+        </div>
+        {% endif %}
+      </div>
+      <div class="bld-section-foot">
+        <button class="bld-btn bld-btn-sm bld-btn-outline" onclick="openAddField({{ section.pk }})"><i class="ti ti-plus"></i> Add Field</button>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="bld-section-empty" style="padding:48px">
+      <i class="ti ti-layout-grid" style="font-size:48px;display:block;margin-bottom:12px;opacity:0.3"></i>
+      <h3 style="margin:0 0 4px">No sections yet</h3>
+      <button class="bld-btn bld-btn-primary" onclick="openSectionModal()"><i class="ti ti-plus"></i> Add Section</button>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── Right Sidebar (quick actions) ── #}
+  <div class="bld-builder-sidebar" id="builderSidebar">
+    <div class="bld-sidebar-section">
+      <div class="bld-sidebar-header">
+        <span><i class="ti ti-plus"></i> Add Elements</span>
+      </div>
+      <div class="bld-sidebar-body">
+        <button type="button" class="bld-btn bld-btn-primary" style="width:100%;margin-bottom:8px" onclick="openSectionModal()">
+          <i class="ti ti-section"></i> Add Section
+        </button>
+        {% if sections %}
+        <div class="bld-sidebar-label">Add Field To Section</div>
+        <div class="bld-form-group" style="margin-bottom:6px">
+          <select id="addFieldSectionSelect" class="bld-input">
+            {% for section in sections %}
+            <option value="{{ section.pk }}">{{ section.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="button" class="bld-btn bld-btn-primary" style="width:100%" onclick="openAddField(document.getElementById('addFieldSectionSelect').value)">
+          <i class="ti ti-plus"></i> Add Field
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Quick Reference #}
+    <div class="bld-sidebar-section">
+      <div class="bld-sidebar-header">
+        <span><i class="ti ti-info-circle"></i> Quick Guide</span>
+      </div>
+      <div class="bld-sidebar-body" style="font-size:12px;color:var(--bld-muted);line-height:1.6">
+        <p style="margin:0 0 8px"><strong>Click a field</strong> or its Edit button to edit its properties, validation, choices, and styling in a modal.</p>
+        <p style="margin:0 0 8px"><strong>Drag fields</strong> to reorder them within a section; drag the grip on a section to reorder sections.</p>
+        <p style="margin:0 0 8px"><strong>Validation patterns</strong> — pick from common formats (email, phone, SSN, GPA) instead of writing regex.</p>
+        <p style="margin:0"><strong>Conditional Logic</strong> tab — create visual if/then rules without code.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+{# ═══════════════ SETTINGS TAB ═══════════════ #}
+<div class="bld-tab-content" id="tab-settings" style="display:none">
+<div class="bld-tab-outer">
+  <div class="bld-card">
+    <div class="bld-card-header">
+      <h2 class="bld-h2"><i class="ti ti-settings"></i> Form Settings</h2>
+    </div>
+    <div class="bld-card-body">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="bld-form-group">
+          <label class="bld-label">Form Name
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Display name for this form. Shown to applicants and in the dashboard.</span></span>
+          </label>
+          <input type="text" name="name" class="bld-input" value="{{ form_def.name }}" required>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Description
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Internal description of what this form collects. Not shown to applicants.</span></span>
+          </label>
+          <textarea name="description" class="bld-input" rows="3">{{ form_def.description }}</textarea>
+        </div>
+        <div class="bld-form-row">
+          <div class="bld-form-group bld-flex-1">
+            <label class="bld-label">Form Code
+              <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Unique identifier. Used in URLs and data exports. Cannot be changed after creation.</span></span>
+            </label>
+            <input type="text" name="code" class="bld-input" value="{{ form_def.code }}" readonly style="background:var(--bld-hover);cursor:not-allowed">
+          </div>
+          <div class="bld-form-group" style="width:120px">
+            <label class="bld-label">Version
+              <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Auto-increments when you save changes. Helps track form revisions.</span></span>
+            </label>
+            <input type="text" class="bld-input" value="v{{ form_def.version }}" readonly style="background:var(--bld-hover);cursor:not-allowed">
+          </div>
+        </div>
+        <div class="bld-form-row">
+          <div class="bld-form-group bld-flex-1">
+            <label class="bld-label">Icon
+              <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Tabler icon name. E.g., user, mail, book-open, school.</span></span>
+            </label>
+            <input type="text" name="icon" class="bld-input" value="{{ form_def.icon|default:'' }}" placeholder="e.g. user, mail, book-open">
+          </div>
+          <div class="bld-form-group" style="width:120px">
+            <label class="bld-label">Sort Order
+              <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Controls display order in lists. Lower numbers appear first.</span></span>
+            </label>
+            <input type="number" name="sort_order" class="bld-input" value="{{ form_def.sort_order }}" min="0">
+          </div>
+        </div>
+        <div class="bld-form-row" style="align-items:center;margin-top:4px">
+          <label class="bld-checkbox">
+            <input type="checkbox" name="is_active" {% if form_def.is_active %}checked{% endif %}>
+            Active
+            <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">Only active forms are shown to applicants. Deactivate temporarily while editing.</span></span>
+          </label>
+          <span style="font-size:12px;color:var(--bld-muted)">Deactivated forms are hidden from applicants but keep their data.</span>
+        </div>
+        <div class="bld-form-actions">
+          <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
+{# ═══════════════ CONDITIONAL LOGIC TAB ═══════════════ #}
+<div class="bld-tab-content" id="tab-logic" style="display:none">
+<div class="bld-tab-outer bld-logic-tab">
+
+  <div class="bld-logic-head">
+    <div>
+      <h2 class="bld-h2"><i class="ti ti-git-branch"></i> Conditional Logic Rules</h2>
+      <p class="bld-logic-desc">Show, hide, or require fields based on what the applicant enters. Rules are evaluated top to bottom — the first match wins.</p>
+    </div>
+    <span class="bld-logic-count">{{ logic_rules|length }} rule{{ logic_rules|length|pluralize }}</span>
+  </div>
+
+  <div id="logicRulesList">
+    {% if logic_rules %}
+    {% for rule in logic_rules %}
+    <div class="bld-logic-group" data-rule-id="{{ rule.pk }}">
+      <div class="bld-logic-topbar">
+        <span class="bld-logic-num">Rule {{ forloop.counter }}</span>
+        <form method="POST" action="{% url 'builder_logic_delete' rule.pk %}" style="display:inline" onsubmit="return confirm('Delete this rule?')">
+          {% csrf_token %}
+          <button type="submit" class="bld-btn-icon-danger" title="Delete rule"><i class="ti ti-trash"></i></button>
+        </form>
+      </div>
+      <div class="bld-logic-body">
+        <div class="bld-logic-clause if-clause">
+          <span class="bld-logic-chip if-chip">IF</span>
+          <p class="bld-logic-caption">
+            When <strong>{{ rule.target_field.label }}</strong> <em>{{ rule.get_operator_display }}</em>
+            {% if rule.value %}<span class="bld-logic-value">{{ rule.value }}</span>{% endif %}
+          </p>
+        </div>
+        <div class="bld-logic-arrow"><i class="ti ti-arrow-down"></i></div>
+        <div class="bld-logic-clause then-clause">
+          <span class="bld-logic-chip then-chip">THEN</span>
+          <p class="bld-logic-caption then-caption">
+            <strong>{{ rule.get_action_display }}</strong> &mdash; <strong>{{ rule.field.label }}</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="bld-empty-logic">
+      <i class="ti ti-git-branch"></i>
+      <p style="margin:0 0 4px"><strong>No conditional rules yet</strong></p>
+      <p style="margin:0">Build your first rule below to show or hide fields based on user input.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bld-logic-add">
+    <div class="bld-logic-add-head">
+      <i class="ti ti-plus" style="color:var(--bld-primary)"></i>
+      <h3>Add New Rule</h3>
+      <span style="font-size:12px;color:var(--bld-muted)">When the condition matches, the action runs on the target.</span>
+    </div>
+    <form method="POST" action="{% url 'builder_logic_create' form_def.pk %}">
+      {% csrf_token %}
+      <div class="bld-logic-grid">
+        <div>
+          <label class="bld-label">When this field&hellip;</label>
+          <select name="source_field" class="bld-input" required>
+            <option value="">Select field</option>
+            {% for section in sections %}
+            {% for field in section.fields.all %}
+            {% if field.field_type != 'heading' and field.field_type != 'hidden' %}
+            <option value="{{ field.pk }}">{{ section.title }} &rarr; {{ field.label }}</option>
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="bld-label">Condition</label>
+          <select name="operator" class="bld-input" required>
+            <option value="equals">equals</option>
+            <option value="not_equals">does not equal</option>
+            <option value="contains">contains</option>
+            <option value="not_empty">is not empty</option>
+            <option value="empty">is empty</option>
+            <option value="greater_than">greater than</option>
+            <option value="less_than">less than</option>
+          </select>
+        </div>
+        <div>
+          <label class="bld-label">Value</label>
+          <input type="text" name="value" class="bld-input" placeholder="Value to match">
+        </div>
+      </div>
+      <div class="bld-logic-grid-2">
+        <div>
+          <label class="bld-label">Then&hellip;</label>
+          <select name="action_type" class="bld-input" required>
+            <option value="show">Show</option>
+            <option value="hide">Hide</option>
+            <option value="require">Make Required</option>
+            <option value="optional">Make Optional</option>
+          </select>
+        </div>
+        <div>
+          <label class="bld-label">Apply to</label>
+          <select name="target_field" class="bld-input" required>
+            <option value="">Select target</option>
+            {% for section in sections %}
+            <optgroup label="{{ section.title }}">
+              <option value="section:{{ section.pk }}">{{ section.title }} (entire section)</option>
+              {% for field in section.fields.all %}
+              <option value="field:{{ field.pk }}">{{ field.label }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bld-logic-submit">
+          <label class="bld-label" style="visibility:hidden">&nbsp;</label>
+          <button type="submit" class="bld-btn-add-rule"><i class="ti ti-plus"></i> Add Rule</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div>
+</div>
+
+{# ═══════════════ PREVIEW TAB ═══════════════ #}
+<div class="bld-tab-content" id="tab-preview" style="display:none">
+<div class="bld-tab-outer">
+  <div class="bld-preview-frame">
+    <div class="uw-form">
+      {% for sec_data in preview_sections %}
+        {% render_dynamic_section sec_data %}
+      {% empty %}
+      <div style="text-align:center;padding:40px;color:var(--bld-muted)">
+        <i class="ti ti-layout-grid" style="font-size:48px;display:block;margin-bottom:12px;opacity:0.3"></i>
+        <p style="margin:0">Add sections and fields in the Builder tab to see a live preview here.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+</div>
+
+{# ═══════════════ MODALS ═══════════════ #}
+
+{# ── Section Add/Edit Modal ── #}
+<div class="bld-overlay bld-overlay-hidden" id="sectionModal" role="dialog" aria-modal="true">
+  <div class="bld-overlay-backdrop" onclick="closeModal('sectionModal')"></div>
+  <div class="bld-overlay-card">
+    <div class="bld-overlay-header">
+      <h3 id="sectionModalTitle">Add Section</h3>
+      <button type="button" class="bld-btn-icon" onclick="closeModal('sectionModal')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="sectionForm" method="POST" action="{% url 'builder_section_create' form_def.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="section_id" id="sec_id">
+      <div class="bld-overlay-body">
+        <div class="bld-form-group">
+          <label class="bld-label">Section Title <span style="color:var(--bld-red)">*</span></label>
+          <input type="text" name="title" id="sec_title" class="bld-input" placeholder="e.g. Personal Information" required>
+          <p class="bld-overlay-hint">Shown as the card heading in the applicant form.</p>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Description</label>
+          <textarea name="description" id="sec_description" class="bld-input" rows="2" placeholder="Internal note about this section"></textarea>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Help Text</label>
+          <textarea name="help_text" id="sec_help_text" class="bld-input" rows="2" placeholder="Guidance shown to applicants"></textarea>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Render As</label>
+            <select name="render_as" id="sec_render_as" class="bld-input bld-plain-select">
+              <option value="card">Card</option>
+              <option value="fieldset">Fieldset</option>
+              <option value="accordion">Accordion</option>
+            </select>
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Sort Order</label>
+            <input type="number" name="sort_order" id="sec_sort_order" class="bld-input" min="0" value="0">
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <label class="bld-overlay-check">
+            <input type="checkbox" name="is_repeatable" id="sec_is_repeatable"> Repeatable section
+          </label>
+          <div class="bld-form-group">
+            <label class="bld-label">Max Repeats</label>
+            <input type="number" name="max_repeat" id="sec_max_repeat" class="bld-input" min="1" value="1">
+          </div>
+        </div>
+        <label class="bld-overlay-check" style="margin-top:10px">
+          <input type="checkbox" name="is_active" id="sec_is_active" checked> Active
+        </label>
+      </div>
+      <div class="bld-overlay-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('sectionModal')">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Section</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Field Add/Edit Modal ── #}
+<div class="bld-overlay bld-overlay-hidden" id="fieldModal" role="dialog" aria-modal="true">
+  <div class="bld-overlay-backdrop" onclick="closeModal('fieldModal')"></div>
+  <div class="bld-overlay-card bld-overlay-wide">
+    <div class="bld-overlay-header">
+      <h3 id="fieldModalTitle">Add Field</h3>
+      <button type="button" class="bld-btn-icon" onclick="closeModal('fieldModal')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="fieldPropertiesForm" method="POST" action="">
+      {% csrf_token %}
+      <input type="hidden" name="field_id" id="prop_field_id">
+      <div class="bld-overlay-body">
+        <div class="bld-overlay-grid-2" style="margin-bottom:12px">
+          <div>
+            <label class="bld-label" id="prop_section_label" style="display:none">Section</label>
+            <select name="section_id" id="prop_section_id" class="bld-input bld-plain-select" style="display:none">
+              {% for section in sections %}
+              <option value="{{ section.pk }}">{{ section.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Field Code <span style="color:var(--bld-red)">*</span></label>
+            <input type="text" name="code" id="prop_code" class="bld-input" placeholder="e.g. first_name" required pattern="[a-z0-9_]+">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Label <span style="color:var(--bld-red)">*</span></label>
+            <input type="text" name="label" id="prop_label" class="bld-input" placeholder="e.g. First Name" required>
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Field Type</label>
+            <select name="field_type" id="prop_field_type" class="bld-input bld-plain-select" onchange="onFieldTypeChange(this.value)">
+              <option value="text">Text Input</option>
+              <option value="textarea">Text Area</option>
+              <option value="number">Number</option>
+              <option value="date">Date Picker</option>
+              <option value="select">Dropdown (Single Select)</option>
+              <option value="multi_select">Dropdown (Multiple Select)</option>
+              <option value="radio">Radio Buttons</option>
+              <option value="checkbox">Checkboxes</option>
+              <option value="file">File Upload</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
+              <option value="url">URL</option>
+              <option value="gpa">GPA</option>
+              <option value="currency">Currency</option>
+              <option value="rich_text">Rich Text</option>
+              <option value="country">Country</option>
+              <option value="state">State</option>
+              <option value="city">City</option>
+              <option value="hidden">Hidden</option>
+              <option value="password">Password</option>
+              <option value="ssn">SSN (Masked)</option>
+            </select>
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Width</label>
+            <select name="layout_width" id="prop_layout_width" class="bld-input bld-plain-select">
+              <option value="full">Full Width</option>
+              <option value="half">Half Width</option>
+              <option value="third">One Third</option>
+              <option value="two_thirds">Two Thirds</option>
+            </select>
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Placeholder</label>
+            <input type="text" name="placeholder" id="prop_placeholder" class="bld-input" placeholder="e.g. Enter your first name">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Default Value</label>
+            <input type="text" name="default_value" id="prop_default_value" class="bld-input" placeholder="e.g. N/A">
+          </div>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Help Text</label>
+          <input type="text" name="help_text" id="prop_help_text" class="bld-input" placeholder="e.g. As it appears on your transcript">
+        </div>
+
+        <div id="prop_choices_section" style="display:none">
+          <label class="bld-label">Choices <span class="bld-tip"><span class="bld-tip-icon">?</span><span class="bld-tip-text">One option per line. Format: value | Label (e.g., "first_year | First Year Student").</span></span></label>
+          <textarea name="choices" id="prop_choices" class="bld-input" rows="4" placeholder="value1 | Label 1&#10;value2 | Label 2"></textarea>
+        </div>
+
+        <div class="bld-overlay-label">Validation</div>
+        <label class="bld-overlay-check">
+          <input type="checkbox" name="is_required" id="prop_is_required"> Required field
+        </label>
+        <div class="bld-overlay-grid-2" style="margin-top:10px">
+          <div>
+            <label class="bld-label">Pattern</label>
+            <select name="regex_pattern" id="prop_regex_pattern" class="bld-input bld-plain-select" onchange="onPatternChange(this.value)">
+              <option value="">None</option>
+              <option value="^[a-zA-Z\s'-]+$">Letters only</option>
+              <option value="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">Email address</option>
+              <option value="^\+?[0-9\s\-\(\)]{7,15}$">Phone number</option>
+              <option value="^[0-9]{3}-[0-9]{2}-[0-9]{4}$">SSN (xxx-xx-xxxx)</option>
+              <option value="^[0-9]{5}(-[0-9]{4})?$">US ZIP code</option>
+              <option value="^[0-9]{1,5}$">1-5 digit number</option>
+              <option value="^[0-9]{1,3}(\.[0-9]{1,2})?$">GPA (0.0 - 4.0)</option>
+              <option value="^[A-Z]{1,2}[0-9][A-Z0-9] ?[0-9][A-Z]{2}$">UK Postcode</option>
+              <option value="custom">Custom regex...</option>
+            </select>
+            <div id="prop_custom_regex" style="display:none;margin-top:6px">
+              <input type="text" name="custom_regex" id="prop_custom_regex_input" class="bld-input" placeholder="^[a-zA-Z]+$">
+            </div>
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2" style="margin-top:10px">
+          <div class="bld-form-group">
+            <label class="bld-label">Min Length</label>
+            <input type="number" name="min_length" id="prop_min_length" class="bld-input" min="0" placeholder="0">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Max Length</label>
+            <input type="number" name="max_length" id="prop_max_length" class="bld-input" min="0" placeholder="No limit">
+          </div>
+        </div>
+
+        <div class="bld-overlay-label">Layout &amp; Advanced</div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Sort Order</label>
+            <input type="number" name="sort_order" id="prop_sort_order" class="bld-input" min="0" placeholder="0">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Rows (textarea)</label>
+            <input type="number" name="rows" id="prop_rows" class="bld-input" min="1" placeholder="4">
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Prefix Text</label>
+            <input type="text" name="prefix_text" id="prop_prefix_text" class="bld-input" placeholder="e.g. $">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Suffix Text</label>
+            <input type="text" name="suffix_text" id="prop_suffix_text" class="bld-input" placeholder="e.g. .00">
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2" id="prop_file_size_row" style="display:none">
+          <div class="bld-form-group">
+            <label class="bld-label">Max File Size (MB)</label>
+            <input type="number" name="max_file_size_mb" id="prop_max_file_size_mb" class="bld-input" min="1" placeholder="10">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Allowed Extensions</label>
+            <input type="text" name="allowed_extensions" id="prop_allowed_extensions" class="bld-input" placeholder=".pdf,.png,.jpg">
+          </div>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Data Source</label>
+          <input type="text" name="data_source" id="prop_data_source" class="bld-input" placeholder="e.g. country_list">
+        </div>
+        <div class="bld-overlay-grid-2">
+          <label class="bld-overlay-check">
+            <input type="checkbox" name="is_readonly" id="prop_is_readonly"> Read Only
+          </label>
+          <label class="bld-overlay-check">
+            <input type="checkbox" name="is_encrypted" id="prop_is_encrypted"> Encrypted
+          </label>
+        </div>
+
+        <div class="bld-overlay-label">Styling</div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Text Color</label>
+            <div class="bld-overlay-color">
+              <input type="color" id="prop_input_color" value="#212529" onchange="document.getElementById('prop_input_color_txt').value=this.value">
+              <input type="text" name="input_color" id="prop_input_color_txt" class="bld-input" placeholder="#212529" oninput="document.getElementById('prop_input_color').value=this.value">
+            </div>
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Label Color</label>
+            <div class="bld-overlay-color">
+              <input type="color" id="prop_label_color" value="#333333" onchange="document.getElementById('prop_label_color_txt').value=this.value">
+              <input type="text" name="label_color" id="prop_label_color_txt" class="bld-input" placeholder="#333333" oninput="document.getElementById('prop_label_color').value=this.value">
+            </div>
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Font Size</label>
+            <input type="text" name="font_size" id="prop_font_size" class="bld-input" placeholder="e.g. 14px">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Input Height</label>
+            <input type="text" name="input_height" id="prop_input_height" class="bld-input" placeholder="e.g. 42px">
+          </div>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Input Background</label>
+            <div class="bld-overlay-color">
+              <input type="color" id="prop_input_background" value="#ffffff" onchange="document.getElementById('prop_input_background_txt').value=this.value">
+              <input type="text" name="input_background" id="prop_input_background_txt" class="bld-input" placeholder="#ffffff" oninput="document.getElementById('prop_input_background').value=this.value">
+            </div>
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Border Color</label>
+            <div class="bld-overlay-color">
+              <input type="color" id="prop_border_color" value="#d0d0d0" onchange="document.getElementById('prop_border_color_txt').value=this.value">
+              <input type="text" name="border_color" id="prop_border_color_txt" class="bld-input" placeholder="#d0d0d0" oninput="document.getElementById('prop_border_color').value=this.value">
+            </div>
+          </div>
+        </div>
+
+        <div class="bld-overlay-label">Visibility</div>
+        <label class="bld-overlay-check">
+          <input type="checkbox" name="is_visible" id="prop_is_visible" checked> Visible by default
+        </label>
+        <label class="bld-overlay-check" style="margin-top:8px">
+          <input type="checkbox" name="is_active" id="prop_is_active" checked> Active
+        </label>
+      </div>
+      <div class="bld-overlay-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('fieldModal')">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Field</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Form Add/Edit Modal ── #}
+<div class="bld-overlay bld-overlay-hidden" id="formModal" role="dialog" aria-modal="true">
+  <div class="bld-overlay-backdrop" onclick="closeModal('formModal')"></div>
+  <div class="bld-overlay-card">
+    <div class="bld-overlay-header">
+      <h3 id="formModalTitle">Edit Form</h3>
+      <button type="button" class="bld-btn-icon" onclick="closeModal('formModal')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="formEditForm" method="POST" action="{% url 'builder_form_edit' form_def.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="form_id" id="form_id">
+      <div class="bld-overlay-body">
+        <div class="bld-form-group">
+          <label class="bld-label">Form Name <span style="color:var(--bld-red)">*</span></label>
+          <input type="text" name="name" id="form_name" class="bld-input" value="{{ form_def.name }}" required>
+        </div>
+        <div class="bld-form-group">
+          <label class="bld-label">Description</label>
+          <textarea name="description" id="form_description" class="bld-input" rows="3">{{ form_def.description }}</textarea>
+        </div>
+        <div class="bld-overlay-grid-2">
+          <div class="bld-form-group">
+            <label class="bld-label">Icon</label>
+            <input type="text" name="icon" id="form_icon" class="bld-input" value="{{ form_def.icon|default:'' }}" placeholder="e.g. user, mail, book-open">
+          </div>
+          <div class="bld-form-group">
+            <label class="bld-label">Sort Order</label>
+            <input type="number" name="sort_order" id="form_sort_order" class="bld-input" value="{{ form_def.sort_order }}" min="0">
+          </div>
+        </div>
+        <label class="bld-overlay-check">
+          <input type="checkbox" name="is_active" id="form_is_active" {% if form_def.is_active %}checked{% endif %}> Active
+        </label>
+      </div>
+      <div class="bld-overlay-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('formModal')">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-primary"><i class="ti ti-check"></i> Save Form</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Delete Section Modal ── #}
+<div class="bld-overlay bld-overlay-hidden" id="deleteSectionModal" role="dialog" aria-modal="true">
+  <div class="bld-overlay-backdrop" onclick="closeModal('deleteSectionModal')"></div>
+  <div class="bld-overlay-card bld-overlay-sm">
+    <div class="bld-overlay-header">
+      <h3>Delete Section</h3>
+      <button type="button" class="bld-btn-icon" onclick="closeModal('deleteSectionModal')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="deleteSectionForm" method="POST" action="">
+      {% csrf_token %}
+      <div class="bld-overlay-body">
+        <p style="margin:0;color:var(--bld-muted)">Are you sure you want to delete section <strong id="deleteSectionName"></strong> and all its fields? This cannot be undone.</p>
+      </div>
+      <div class="bld-overlay-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('deleteSectionModal')">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-danger"><i class="ti ti-trash"></i> Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Delete Field Modal ── #}
+<div class="bld-overlay bld-overlay-hidden" id="deleteFieldModal" role="dialog" aria-modal="true">
+  <div class="bld-overlay-backdrop" onclick="closeModal('deleteFieldModal')"></div>
+  <div class="bld-overlay-card bld-overlay-sm">
+    <div class="bld-overlay-header">
+      <h3>Delete Field</h3>
+      <button type="button" class="bld-btn-icon" onclick="closeModal('deleteFieldModal')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="deleteFieldForm" method="POST" action="">
+      {% csrf_token %}
+      <div class="bld-overlay-body">
+        <p style="margin:0;color:var(--bld-muted)">Are you sure you want to delete field <strong id="deleteFieldName"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="bld-overlay-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('deleteFieldModal')">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-danger"><i class="ti ti-trash"></i> Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Delete Form Modal ── #}
+<div class="bld-overlay bld-overlay-hidden" id="deleteFormModal" role="dialog" aria-modal="true">
+  <div class="bld-overlay-backdrop" onclick="closeModal('deleteFormModal')"></div>
+  <div class="bld-overlay-card bld-overlay-sm">
+    <div class="bld-overlay-header">
+      <h3>Delete Form</h3>
+      <button type="button" class="bld-btn-icon" onclick="closeModal('deleteFormModal')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form method="POST" action="{% url 'builder_form_delete' form_def.pk %}">
+      {% csrf_token %}
+      <div class="bld-overlay-body">
+        <p style="margin:0;color:var(--bld-muted)">Are you sure you want to delete form <strong>{{ form_def.name }}</strong> and all its data, sections, and fields? This cannot be undone.</p>
+      </div>
+      <div class="bld-overlay-footer">
+        <button type="button" class="bld-btn bld-btn-outline" onclick="closeModal('deleteFormModal')">Cancel</button>
+        <button type="submit" class="bld-btn bld-btn-danger"><i class="ti ti-trash"></i> Delete Form</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/Applicants/builder_preview.js' %}"></script>
+<script>
+function switchBuilderTab(btn, tabId) {
+  document.querySelectorAll('.bld-builder-tab').forEach(function(t){ t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.bld-tab-content').forEach(function(c){
+    c.style.display = 'none';
+    c.classList.remove('active');
+  });
+  var target = document.getElementById('tab-' + tabId);
+  if (target) { target.style.display = ''; target.classList.add('active'); }
+}
+
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.remove('bld-overlay-hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.add('bld-overlay-hidden');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.bld-overlay:not(.bld-overlay-hidden)').forEach(function(o){ closeModal(o.id); });
+  }
+});
+
+function openSectionModal(sectionId) {
+  document.getElementById('sectionForm').reset();
+  document.getElementById('sec_id').value = '';
+  document.getElementById('sec_is_active').checked = true;
+  document.getElementById('sec_max_repeat').value = 1;
+  document.getElementById('sectionModalTitle').textContent = 'Add Section';
+  if (sectionId) {
+    fetch('/applicants/builder/sections/' + sectionId + '/json/')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        document.getElementById('sec_id').value = d.pk;
+        document.getElementById('sec_title').value = d.title || '';
+        document.getElementById('sec_description').value = d.description || '';
+        document.getElementById('sec_help_text').value = d.help_text || '';
+        document.getElementById('sec_render_as').value = d.render_as || 'card';
+        document.getElementById('sec_sort_order').value = d.sort_order || 0;
+        document.getElementById('sec_is_repeatable').checked = d.is_repeatable;
+        document.getElementById('sec_max_repeat').value = d.max_repeat || 1;
+        document.getElementById('sec_is_active').checked = d.is_active !== false;
+        document.getElementById('sectionModalTitle').textContent = 'Edit Section';
+      });
+  }
+  openModal('sectionModal');
+}
+
+function updateModalTarget(id) {
+  var ov = document.getElementById(id);
+  if (ov) {
+    var secSels = ov.querySelectorAll('[name="section_id"]');
+    secSels.forEach(function(s){ s.value = document.getElementById('addFieldSectionSelect') ? document.getElementById('addFieldSectionSelect').value : ''; });
+  }
+}
+
+function selectField(fieldId) {
+  openFieldModal(fieldId);
+}
+
+function openFieldModal(fieldId) {
+  document.getElementById('fieldPropertiesForm').reset();
+  document.getElementById('prop_field_id').value = '';
+  document.getElementById('prop_is_visible').checked = true;
+  document.getElementById('prop_is_active').checked = true;
+  document.getElementById('prop_input_color').value = '#212529';
+  document.getElementById('prop_label_color').value = '#333333';
+  document.getElementById('prop_input_background').value = '#ffffff';
+  document.getElementById('prop_border_color').value = '#d0d0d0';
+  document.getElementById('prop_section_label').style.display = 'none';
+  document.getElementById('prop_section_id').style.display = 'none';
+  document.getElementById('fieldModalTitle').textContent = 'Add Field';
+
+  if (fieldId) {
+    document.getElementById('fieldModalTitle').textContent = 'Edit Field';
+    loadFieldProperties(fieldId);
+  } else {
+    var sectionId = document.getElementById('addFieldSectionSelect') ? document.getElementById('addFieldSectionSelect').value : '';
+    if (sectionId) {
+      document.getElementById('prop_section_id').value = sectionId;
+      document.getElementById('prop_section_label').style.display = '';
+      document.getElementById('prop_section_id').style.display = '';
+    }
+    document.getElementById('fieldPropertiesForm').action = '{% url "builder_field_create" form_def.pk %}';
+    onFieldTypeChange('text');
+    onPatternChange('');
+    openModal('fieldModal');
+  }
+}
+
+function openAddField(sectionId) {
+  document.getElementById('fieldPropertiesForm').reset();
+  document.getElementById('prop_field_id').value = '';
+  document.getElementById('prop_is_visible').checked = true;
+  document.getElementById('prop_is_active').checked = true;
+  document.getElementById('prop_input_color').value = '#212529';
+  document.getElementById('prop_label_color').value = '#333333';
+  document.getElementById('prop_input_background').value = '#ffffff';
+  document.getElementById('prop_border_color').value = '#d0d0d0';
+  document.getElementById('prop_section_id').value = sectionId;
+  document.getElementById('prop_section_label').style.display = '';
+  document.getElementById('prop_section_id').style.display = '';
+  document.getElementById('fieldPropertiesForm').action = '{% url "builder_field_create" form_def.pk %}';
+  document.getElementById('fieldModalTitle').textContent = 'Add Field';
+  onFieldTypeChange('text');
+  onPatternChange('');
+  openModal('fieldModal');
+}
+
+function loadFieldProperties(fieldId) {
+  fetch('/applicants/builder/fields/' + fieldId + '/json/')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      document.getElementById('prop_field_id').value = d.pk;
+      document.getElementById('prop_code').value = d.code || '';
+      document.getElementById('prop_label').value = d.label || '';
+      document.getElementById('prop_field_type').value = d.field_type || 'text';
+      document.getElementById('prop_placeholder').value = d.placeholder || '';
+      document.getElementById('prop_help_text').value = d.help_text || '';
+      document.getElementById('prop_default_value').value = d.default_value || '';
+      document.getElementById('prop_is_required').checked = d.is_required;
+      document.getElementById('prop_is_visible').checked = d.is_visible !== false;
+      document.getElementById('prop_is_active').checked = d.is_active !== false;
+      document.getElementById('prop_is_readonly').checked = d.is_readonly;
+      document.getElementById('prop_is_encrypted').checked = d.is_encrypted;
+      document.getElementById('prop_regex_pattern').value = d.regex_pattern || '';
+      document.getElementById('prop_min_length').value = d.min_length || '';
+      document.getElementById('prop_max_length').value = d.max_length || '';
+      document.getElementById('prop_sort_order').value = d.sort_order || 0;
+      document.getElementById('prop_layout_width').value = d.layout_width || 'full';
+      document.getElementById('prop_prefix_text').value = d.prefix_text || '';
+      document.getElementById('prop_suffix_text').value = d.suffix_text || '';
+      document.getElementById('prop_rows').value = d.rows || 4;
+      document.getElementById('prop_max_file_size_mb').value = d.max_file_size_mb || 10;
+      document.getElementById('prop_allowed_extensions').value = d.allowed_extensions || '';
+      document.getElementById('prop_data_source').value = d.data_source || '';
+      document.getElementById('prop_input_color_txt').value = d.input_color || '';
+      document.getElementById('prop_input_color').value = d.input_color || '#212529';
+      document.getElementById('prop_label_color_txt').value = d.label_color || '';
+      document.getElementById('prop_label_color').value = d.label_color || '#333333';
+      document.getElementById('prop_font_size').value = d.font_size || '';
+      document.getElementById('prop_input_background_txt').value = d.input_background || '';
+      document.getElementById('prop_input_background').value = d.input_background || '#ffffff';
+      document.getElementById('prop_border_color_txt').value = d.border_color || '';
+      document.getElementById('prop_border_color').value = d.border_color || '#d0d0d0';
+      document.getElementById('prop_input_height').value = d.input_height || '';
+      if (d.choices) document.getElementById('prop_choices').value = d.choices;
+      document.getElementById('fieldPropertiesForm').action = '/applicants/builder/fields/' + fieldId + '/edit/';
+      onFieldTypeChange(d.field_type);
+      onPatternChange(d.regex_pattern || '');
+      openModal('fieldModal');
+    });
+}
+
+function openFormModal() {
+  document.getElementById('form_id').value = '{{ form_def.pk }}';
+  document.getElementById('form_name').value = '{{ form_def.name|escapejs }}';
+  document.getElementById('form_description').value = '{{ form_def.description|escapejs }}';
+  document.getElementById('form_icon').value = '{{ form_def.icon|escapejs }}';
+  document.getElementById('form_sort_order').value = '{{ form_def.sort_order }}';
+  document.getElementById('form_is_active').checked = {{ form_def.is_active|yesno:"true,false" }};
+  document.getElementById('formModalTitle').textContent = 'Edit Form';
+  openModal('formModal');
+}
+
+function openSectionDelete(sectionId, name) {
+  document.getElementById('deleteSectionName').textContent = name;
+  document.getElementById('deleteSectionForm').action = '/applicants/builder/sections/' + sectionId + '/delete/';
+  openModal('deleteSectionModal');
+}
+
+function openFieldDelete(fieldId, name) {
+  document.getElementById('deleteFieldName').textContent = name;
+  document.getElementById('deleteFieldForm').action = '/applicants/builder/fields/' + fieldId + '/delete/';
+  openModal('deleteFieldModal');
+}
+
+function openFormDelete() {
+  openModal('deleteFormModal');
+}
+
+function onFieldTypeChange(type) {
+  var showChoices = (type === 'select' || type === 'multi_select' || type === 'radio' || type === 'checkbox');
+  var isFile = (type === 'file');
+  document.getElementById('prop_choices_section').style.display = showChoices ? '' : 'none';
+  document.getElementById('prop_file_size_row').style.display = isFile ? '' : 'none';
+}
+
+function onPatternChange(val) {
+  document.getElementById('prop_custom_regex').style.display = val === 'custom' ? '' : 'none';
+  if (val && val !== 'custom') {
+    document.getElementById('prop_regex_pattern').value = val;
+  }
+}
+
+function toggleSection(sectionId) {
+  var body = document.getElementById('section-' + sectionId);
+  if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+(function(){
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function postOrder(url, items) {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken()
+      },
+      body: JSON.stringify({ items: items })
+    }).then(function(r){ return r.json(); });
+  }
+
+  function initSectionSortable() {
+    var canvas = document.getElementById('builderCanvas');
+    if (!canvas || !window.Sortable) return;
+    if (canvas._sectionSortable) return;
+    canvas._sectionSortable = new Sortable(canvas, {
+      handle: '.bld-section-drag',
+      animation: 150,
+      filter: '.bld-section-empty',
+      onEnd: function(evt) {
+        var items = Array.from(canvas.children).filter(function(el){
+          return el.classList && el.classList.contains('bld-section-card');
+        }).map(function(el, idx){
+          return { id: parseInt(el.getAttribute('data-section-id'), 10), order: idx + 1 };
+        });
+        if (items.length) postOrder('{% url "builder_reorder_sections" form_def.pk %}', items);
+      }
+    });
+  }
+
+  function initFieldSortables() {
+    document.querySelectorAll('.bld-section-body').forEach(function(body){
+      if (body._fieldSortable) return;
+      body._fieldSortable = new Sortable(body, {
+        handle: '.bld-field-drag',
+        animation: 150,
+        filter: '.bld-section-empty',
+        onEnd: function(evt) {
+          var sectionId = parseInt(body.closest('.bld-section-card').getAttribute('data-section-id'), 10);
+          var items = Array.from(body.children).filter(function(el){
+            return el.classList && el.classList.contains('bld-field-card');
+          }).map(function(el, idx){
+            return { id: parseInt(el.getAttribute('data-field-id'), 10), order: idx + 1 };
+          });
+          if (items.length) postOrder('{% url "builder_reorder_fields" 0 %}'.replace('/0/','/'+sectionId+'/'), items);
+        }
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initSectionSortable();
+    initFieldSortables();
+  });
+})();
+</script>
+{% endblock %}

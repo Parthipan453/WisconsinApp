@@ -1,0 +1,267 @@
+{% extends "dashboard_base.html" %} {% load static %} {% block title %} News
+Management{% endblock %}
+ {% block page_title %} 
+ News Management 
+{% endblock%} 
+{% block extra_css %}
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
+
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="{% static 'css/admin_news.css' %}" />
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+/>
+
+{% endblock %} {% block content %}
+
+<main>
+  <section class="main">
+    <div class="admin-wrap">
+      <!-- ===== MASTHEAD ===== -->
+      <div class="masthead">
+        <div class="masthead-brand">
+          <div class="masthead-mark">ND</div>
+          <div class="masthead-titles">
+            <h1>News Desk</h1>
+            <span class="con-text">Newsroom control center</span>
+            <span class="dot"></span>
+          </div>
+        </div>
+        <div class="masthead-meta">
+          <span class="masthead-date fw-bold"
+            ><i class="bi bi-calendar-week me-1"></i>Sat, 04 Jul 2026 &middot;
+            Live status</span
+          >
+
+          <a href="{% url 'news_editor' %}" class="btn-add-news">
+            <i class="bi bi-plus-circle-fill"></i>
+            <span>Create New Story</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- ===== STAT TICKETS ===== -->
+      <div class="stats-row">
+        <div class="stat-ticket total">
+          <div class="stat-icon-badge"><i class="bi bi-newspaper"></i></div>
+          <div class="stat-text">
+            <span class="stat-label">Total News</span>
+            <span class="stat-number">{{ total_news }}</span>
+          </div>
+        </div>
+        <div class="stat-ticket published">
+          <div class="stat-icon-badge">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <div class="stat-text">
+            <span class="stat-label">Published</span>
+            <span class="stat-number">{{ pub_count }}</span>
+          </div>
+        </div>
+        <div class="stat-ticket draft">
+          <div class="stat-icon-badge"><i class="bi bi-pencil-square"></i></div>
+          <div class="stat-text">
+            <span class="stat-label">Drafts</span>
+            <span class="stat-number">{{ draft_count }}</span>
+          </div>
+        </div>
+        <div class="stat-ticket removed">
+          <div class="stat-icon-badge"><i class="bi bi-trash3"></i></div>
+          <div class="stat-text">
+            <span class="stat-label">Removed</span>
+            <span class="stat-number">{{ removed_count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DESK TABS ===== -->
+      <ul class="nav desk-tabs" id="deskTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <a
+            class="nav-link active"
+            id="tab-published"
+            data-bs-toggle="tab"
+            data-bs-target="#panel-published"
+            type="button"
+            role="tab"
+            data-status="published"
+          >
+            <i class="bi bi-check-circle-fill"></i> Published News
+            <span class="badge-count badge bg-light text-dark rounded-pill"
+              >{{ pub_count }}</span
+            >
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a
+            class="nav-link"
+            id="tab-draft"
+            data-bs-toggle="tab"
+            data-bs-target="#panel-draft"
+            type="button"
+            role="tab"
+            data-status="draft"
+          >
+            <i class="bi bi-pencil-square"></i> Drafts Desk
+            <span class="badge-count badge bg-light text-dark rounded-pill"
+              >{{ draft_count }}</span
+            >
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a
+            class="nav-link"
+            id="tab-removed"
+            data-bs-toggle="tab"
+            data-bs-target="#panel-removed"
+            type="button"
+            role="tab"
+            data-status="removed"
+          >
+            <i class="bi bi-trash3"></i> Binned News
+            <span class="badge-count badge bg-light text-dark rounded-pill"
+              >{{ removed_count }}</span
+            >
+          </a>
+        </li>
+      </ul>
+
+      <div class="filter-bar">
+
+          <label><i class="bi bi-funnel"></i> Filters:</label>
+
+          <select id="categoryFilter">
+
+              <option value="">All Categories</option>
+
+              {% for category in categories %}
+              <option value="{{ category.id }}">
+                  {{ category.category_name }}
+              </option>
+              {% endfor %}
+
+          </select>
+
+          <div class="filter-date">
+
+    <!-- <label class="form-label">
+        <i class="bi bi-calendar-event"></i>
+        Date
+    </label> -->
+
+    <input
+        type="date"
+    id="filterDate"
+    class="form-control"
+    
+    onkeydown="return false"
+    onpaste="return false"
+    autocomplete="off"
+    >
+
+</div>
+          <button class="btn-filter">
+
+              <i class="bi bi-search"></i>
+
+              Apply
+
+          </button>
+
+          <button class="btn-reset-filter">
+
+              <i class="bi bi-arrow-counterclockwise"></i>
+
+              Reset
+
+          </button>
+
+      </div>
+
+      <div
+          id="newsList"
+          class="news-list"
+          data-filter-url="{% url 'filter_news' %}"
+      >
+          {% include "partials/news_list.html" with published_news=published_news %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Bootstrap Bundle (JS) — powers the tab switching only -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+</main>
+
+{% endblock %} {% block global_modal %}
+
+<div class="modal fade" id="removeNewsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-trash3 text-danger me-2"></i>
+          Remove News
+        </h5>
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        This news will be moved to <strong>Bin</strong>. You can restore it
+        later.
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+
+        <button class="btn btn-danger" id="confirmRemoveBtn">Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- draft to pushlish modal -->
+
+<div class="modal fade" id="publishNewsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Publish News</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                Are you sure you want to publish this news?
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+
+                <button class="btn btn-success" id="confirmPublishBtn">
+                    Publish
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="{% static 'script/alan/admin_news.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{% endblock %}

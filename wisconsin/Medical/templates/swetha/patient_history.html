@@ -1,0 +1,429 @@
+<!-- Medical/templates/medical/patient_history.html -->
+{% extends "medical_base.html" %}
+{% load static %}
+{% block title %}Patient History{% endblock %} 
+{% block page_title %}Patient History{% endblock %} 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/swetha/patient_history.css'%}"/>
+{% endblock %}
+
+{% block content %}
+<div class="page-content-inner" style="max-width: 100%">
+  <!-- stats -->
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon">
+          <i class="fas fa-user-injured"></i>
+        </div>
+        <div class="stat-number">{{ total_patients }}</div>
+      </div>
+      <div class="stat-label">Patients</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon">
+          <i class="fas fa-stethoscope"></i>
+        </div>
+        <div class="stat-number">{{ total_consultations }}</div>
+      </div>
+      <div class="stat-label">Consultations</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="stat-number">{{ this_month }}</div>
+      </div>
+      <div class="stat-label">This Month</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon">
+          <i class="fas fa-undo-alt"></i>
+        </div>
+        <div class="stat-number">{{ total_followups }}</div>
+      </div>
+      <div class="stat-label">Follow-ups</div>
+    </div>
+  </div>
+  <!-- charts -->
+  <!-- <div class="charts-row">
+        <div class="chart-box">
+            <div class="chart-title"><i class="fas fa-chart-line"></i> Consultation activity</div>
+            <div class="line-chart-placeholder" id="consultationChart">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+            <div class="x-labels">
+                <span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span>
+            </div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-title"><i class="fas fa-chart-pie"></i> Visit breakdown</div>
+            <div class="donut-wrapper">
+                <div class="donut" id="visitDonut"  data-walkin="{{ visit_breakdown.walk_in }}" data-appointment="{{ visit_breakdown.appointment }}"> </div>
+                <div class="donut-legend">
+                    <div class="legend-item"><span class="dot"></span> Walk-in <span style="color:var(--gray-600);font-weight:600;margin-left:6px;">0%</span></div>
+                    <div class="legend-item"><span class="dot appt"></span> Appointment <span style="color:var(--gray-600);font-weight:600;margin-left:6px;">0%</span></div>
+                </div>
+            </div>
+        </div>
+    </div> -->
+  <div class="charts-row">
+    <!-- =========================================================
+            CONSULTATION ACTIVITY
+        ========================================================== -->
+    <div class="chart-box">
+      <div class="chart-title">
+        <i class="fas fa-chart-line"></i>
+        Consultation Activity
+      </div>
+
+      <div class="line-chart-placeholder" id="consultationChart">
+        {% for month in monthly_activity %}
+
+        <div
+          class="bar"
+          data-label="{{ month.label }}"
+          data-count="{{ month.count }}"
+          title="{{ month.label }}: {{ month.count }} consultations"
+        ></div>
+
+        {% endfor %}
+      </div>
+
+      <!-- Dynamic month labels -->
+      <div class="x-labels">
+        {% for month in monthly_activity %}
+
+        <span> {{ month.label }} </span>
+
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- =========================================================
+            VISIT BREAKDOWN
+        ========================================================== -->
+    <div class="chart-box">
+      <div class="chart-title">
+        <i class="fas fa-chart-pie"></i>
+        Visit Breakdown
+      </div>
+
+      <div class="donut-wrapper">
+        <!-- Dynamic donut -->
+        <div
+          class="donut"
+          id="visitDonut"
+          data-walkin="{{ visit_breakdown.walk_in }}"
+          data-appointment="{{ visit_breakdown.appointment }}"
+        ></div>
+
+        <!-- Dynamic legend -->
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="dot"></span>
+
+            Walk-in
+
+            <span id="walkinPercentage" class="legend-percentage">
+              {{ walk_in_percentage }}%
+            </span>
+          </div>
+
+          <div class="legend-item">
+            <span class="dot appt"></span>
+
+            Appointment
+
+            <span id="appointmentPercentage" class="legend-percentage">
+              {{ appointment_percentage }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Patient history header -->
+  <div class="history-header">
+    <h2>
+      <i class="fas fa-history"></i>
+      Patient History
+    </h2>
+
+    <div class="filter-group">
+      <!-- ================= VISIT TYPE ================= -->
+      <div class="filter-chip" data-filter="visit_type">
+        <i class="fas fa-filter"></i>
+
+        <span class="filter-label"> Visit Type ▾ </span>
+
+        <div class="filter-dropdown" id="visitTypeDropdown">
+          <button type="button" class="filter-dropdown-item" data-value="all">
+            All Types
+          </button>
+
+          <button
+            type="button"
+            class="filter-dropdown-item"
+            data-value="walk_in"
+          >
+            Walk-in
+          </button>
+
+          <button
+            type="button"
+            class="filter-dropdown-item"
+            data-value="appointment"
+          >
+            Appointment
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= DATE ================= -->
+      <div class="filter-chip" data-filter="date">
+        <i class="far fa-calendar-alt"></i>
+
+        <span class="filter-label"> Date ▾ </span>
+
+        <div class="filter-dropdown" id="dateDropdown">
+          <button type="button" class="filter-dropdown-item" data-value="all">
+            All Dates
+          </button>
+
+          <button type="button" class="filter-dropdown-item" data-value="today">
+            Today
+          </button>
+
+          <button type="button" class="filter-dropdown-item" data-value="week">
+            This Week
+          </button>
+
+          <button type="button" class="filter-dropdown-item" data-value="month">
+            This Month
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= STATUS ================= -->
+      <div class="filter-chip primary" data-filter="status">
+        <i class="fas fa-circle" style="font-size: 8px; color: var(--red-500)">
+        </i>
+
+        <span class="filter-label"> Status ▾ </span>
+
+        <div class="filter-dropdown" id="statusDropdown">
+          <button type="button" class="filter-dropdown-item" data-value="all">
+            All Status
+          </button>
+
+          <button
+            type="button"
+            class="filter-dropdown-item"
+            data-value="complete"
+          >
+            Complete
+          </button>
+
+          <button
+            type="button"
+            class="filter-dropdown-item"
+            data-value="in_progress"
+          >
+            In Progress
+          </button>
+
+          <button
+            type="button"
+            class="filter-dropdown-item"
+            data-value="cancelled"
+          >
+            Cancelled
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Table -->
+  <div class="table-wrapper">
+    <table class="patient-table" id="patientTable">
+      <thead>
+        <tr>
+          <th>PATIENT</th>
+          <th>PATIENT NO.</th>
+          <th>FIRST VISIT</th>
+          <th>LAST VISIT</th>
+          <th>VISITS</th>
+          <th>STATUS</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="patientTableBody">
+        {% if patient_data %} 
+        {% for patient in patient_data %}
+        <tr data-status="{{ patient.status_class }}">
+          <td>
+            <div class="patient-info">
+              <div class="avatar">
+                <i class="fas fa-user" style="font-size: 18px"></i>
+              </div>
+              <!-- <div>
+                <div class="patient-name">{{ patient.patient }}</div>
+                <div class="patient-id">{{ patient.patient_number }}</div>
+              </div> -->
+              <div>
+              <div class="patient-name">
+                {{ patient.patient }}
+
+                {% if patient.patient_type == "Athlete" %}
+                  <span class="patient-type-badge athlete-badge">
+                    Athlete
+                  </span>
+                {% endif %}
+
+                {% if patient.arrived_by_ambulance %}
+                    <span class="patient-type-badge ambulance-badge">
+                        <i class="fas fa-ambulance"></i>
+                        Ambulance
+                    </span>
+                {% endif %}
+              </div>
+
+              <div class="patient-id">
+                {{ patient.patient_number }}
+              </div>
+            </div>
+            </div>
+          </td>
+          <td>{{ patient.patient_number }}</td>
+          <td>
+            {{ patient.first_visit_type|default:"N/A" }}
+            <br />
+            <span style="font-size: 12px; color: var(--oly-muted)">
+              {{ patient.first_visit_date|date:"d M Y"|default:"N/A" }}
+            </span>
+          </td>
+          <td>
+            <span style="font-weight: 500">
+              {{ patient.last_visit_date|date:"d M Y"|default:"No visits" }}
+            </span>
+          </td>
+          <td>{{ patient.visits_count }}</td>
+          <td>
+            <span class="status-badge {{ patient.status_class }}">
+              <i class="fas fa-check-circle"></i>
+              {{ patient.status|default:"No visits"|title }}
+            </span>
+          </td>
+          <td>
+            <a
+              href="{% url 'Medical:patient_medical_history' patient.patient_id %}"
+              class="view-link"
+              data-patient-id="{{ patient.patient_id }}"
+              data-patient-number="{{ patient.patient_number }}"
+            >
+              View History →
+            </a>
+          </td>
+        </tr>
+        {% endfor %} 
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="fas fa-users"></i>
+              <p>No patients found matching your criteria.</p>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- pagination -->
+<div class="pagination" id="patientPagination">
+
+    {% if patients_page.has_previous %}
+    <a
+        href="?page={{ patients_page.previous_page_number }}"
+        class="page-item arrow"
+        data-page="{{ patients_page.previous_page_number }}"
+        aria-label="Previous page"
+    >
+        <i class="fas fa-chevron-left"></i>
+    </a>
+    {% else %}
+    <span
+        class="page-item arrow disabled"
+        aria-label="Previous page"
+    >
+        <i class="fas fa-chevron-left"></i>
+    </span>
+    {% endif %}
+
+
+    {% for num in patients_page.paginator.page_range %}
+
+        {% if num == patients_page.number %}
+
+        <span class="page-item active">
+            {{ num }}
+        </span>
+
+        {% else %}
+
+        <a
+            href="?page={{ num }}"
+            class="page-item"
+            data-page="{{ num }}"
+        >
+            {{ num }}
+        </a>
+
+        {% endif %}
+
+    {% endfor %}
+
+
+    {% if patients_page.has_next %}
+
+    <a
+        href="?page={{ patients_page.next_page_number }}"
+        class="page-item arrow"
+        data-page="{{ patients_page.next_page_number }}"
+        aria-label="Next page"
+    >
+        <i class="fas fa-chevron-right"></i>
+    </a>
+
+    {% else %}
+
+    <span
+        class="page-item arrow disabled"
+        aria-label="Next page"
+    >
+        <i class="fas fa-chevron-right"></i>
+    </span>
+
+    {% endif %}
+
+</div>
+  <div class="footer-note">
+    <span><i class="fas fa-database"></i> 
+      {{ total_patients }} patients · {{total_consultations }} consultations</span>
+    <span><i class="fas fa-clock"></i> Last updated: {% now "d M Y" %}</span>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{% static 'js/swetha/patient_history.js' %}"></script>
+{% endblock %}

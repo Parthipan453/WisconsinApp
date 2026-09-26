@@ -1,0 +1,216 @@
+{% extends "dashboard_base.html" %}
+
+{% load static %}
+
+{% block title %}Students Management{% endblock %}
+{% block page_title %}Students Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/students.css' %}">
+<!-- AOS Animation Library -->
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="content-wrapper">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <a href="#">Dashboard</a>
+    <i class="ti ti-chevron-right"></i>
+    <span>Students</span>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">All Students</div>
+      <div class="page-sub">Manage and view all enrolled students</div>
+    </div>
+    {% comment %} <div class="d-flex gap-2 flex-wrap">
+      <button class="btn-outline"><i class="ti ti-download"></i> Export</button>
+      <button class="btn-primary"><i class="ti ti-user-plus"></i> Add Student</button>
+    </div> {% endcomment %}
+  </div>
+
+  <!-- ═══ OVERVIEW CARDS ═══ -->
+  <div class="row g-2 g-lg-3 mb-4">
+    <div class="col-12 col-md-3">
+      <div class="overview-card" id="total_stu">
+        <div class="oc-top">
+          <div class="oc-icon oc-icon-primary"><i class="ti ti-users"></i></div>
+          <div>
+          <div class="oc-value">0</div>
+          <div class="oc-label">Total Students</div>
+          </div>
+          <span class="oc-change up ms-auto"></span>
+        </div>
+        <div class="oc-bar"><div class="oc-fill oc-fill-primary"></div></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="overview-card" id="active_stu">
+        <div class="oc-top">
+          <div class="oc-icon oc-icon-success"><i class="ti ti-user-check"></i></div>
+          <div>
+            <div class="oc-value">0</div>
+            <div class="oc-label">Active</div>
+          </div>
+          <span class="oc-change up ms-auto"></span>
+        </div>
+        <div class="oc-bar"><div class="oc-fill oc-fill-success"></div></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="overview-card" id="graduated_stu">
+        <div class="oc-top">
+          <div class="oc-icon oc-icon-secondary"><i class="ti ti-school"></i></div>
+          <div>
+            <div class="oc-value">0</div>
+            <div class="oc-label">Graduated</div>
+          </div>
+          <span class="oc-change up ms-auto"></span>
+        </div>
+        <div class="oc-bar"><div class="oc-fill oc-fill-secondary"></div></div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="overview-card" id="leave_stu">
+        <div class="oc-top">
+          <div class="oc-icon oc-icon-warning"><i class="ti ti-user-pause"></i></div>
+          <div>
+            <div class="oc-value">0</div>
+            <div class="oc-label">On Leave</div>
+          </div>
+          <span class="oc-change down ms-auto"></span>
+        </div>
+        <div class="oc-bar"><div class="oc-fill oc-fill-warning"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ GRAPH ROW ═══ -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-8">
+      <div class="graph-card">
+        <div class="gc-title">
+          <i class="ti ti-chart-line"></i> 
+          Student Strength Trend (Last 5 Years)
+          <span class="gc-sub-title">
+            <i class="ti ti-info-circle"></i> Total enrolled students per year
+          </span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="graph-card">
+        <div class="gc-title">
+          <i class="ti ti-pie-chart"></i> 
+          Today's Status Distribution
+          <span class="gc-sub-title">
+            <i class="ti ti-clock"></i> Real-time
+          </span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="donutChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH BAR -->
+  <div class="toolbar">
+    <div class="toolbar-search">
+      <i class="ti ti-search"></i>
+      <input type="text" id="tableSearch" placeholder="Search by name, ID, email…" oninput="filterTable()" />
+    </div>
+
+    <select class="toolbar-select" onchange="filterTable()" id="filterStatus">
+      <option value="">All Status</option>
+      <option value="Active">Active</option>
+      <option value="Leave">On Leave</option>
+      <option value="Graduated">Graduated</option>
+      <option value="Withdrawn">Withdrawn</option>
+    </select>
+
+    <select class="toolbar-select" onchange="filterTable()" id="filterLevel">
+      <option value="">All Levels</option>
+      <option value="Undergraduate">Undergraduate</option>
+      <option value="Graduate">Graduate</option>
+      <option value="PhD">PhD</option>
+    </select>
+
+    <div class="toolbar-right">
+      <span id="resultCount" class="result-count">Showing 10 of 10</span>
+      <div class="view-toggle">
+        <button class="btn-ghost active" id="btnTable" onclick="switchView('table')">
+          <i class="ti ti-table"></i>
+        </button>
+        <button class="btn-ghost" id="btnGrid" onclick="switchView('grid')">
+          <i class="ti ti-layout-grid"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABLE VIEW ── -->
+  <div id="tableView">
+    <div class="table-card">
+      <div class="table-responsive">
+        <table id="studentTable">
+          <thead>
+            <tr>
+              <th>Student <i class="ti ti-arrows-sort sort-icon"></i></th>
+              <th class="col-email">University Email <i class="ti ti-arrows-sort sort-icon"></i></th>
+              <th class="col-program">Program</th>
+              <th class="col-level">Level</th>
+              <th class="col-gpa">GPA <i class="ti ti-arrows-sort sort-icon"></i></th>
+              <th>Status</th>
+              <th class="col-grad">Exp. Grad</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon"><i class="ti ti-user-off"></i></div>
+        <div class="empty-title">No students found</div>
+        <div class="empty-sub">Try adjusting your search or filters</div>
+      </div>
+
+      <div class="pagination-bar" id="paginationBar">
+        <span id="paginationInfo">Showing 1–10 of 10</span>
+        <div class="pag-btns" id="paginationBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GRID VIEW ── -->
+  <div id="gridView" class="grid-view">
+    <div class="card-grid" id="cardGrid"></div>
+    <div class="empty-state" id="emptyStateGrid">
+      <div class="empty-icon"><i class="ti ti-user-off"></i></div>
+      <div class="empty-title">No students found</div>
+      <div class="empty-sub">Try adjusting your search or filters</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="{% static 'script/students.js' %}"></script>
+
+{% endblock %}

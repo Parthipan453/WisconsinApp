@@ -1,0 +1,184 @@
+
+<!-- **************************************** Rixie code **************************************************** -->
+
+{% extends "staff_base.html" %}
+{% load static %}
+
+{% block title %}{{ course.course_name }} — Schedule View{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'Academicsupport/scheduling.css' %}" />
+<link rel="stylesheet" href="{% static 'Administrator/forms.css' %}">
+<style>
+  .cs-main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .fd-widget { width: 100%; }
+  .fd-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fd-table { width: 100%; border-collapse: collapse; }
+
+  @media screen and (max-width: 767px) {
+    .sc-page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .sc-header-actions { width: 100%; }
+    .sc-header-actions .fd-btn { width: 100%; justify-content: center; }
+    .fd-table { min-width: 500px; }
+  }
+</style>
+{% endblock %}
+
+{% block nav_academic_open %}open{% endblock %}
+{% block nav_academic_submenu %}open{% endblock %}
+{% block nav_scheduling %}active{% endblock %}
+
+{% block content %}
+
+<div class="sc-page-header">
+  <div>
+    <h1>{{ course.course_name }}</h1>
+    <p>All sections, faculty, and schedule entries for this course.</p>
+  </div>
+  <div class="sc-header-actions">
+    <a href="{% url 'staff_scheduling' uuid=user.uuid %}" class="fd-btn fd-btn-ghost" style="text-decoration: none;">
+      <i class="ti ti-arrow-left"></i><span>Back to Scheduling</span>
+    </a>
+  </div>
+</div>
+
+<div class="cs-main-container">
+
+  <!-- Course Info -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-book"></i> Course Details</div>
+    </div>
+    <div class="fd-table-wrap">
+      <table class="fd-table">
+        <thead>
+          <tr>
+            <th>Course Name</th>
+            <th>Course Code</th>
+            <th>Department</th>
+            <th>Total Sections</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="fd-form-title">{{ course.course_name }}</div></td>
+            <td><span class="fd-version">{{ course.course_code }}</span></td>
+            <td>{{ course.department.department_name|default:"—" }}</td>
+            <td><span class="fd-status active">{{ sections|length }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section & Faculty Details -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-users"></i> Section &amp; Faculty Details</div>
+      <span class="fd-widget-link">{{ sections|length }} total</span>
+    </div>
+    <div class="fd-table-wrap">
+      <table class="fd-table">
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Faculty</th>
+            <th>Room</th>
+            <th>Capacity</th>
+            <th>Enrolled</th>
+            <th>Semester</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sec in sections %}
+          <tr>
+            <td><span class="fd-version">{{ sec.section_number }}</span></td>
+            <td>
+              {% if sec.faculty_name != "Unassigned" %}
+              <div class="fd-form-title">{{ sec.faculty_name }}</div>
+              {% else %}
+              <span style="color:#888;">Unassigned</span>
+              {% endif %}
+            </td>
+            <td>{{ sec.room_number }} {{ sec.building_name }}</td>
+            <td><span class="fd-dept">{{ sec.capacity }}</span></td>
+            <td><span class="fd-dept">{{ sec.enrolled }}</span></td>
+            <td>{{ sec.semester }}</td>
+            <td>
+              <span class="fd-status {% if sec.status == 'CONFIRMED' %}active{% elif sec.status == 'PENDING' %}pending{% elif sec.status == 'CONFLICT' %}expiring{% else %}archived{% endif %}">
+                {{ sec.status_display }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:#888;">No sections found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- All Schedule Entries -->
+  <div class="fd-widget">
+    <div class="fd-widget-header">
+      <div class="fd-widget-title"><i class="ti ti-calendar-event"></i> All Schedule Entries</div>
+      <span class="fd-widget-link">{{ schedules|length }} total</span>
+    </div>
+    <div class="fd-table-wrap">
+      <table class="fd-table">
+        <thead>
+          <tr>
+            <th>Section</th>
+            <th>Day</th>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Room</th>
+            <th>Building</th>
+            <th>Online</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sched in schedules %}
+          <tr>
+            <td><span class="fd-version">{{ sched.section_number }}</span></td>
+            <td><span class="sc-day-badge">{{ sched.day_of_week }}</span></td>
+            <td><span class="fd-date">{{ sched.dates|join:", " }}</span></td>
+            <td><span class="fd-date"><i class="ti ti-clock"></i> {{ sched.start_time }}</span></td>
+            <td><span class="fd-date">{{ sched.end_time }}</span></td>
+            <td>{{ sched.room }}</td>
+            <td>{{ sched.building }}</td>
+            <td>
+              {% if sched.is_online %}
+                <span class="fd-status active">Yes</span>
+              {% else %}
+                <span class="fd-status archived">No</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="fd-status {% if sched.section_status == 'CONFIRMED' %}active{% elif sched.section_status == 'PENDING' %}pending{% elif sched.section_status == 'CONFLICT' %}expiring{% else %}archived{% endif %}">
+                {{ sched.section_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" style="text-align:center;padding:24px;color:#888;">No schedule entries found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+<!-- **************************************** Rixie code **************************************************** -->

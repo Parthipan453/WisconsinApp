@@ -1,0 +1,312 @@
+{% extends "dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Coach Management{% endblock %}
+{% block page_title %}Coach Management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_red.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<link rel="stylesheet" href="{% static 'css/reports/coach.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+{% endblock %}
+
+{% block content %}
+<div class="sp-dashboard">
+
+  <!-- Hero banner -->
+  <div class="co-hero">
+    <div class="co-hero-left">
+      <div class="co-hero-icon"><i class="ti ti-users"></i></div>
+      <div>
+        <h1 class="co-hero-title">Coach Management</h1>
+        <p class="co-hero-desc">Manage coaches, their qualifications, certifications and assigned teams.</p>
+      </div>
+    </div>
+    <div class="co-hero-right">
+      <!-- <a href="{% url 'assign_coach' %}" class="co-hero-btn"><i class="ti ti-plus"></i> Assign Coach</a> -->
+      <button class="co-hero-btn" data-bs-toggle="modal" data-bs-target="#assignCoachModal">
+        <i class="ti ti-user-plus"></i>
+        Assign Coach
+      </button>
+    </div>
+    {% if hero_photo_url %}
+    <img class="co-hero-photo" src="{{ hero_photo_url }}" alt="coach hero">
+    {% endif %}
+  </div>
+
+  <!-- Stat cards -->
+  <div class="row g-3 g-md-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="co-stat-card">
+        <div class="co-stat-icon co-stat-icon--primary"><i class="ti ti-users"></i></div>
+        <div>
+          <div class="co-stat-number">{{ total_coaches }}</div>
+          <div class="co-stat-label">Total Coaches</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="co-stat-card">
+        <div class="co-stat-icon co-stat-icon--success"><i class="ti ti-shield-check"></i></div>
+        <div>
+          <div class="co-stat-number">{{ active_coaches }}</div>
+          <div class="co-stat-label">Active Coaches</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="co-stat-card">
+        <div class="co-stat-icon co-stat-icon--warning"><i class="ti ti-briefcase"></i></div>
+        <div>
+          <div class="co-stat-number">{{ full_time_coaches }}</div>
+          <div class="co-stat-label">Full-Time Coaches</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="co-stat-card">
+        <div class="co-stat-icon co-stat-icon--secondary"><i class="ti ti-ball-basketball"></i></div>
+        <div>
+          <div class="co-stat-number">{{ sports_covered }}</div>
+          <div class="co-stat-label">Sports Covered</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="sp-filter-glass mb-4">
+    <div class="sp-filter-group">
+      <div class="sp-filter-input">
+        <i class="fas fa-search"></i>
+        <input type="text" id="coachSearch" placeholder="Search coaches by name, email or phone..."
+          oninput="filterCoaches()" />
+      </div>
+      <div class="sp-filter-selects">
+        <select class="sp-select-glass" id="filterStatus" onchange="filterCoaches()">
+          <option value="">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+        </select>
+        <select class="sp-select-glass" id="filterExperience" onchange="filterCoaches()">
+          <option value="">Experience</option>
+          <option value="0-5">0-5 Years</option>
+          <option value="5-10">5-10 Years</option>
+          <option value="10+">10+ Years</option>
+        </select>
+        <select class="sp-select-glass" id="filterGender" onchange="filterCoaches()">
+          <option value="">All Gender</option>
+          <option value="MALE">Male</option>
+          <option value="FEMALE">Female</option>
+        </select>
+      </div>
+      <button class="co-reset-btn" onclick="resetCoachFilters()"><i class="ti ti-refresh"></i> Reset Filter</button>
+    </div>
+    <p>{{ coach.gender }}</p>
+
+  </div>
+
+  <!-- Coach cards -->
+
+  <div class="row g-3 g-md-4" id="coachGrid">
+    {% for coach in coaches %}
+    {% cycle 'primary' 'success' 'secondary' 'warning' as accent silent %}
+
+    <div class="col-md-6 col-xl-4 co-card-col" data-name="{{ coach.full_name|lower }}" data-sport="{{ coach.sport|lower }}"
+      data-role="{{ coach.role|lower }}" data-status="{% if coach.account_status %}active{% else %}inactive{% endif %}"
+      data-email="{{ coach.email|lower }}" data-phone="{{ coach.phone }}" data-gender="{{ coach.gender }}"
+     data-experience="{{ coach.experience_years|default:0 }}">
+
+            <div class="co-card co-card--accent-{{ accent }}">
+              <div class="co-card-menu">
+                  <button class="co-menu-btn" onclick="toggleCoachMenu(this)">
+                    <i class="ti ti-dots-vertical"></i>
+                  </button>
+                <div class="co-menu-dropdown">
+                    <a href="{% url 'coach_view' coach.coach_id  %}" class="co-menu-item">
+                        <i class="ti ti-eye"></i>View
+                    </a>
+                    <a href="{% url 'edit_coach' coach.coach_id %}" class="co-menu-item edit">
+                        <i class="ti ti-edit"></i>Edit
+                    </a>
+                </div>
+            </div>
+
+        <div class="co-avatar">
+          {% if coach.photo_url %}
+          <img src="{{ coach.photo_url }}" alt="{{ coach.full_name }}">
+          {% else %}
+          <span>{{ coach.initials }}</span>
+          {% endif %}
+        </div>
+
+        <h3 class="co-name">{{ coach.full_name }}</h3>
+
+        <p class="co-title">{{ coach.role }}</p>
+        <div class="coach-meta">
+          <span class="co-sport-badge {{ coach.sport_class }}">
+            {% if "football" in coach.first_sport|lower %}
+                <i class="fa-solid fa-futbol"></i>
+
+            {% elif "basketball" in coach.first_sport|lower %}
+                <i class="fa-solid fa-basketball"></i>
+
+            {% elif "cricket" in coach.first_sport|lower %}
+                <i class="fa-solid fa-baseball-bat-ball"></i>
+
+            {% elif "table tennis" in coach.first_sport|lower %}
+                <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+
+            {% elif "badminton" in coach.first_sport|lower %}
+                <i class="mdi mdi-badminton"></i>
+
+            {% elif "swimming" in coach.first_sport|lower %}
+                <i class="fa-solid fa-person-swimming"></i>
+
+            {% elif "tennis" in coach.first_sport|lower %}
+                <i class="fa-solid fa-tennis-ball"></i>
+
+            {% elif "volleyball" in coach.first_sport|lower %}
+                <i class="fa-solid fa-volleyball"></i>
+
+            {% else %}
+                <i class="fa-solid fa-trophy"></i>
+            {% endif %}
+
+            <!-- {{ coach.sport }} -->
+              {{ coach.first_sport }}
+
+            {% if coach.more_sports %}
+                <span class="co-more">+{{ coach.more_sports }}</span>
+            {% endif %}
+          </span>
+          <div class="co-status">
+            <span class="sp-card-status status-{{ coach.account_status|lower }}">
+                <span class="sp-status-dot"></span>
+                {{ coach.account_status }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+
+    <div class="col-12">
+      <div class="sp-empty-glass">
+        <i class="ti ti-user-off"></i>
+        <h4>No Coaches Assigned</h4>
+        <p>Click <strong>Assign Coach</strong> to assign a staff member as a coach.</p>
+      </div>
+    </div>
+
+    {% endfor %}
+  </div>
+
+  <div class="sp-empty-glass mt-3" id="coachEmptyState">
+    <i class="fas fa-user-slash"></i>
+    <h3>No Coaches Found</h3>
+    <p>Try adjusting your search or filter criteria</p>
+  </div>
+
+  <div class="sp-pagination-glass mt-4" id="coachPaginationBar">
+    <span id="coachPaginationInfo"></span>
+    <div class="sp-pag-btns ms-auto" id="coachPaginationBtns"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+<!-- add coaches modal -->
+{% block global_modal %}
+<div class="modal fade" id="assignCoachModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered ">
+    <div class="modal-content">
+
+      <form method="POST" id="assignCoachForm" action="{% url 'assign_coach' %}" novalidate>
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="ti ti-user-plus"></i>
+            Assign Coach
+          </h5>
+
+          <button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <div class="mb-3">
+            <label class="form-label">
+              Staff <span class="text-danger">*</span>
+            </label>
+            <select id="staff" name="staff" class="form-select" >
+              <option value="">Select Staff</option>
+              {% for staff in available_staff %}
+              <option value="{{ staff.employee_id }}">
+                {{ staff.user.full_name }}
+                ({{ staff.employee_id }})
+              </option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">
+              Role <span class="text-danger">*</span>
+            </label>
+            <select class="form-select" id="role" name="role">
+              <option value="">Select Role</option>
+              {% for value,label in roles %}
+              <option value="{{ value }}">
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label mb-">
+              Hire Date <span class="text-danger"> *</span>
+            </label>
+            <input type="text" id="hire_date" name="hire_date" class="form-control" >
+            <div class="invalid-feedback"></div>
+          </div>
+
+          <div clas="mb-3">
+            <label class="form-label">
+              Certification <span class="text-muted"> (optional)</span>
+            </label>
+            <textarea class="form-control" id="certification" name="certifications"></textarea>
+            <div class="invalid-feedback"></div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+              Cancel
+            </button>
+
+            <button class="btn btn-danger">
+              <i class="ti ti-user-plus"></i>
+              Assign Coach
+            </button>
+
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="{% static 'script/reports/coach.js' %}"></script>
+{% endblock %}

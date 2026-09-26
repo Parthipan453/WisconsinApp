@@ -1,0 +1,338 @@
+
+{% extends "faculty_base.html" %}
+{% load static %}
+
+{% block title %}
+Faculty Dashboard
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rupa/facultydashboard/faculty_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<style>
+  .sidebar-overlay, [class*="overlay"], [class*="mask"] {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      z-index: -9999 !important;
+  }
+  [data-aos] {
+      opacity: 1 !important;
+      transform: none !important;
+      visibility: visible !important;
+      transition: none !important;
+  }
+  .stat-grid, .charts-row, .bottom-row, .card, .stat-card {
+      opacity: 1 !important;
+      visibility: visible !important;
+  }
+</style>
+
+<div class="page-header" data-aos="fade-down" data-aos-duration="400">
+  <div>
+    <div class="page-title">Faculty Dashboard</div>
+    <div class="page-sub">Welcome back, {{ faculty.user.first_name }}</div>
+  </div>
+  <div class="date-selector">
+    <i class="ti ti-calendar-event"></i>
+    <span>01 Jan 2026, Monday</span>
+    <i class="ti ti-chevron-down dropdown-arrow"></i>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="0">
+    <div class="stat-icon si-red"><i class="ti ti-school"></i></div>
+    <div>
+      <div class="stat-label">Courses Teaching</div>
+      <div class="stat-value">{{ total_courses }}</div>
+      <div class="stat-trend neutral">Spring 2026</div>
+    </div>
+  </div>
+
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="60">
+    <div class="stat-icon si-purple"><i class="ti ti-users"></i></div>
+    <div>
+      <div class="stat-label">Total Students</div>
+      <div class="stat-value">{{ total_students }}</div>
+      <div class="stat-trend neutral">Across {{ total_courses }} sections</div>
+    </div>
+  </div>
+
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="120">
+    <div class="stat-icon si-green"><i class="ti ti-notebook"></i></div>
+    <div>
+      <div class="stat-label">Classes This Week</div>
+      <div class="stat-value">{{ total_classes }}</div>
+      <div class="stat-trend neutral">Scheduled sessions</div>
+    </div>
+  </div>
+
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="180">
+    <div class="stat-icon si-orange"><i class="ti ti-file-analytics"></i></div>
+    <div>
+      <div class="stat-label">Assignments to Grade</div>
+      <div class="stat-value">{{ assignments_to_grade }}</div>
+      <div class="stat-trend neutral">Due within 7 days</div>
+    </div>
+  </div>
+
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="240">
+    <div class="stat-icon si-blue"><i class="ti ti-star"></i></div>
+    <div>
+      <div class="stat-label">Student Feedback</div>
+      <div class="stat-value">{{ avg_feedback }}<span class="stat-val-small">/5</span></div>
+      <div class="stat-trend neutral">Latest evaluations</div>
+    </div>
+  </div>
+
+  <div class="stat-card" data-aos="fade-up" data-aos-duration="500" data-aos-delay="300">
+    <div class="stat-icon si-red"><i class="ti ti-clock-hour-4"></i></div>
+    <div>
+      <div class="stat-label">Office Hours</div>
+      <div class="stat-value">{{ office_hours_count }}</div>
+      <div class="stat-trend neutral">This Week</div>
+    </div>
+  </div>
+</div>
+
+<div class="charts-row">
+  <div class="card card-schedule" data-aos="fade-up" data-aos-duration="600" data-aos-delay="0">
+    <div class="card-header">
+      <div class="card-title">Teaching Schedule Today</div>
+    </div>
+    <div class="card-body scroll-vertical">
+      {% for schedule in today_schedules %}
+      <div class="schedule-item">
+        <div class="time-block">
+          <span class="time-start">{{ schedule.start_time|time:"h:i A" }}</span>
+          <span class="time-end">{{ schedule.end_time|time:"h:i A" }}</span>
+        </div>
+        <div class="schedule-details">
+          <div class="course-code-title">{{ schedule.section_id.course.course_code }}</div>
+          <div class="course-venue">
+            {% if schedule.building %}{{ schedule.building }} - {% endif %}{{ schedule.room }}
+          </div>
+        </div>
+        <div class="type-badge">{{ schedule.section_id.section_type }}</div>
+      </div>
+      {% empty %}
+      <p class="empty-state">No classes scheduled today.</p>
+      {% endfor %}
+    </div>
+    <div class="card-footer-action">
+      <a href="{% url 'course_schedule_page' uuid %}" class="action-link">View full schedule</a>
+    </div>
+  </div>
+
+  <div class="card card-chart" data-aos="fade-up" data-aos-duration="600" data-aos-delay="100">
+    <div class="card-header">
+      <div class="card-title">Course Overview <span>(Spring 2026)</span></div>
+    </div>
+    <div class="card-body chart-flex-container">
+      <div class="donut-wrapper">
+        <canvas id="facultyCourseDonut"></canvas>
+        <div class="donut-center-text">
+          <span class="center-num">{{ total_enrolled }}</span>
+          <span class="center-lbl">Total Students</span>
+        </div>
+      </div>
+      <div class="chart-legend-stack">
+        {% for c in course_overview %}
+        <div class="legend-row">
+          <span class="legend-dot dot-{{ c.color }}"></span>
+          {{ c.course_code }} <span class="lbl-count">{{ c.student_count }} students</span>
+        </div>
+        {% empty %}
+        <p class="empty-state">No assigned courses yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card-footer-action">
+      <a href="{% url 'my_courses_page' uuid %}" class="action-link">View all courses</a>
+    </div>
+  </div>
+
+  <div class="card card-chart" data-aos="fade-up" data-aos-duration="600" data-aos-delay="200">
+    <div class="card-header">
+      <div class="card-title">Grade Distribution</div>
+    </div>
+    <div class="card-body pad-top-adjust">
+      <canvas id="facultyGradeBar" height="150"></canvas>
+    </div>
+    <div class="card-footer-action">
+      <a href="#" class="action-link">View gradebook</a>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-row">
+  <div class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="0">
+    <div class="card-header">
+      <div class="card-title">Upcoming Deadlines</div>
+    </div>
+    <div class="card-body deadline-scroll scroll-vertical">
+      {% for d in upcoming_deadlines %}
+      <div class="deadline-item">
+        <div class="deadline-date-box">
+          <span class="month">{{ d.due_date|date:"M" }}</span>
+          <span class="day">{{ d.due_date|date:"d" }}</span>
+        </div>
+        <div class="deadline-info">
+          <div class="deadline-title">{{ d.title }}</div>
+          <div class="deadline-subtitle">{{ d.course_code }}</div>
+        </div>
+        <div class="days-remaining-badge">{{ d.days_left }} Days left</div>
+      </div>
+      {% empty %}
+      <p class="empty-state">No upcoming deadlines.</p>
+      {% endfor %}
+    </div>
+    <div class="card-footer-action">
+      <a href="#" class="action-link">View all deadlines</a>
+    </div>
+  </div>
+
+<div class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="100">
+  <div class="card-header">
+    <div class="card-title">My Advising</div>
+  </div>
+  <div class="card-body" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 16px 12px;">
+    <div style="display: flex; gap: 12px; width: 100%;">
+
+      <div style="flex: 1; background: #f8fafc; border: 1px solid #eef2f6; border-radius: 10px; padding: 18px 6px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;">
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: #f5f3ff; color: #8b5cf6; display: flex; align-items: center; justify-content: center;">
+          <i class="ti ti-users" style="font-size: 16px;"></i>
+        </div>
+        <div style="font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1;">{{ total_advisees }}</div>
+        <div style="font-size: 10px; font-weight: 500; color: #64748b;">Total Advisees</div>
+      </div>
+
+      <div style="flex: 1; background: #f8fafc; border: 1px solid #eef2f6; border-radius: 10px; padding: 18px 6px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;">
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center;">
+          <i class="ti ti-user-plus" style="font-size: 16px;"></i>
+        </div>
+        <div style="font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1;">{{ new_advisees }}</div>
+        <div style="font-size: 10px; font-weight: 500; color: #64748b;">New This Term</div>
+      </div>
+
+      <div style="flex: 1; background: #f8fafc; border: 1px solid #eef2f6; border-radius: 10px; padding: 18px 6px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;">
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: #fff7ed; color: #f97316; display: flex; align-items: center; justify-content: center;">
+          <i class="ti ti-calendar-event" style="font-size: 16px;"></i>
+        </div>
+        <div style="font-size: 20px; font-weight: 700; color: #1e293b; line-height: 1;">{{ pending_meetings|default:0 }}</div>
+        <div style="font-size: 10px; font-weight: 500; color: #64748b;">Pending Meetings</div>
+      </div>
+
+    </div>
+  </div>
+  <div class="card-footer-action">
+    <a href="#" class="action-link">View advisees</a>
+  </div>
+</div>
+
+  <div class="card" data-aos="fade-up" data-aos-duration="600" data-aos-delay="200">
+    <div class="card-header">
+      <div class="card-title">Recent Activity</div>
+    </div>
+    <div class="card-body {% if recent_activity %}timeline-wrapper{% endif %}">
+      {% for a in recent_activity %}
+      <div class="timeline-item">
+        <div class="timeline-time">{{ a.time }}</div>
+        <div class="timeline-dot dot-{{ a.color }}"></div>
+        <div class="timeline-content">
+          <div class="tl-action">{{ a.action }}</div>
+          <div class="tl-context">{{ a.context }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <p class="empty-state">No recent activity.</p>
+      {% endfor %}
+    </div>
+    <div class="card-footer-action">
+      <a href="#" class="action-link">View all activity</a>
+    </div>
+  </div>
+</div>
+
+{{ course_overview|json_script:"course-overview-data" }}
+{{ grade_distribution|json_script:"grade-distribution-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const courseEl = document.getElementById('course-overview-data');
+    const gradeEl = document.getElementById('grade-distribution-data');
+
+    if (!courseEl || !gradeEl) {
+      console.error('Chart data script tags not found in DOM — check json_script tags in template.');
+      return;
+    }
+
+    const courseData = JSON.parse(courseEl.textContent);
+    const gradeDist = JSON.parse(gradeEl.textContent);
+
+    const donutCanvas = document.getElementById('facultyCourseDonut');
+    if (donutCanvas && courseData.length > 0) {
+      new Chart(donutCanvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: courseData.map(c => c.course_code),
+          datasets: [{
+            data: courseData.map(c => c.student_count),
+            backgroundColor: courseData.map(c => ({
+              red: '#ef4444', blue: '#3b82f6', green: '#10b981',
+              purple: '#8b5cf6', orange: '#f59e0b'
+            }[c.color] || '#94a3b8')),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutout: '75%',
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+    const barCanvas = document.getElementById('facultyGradeBar');
+    if (barCanvas) {
+      new Chart(barCanvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(gradeDist),
+          datasets: [{
+            data: Object.values(gradeDist),
+            backgroundColor: ['#c5050c', '#3b82f6', '#10b981', '#f59e0b', '#7c3aed'],
+            borderRadius: 4,
+            barThickness: 24
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  });
+
+  if (typeof AOS !== 'undefined') {
+    AOS.init({ duration: 500, once: true, offset: 20, mirror: false });
+  }
+</script>
+{% endblock %}
+
+
+
